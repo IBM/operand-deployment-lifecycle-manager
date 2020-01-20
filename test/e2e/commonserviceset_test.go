@@ -98,9 +98,12 @@ func CommonServiceSetCluster(t *testing.T) {
 	if err = createTest(olmClient, f, ctx); err != nil {
 		t.Fatal(err)
 	}
+
+	// Command out update temporarily
 	// if err = updateTest(olmClient, f, ctx); err != nil {
 	// 	t.Fatal(err)
 	// }
+
 	if err = deleteTest(olmClient, f, ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -153,37 +156,37 @@ func createTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 	return nil
 }
 
-func updateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *framework.TestCtx) error {
-	namespace, err := ctx.GetNamespace()
-	if err != nil {
-		return err
-	}
-	setInstance := &operator.CommonServiceSet{}
-	fmt.Println("--- UPDATE: subscription")
-	// Get CommonServiceSet instance
-	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: setCrName, Namespace: namespace}, setInstance)
-	if err != nil {
-		return err
-	}
+// func updateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *framework.TestCtx) error {
+// 	namespace, err := ctx.GetNamespace()
+// 	if err != nil {
+// 		return err
+// 	}
+// 	setInstance := &operator.CommonServiceSet{}
+// 	fmt.Println("--- UPDATE: subscription")
+// 	// Get CommonServiceSet instance
+// 	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: setCrName, Namespace: namespace}, setInstance)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	setInstance.Spec.Services[0].Channel = "clusterwide-alpha"
-	err = f.Client.Update(goctx.TODO(), setInstance)
-	if err != nil {
-		return err
-	}
+// 	setInstance.Spec.Services[0].Channel = "clusterwide-alpha"
+// 	err = f.Client.Update(goctx.TODO(), setInstance)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	// wait for updated csv ready
-	optMap, err := getOperators(f, namespace)
-	if err != nil {
-		return err
-	}
-	opt := optMap[setInstance.Spec.Services[0].Name]
-	err = waitForSubCsvReady(olmClient, metav1.ObjectMeta{Name: opt.Name, Namespace: opt.Namespace})
-	if err != nil {
-		return err
-	}
-	return nil
-}
+// 	// wait for updated csv ready
+// 	optMap, err := getOperators(f, namespace)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	opt := optMap[setInstance.Spec.Services[0].Name]
+// 	err = waitForSubCsvReady(olmClient, metav1.ObjectMeta{Name: opt.Name, Namespace: opt.Namespace})
+// 	if err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
 
 func deleteTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *framework.TestCtx) error {
 	namespace, err := ctx.GetNamespace()
