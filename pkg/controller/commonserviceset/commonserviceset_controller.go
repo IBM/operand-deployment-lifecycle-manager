@@ -377,9 +377,6 @@ func (r *ReconcileCommonServiceSet) waitForInstallPlan() error {
 				return false, nil
 			}
 		}
-		if err != nil {
-			return false, err
-		}
 		return true, nil
 	}, ctx.Done())
 }
