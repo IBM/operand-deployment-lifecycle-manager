@@ -1,0 +1,37 @@
+---
+language: go
+dist: xenial
+
+env:
+  - GO111MODULE=on
+
+os:
+  - linux
+  - linux-ppc64le
+  - linux-s390
+
+go:
+  - 1.13
+
+services:
+  - docker
+
+branches:
+  only:
+    - master
+
+
+install:
+  - docker info
+  - go env
+
+script:
+  - make image-build
+  - |
+    if [[ "$TRAVIS_EVENT_TYPE" != "pull_request" ]]; then
+      docker login -u=${DOCKER_USER} -p=${DOCKER_PASSWORD} quay.io
+      make image-push
+    fi
+
+notifications:
+  email: false

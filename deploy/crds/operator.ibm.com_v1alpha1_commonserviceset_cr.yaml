@@ -1,0 +1,10 @@
+apiVersion: operator.ibm.com/v1alpha1
+kind: CommonServiceSet
+metadata:
+  name: common-service
+spec:
+  services:
+  - name: etcd
+    state: present
+  - name: jenkins
+    state: present

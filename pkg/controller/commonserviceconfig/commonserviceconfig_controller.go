@@ -1,0 +1,106 @@
+package commonserviceconfig
+
+import (
+	"context"
+	"os"
+
+	olmclient "github.com/operator-framework/operator-lifecycle-manager/pkg/api/client/clientset/versioned"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
+
+	operatorv1alpha1 "github.ibm.com/IBMPrivateCloud/common-service-operator/pkg/apis/operator/v1alpha1"
+	"github.ibm.com/IBMPrivateCloud/common-service-operator/pkg/util"
+)
+
+var log = logf.Log.WithName("controller_commonserviceconfig")
+
+/**
+* USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
+* business logic.  Delete these comments after modifying this file.*
+ */
+
+// Add creates a new CommonServiceConfig Controller and adds it to the Manager. The Manager will set fields on the Controller
+// and Start it when the Manager is Started.
+func Add(mgr manager.Manager) error {
+	return add(mgr, newReconciler(mgr))
+}
+
+// newReconciler returns a new reconcile.Reconciler
+func newReconciler(mgr manager.Manager) reconcile.Reconciler {
+	olmClientset, err := olmclient.NewForConfig(mgr.GetConfig())
+	if err != nil {
+		log.Error(err, "Initialize the OLM client failed.")
+		return nil
+	}
+	return &ReconcileCommonServiceConfig{client: mgr.GetClient(), scheme: mgr.GetScheme(), olmClient: olmClientset}
+}
+
+// add adds a new Controller to mgr with r as the reconcile.Reconciler
+func add(mgr manager.Manager, r reconcile.Reconciler) error {
+	// Create a new controller
+	c, err := controller.New("commonserviceconfig-controller", mgr, controller.Options{Reconciler: r})
+	if err != nil {
+		return err
+	}
+
+	// Watch for changes to primary resource CommonServiceConfig
+	err = c.Watch(&source.Kind{Type: &operatorv1alpha1.CommonServiceConfig{}}, &handler.EnqueueRequestForObject{})
+	if err != nil {
+		return err
+	}
+
+	// Create an example CommonServiceConfig CR
+	deployDirectory := os.Getenv("DEPLOY_DIR")
+	if err = util.InitInstance(deployDirectory+"/operator.ibm.com_v1alpha1_commonserviceconfig_cr.yaml", mgr); err != nil {
+		log.Error(err, "Error creating CR, please create it manually")
+	}
+
+	return nil
+}
+
+// blank assignment to verify that ReconcileCommonServiceConfig implements reconcile.Reconciler
+var _ reconcile.Reconciler = &ReconcileCommonServiceConfig{}
+
+// ReconcileCommonServiceConfig reconciles a CommonServiceConfig object
+type ReconcileCommonServiceConfig struct {
+	// This client, initialized using mgr.Client() above, is a split client
+	// that reads objects from the cache and writes to the apiserver
+	client    client.Client
+	scheme    *runtime.Scheme
+	olmClient *olmclient.Clientset
+}
+
+// Reconcile reads that state of the cluster for a CommonServiceConfig object and makes changes based on the state read
+// and what is in the CommonServiceConfig.Spec
+// TODO(user): Modify this Reconcile function to implement your Controller logic.  This example creates
+// a Pod as an example
+// Note:
+// The Controller will requeue the Request to be processed again if the returned error is non-nil or
+// Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
+func (r *ReconcileCommonServiceConfig) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
+	reqLogger.Info("Reconciling CommonServiceConfig")
+
+	// Fetch the CommonServiceConfig instance
+	instance := &operatorv1alpha1.CommonServiceConfig{}
+	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			// Request object not found, could have been deleted after reconcile request.
+			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
+			// Return and don't requeue
+			return reconcile.Result{}, nil
+		}
+		// Error reading the object - requeue the request.
+		return reconcile.Result{}, err
+	}
+
+	return reconcile.Result{}, err
+}

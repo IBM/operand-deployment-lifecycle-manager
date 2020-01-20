@@ -1,0 +1,14 @@
+image: __IMAGE_REPO__/__IMAGE_NAME__:__RELEASE_TAG__
+manifests:
+  - image: __IMAGE_REPO__/__IMAGE_NAME__-amd64:__RELEASE_TAG__
+    platform:
+      architecture: amd64
+      os: linux
+  - image: __IMAGE_REPO__/__IMAGE_NAME__-ppc64le:__RELEASE_TAG__
+    platform:
+      architecture: ppc64le
+      os: linux
+  - image: __IMAGE_REPO__/__IMAGE_NAME__-s390x:__RELEASE_TAG__
+    platform:
+      architecture: s390x
+      os: linux
