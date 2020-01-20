@@ -29,7 +29,7 @@ env:
     - AWESOMEBOT_VERSION=1.19.1
     - HTMLPROOFER_VERSION=3.9.2
     - MDL_VERSION=0.5.0
-    - MARKDOWN_LINT_WHITELIST=./docs/install.md
+    - MARKDOWN_LINT_WHITELIST=https://quay.io/cnr
 
 # Only build on master, stable branches
 # don't need to build on tags anymore since cicd process will promote master to stable
