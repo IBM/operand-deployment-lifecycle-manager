@@ -1,0 +1,68 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: common-service-operator
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - services
+  - services/finalizers
+  - endpoints
+  - persistentvolumeclaims
+  - events
+  - configmaps
+  - secrets
+  - namespaces
+  verbs:
+  - '*'
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - daemonsets
+  - replicasets
+  - statefulsets
+  verbs:
+  - '*'
+# - apiGroups:
+#   - monitoring.coreos.com
+#   resources:
+#   - servicemonitors
+#   verbs:
+#   - get
+#   - create
+- apiGroups:
+  - apps
+  resourceNames:
+  - common-service-operator
+  resources:
+  - deployments/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - apps
+  resources:
+  - replicasets
+  - deployments
+  verbs:
+  - get
+- apiGroups:
+  - operator.ibm.com
+  - operators.coreos.com
+# Add etcd and jenkins apigroup for testing
+  - etcd.database.coreos.com
+  - jenkins.io
+  resources:
+  - '*'
+  verbs:
+  - '*'

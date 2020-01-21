@@ -1,0 +1,18 @@
+apiVersion: operator.ibm.com/v1alpha1
+kind: MetaOperator
+metadata:
+  name: common-service
+spec:
+  operators:
+  - name: jenkins
+    namespace: jenkins-operator
+    channel: alpha
+    packageName: jenkins-operator
+    sourceName: community-operators
+    sourceNamespace: openshift-marketplace
+  - name: etcd
+    namespace: etcd-operator
+    channel: singlenamespace-alpha
+    packageName: etcd
+    sourceName: community-operators
+    sourceNamespace: openshift-marketplace
