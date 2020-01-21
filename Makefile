@@ -15,6 +15,9 @@
 # limitations under the License.
 #
 
+# The namespcethat operator will be deployed in
+NAMESPACE=common-service-operator
+
 # This repo is build locally for dev/test by default;
 # Override this variable in CI env.
 BUILD_LOCALLY ?= 1
@@ -111,6 +114,45 @@ coverage:
 install-operator-sdk: 
 	@operator-sdk version 2> /dev/null ; if [ $$? -ne 0 ]; then ./common/scripts/install-operator-sdk.sh; fi
 
+############################################################
+# install section
+############################################################
+
+install: ## Install all resources (CR/CRD's, RBCA and Operator)
+	@echo ....... Set environment variables ......
+	- export DEPLOY_DIR=deploy/crds
+	- export WATCH_NAMESPACE=${NAMESPACE}
+	@echo ....... Creating namespace ....... 
+	- kubectl create namespace ${NAMESPACE}
+	@echo ....... Applying CRDS and Operator .......
+	- kubectl apply -f deploy/crds/operator.ibm.com_metaoperators_crd.yaml
+	- kubectl apply -f deploy/crds/operator.ibm.com_commonserviceconfigs_crd.yaml
+	- kubectl apply -f deploy/crds/operator.ibm.com_commonservicesets_crd.yaml
+	@echo ....... Applying RBAC .......
+	- kubectl apply -f deploy/service_account.yaml -n ${NAMESPACE}
+	- kubectl apply -f deploy/role.yaml -n ${NAMESPACE}
+	- kubectl apply -f deploy/role_binding.yaml -n ${NAMESPACE}
+	@echo ....... Applying Operator .......
+	- kubectl apply -f deploy/operator.yaml -n ${NAMESPACE}
+	@echo ....... Creating the Instance .......
+	- kubectl apply -f deploy/crds/operator.ibm.com_v1alpha1_commonserviceset_cr.yaml -n ${NAMESPACE}
+
+uninstall: ## Uninstall all that all performed in the $ make install
+	@echo ....... Uninstalling .......
+	@echo ....... Deleting CR .......
+	- kubectl delete -f deploy/crds/operator.ibm.com_v1alpha1_commonserviceset_cr.yaml -n ${NAMESPACE}
+	@echo ....... Deleting Operator .......
+	- kubectl delete -f deploy/operator.yaml -n ${NAMESPACE}
+	@echo ....... Deleting CRDs.......
+	- kubectl delete -f deploy/crds/operator.ibm.com_commonserviceconfigs_crd.yaml
+	- kubectl delete -f deploy/crds/operator.ibm.com_commonservicesets_crd.yaml
+	- kubectl delete -f deploy/crds/operator.ibm.com_metaoperators_crd.yaml
+	@echo ....... Deleting Rules and Service Account .......
+	- kubectl delete -f deploy/role_binding.yaml
+	- kubectl delete -f deploy/service_account.yaml
+	- kubectl delete -f deploy/role.yaml
+	@echo ....... Deleting namespace ${NAMESPACE}.......
+	- kubectl delete namespace ${NAMESPACE}
 ############################################################
 # build section
 ############################################################
