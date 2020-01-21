@@ -20,9 +20,9 @@ This is a common service operator for install the common service operator and in
 Checkout this Common Service Operator repository
 
 ```bash
-# mkdir $GOPATH/src/github.ibm.com/IBMPrivateCloud
-# cd $GOPATH/src/github.ibm.com/IBMPrivateCloud
-# git clone git@github.ibm.com:IBMPrivateCloud/common-service-operator.git
+# mkdir $GOPATH/src/github.com/IBM
+# cd $GOPATH/src/github.com/IBM
+# git clone git@github.com:IBM/common-service-operator.git
 # cd common-service-operator
 ```
 
@@ -31,8 +31,7 @@ Checkout this Common Service Operator repository
 Build the Common Service operator image and push it to a public registry, such as quay.io:
 
 ```bash
-# make image-build
-# make image-push
+# make image
 ```
 
 ### Installing
