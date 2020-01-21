@@ -1,0 +1,15 @@
+apiVersion: operator.ibm.com/v1alpha1
+kind: CommonServiceConfig
+metadata:
+  name: common-service
+spec:
+  services:
+  - name: jenkins
+    spec:
+      jenkins:
+        service:
+          port: 8081
+  - name: etcd
+    spec:
+      etcdCluster:
+        size: 1

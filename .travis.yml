@@ -1,0 +1,134 @@
+---
+sudo: required
+dist: xenial
+
+services:
+  - docker
+
+cache: $TRAVIS_CACHE
+
+language: go
+
+go:
+  - "1.12"
+
+# Always set the project's Go import path to ensure that forked
+# builds get cloned to the correct location.
+go_import_path: github.com/IBM/go-repo-template
+
+env:
+  global:
+    - GO111MODULE=on
+    - GOPROXY=https://proxy.golang.org
+    - GOLANGCI_LINT_VERSION=v1.18.0
+    - HELM_VERSION=v2.10.0
+    - HADOLINT_VERSION=v1.17.2
+    - SHELLCHECK_VERSION=v0.7.0
+    - AUTOPEP8_VERSION=1.4.4
+    - YAMLLINT_VERSION=1.17.0
+    - AWESOMEBOT_VERSION=1.19.1
+    - HTMLPROOFER_VERSION=3.9.2
+    - MDL_VERSION=0.5.0
+    - MARKDOWN_LINT_WHITELIST=https://quay.io/cnr
+
+# Only build on master, stable branches
+# don't need to build on tags anymore since cicd process will promote master to stable
+branches:
+  only:
+    - master
+
+stages:
+  - lint
+  - name: test
+    if: type = pull_request
+  - build
+  - name: coverage
+    # Only execute deploy stage if we are pushing to master
+    # as this pushes images to integration
+    if: type = push
+  - name: deploy
+    # Only execute deploy stage if we are pushing to master
+    # as this pushes images to integration
+    if: type = push
+
+install:
+  - go get github.com/golangci/golangci-lint/cmd/golangci-lint@${GOLANGCI_LINT_VERSION}
+  - curl -LO https://storage.googleapis.com/kubernetes-helm/helm-${HELM_VERSION}-linux-amd64.tar.gz && tar -xf helm-${HELM_VERSION}-linux-amd64.tar.gz -C /tmp && mv /tmp/linux-amd64/helm ${HOME}/bin
+  - curl -L https://github.com/hadolint/hadolint/releases/download/${HADOLINT_VERSION}/hadolint-Linux-x86_64 -o ${HOME}/bin/hadolint && chmod 555 ${HOME}/bin/hadolint
+  - curl -LO https://storage.googleapis.com/shellcheck/shellcheck-${SHELLCHECK_VERSION}.linux.x86_64.tar.xz && tar -xJf shellcheck-${SHELLCHECK_VERSION}.linux.x86_64.tar.xz -C /tmp && mv /tmp/shellcheck-${SHELLCHECK_VERSION}/shellcheck ${HOME}/bin
+  - sudo apt-get update && sudo apt-get install -y --no-install-recommends python3-pip ruby-full
+  - sudo pip install autopep8==${AUTOPEP8_VERSION} && sudo pip install yamllint==${YAMLLINT_VERSION}
+  - sudo gem install --no-wrappers --no-document mdl -v ${MDL_VERSION} && sudo gem install --no-wrappers --no-document html-proofer -v ${HTMLPROOFER_VERSION} && sudo gem install --no-wrappers --no-document awesome_bot -v ${AWESOMEBOT_VERSION}
+
+jobs:
+  include:
+    - stage: lint
+      name: Perform linting before any jobs trigger
+      script:
+        - make lint
+
+    - stage: test
+      name: Test x86 source
+      os: linux
+      arch: amd64
+      script:
+        - make test
+    - stage: test
+      name: Test ppc64le source
+      os: linux
+      arch: ppc64le
+      script:
+        - make test
+    - stage: test
+      name: Test s390x source
+      os: linux
+      arch: s390x
+      script:
+        - make test
+
+    - stage: build
+      name: Build x86 binary
+      os: linux
+      arch: amd64
+      script:
+        - make build
+    - stage: build
+      name: Build ppc64le binary
+      os: linux
+      arch: ppc64le
+      script:
+        - make build
+    - stage: build
+      name: Build s390x binary
+      os: linux
+      arch: s390x
+      script:
+        - make build
+
+    - stage: coverage
+      name: Run the coverage after merge
+      script:
+        - make coverage
+
+    - stage: deploy
+      name: Build and push x86 images
+      os: linux
+      arch: amd64
+      script:
+        - make images
+    - stage: deploy
+      name: Build and push ppc64le images
+      os: linux
+      arch: ppc64le
+      script:
+        - make images
+    - stage: deploy
+      name: Build and push s390x images
+      os: linux
+      arch: s390x
+      script:
+        - make images
+
+# TBD. Suppressing for now.
+notifications:
+email: false

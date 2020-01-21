@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: common-service-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: common-service-operator
+  template:
+    metadata:
+      labels:
+        name: common-service-operator
+    spec:
+      serviceAccount: common-service-operator
+      containers:
+        - name: common-service-operator
+          # Replace this with the built image name
+          image: quay.io/opencloudio/common-service-operator
+          command:
+          - common-service-operator
+          imagePullPolicy: Always
+          env:
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: OPERATOR_NAME
+              value: "common-service-operator"

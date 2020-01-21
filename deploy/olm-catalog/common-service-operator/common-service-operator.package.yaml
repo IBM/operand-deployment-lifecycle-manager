@@ -1,0 +1,5 @@
+channels:
+- currentCSV: common-service-operator.v0.0.3
+  name: alpha
+defaultChannel: alpha
+packageName: common-service
