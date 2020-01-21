@@ -22,7 +22,7 @@ Checkout this Common Service Operator repository
 ```bash
 # mkdir $GOPATH/src/github.com/IBM
 # cd $GOPATH/src/github.com/IBM
-# git git@github.com:IBM/common-service-operator.git
+# git clone git@github.com:IBM/common-service-operator.git
 # cd common-service-operator
 ```
 
