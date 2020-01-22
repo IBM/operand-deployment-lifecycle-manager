@@ -26,15 +26,15 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		"github.com/horis233/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceConfig":       schema_pkg_apis_operator_v1alpha1_CommonServiceConfig(ref),
-		"github.com/horis233/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceConfigSpec":   schema_pkg_apis_operator_v1alpha1_CommonServiceConfigSpec(ref),
-		"github.com/horis233/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceConfigStatus": schema_pkg_apis_operator_v1alpha1_CommonServiceConfigStatus(ref),
-		"github.com/horis233/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceSet":          schema_pkg_apis_operator_v1alpha1_CommonServiceSet(ref),
-		"github.com/horis233/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceSetSpec":      schema_pkg_apis_operator_v1alpha1_CommonServiceSetSpec(ref),
-		"github.com/horis233/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceSetStatus":    schema_pkg_apis_operator_v1alpha1_CommonServiceSetStatus(ref),
-		"github.com/horis233/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperator":              schema_pkg_apis_operator_v1alpha1_MetaOperator(ref),
-		"github.com/horis233/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorSpec":          schema_pkg_apis_operator_v1alpha1_MetaOperatorSpec(ref),
-		"github.com/horis233/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorStatus":        schema_pkg_apis_operator_v1alpha1_MetaOperatorStatus(ref),
+		"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceConfig":       schema_pkg_apis_operator_v1alpha1_CommonServiceConfig(ref),
+		"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceConfigSpec":   schema_pkg_apis_operator_v1alpha1_CommonServiceConfigSpec(ref),
+		"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceConfigStatus": schema_pkg_apis_operator_v1alpha1_CommonServiceConfigStatus(ref),
+		"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceSet":          schema_pkg_apis_operator_v1alpha1_CommonServiceSet(ref),
+		"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceSetSpec":      schema_pkg_apis_operator_v1alpha1_CommonServiceSetSpec(ref),
+		"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceSetStatus":    schema_pkg_apis_operator_v1alpha1_CommonServiceSetStatus(ref),
+		"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperator":              schema_pkg_apis_operator_v1alpha1_MetaOperator(ref),
+		"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorSpec":          schema_pkg_apis_operator_v1alpha1_MetaOperatorSpec(ref),
+		"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorStatus":        schema_pkg_apis_operator_v1alpha1_MetaOperatorStatus(ref),
 	}
 }
 
@@ -66,19 +66,19 @@ func schema_pkg_apis_operator_v1alpha1_CommonServiceConfig(ref common.ReferenceC
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/horis233/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceConfigStatus"),
+							Ref: ref("github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceConfigStatus"),
 						},
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/horis233/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceConfigSpec"),
+							Ref: ref("github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceConfigSpec"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/horis233/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceConfigSpec", "github.com/horis233/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceConfigStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceConfigSpec", "github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceConfigStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
@@ -96,7 +96,7 @@ func schema_pkg_apis_operator_v1alpha1_CommonServiceConfigSpec(ref common.Refere
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/horis233/common-service-operator/pkg/apis/operator/v1alpha1.ConfigService"),
+										Ref: ref("github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.ConfigService"),
 									},
 								},
 							},
@@ -106,7 +106,7 @@ func schema_pkg_apis_operator_v1alpha1_CommonServiceConfigSpec(ref common.Refere
 			},
 		},
 		Dependencies: []string{
-			"github.com/horis233/common-service-operator/pkg/apis/operator/v1alpha1.ConfigService"},
+			"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.ConfigService"},
 	}
 }
 
@@ -125,7 +125,7 @@ func schema_pkg_apis_operator_v1alpha1_CommonServiceConfigStatus(ref common.Refe
 								Allows: true,
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/horis233/common-service-operator/pkg/apis/operator/v1alpha1.CrStatus"),
+										Ref: ref("github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.CrStatus"),
 									},
 								},
 							},
@@ -135,7 +135,7 @@ func schema_pkg_apis_operator_v1alpha1_CommonServiceConfigStatus(ref common.Refe
 			},
 		},
 		Dependencies: []string{
-			"github.com/horis233/common-service-operator/pkg/apis/operator/v1alpha1.CrStatus"},
+			"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.CrStatus"},
 	}
 }
 
@@ -167,19 +167,19 @@ func schema_pkg_apis_operator_v1alpha1_CommonServiceSet(ref common.ReferenceCall
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/horis233/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceSetSpec"),
+							Ref: ref("github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceSetSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/horis233/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceSetStatus"),
+							Ref: ref("github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceSetStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/horis233/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceSetSpec", "github.com/horis233/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceSetStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceSetSpec", "github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceSetStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
@@ -197,7 +197,7 @@ func schema_pkg_apis_operator_v1alpha1_CommonServiceSetSpec(ref common.Reference
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/horis233/common-service-operator/pkg/apis/operator/v1alpha1.SetService"),
+										Ref: ref("github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.SetService"),
 									},
 								},
 							},
@@ -208,7 +208,7 @@ func schema_pkg_apis_operator_v1alpha1_CommonServiceSetSpec(ref common.Reference
 			},
 		},
 		Dependencies: []string{
-			"github.com/horis233/common-service-operator/pkg/apis/operator/v1alpha1.SetService"},
+			"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.SetService"},
 	}
 }
 
@@ -226,7 +226,7 @@ func schema_pkg_apis_operator_v1alpha1_CommonServiceSetStatus(ref common.Referen
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/horis233/common-service-operator/pkg/apis/operator/v1alpha1.Condition"),
+										Ref: ref("github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.Condition"),
 									},
 								},
 							},
@@ -235,7 +235,7 @@ func schema_pkg_apis_operator_v1alpha1_CommonServiceSetStatus(ref common.Referen
 					"members": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Members represnets the current operators of the set",
-							Ref:         ref("github.com/horis233/common-service-operator/pkg/apis/operator/v1alpha1.MembersStatus"),
+							Ref:         ref("github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MembersStatus"),
 						},
 					},
 					"phase": {
@@ -250,7 +250,7 @@ func schema_pkg_apis_operator_v1alpha1_CommonServiceSetStatus(ref common.Referen
 			},
 		},
 		Dependencies: []string{
-			"github.com/horis233/common-service-operator/pkg/apis/operator/v1alpha1.Condition", "github.com/horis233/common-service-operator/pkg/apis/operator/v1alpha1.MembersStatus"},
+			"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.Condition", "github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MembersStatus"},
 	}
 }
 
@@ -282,19 +282,19 @@ func schema_pkg_apis_operator_v1alpha1_MetaOperator(ref common.ReferenceCallback
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/horis233/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorStatus"),
+							Ref: ref("github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorStatus"),
 						},
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/horis233/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorSpec"),
+							Ref: ref("github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorSpec"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/horis233/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorSpec", "github.com/horis233/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorSpec", "github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
@@ -312,7 +312,7 @@ func schema_pkg_apis_operator_v1alpha1_MetaOperatorSpec(ref common.ReferenceCall
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/horis233/common-service-operator/pkg/apis/operator/v1alpha1.Operator"),
+										Ref: ref("github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.Operator"),
 									},
 								},
 							},
@@ -322,7 +322,7 @@ func schema_pkg_apis_operator_v1alpha1_MetaOperatorSpec(ref common.ReferenceCall
 			},
 		},
 		Dependencies: []string{
-			"github.com/horis233/common-service-operator/pkg/apis/operator/v1alpha1.Operator"},
+			"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.Operator"},
 	}
 }
 
