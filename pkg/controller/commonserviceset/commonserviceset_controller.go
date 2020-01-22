@@ -156,8 +156,17 @@ func (r *ReconcileCommonServiceSet) Reconcile(request reconcile.Request) (reconc
 		}
 	}
 
+	// Fetch the MetaOperator instance
+	mo := &operatorv1alpha1.MetaOperator{}
+	if err := r.client.Get(context.TODO(), types.NamespacedName{Namespace: request.Namespace, Name: "common-service"}, mo); err != nil {
+		if errors.IsNotFound(err) {
+			return reconcile.Result{}, nil
+		}
+		return reconcile.Result{}, err
+	}
+
 	// Fetch all subscription definition
-	opts, err := r.fetchOperators(request, setInstance)
+	opts, err := r.fetchOperators(mo, setInstance)
 	if opts == nil {
 		if err != nil {
 			return reconcile.Result{}, err
@@ -221,7 +230,7 @@ func (r *ReconcileCommonServiceSet) Reconcile(request reconcile.Request) (reconc
 	}
 
 	// Fetch Subscriptions and check the status of install plan
-	err = r.waitForInstallPlan()
+	err = r.waitForInstallPlan(mo)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -282,15 +291,7 @@ func (r *ReconcileCommonServiceSet) Reconcile(request reconcile.Request) (reconc
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileCommonServiceSet) fetchOperators(req reconcile.Request, cr *operatorv1alpha1.CommonServiceSet) (map[string]operatorv1alpha1.Operator, error) {
-	// Fetch the MetaOperator instance
-	mo := &operatorv1alpha1.MetaOperator{}
-	if err := r.client.Get(context.TODO(), types.NamespacedName{Namespace: req.Namespace, Name: "common-service"}, mo); err != nil {
-		if errors.IsNotFound(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
+func (r *ReconcileCommonServiceSet) fetchOperators(mo *operatorv1alpha1.MetaOperator, cr *operatorv1alpha1.CommonServiceSet) (map[string]operatorv1alpha1.Operator, error) {
 
 	setMap, err := r.fetchSets(cr)
 	if err != nil {
@@ -345,7 +346,7 @@ func (r *ReconcileCommonServiceSet) fetchConfigs(req reconcile.Request, cr *oper
 	return cscMap, nil
 }
 
-func (r *ReconcileCommonServiceSet) waitForInstallPlan() error {
+func (r *ReconcileCommonServiceSet) waitForInstallPlan(mo *operatorv1alpha1.MetaOperator) error {
 	reqLogger := log.WithValues()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*10)
 	defer cancel()
@@ -369,6 +370,7 @@ func (r *ReconcileCommonServiceSet) waitForInstallPlan() error {
 			ip, err := r.olmClient.OperatorsV1alpha1().InstallPlans(sub.Namespace).Get(sub.Status.InstallPlanRef.Name, metav1.GetOptions{})
 
 			if err != nil {
+				r.updateOperatorStatus(mo, sub.ObjectMeta.Name, operatorv1alpha1.OperatorFailed)
 				return false, err
 			}
 
@@ -376,6 +378,8 @@ func (r *ReconcileCommonServiceSet) waitForInstallPlan() error {
 				reqLogger.Info("Waiting for Cluster Service Version of " + ip.Spec.ClusterServiceVersionNames[0] + " is ready")
 				return false, nil
 			}
+
+			r.updateOperatorStatus(mo, sub.ObjectMeta.Name, operatorv1alpha1.OperatorRunning)
 		}
 		return true, nil
 	}, ctx.Done())

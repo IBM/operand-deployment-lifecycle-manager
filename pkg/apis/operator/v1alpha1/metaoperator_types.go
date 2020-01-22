@@ -61,6 +61,9 @@ type MetaOperatorStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
+	// OperatorsStatus defines operator running state
+	// +optional
+	OperatorsStatus map[string]OperatorPhase `json:"operatorsStatus,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -76,6 +79,15 @@ type MetaOperator struct {
 	Status MetaOperatorStatus `json:"status,omitempty"`
 	Spec   MetaOperatorSpec   `json:"spec,omitempty"`
 }
+
+// OperatorPhase defines the operator status
+type OperatorPhase string
+
+// Operator status
+const (
+	OperatorRunning OperatorPhase = "Running"
+	OperatorFailed  OperatorPhase = "Failed"
+)
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
