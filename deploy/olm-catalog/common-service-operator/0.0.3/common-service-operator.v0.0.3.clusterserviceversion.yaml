@@ -6,6 +6,33 @@ metadata:
       [
         {
           "apiVersion": "operator.ibm.com/v1alpha1",
+          "kind": "MetaOperator",
+          "metadata": {
+            "name": "common-service"
+          },
+          "spec": {
+            "operators": [
+              {
+                "channel": "alpha",
+                "name": "jenkins",
+                "namespace": "jenkins-operator",
+                "packageName": "jenkins-operator",
+                "sourceName": "community-operators",
+                "sourceNamespace": "openshift-marketplace"
+              },
+              {
+                "channel": "singlenamespace-alpha",
+                "name": "etcd",
+                "namespace": "etcd-operator",
+                "packageName": "etcd",
+                "sourceName": "community-operators",
+                "sourceNamespace": "openshift-marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "apiVersion": "operator.ibm.com/v1alpha1",
           "kind": "CommonServiceConfig",
           "metadata": {
             "name": "common-service"
@@ -48,33 +75,6 @@ metadata:
               {
                 "name": "jenkins",
                 "state": "present"
-              }
-            ]
-          }
-        },
-        {
-          "apiVersion": "operator.ibm.com/v1alpha1",
-          "kind": "MetaOperator",
-          "metadata": {
-            "name": "common-service"
-          },
-          "spec": {
-            "operators": [
-              {
-                "channel": "alpha",
-                "name": "jenkins",
-                "namespace": "jenkins-operator",
-                "packageName": "jenkins-operator",
-                "sourceName": "community-operators",
-                "sourceNamespace": "openshift-marketplace"
-              },
-              {
-                "channel": "singlenamespace-alpha",
-                "name": "etcd",
-                "namespace": "etcd-operator",
-                "packageName": "etcd",
-                "sourceName": "community-operators",
-                "sourceNamespace": "openshift-marketplace"
               }
             ]
           }
@@ -182,6 +182,8 @@ spec:
         - apiGroups:
           - operator.ibm.com
           - operators.coreos.com
+          - etcd.database.coreos.com
+          - jenkins.io
           resources:
           - '*'
           verbs:

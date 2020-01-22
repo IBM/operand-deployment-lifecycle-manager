@@ -26,7 +26,7 @@ BUILD_LOCALLY ?= 1
 # Use your own docker registry and image name for dev/test by overridding the IMG and REGISTRY environment variable.
 IMG ?= common-service-operator
 REGISTRY ?= quay.io/opencloudio
-
+CSV_VERSION ?= 0.0.3
 # Github host to use for checking the source tree;
 # Override this variable ue with your own value if you're working on forked repo.
 GIT_HOST ?= github.com/IBM
@@ -153,6 +153,59 @@ uninstall: ## Uninstall all that all performed in the $ make install
 	- kubectl delete -f deploy/role.yaml
 	@echo ....... Deleting namespace ${NAMESPACE}.......
 	- kubectl delete namespace ${NAMESPACE}
+
+############################################################
+# development section
+############################################################
+
+code-vet: ## Run go vet for this project. More info: https://golang.org/cmd/vet/
+	@echo go vet
+	go vet $$(go list ./... )
+
+code-fmt: ## Run go fmt for this project
+	@echo go fmt
+	go fmt $$(go list ./... )
+
+code-tidy: ## Run go mod tidy to update dependencies
+	@echo go mod tidy
+	go mod tidy -v
+
+code-lint: ## Run golangci-lint to lint the code
+	@if  ! [ -x "$$(command -v golangci-lint)" ]; then echo "Don't find golangci-lint. Installing golangci-lint"; curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh| sh -s -- -b "$$(go env GOPATH)"/bin v1.21.0; fi;
+	@golangci-lint run --disable-all \
+		--deadline 5m \
+		--enable=nakedret \
+		--enable=interfacer \
+		--enable=varcheck \
+		--enable=deadcode \
+		--enable=structcheck \
+		--enable=misspell \
+		--enable=maligned \
+		--enable=ineffassign \
+		--enable=goconst \
+		--enable=goimports \
+		--enable=errcheck \
+		--enable=dupl \
+		--enable=unparam \
+		--enable=golint \
+		--fix
+
+code-gen: ## Run the operator-sdk commands to generated code (k8s and openapi and csv)
+	@echo Updating the deep copy files with the changes in the API
+	operator-sdk generate k8s
+	@echo Updating the CRD files with the OpenAPI validations
+	operator-sdk generate openapi
+	@echo Updating the CSV files with the changes in the CRD
+	operator-sdk olm-catalog gen-csv --csv-version ${CSV_VERSION} --update-crds
+
+code-dev: ## Run the default dev commands which are the go tidy, fmt, vet check the lint then execute the $ make code-gen
+	@echo Running the common required commands for developments purposes
+	- make code-tidy
+	- make code-fmt
+	- make code-vet
+	- make code-gen
+	- make code-lint
+
 ############################################################
 # build section
 ############################################################

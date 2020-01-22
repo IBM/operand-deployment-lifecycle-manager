@@ -27,7 +27,7 @@ func (r *ReconcileCommonServiceSet) updateOperatorStatus(cr *operatorv1alpha1.Me
 	if cr.Status.OperatorsStatus == nil {
 		cr.Status.OperatorsStatus = make(map[string]operatorv1alpha1.OperatorPhase)
 	}
-	
+
 	cr.Status.OperatorsStatus[operatorName] = operatorStatus
 
 	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
@@ -41,10 +41,10 @@ func (r *ReconcileCommonServiceSet) deleteOperatorStatus(cr *operatorv1alpha1.Me
 	if cr.Status.OperatorsStatus != nil {
 		delete(cr.Status.OperatorsStatus, operatorName)
 	}
-	
+
 	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
 		return err
 	}
-	
+
 	return nil
 }
