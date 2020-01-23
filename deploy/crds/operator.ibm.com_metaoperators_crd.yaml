@@ -64,6 +64,11 @@ spec:
                   state:
                     description: State is a flag to enable or disable service
                     type: string
+                  targetNamespaces:
+                    description: The target namespace of the OperatorGroup
+                    items:
+                      type: string
+                    type: array
                 required:
                 - name
                 - packageName

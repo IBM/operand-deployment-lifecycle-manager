@@ -528,7 +528,7 @@ func generateClusterObjects(o operatorv1alpha1.Operator) *clusterObjects {
 			Labels:    labels,
 		},
 		Spec: olmv1.OperatorGroupSpec{
-			TargetNamespaces: []string{o.Namespace},
+			TargetNamespaces: o.TargetNamespaces,
 		},
 	}
 	og.SetGroupVersionKind(schema.GroupVersionKind{Group: olmv1.SchemeGroupVersion.Group, Kind: "OperatorGroup", Version: olmv1.SchemeGroupVersion.Version})

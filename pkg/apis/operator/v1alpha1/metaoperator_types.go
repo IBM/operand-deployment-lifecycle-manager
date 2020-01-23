@@ -33,6 +33,8 @@ type Operator struct {
 	SourceName string `json:"sourceName"`
 	// The Kubernetes namespace where the CatalogSource used is located
 	SourceNamespace string `json:"sourceNamespace"`
+	// The target namespace of the OperatorGroup
+	TargetNamespaces []string `json:"targetNamespaces,omitempty"`
 	// Name of the package that defines the application
 	PackageName string `json:"packageName"`
 	// Name of the channel to track
