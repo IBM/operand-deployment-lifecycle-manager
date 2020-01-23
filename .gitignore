@@ -6,6 +6,10 @@
 *.dylib
 .vscode
 
+# Temporary Build Files
+build/_output
+build/_test
+
 # Test binary, built with `go test -c`
 *.test
 
