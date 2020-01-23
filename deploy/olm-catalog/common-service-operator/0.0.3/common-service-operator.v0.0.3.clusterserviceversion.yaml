@@ -182,6 +182,8 @@ spec:
         - apiGroups:
           - operator.ibm.com
           - operators.coreos.com
+          - etcd.database.coreos.com
+          - jenkins.io
           resources:
           - '*'
           verbs:
