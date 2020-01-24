@@ -156,8 +156,17 @@ func (r *ReconcileCommonServiceSet) Reconcile(request reconcile.Request) (reconc
 		}
 	}
 
+	// Fetch the MetaOperator instance
+	mo := &operatorv1alpha1.MetaOperator{}
+	if err := r.client.Get(context.TODO(), types.NamespacedName{Namespace: request.Namespace, Name: "common-service"}, mo); err != nil {
+		if errors.IsNotFound(err) {
+			return reconcile.Result{}, nil
+		}
+		return reconcile.Result{}, err
+	}
+
 	// Fetch all subscription definition
-	opts, err := r.fetchOperators(request, setInstance)
+	opts, err := r.fetchOperators(mo, setInstance)
 	if opts == nil {
 		if err != nil {
 			return reconcile.Result{}, err
@@ -194,7 +203,7 @@ func (r *ReconcileCommonServiceSet) Reconcile(request reconcile.Request) (reconc
 				}
 			} else {
 				// // Subscription is absent, delete it.
-				if err := r.deleteSubscription(setInstance, found); err != nil {
+				if err := r.deleteSubscription(setInstance, found, mo); err != nil {
 					return reconcile.Result{}, err
 				}
 			}
@@ -221,7 +230,7 @@ func (r *ReconcileCommonServiceSet) Reconcile(request reconcile.Request) (reconc
 	}
 
 	// Fetch Subscriptions and check the status of install plan
-	err = r.waitForInstallPlan()
+	err = r.waitForInstallPlan(mo)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -236,10 +245,15 @@ func (r *ReconcileCommonServiceSet) Reconcile(request reconcile.Request) (reconc
 			csv, err := r.getClusterServiceVersion(service.Name)
 
 			// If can't get CSV, requeue the request
-			if err != nil || csv == nil {
+			if err != nil {
 				merr.Add(err)
 				continue
 			}
+
+			if csv == nil {
+				continue
+			}
+
 			reqLogger.Info(fmt.Sprintf("Generating custome resource based on CSV %s", csv.ObjectMeta.Name))
 
 			// Merge and Generate CR
@@ -282,15 +296,7 @@ func (r *ReconcileCommonServiceSet) Reconcile(request reconcile.Request) (reconc
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileCommonServiceSet) fetchOperators(req reconcile.Request, cr *operatorv1alpha1.CommonServiceSet) (map[string]operatorv1alpha1.Operator, error) {
-	// Fetch the MetaOperator instance
-	mo := &operatorv1alpha1.MetaOperator{}
-	if err := r.client.Get(context.TODO(), types.NamespacedName{Namespace: req.Namespace, Name: "common-service"}, mo); err != nil {
-		if errors.IsNotFound(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
+func (r *ReconcileCommonServiceSet) fetchOperators(mo *operatorv1alpha1.MetaOperator, cr *operatorv1alpha1.CommonServiceSet) (map[string]operatorv1alpha1.Operator, error) {
 
 	setMap, err := r.fetchSets(cr)
 	if err != nil {
@@ -345,7 +351,7 @@ func (r *ReconcileCommonServiceSet) fetchConfigs(req reconcile.Request, cr *oper
 	return cscMap, nil
 }
 
-func (r *ReconcileCommonServiceSet) waitForInstallPlan() error {
+func (r *ReconcileCommonServiceSet) waitForInstallPlan(mo *operatorv1alpha1.MetaOperator) error {
 	reqLogger := log.WithValues()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*10)
 	defer cancel()
@@ -369,12 +375,18 @@ func (r *ReconcileCommonServiceSet) waitForInstallPlan() error {
 			ip, err := r.olmClient.OperatorsV1alpha1().InstallPlans(sub.Namespace).Get(sub.Status.InstallPlanRef.Name, metav1.GetOptions{})
 
 			if err != nil {
+				err := r.updateOperatorStatus(mo, sub.ObjectMeta.Name, operatorv1alpha1.OperatorFailed)
 				return false, err
 			}
 
 			if ip.Status.Phase != olmv1alpha1.InstallPlanPhaseComplete {
 				reqLogger.Info("Waiting for Cluster Service Version of " + ip.Spec.ClusterServiceVersionNames[0] + " is ready")
 				return false, nil
+			}
+
+			err = r.updateOperatorStatus(mo, sub.ObjectMeta.Name, operatorv1alpha1.OperatorRunning)
+			if err != nil {
+				return false, err
 			}
 		}
 		return true, nil
@@ -465,7 +477,7 @@ func (r *ReconcileCommonServiceSet) updateSubscription(cr *operatorv1alpha1.Comm
 	return nil
 }
 
-func (r *ReconcileCommonServiceSet) deleteSubscription(cr *operatorv1alpha1.CommonServiceSet, sub *olmv1alpha1.Subscription) error {
+func (r *ReconcileCommonServiceSet) deleteSubscription(cr *operatorv1alpha1.CommonServiceSet, sub *olmv1alpha1.Subscription, mo *operatorv1alpha1.MetaOperator) error {
 	logger := log.WithValues("Subscription.Namespace", sub.Namespace, "Subscription.Name", sub.Name)
 	logger.Info("Deleting CSV related with Subscription")
 	installedCsv := sub.Status.InstalledCSV
@@ -483,6 +495,9 @@ func (r *ReconcileCommonServiceSet) deleteSubscription(cr *operatorv1alpha1.Comm
 		return err
 	}
 	if err := r.updateConditionStatus(cr, sub.Name, DeleteSuccessed); err != nil {
+		return err
+	}
+	if err := r.deleteOperatorStatus(mo, sub.Name); err != nil {
 		return err
 	}
 	return nil
