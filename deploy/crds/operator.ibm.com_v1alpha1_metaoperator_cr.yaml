@@ -10,9 +10,13 @@ spec:
     packageName: jenkins-operator
     sourceName: community-operators
     sourceNamespace: openshift-marketplace
+    targetNamespaces:
+      - jenkins-operator
   - name: etcd
     namespace: etcd-operator
     channel: singlenamespace-alpha
     packageName: etcd
     sourceName: community-operators
     sourceNamespace: openshift-marketplace
+    targetNamespaces:
+      - etcd-operator

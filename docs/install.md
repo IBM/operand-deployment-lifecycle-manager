@@ -1,6 +1,6 @@
-# Install
+# Install the common service operator
 
-## On OCP 4.x
+## Install the common service operator On OCP 4.x
 
 ### 1. Create OperatorSource
 
@@ -33,7 +33,7 @@ Open `OperatorHub` and search `common-service-operator` to find the operator, an
 
 Open `Installed Operators` page to check the installed operators.
 
-## On OCP 3.11
+## Install the common service operator On OCP 3.11
 
 ### 0. Install OLM
 
@@ -100,3 +100,131 @@ spec:
 ```bash
 oc -n common-service-operator get csv
 ```
+
+## Create and update custom resource
+
+### 1. Update CommonServiceConfig and MetaOperator custom resource
+
+Common Service Operator defines custom resource definition CommonServiceConfig, CommonServiceSet and MetaOperator and creates two example custom resource for CommonServiceConfig and MetaOperator.
+
+In the `Operator Details` page, three generated custom resource definition are list in a line with the `Overview`. Check the custom resource definition name, then you can update the example custom resource.
+
+For the CommonServiceConfig,
+CommonServiceConfig defines the individual common service CR info:
+
+```yaml
+apiVersion: operator.ibm.com/v1alpha1
+kind: CommonServiceConfig
+metadata:
+  name: common-service
+spec:
+  services:
+  - name: jenkins
+    spec:
+      jenkins:
+        service:
+          port: 8081
+  - name: etcd
+    spec:
+      etcdCluster:
+        size: 1
+```
+
+The list `services` in the `spec` defines the configuration for each service.
+Taking the above yaml as an example, In the first item in the list, service `jenkins` is customized by CommonServiceConfig. The `name` field defines the name of the service and the `spec` field defines the `spec` configuration for each custom resource in the service.
+For example, setting in the CommonServiceConfig
+
+```yaml
+      jenkins:
+        service:
+          port: 8081
+```
+
+will overwrite the `spec` of the custom resource `Jenkins`
+
+```yaml
+apiVersion: jenkins.io/v1alpha2
+kind: Jenkins
+metadata:
+  ...
+  name: example
+  namespace: jenkins-operator
+spec:
+  ...
+  service:
+    port: 8081
+    type: ClusterIP
+```
+
+For the MetaOperator,
+MetaOperator defines the individual common service operator info:
+
+```yaml
+apiVersion: operator.ibm.com/v1alpha1
+kind: MetaOperator
+metadata:
+  name: common-service
+spec:
+  operators:
+  - name: jenkins
+    namespace: jenkins-operator
+    channel: alpha
+    packageName: jenkins-operator
+    sourceName: community-operators
+    sourceNamespace: openshift-marketplace
+    targetNamespaces:
+      - jenkins-operator
+  - name: etcd
+    namespace: etcd-operator
+    channel: singlenamespace-alpha
+    packageName: etcd
+    sourceName: community-operators
+    sourceNamespace: openshift-marketplace
+    targetNamespaces:
+      - etcd-operator
+```
+
+The `operators` list defines the operator lifecycle management information for each operator.
+Taking the jenkins as an example:
+`name` is the name of the operator, which should be same as the services name in the `CommonServiceConfig` and `CommonServiceSet`.
+`namespace` is the namespace the operator will be deployed in.
+`channel` is the name of tracked channel.
+`packageName` is the name of the package in `CatalogSource` will be deployed.
+`sourceName` is the name of the `CatalogSource`.
+`sourceNamespace` is the namespace of the `CatalogSource`.
+`targetNamespaces` is a list of namespace, which `OperaterGroup` generates RBAC access for its member Operators to get access to. `targetNamespaces` is used to control the operator dependency. `targetNamespaces` should include all the namespaces of its dependent operators and its own namespace.
+
+### 2. Create CommonServiceSet custom resource
+
+CommonServiceSet defines the individual common service state, such as an individual common service that should be present or absent.
+
+CommonServiceSet can be created in the `CommonServiceSet` tags
+
+This is an example of the CommonServiceSet custom resource:
+
+```yaml
+apiVersion: operator.ibm.com/v1alpha1
+Kind: CommonServiceSet
+metadata:
+  name: common-service
+spec:
+  services:
+  - name: monitoring
+    channel: stable-3.4
+    state: present
+    description: The IBM Monitoring service
+  - name: metering
+    channel: stable-3.5
+    state: absent
+    description: The IBM Metering service
+```
+
+The `services` list defines the set for each service.
+`name` is the service name, which should be the same as the services name in the `CommonServiceConfig` and operator `name` in the `MetaOperator`.
+`channel` is an optional setting, it can overwrite the `channel` defined in the `MetaOperator`.
+`state` defines if the service should be present or absent.
+`description` is the description of the service.
+
+## Post-installation
+
+The common service operators and their custom resource would be deployed in the cluster.
