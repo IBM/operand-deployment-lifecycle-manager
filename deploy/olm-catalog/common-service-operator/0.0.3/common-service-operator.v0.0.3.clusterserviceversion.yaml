@@ -6,35 +6,6 @@ metadata:
       [
         {
           "apiVersion": "operator.ibm.com/v1alpha1",
-          "kind": "CommonServiceConfig",
-          "metadata": {
-            "name": "common-service"
-          },
-          "spec": {
-            "services": [
-              {
-                "name": "jenkins",
-                "spec": {
-                  "jenkins": {
-                    "service": {
-                      "port": 8081
-                    }
-                  }
-                }
-              },
-              {
-                "name": "etcd",
-                "spec": {
-                  "etcdCluster": {
-                    "size": 1
-                  }
-                }
-              }
-            ]
-          }
-        },
-        {
-          "apiVersion": "operator.ibm.com/v1alpha1",
           "kind": "CommonServiceSet",
           "metadata": {
             "name": "common-service"
@@ -66,7 +37,10 @@ metadata:
                 "namespace": "jenkins-operator",
                 "packageName": "jenkins-operator",
                 "sourceName": "community-operators",
-                "sourceNamespace": "openshift-marketplace"
+                "sourceNamespace": "openshift-marketplace",
+                "targetNamespaces": [
+                  "jenkins-operator"
+                ]
               },
               {
                 "channel": "singlenamespace-alpha",
@@ -74,7 +48,39 @@ metadata:
                 "namespace": "etcd-operator",
                 "packageName": "etcd",
                 "sourceName": "community-operators",
-                "sourceNamespace": "openshift-marketplace"
+                "sourceNamespace": "openshift-marketplace",
+                "targetNamespaces": [
+                  "etcd-operator"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "apiVersion": "operator.ibm.com/v1alpha1",
+          "kind": "CommonServiceConfig",
+          "metadata": {
+            "name": "common-service"
+          },
+          "spec": {
+            "services": [
+              {
+                "name": "jenkins",
+                "spec": {
+                  "jenkins": {
+                    "service": {
+                      "port": 8081
+                    }
+                  }
+                }
+              },
+              {
+                "name": "etcd",
+                "spec": {
+                  "etcdCluster": {
+                    "size": 1
+                  }
+                }
               }
             ]
           }
