@@ -19,7 +19,7 @@ package commonserviceset
 import (
 	"context"
 
-	operatorv1alpha1 "github.ibm.com/IBMPrivateCloud/common-service-operator/pkg/apis/operator/v1alpha1"
+	operatorv1alpha1 "github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1"
 )
 
 func (r *ReconcileCommonServiceSet) updateServiceStatus(cr *operatorv1alpha1.CommonServiceConfig, operatorName, serviceName string, serviceStatus operatorv1alpha1.ServicePhase) error {

@@ -1,4 +1,4 @@
-module github.ibm.com/IBMPrivateCloud/common-service-operator
+module github.com/IBM/common-service-operator
 
 go 1.13
 

@@ -17,7 +17,7 @@
 package controller
 
 import (
-	"github.ibm.com/IBMPrivateCloud/common-service-operator/pkg/controller/commonserviceset"
+	"github.com/IBM/common-service-operator/pkg/controller/commonserviceset"
 )
 
 func init() {

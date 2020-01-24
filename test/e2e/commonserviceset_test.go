@@ -24,12 +24,13 @@ import (
 	olmclient "github.com/operator-framework/operator-lifecycle-manager/pkg/api/client/clientset/versioned"
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
 	"github.com/operator-framework/operator-sdk/pkg/test/e2eutil"
-	apis "github.ibm.com/IBMPrivateCloud/common-service-operator/pkg/apis"
-	operator "github.ibm.com/IBMPrivateCloud/common-service-operator/pkg/apis/operator/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
+
+	apis "github.com/IBM/common-service-operator/pkg/apis"
+	operator "github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1"
 )
 
 var (
