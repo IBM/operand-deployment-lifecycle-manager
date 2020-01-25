@@ -13,7 +13,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
+
+# Specify whether this repo is build locally or not, default values is '1';
+# If set to 1, then you need to also set 'DOCKER_USERNAME' and 'DOCKER_PASSWORD'
+# environment variables before build the repo.
+BUILD_LOCALLY ?= 1
 
 # The namespcethat operator will be deployed in
 NAMESPACE=common-service-operator
@@ -105,7 +109,7 @@ test:
 ############################################################
 
 coverage:
-	@common/scripts/codecov.sh
+	@common/scripts/codecov.sh ${BUILD_LOCALLY}
 
 ############################################################
 # install operator sdk section
