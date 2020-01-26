@@ -44,8 +44,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	operatorv1alpha1 "github.ibm.com/IBMPrivateCloud/common-service-operator/pkg/apis/operator/v1alpha1"
-	util "github.ibm.com/IBMPrivateCloud/common-service-operator/pkg/util"
+	operatorv1alpha1 "github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1"
+	util "github.com/IBM/common-service-operator/pkg/util"
 )
 
 var log = logf.Log.WithName("controller_commonserviceset")

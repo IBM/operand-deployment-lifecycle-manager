@@ -6,35 +6,6 @@ metadata:
       [
         {
           "apiVersion": "operator.ibm.com/v1alpha1",
-          "kind": "CommonServiceConfig",
-          "metadata": {
-            "name": "common-service"
-          },
-          "spec": {
-            "services": [
-              {
-                "name": "jenkins",
-                "spec": {
-                  "jenkins": {
-                    "service": {
-                      "port": 8081
-                    }
-                  }
-                }
-              },
-              {
-                "name": "etcd",
-                "spec": {
-                  "etcdCluster": {
-                    "size": 1
-                  }
-                }
-              }
-            ]
-          }
-        },
-        {
-          "apiVersion": "operator.ibm.com/v1alpha1",
           "kind": "CommonServiceSet",
           "metadata": {
             "name": "common-service"
@@ -78,6 +49,35 @@ metadata:
               }
             ]
           }
+        },
+        {
+          "apiVersion": "operator.ibm.com/v1alpha1",
+          "kind": "CommonServiceConfig",
+          "metadata": {
+            "name": "common-service"
+          },
+          "spec": {
+            "services": [
+              {
+                "name": "jenkins",
+                "spec": {
+                  "jenkins": {
+                    "service": {
+                      "port": 8081
+                    }
+                  }
+                }
+              },
+              {
+                "name": "etcd",
+                "spec": {
+                  "etcdCluster": {
+                    "size": 1
+                  }
+                }
+              }
+            ]
+          }
         }
       ]
     capabilities: Seamless Upgrades
@@ -87,7 +87,7 @@ metadata:
     createdAt: "2020-01-06T10:16:16Z"
     description: The Common Service Operator provides a Kubernetes CRD-Based API to
       manage the lifecycle of IBM cloud common services.
-    repository: https://github.ibm.com/IBMPrivateCloud/common-service-operator
+    repository: https://github.com/IBM/common-service-operator
     support: IBM
   name: common-service-operator.v0.0.3
   namespace: placeholder
@@ -291,7 +291,7 @@ spec:
     name: common-service
   links:
   - name: IBM Common Service Operator Project
-    url: https://github.ibm.com/IBMPrivateCloud/common-service-operator
+    url: https://github.com/IBM/common-service-operator
   maintainers:
   - email: zhiwei@cn.ibm.com
     name: Zhi Wei Chen

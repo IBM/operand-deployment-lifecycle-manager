@@ -122,7 +122,7 @@ metadata:
     createdAt: "2020-01-06T10:16:16Z"
     description: The Common Service Operator provides a Kubernetes CRD-Based API to
       manage the lifecycle of IBM cloud common services.
-    repository: https://github.ibm.com/IBMPrivateCloud/common-service-operator
+    repository: https://github.com/IBM/common-service-operator
     support: IBM
   name: common-service-operator.v0.0.1
   namespace: placeholder
@@ -314,7 +314,7 @@ spec:
     name: common-service
   links:
   - name: IBM Common Service Operator Project
-    url: https://github.ibm.com/IBMPrivateCloud/common-service-operator
+    url: https://github.com/IBM/common-service-operator
   maintainers:
   - email: zhiwei@cn.ibm.com
     name: Zhi Wei Chen

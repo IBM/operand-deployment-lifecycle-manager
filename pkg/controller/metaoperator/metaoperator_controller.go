@@ -20,8 +20,6 @@ import (
 	"context"
 	"os"
 
-	operatorv1alpha1 "github.ibm.com/IBMPrivateCloud/common-service-operator/pkg/apis/operator/v1alpha1"
-	"github.ibm.com/IBMPrivateCloud/common-service-operator/pkg/util"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
@@ -32,6 +30,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+
+	operatorv1alpha1 "github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1"
+	"github.com/IBM/common-service-operator/pkg/util"
 )
 
 var log = logf.Log.WithName("controller_metaoperator")
