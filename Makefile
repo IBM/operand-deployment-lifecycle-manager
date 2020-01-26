@@ -27,6 +27,10 @@ BUILD_LOCALLY ?= 1
 IMG ?= common-service-operator
 REGISTRY ?= quay.io/opencloudio
 CSV_VERSION ?= 0.0.3
+
+QUAY_USERNAME ?=
+QUAY_PASSWORD ?=
+
 # Github host to use for checking the source tree;
 # Override this variable ue with your own value if you're working on forked repo.
 GIT_HOST ?= github.com/IBM
@@ -230,6 +234,10 @@ build-push-images: install-operator-sdk $(CONFIG_DOCKER_TARGET)
 	@operator-sdk build $(REGISTRY)/$(IMG):$(VERSION)
 	@docker tag $(REGISTRY)/$(IMG):$(VERSION) $(REGISTRY)/$(IMG)
 	@if [ $(BUILD_LOCALLY) -ne 1 ]; then docker push $(REGISTRY)/$(IMG):$(VERSION); docker push $(REGISTRY)/$(IMG); fi
+
+csv-push: ## Push CSV package to the catalog
+	@RELEASE=${CSV_VERSION} common/scripts/push-csv.sh
+
 
 ############################################################
 # clean section
