@@ -38,19 +38,19 @@ function cleanup() {
 }
 trap cleanup EXIT
 
-tar czf bundle.tar.gz ${BUNDLE_DIR}
+tar czf bundle.tar.gz "${BUNDLE_DIR}"
 
-if [[ "$OSTYPE" == "darwin"* ]]; then
-  BLOB=$(cat bundle.tar.gz | base64 -b0)
+if [[ "${OSTYPE}" == "darwin"* ]]; then
+  BLOB=$(base64 -b0 < bundle.tar.gz)
 else
-  BLOB=$(cat bundle.tar.gz | base64 -w0)
+  BLOB=$(base64 -w0 < bundle.tar.gz)
 fi
 
 # Push application to repository
 echo "Push package ${QUAY_REPOSITORY} into namespace ${QUAY_NAMESPACE}"
 curl -H "Content-Type: application/json" \
      -H "Authorization: ${AUTH_TOKEN}" \
-     -XPOST https://quay.io/cnr/api/v1/packages/${QUAY_NAMESPACE}/${QUAY_REPOSITORY} -d '
+     -XPOST https://quay.io/cnr/api/v1/packages/"${QUAY_NAMESPACE}"/"${QUAY_REPOSITORY}" -d '
 {
     "blob": "'"${BLOB}"'",
     "release": "'"${RELEASE}"'",
