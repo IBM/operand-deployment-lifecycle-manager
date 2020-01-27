@@ -209,14 +209,14 @@ metadata:
   name: common-service
 spec:
   services:
-  - name: monitoring
-    channel: stable-3.4
+  - name: jenkins
+    channel: alpha
     state: present
-    description: The IBM Monitoring service
-  - name: metering
-    channel: stable-3.5
+    description: The jenkins service
+  - name: etcd
+    channel: singlenamespace-alpha
     state: absent
-    description: The IBM Metering service
+    description: The etcd service
 ```
 
 The `services` list defines the set for each service.
