@@ -439,19 +439,34 @@ func (r *ReconcileCommonServiceSet) createSubscription(cr *operatorv1alpha1.Comm
 	// Create required operatorgroup
 	og := co.operatorGroup
 	_, err := r.olmClient.OperatorsV1().OperatorGroups(og.Namespace).Create(og)
-	if err != nil && !errors.IsAlreadyExists(err) {
-		return err
+	if err != nil {
+		if errors.IsAlreadyExists(err) {
+			if _, err = r.olmClient.OperatorsV1().OperatorGroups(og.Namespace).Update(og); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
 	}
 
 	// Create subscription
 	logger.Info("Creating a new Subscription")
 	sub := co.subscription
 	_, err = r.olmClient.OperatorsV1alpha1().Subscriptions(sub.Namespace).Create(sub)
-	if err != nil && !errors.IsAlreadyExists(err) {
-		if updateErr := r.updateConditionStatus(cr, sub.Name, InstallFailed); updateErr != nil {
-			return updateErr
+	if err != nil {
+		if errors.IsAlreadyExists(err) {
+			if _, err = r.olmClient.OperatorsV1alpha1().Subscriptions(sub.Namespace).Update(sub); err != nil {
+				if updateErr := r.updateConditionStatus(cr, sub.Name, InstallFailed); updateErr != nil {
+					return updateErr
+				}
+				return err
+			}
+		} else {
+			if updateErr := r.updateConditionStatus(cr, sub.Name, InstallFailed); updateErr != nil {
+				return updateErr
+			}
+			return err
 		}
-		return err
 	}
 
 	if err = r.updateConditionStatus(cr, sub.Name, InstallSuccessed); err != nil {
