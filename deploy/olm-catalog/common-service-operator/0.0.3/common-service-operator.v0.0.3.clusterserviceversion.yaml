@@ -37,7 +37,10 @@ metadata:
                 "namespace": "jenkins-operator",
                 "packageName": "jenkins-operator",
                 "sourceName": "community-operators",
-                "sourceNamespace": "openshift-marketplace"
+                "sourceNamespace": "openshift-marketplace",
+                "targetNamespaces": [
+                  "jenkins-operator"
+                ]
               },
               {
                 "channel": "singlenamespace-alpha",
@@ -45,7 +48,10 @@ metadata:
                 "namespace": "etcd-operator",
                 "packageName": "etcd",
                 "sourceName": "community-operators",
-                "sourceNamespace": "openshift-marketplace"
+                "sourceNamespace": "openshift-marketplace",
+                "targetNamespaces": [
+                  "etcd-operator"
+                ]
               }
             ]
           }
