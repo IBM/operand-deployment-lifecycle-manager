@@ -39,6 +39,8 @@ spec:
                 modifying this file Add custom validation using kubebuilder tags:
                 https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html'
               items:
+                description: SetService is the service configuration for a common
+                  service
                 properties:
                   channel:
                     type: string
@@ -79,6 +81,7 @@ spec:
                   status:
                     type: string
                   type:
+                    description: ConditionType is the condition of a service
                     type: string
                 type: object
               type: array
