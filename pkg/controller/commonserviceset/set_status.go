@@ -26,6 +26,7 @@ import (
 	operatorv1alpha1 "github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1"
 )
 
+// States of common services
 const (
 	Absent  = "absent"
 	Present = "present"

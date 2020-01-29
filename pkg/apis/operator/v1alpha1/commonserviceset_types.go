@@ -32,6 +32,7 @@ type CommonServiceSetSpec struct {
 	Services []SetService `json:"services"`
 }
 
+// SetService is the service configuration for a common service
 type SetService struct {
 	Name        string `json:"name"`
 	Channel     string `json:"channel,omitempty"`
@@ -39,9 +40,13 @@ type SetService struct {
 	Description string `json:"description,omitempty"`
 }
 
+// ConditionType is the condition of a service
 type ConditionType string
+
+// ClusterPhase is the phase of the installation
 type ClusterPhase string
 
+// Constants are used for state
 const (
 	ConditionInstall ConditionType = "Install"
 	ConditionUpdate  ConditionType = "Update"
@@ -80,6 +85,8 @@ type CommonServiceSetStatus struct {
 	// Phase is the cluster running phase
 	Phase ClusterPhase `json:"phase"`
 }
+
+// MembersStatus show if the Operator is ready
 type MembersStatus struct {
 	// Ready are the operator members that are ready
 	// The member names are the same as the subscription
