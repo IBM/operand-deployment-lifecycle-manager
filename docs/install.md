@@ -1,3 +1,26 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Install the common service operator](#install-the-common-service-operator)
+  - [Install the common service operator On OCP 4.x](#install-the-common-service-operator-on-ocp-4x)
+    - [1. Create OperatorSource](#1-create-operatorsource)
+    - [2. Create a Namespace `common-service-operator`](#2-create-a-namespace-common-service-operator)
+    - [3. Install Common Service Operator](#3-install-common-service-operator)
+    - [4. Check the installed operators](#4-check-the-installed-operators)
+  - [Install the common service operator On OCP 3.11](#install-the-common-service-operator-on-ocp-311)
+    - [0. Install OLM](#0-install-olm)
+    - [1. Build Operator Registry image](#1-build-operator-registry-image)
+    - [2. Create CatalogSource](#2-create-catalogsource)
+    - [3. Create Operator NS, Group, Subscription](#3-create-operator-ns-group-subscription)
+    - [4. Check Operator CSV](#4-check-operator-csv)
+  - [Create and update custom resource](#create-and-update-custom-resource)
+    - [1. Update CommonServiceConfig and MetaOperator custom resource](#1-update-commonserviceconfig-and-metaoperator-custom-resource)
+    - [2. Create CommonServiceSet custom resource](#2-create-commonserviceset-custom-resource)
+  - [Post-installation](#post-installation)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Install the common service operator
 
 ## Install the common service operator On OCP 4.x
@@ -23,7 +46,7 @@ spec:
 
 ### 2. Create a Namespace `common-service-operator`
 
-Open `OperatorHub` page in OCP console left menu, then `Create Project`, the name MUST be `common-service-operator`.
+Open `OperatorHub` page in OCP console left menu, then `Create Project`, e.g., create a project named as `common-service-operator`.
 
 ### 3. Install Common Service Operator
 
