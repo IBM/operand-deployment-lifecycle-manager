@@ -14,16 +14,17 @@
 // limitations under the License.
 //
 
-package apis
+package util
 
-import (
-	olmv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1"
-	olmv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
-
-	"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1"
-)
-
-func init() {
-	// Register the types with the Scheme so the components can map objects to GroupVersionKinds and back
-	AddToSchemes = append(AddToSchemes, v1alpha1.SchemeBuilder.AddToScheme, olmv1alpha1.SchemeBuilder.AddToScheme, olmv1.SchemeBuilder.AddToScheme)
+// Equal is for checking if two string slices are equal
+func Equal(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i, v := range a {
+		if v != b[i] {
+			return false
+		}
+	}
+	return true
 }
