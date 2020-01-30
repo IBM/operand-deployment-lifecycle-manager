@@ -63,11 +63,9 @@ func (r *ReconcileCommonServiceSet) reconcileMetaOperator(opts map[string]operat
 				if err := r.checkOperatorGroup(o.TargetNamespaces, o.Namespace); err != nil {
 					return err
 				}
-			} else {
-				// // Subscription is absent, delete it.
-				if err := r.deleteSubscription(setInstance, found, mo); err != nil {
-					return err
-				}
+				// Subscription is absent, delete it.
+			} else if err := r.deleteSubscription(setInstance, found, mo); err != nil {
+				return err
 			}
 		} else {
 			// Subscription existing and not managed by Set controller
