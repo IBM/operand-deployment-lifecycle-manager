@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	operatorv1alpha1 "github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1"
+	"github.com/IBM/common-service-operator/pkg/util"
 )
 
 func (r *ReconcileCommonServiceSet) reconcileMetaOperator(opts map[string]operatorv1alpha1.Operator, setInstance *operatorv1alpha1.CommonServiceSet, mo *operatorv1alpha1.MetaOperator) error {
@@ -59,11 +60,12 @@ func (r *ReconcileCommonServiceSet) reconcileMetaOperator(opts map[string]operat
 						return err
 					}
 				}
-			} else {
-				// // Subscription is absent, delete it.
-				if err := r.deleteSubscription(setInstance, found, mo); err != nil {
+				if err := r.checkOperatorGroup(o.TargetNamespaces, o.Namespace); err != nil {
 					return err
 				}
+				// Subscription is absent, delete it.
+			} else if err := r.deleteSubscription(setInstance, found, mo); err != nil {
+				return err
 			}
 		} else {
 			// Subscription existing and not managed by Set controller
@@ -148,16 +150,16 @@ func (r *ReconcileCommonServiceSet) updateSubscription(cr *operatorv1alpha1.Comm
 
 func (r *ReconcileCommonServiceSet) deleteSubscription(cr *operatorv1alpha1.CommonServiceSet, sub *olmv1alpha1.Subscription, mo *operatorv1alpha1.MetaOperator) error {
 	logger := log.WithValues("Subscription.Namespace", sub.Namespace, "Subscription.Name", sub.Name)
-	logger.Info("Deleting CSV related with Subscription")
 	installedCsv := sub.Status.InstalledCSV
-	if err := r.olmClient.OperatorsV1alpha1().ClusterServiceVersions(sub.Namespace).Delete(installedCsv, &metav1.DeleteOptions{}); err != nil {
+	logger.Info("Deleting a Subscription")
+	if err := r.olmClient.OperatorsV1alpha1().Subscriptions(sub.Namespace).Delete(sub.Name, &metav1.DeleteOptions{}); err != nil {
 		if updateErr := r.updateConditionStatus(cr, sub.Name, DeleteFailed); updateErr != nil {
 			return updateErr
 		}
 		return err
 	}
-	logger.Info("Deleting a Subscription")
-	if err := r.olmClient.OperatorsV1alpha1().Subscriptions(sub.Namespace).Delete(sub.Name, &metav1.DeleteOptions{}); err != nil {
+	logger.Info("Deleting CSV related with Subscription")
+	if err := r.olmClient.OperatorsV1alpha1().ClusterServiceVersions(sub.Namespace).Delete(installedCsv, &metav1.DeleteOptions{}); err != nil {
 		if updateErr := r.updateConditionStatus(cr, sub.Name, DeleteFailed); updateErr != nil {
 			return updateErr
 		}
@@ -190,17 +192,7 @@ func generateClusterObjects(o operatorv1alpha1.Operator) *clusterObjects {
 	}
 
 	// Operator Group Object
-	og := &olmv1.OperatorGroup{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "common-service-operatorgroup",
-			Namespace: o.Namespace,
-			Labels:    labels,
-		},
-		Spec: olmv1.OperatorGroupSpec{
-			TargetNamespaces: o.TargetNamespaces,
-		},
-	}
-	og.SetGroupVersionKind(schema.GroupVersionKind{Group: olmv1.SchemeGroupVersion.Group, Kind: "OperatorGroup", Version: olmv1.SchemeGroupVersion.Version})
+	og := generateOperatorGroup(o.Namespace, o.TargetNamespaces)
 	co.operatorGroup = og
 
 	// Subscription Object
@@ -225,4 +217,51 @@ func generateClusterObjects(o operatorv1alpha1.Operator) *clusterObjects {
 	sub.SetGroupVersionKind(schema.GroupVersionKind{Group: olmv1alpha1.SchemeGroupVersion.Group, Kind: "Subscription", Version: olmv1alpha1.SchemeGroupVersion.Version})
 	co.subscription = sub
 	return co
+}
+
+func generateOperatorGroup(namespace string, targetNamespaces []string) *olmv1.OperatorGroup {
+	labels := map[string]string{
+		"operator.ibm.com/css-control": "true",
+	}
+
+	// Operator Group Object
+	og := &olmv1.OperatorGroup{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "common-service-operatorgroup",
+			Namespace: namespace,
+			Labels:    labels,
+		},
+		Spec: olmv1.OperatorGroupSpec{
+			TargetNamespaces: targetNamespaces,
+		},
+	}
+	og.SetGroupVersionKind(schema.GroupVersionKind{Group: olmv1.SchemeGroupVersion.Group, Kind: "OperatorGroup", Version: olmv1.SchemeGroupVersion.Version})
+
+	return og
+}
+
+func (r *ReconcileCommonServiceSet) checkOperatorGroup(targetNamespaces []string, namespace string) error {
+	existOG, err := r.olmClient.OperatorsV1().OperatorGroups(namespace).Get("common-service-operatorgroup", metav1.GetOptions{})
+	if err != nil && !errors.IsNotFound(err) {
+		return err
+	}
+
+	if util.Equal(existOG.Spec.TargetNamespaces, targetNamespaces) {
+		return nil
+	}
+
+	if errors.IsNotFound(err) {
+		og := generateOperatorGroup(namespace, targetNamespaces)
+		_, err := r.olmClient.OperatorsV1().OperatorGroups(namespace).Create(og)
+		if err != nil {
+			return err
+		}
+	} else {
+		existOG.Spec.TargetNamespaces = targetNamespaces
+		_, err := r.olmClient.OperatorsV1().OperatorGroups(namespace).Update(existOG)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

@@ -130,7 +130,7 @@ func (r *ReconcileCommonServiceSet) getClusterServiceVersion(subName string) (*o
 			return csv, nil
 		}
 	}
-	logger.Info(fmt.Sprintf("Can't find Cluster Service Version"))
+	logger.Info(fmt.Sprintf("There is no Cluster Service Version for %s", subName))
 	return nil, nil
 }
 

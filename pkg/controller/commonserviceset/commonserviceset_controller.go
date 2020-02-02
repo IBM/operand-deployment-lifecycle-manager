@@ -105,6 +105,14 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	err = c.Watch(&source.Kind{Type: &olmv1.OperatorGroup{}}, &handler.EnqueueRequestForOwner{
+		IsController: true,
+		OwnerType:    &operatorv1alpha1.CommonServiceSet{},
+	})
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
