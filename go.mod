@@ -3,8 +3,15 @@ module github.com/IBM/common-service-operator
 go 1.13
 
 require (
+	cloud.google.com/go v0.43.0 // indirect
+	github.com/Azure/go-autorest v11.7.0+incompatible // indirect
+	github.com/PuerkitoBio/purell v1.1.1 // indirect
+	github.com/coreos/prometheus-operator v0.31.1 // indirect
 	github.com/ghodss/yaml v1.0.1-0.20180820084758-c7ce16629ff4
 	github.com/go-openapi/spec v0.19.0
+	github.com/go-openapi/swag v0.19.0 // indirect
+	github.com/google/uuid v1.1.1 // indirect
+	github.com/mailru/easyjson v0.0.0-20190403194419-1ea4449da983 // indirect
 	github.com/operator-framework/operator-lifecycle-manager v0.0.0-20190605231540-b8a4faf68e36
 	github.com/operator-framework/operator-sdk v0.12.0
 	github.com/prometheus/client_golang v1.1.0 // indirect
