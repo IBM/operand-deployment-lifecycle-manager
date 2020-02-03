@@ -35,6 +35,12 @@ const (
 	// CleanupTimeout is the wait time for test framework cleanup
 	CleanupTimeout = time.Second * 180
 
+	// WaitForTimeout is the wait time for cluster resource
+	WaitForTimeout = time.Second * 200
+
+	// WaitForRetry is the the interval at checking cluster resource
+	WaitForRetry = time.Second * 10
+
 	// TestOperatorName specifies the name of the operator being tested
 	TestOperatorName = "openshift-pipelines-operator"
 
@@ -45,5 +51,5 @@ const (
 	MetaCrName = "common-service"
 
 	// ConfigCrName specifies the name of the custome resource of the common service config
-	// ConfigCrName = "common-service"
+	ConfigCrName = "common-service"
 )

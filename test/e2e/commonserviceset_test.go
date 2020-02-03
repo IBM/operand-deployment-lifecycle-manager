@@ -33,6 +33,6 @@ func TestCommonServiceSet(t *testing.T) {
 	}
 	// run subtests
 	t.Run("common-service-operator", func(t *testing.T) {
-		t.Run("Operator", testgroups.CommonServiceSetCluster)
+		t.Run("Operator", testgroups.CommonServiceOperator)
 	})
 }

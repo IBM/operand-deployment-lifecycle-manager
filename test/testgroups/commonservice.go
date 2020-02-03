@@ -28,8 +28,8 @@ import (
 	"github.com/IBM/common-service-operator/test/testsuits"
 )
 
-// CommonServiceSetCluster is the test group for testing CommonServiceSetCluster CRD
-func CommonServiceSetCluster(t *testing.T) {
+// CommonServiceOperator is the test group for testing Common Service Operator
+func CommonServiceOperator(t *testing.T) {
 	t.Parallel()
 	ctx := framework.NewTestCtx(t)
 	defer ctx.Cleanup()
@@ -37,9 +37,11 @@ func CommonServiceSetCluster(t *testing.T) {
 	err := deployOperator(t, ctx)
 	helpers.AssertNoError(t, err)
 
-	t.Run("Create", testsuits.Create)
-	t.Run("Create-Update", testsuits.CreateUpdate)
-	t.Run("Create-Delete", testsuits.CreateDelete)
+	t.Run("CommonServiceSet Create", testsuits.CommonServiceSetCreate)
+	t.Run("CommonServiceSet Create Update", testsuits.CommonServiceSetCreateUpdate)
+	t.Run("CommonServiceConfig Update", testsuits.CommonServiceSetCreateUpdate)
+	t.Run("MetaOperator Create Update", testsuits.CommonServiceSetCreateUpdate)
+	t.Run("CommonServiceSet Create Delete", testsuits.CommonServiceSetCreateDelete)
 
 }
 

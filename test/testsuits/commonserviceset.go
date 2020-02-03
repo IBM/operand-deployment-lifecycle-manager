@@ -25,8 +25,8 @@ import (
 	"github.com/IBM/common-service-operator/test/helpers"
 )
 
-// Create is for testing the create of the commonserviceset
-func Create(t *testing.T) {
+// CommonServiceSetCreate is for testing the create of the commonserviceset
+func CommonServiceSetCreate(t *testing.T) {
 
 	ctx := test.NewTestCtx(t)
 	defer ctx.Cleanup()
@@ -43,8 +43,8 @@ func Create(t *testing.T) {
 	}
 }
 
-// CreateUpdate is for testing the create and update of the commonserviceset
-func CreateUpdate(t *testing.T) {
+// CommonServiceSetCreateUpdate is for testing the create and update of the commonserviceset
+func CommonServiceSetCreateUpdate(t *testing.T) {
 
 	ctx := test.NewTestCtx(t)
 	defer ctx.Cleanup()
@@ -65,8 +65,8 @@ func CreateUpdate(t *testing.T) {
 	}
 }
 
-// CreateDelete is for testing the create and delete of the commonserviceset
-func CreateDelete(t *testing.T) {
+// CommonServiceSetCreateDelete is for testing the create and delete of the commonserviceset
+func CommonServiceSetCreateDelete(t *testing.T) {
 
 	ctx := test.NewTestCtx(t)
 	defer ctx.Cleanup()
@@ -83,6 +83,50 @@ func CreateDelete(t *testing.T) {
 	}
 
 	if err = helpers.DeleteTest(olmClient, f, ctx); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// CommonServiceConfigUpdate is for testing the create and delete of the commonserviceset
+func CommonServiceConfigUpdate(t *testing.T) {
+
+	ctx := test.NewTestCtx(t)
+	defer ctx.Cleanup()
+
+	// get global framework variables
+	f := test.Global
+	olmClient, err := olmclient.NewForConfig(f.KubeConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err = helpers.CreateTest(olmClient, f, ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	if err = helpers.UpdateConfigTest(olmClient, f, ctx); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// MetaOperatorUpdate is for testing the create and delete of the commonserviceset
+func MetaOperatorUpdate(t *testing.T) {
+
+	ctx := test.NewTestCtx(t)
+	defer ctx.Cleanup()
+
+	// get global framework variables
+	f := test.Global
+	olmClient, err := olmclient.NewForConfig(f.KubeConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err = helpers.CreateTest(olmClient, f, ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	if err = helpers.UpdateMetaOperatorTest(olmClient, f, ctx); err != nil {
 		t.Fatal(err)
 	}
 }

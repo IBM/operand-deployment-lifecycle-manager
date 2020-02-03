@@ -19,13 +19,13 @@ import (
 	goctx "context"
 	"fmt"
 	"testing"
-	"time"
 
 	olmv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
 	olmclient "github.com/operator-framework/operator-lifecycle-manager/pkg/api/client/clientset/versioned"
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 
@@ -39,6 +39,23 @@ func CreateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 	if err != nil {
 		return fmt.Errorf("could not get namespace: %v", err)
 	}
+
+	// create CommonServiceConfig custom resource
+	fmt.Println("--- CREATE: CommonServiceConfig Instance")
+	configInstance := newCommonServiceConfigCR(config.ConfigCrName, namespace)
+	err = f.Client.Create(goctx.TODO(), configInstance, &framework.CleanupOptions{TestContext: ctx, Timeout: config.CleanupTimeout, RetryInterval: config.CleanupRetry})
+	if err != nil {
+		return err
+	}
+
+	// create MetaOperator custom resource
+	fmt.Println("--- CREATE: MetaOperator Instance")
+	metaOperatorInstance := newMetaOperatorCR(config.ConfigCrName, namespace)
+	err = f.Client.Create(goctx.TODO(), metaOperatorInstance, &framework.CleanupOptions{TestContext: ctx, Timeout: config.CleanupTimeout, RetryInterval: config.CleanupRetry})
+	if err != nil {
+		return err
+	}
+
 	// create CommonServiceSet custom resource
 	sets := []operator.SetService{}
 	sets = append(sets, operator.SetService{
@@ -77,6 +94,10 @@ func CreateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 		if err != nil {
 			return err
 		}
+	}
+	err = ValidateCustomeResource(f, namespace)
+	if err != nil {
+		return err
 	}
 	return nil
 }
@@ -147,15 +168,75 @@ func DeleteTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 	return nil
 }
 
+// UpdateConfigTest updates a commonserviceset instance
+func UpdateConfigTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *framework.TestCtx) error {
+	namespace, err := ctx.GetNamespace()
+	if err != nil {
+		return err
+	}
+	configInstance := &operator.CommonServiceConfig{}
+	fmt.Println("--- UPDATE: custom resource")
+	// Get CommonServiceSet instance
+	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.ConfigCrName, Namespace: namespace}, configInstance)
+	if err != nil {
+		return err
+	}
+
+	configInstance.Spec.Services[0].Spec = map[string]runtime.RawExtension{
+		"etcdCluster": {Raw: []byte(`{"size": 3}`)},
+	}
+	err = f.Client.Update(goctx.TODO(), configInstance)
+	if err != nil {
+		return err
+	}
+
+	err = ValidateCustomeResource(f, namespace)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// UpdateMetaOperatorTest updates a MetaOperator instance
+func UpdateMetaOperatorTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *framework.TestCtx) error {
+	namespace, err := ctx.GetNamespace()
+	if err != nil {
+		return err
+	}
+	metaOperatorInstance := &operator.MetaOperator{}
+	fmt.Println("--- UPDATE: MetaOperator")
+
+	// Get MetaOperator instance
+	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.MetaCrName, Namespace: namespace}, metaOperatorInstance)
+	if err != nil {
+		return err
+	}
+
+	metaOperatorInstance.Spec.Operators[0].Channel = "clusterwide-alpha"
+	err = f.Client.Update(goctx.TODO(), metaOperatorInstance)
+	if err != nil {
+		return err
+	}
+
+	// wait for updated csv ready
+	optMap, err := GetOperators(f, namespace)
+	if err != nil {
+		return err
+	}
+	opt := optMap[metaOperatorInstance.Spec.Operators[0].Name]
+	err = WaitForSubCsvReady(olmClient, metav1.ObjectMeta{Name: opt.Name, Namespace: opt.Namespace})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // GetOperators get a operator list waiting for being installed
 func GetOperators(f *framework.Framework, namespace string) (map[string]operator.Operator, error) {
-	timeout := 200 * time.Second
-	// NOTE the long timeout above. It can take quite a bit of time for the
-	// ocs operator deployments to roll out
-	interval := 10 * time.Second
 	moInstance := &operator.MetaOperator{}
 	lastReason := ""
-	waitErr := utilwait.PollImmediate(interval, timeout, func() (done bool, err error) {
+	waitErr := utilwait.PollImmediate(config.WaitForRetry, config.APITimeout, func() (done bool, err error) {
 		err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.MetaCrName, Namespace: namespace}, moInstance)
 		if err != nil {
 			if errors.IsNotFound(err) {
@@ -178,14 +259,10 @@ func GetOperators(f *framework.Framework, namespace string) (map[string]operator
 
 // WaitForSubCsvReady waits for the subscription and csv create success
 func WaitForSubCsvReady(olmClient *olmclient.Clientset, opt metav1.ObjectMeta) error {
-	timeout := 200 * time.Second
-	// NOTE the long timeout above. It can take quite a bit of time for the
-	// ocs operator deployments to roll out
-	interval := 10 * time.Second
 	lastReason := ""
 	sub := &olmv1alpha1.Subscription{}
 	fmt.Println("Waiting for Subscription created [" + opt.Name + "]")
-	waitErr := utilwait.PollImmediate(interval, timeout, func() (done bool, err error) {
+	waitErr := utilwait.PollImmediate(config.WaitForRetry, config.APITimeout, func() (done bool, err error) {
 		foundSub, err := olmClient.OperatorsV1alpha1().Subscriptions(opt.Namespace).Get(opt.Name, metav1.GetOptions{})
 		if err != nil {
 			if errors.IsNotFound(err) {
@@ -206,7 +283,7 @@ func WaitForSubCsvReady(olmClient *olmclient.Clientset, opt metav1.ObjectMeta) e
 	}
 
 	fmt.Println("Waiting for CSV status succeeded [" + sub.Status.InstalledCSV + "]")
-	waitErr = utilwait.PollImmediate(interval, timeout, func() (done bool, err error) {
+	waitErr = utilwait.PollImmediate(config.WaitForRetry, config.APITimeout, func() (done bool, err error) {
 		csv, err := olmClient.OperatorsV1alpha1().ClusterServiceVersions(opt.Namespace).Get(sub.Status.InstalledCSV, metav1.GetOptions{})
 		if err != nil {
 			if errors.IsNotFound(err) {
@@ -231,13 +308,9 @@ func WaitForSubCsvReady(olmClient *olmclient.Clientset, opt metav1.ObjectMeta) e
 
 // WaitForSubscriptionDelete waits for the subscription deleted
 func WaitForSubscriptionDelete(olmClient *olmclient.Clientset, opt metav1.ObjectMeta) error {
-	timeout := 200 * time.Second
-	// NOTE the long timeout above. It can take quite a bit of time for the
-	// ocs operator deployments to roll out
-	interval := 10 * time.Second
 	lastReason := ""
 	fmt.Println("Waiting on subscription to be deleted [" + opt.Name + "]")
-	waitErr := utilwait.PollImmediate(interval, timeout, func() (done bool, err error) {
+	waitErr := utilwait.PollImmediate(config.WaitForRetry, config.APITimeout, func() (done bool, err error) {
 		_, err = olmClient.OperatorsV1alpha1().Subscriptions(opt.Namespace).Get(opt.Name, metav1.GetOptions{})
 		if err != nil {
 			if errors.IsNotFound(err) {
@@ -254,10 +327,101 @@ func WaitForSubscriptionDelete(olmClient *olmclient.Clientset, opt metav1.Object
 	return nil
 }
 
+// ValidateCustomeResource check the result of the common service config
+func ValidateCustomeResource(f *framework.Framework, namespace string) error {
+	fmt.Println("Validating custome resources are ready")
+	configInstance := &operator.CommonServiceConfig{}
+	// Get CommonServiceSet instance
+	err := f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.ConfigCrName, Namespace: namespace}, configInstance)
+	if err != nil {
+		return err
+	}
+	lastReason := ""
+	waitErr := utilwait.PollImmediate(config.WaitForRetry, config.APITimeout, func() (done bool, err error) {
+		for operatorName, operatorState := range configInstance.Status.ServiceStatus {
+			for crName, crState := range operatorState.CrStatus {
+				if crState == operator.ServiceRunning {
+					continue
+				} else {
+					lastReason = fmt.Sprintf("Waiting on custome resource to be ready" + ", custome resource name: " + crName + " Operator name: " + operatorName)
+					return false, nil
+				}
+			}
+		}
+		return true, nil
+	})
+	if waitErr != nil {
+		return fmt.Errorf("%v: %s", waitErr, lastReason)
+	}
+	return nil
+}
+
 // AssertNoError confirms the error returned is nil
 func AssertNoError(t *testing.T, err error) {
 	t.Helper()
 	if err != nil {
 		t.Fatal(err)
+	}
+}
+
+// CommonServiceConfig instance
+func newCommonServiceConfigCR(name, namespace string) *operator.CommonServiceConfig {
+	return &operator.CommonServiceConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: operator.CommonServiceConfigSpec{
+			Services: []operator.ConfigService{
+				{
+					Name: "etcd",
+					Spec: map[string]runtime.RawExtension{
+						"etcdCluster": {Raw: []byte(`{"size": 1}`)},
+					},
+				},
+				{
+					Name: "jenkins",
+					Spec: map[string]runtime.RawExtension{
+						"jenkins": {Raw: []byte(`{"service":{"port": 8081}}`)},
+					},
+				},
+			},
+		},
+	}
+}
+
+// MetaOperator instance
+func newMetaOperatorCR(name, namespace string) *operator.MetaOperator {
+	return &operator.MetaOperator{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: operator.MetaOperatorSpec{
+			Operators: []operator.Operator{
+				{
+					Name:            "etcd",
+					Namespace:       "etcd-operator",
+					SourceName:      "community-operators",
+					SourceNamespace: "openshift-marketplace",
+					PackageName:     "etcd",
+					Channel:         "singlenamespace-alpha",
+					TargetNamespaces: []string{
+						"etcd-operator",
+					},
+				},
+				{
+					Name:            "jenkins",
+					Namespace:       "jenkins-operator",
+					SourceName:      "community-operators",
+					SourceNamespace: "openshift-marketplace",
+					PackageName:     "jenkins-operator",
+					Channel:         "alpha",
+					TargetNamespaces: []string{
+						"jenkins-operator",
+					},
+				},
+			},
+		},
 	}
 }

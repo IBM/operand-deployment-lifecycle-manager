@@ -195,7 +195,6 @@ code-lint: ## Run golangci-lint to lint the code
 		--enable=goconst \
 		--enable=goimports \
 		--enable=errcheck \
-		--enable=dupl \
 		--enable=unparam \
 		--enable=golint \
 		--fix
