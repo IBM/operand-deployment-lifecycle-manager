@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+.DEFAULT_GOAL:=help
 # Specify whether this repo is build locally or not, default values is '1';
 # If set to 1, then you need to also set 'DOCKER_USERNAME' and 'DOCKER_PASSWORD'
 # environment variables before build the repo.
@@ -21,10 +22,6 @@ BUILD_LOCALLY ?= 1
 
 # The namespcethat operator will be deployed in
 NAMESPACE=common-service-operator
-
-# This repo is build locally for dev/test by default;
-# Override this variable in CI env.
-BUILD_LOCALLY ?= 1
 
 # Image URL to use all building/pushing image targets;
 # Use your own docker registry and image name for dev/test by overridding the IMG and REGISTRY environment variable.
@@ -64,8 +61,6 @@ else
     $(error "This system's OS $(LOCAL_OS) isn't recognized/supported")
 endif
 
-all: fmt check test coverage build images
-
 ifneq ("$(realpath $(DEST))", "$(realpath $(PWD))")
     $(error Please run 'make' from $(DEST). Current directory is $(PWD))
 endif
@@ -81,56 +76,7 @@ $(GOBIN):
 
 work: $(GOBIN)
 
-############################################################
-# format section
-############################################################
-
-# All available format: format-go format-protos format-python
-# Default value will run all formats, override these make target with your requirements:
-#    eg: fmt: format-go format-protos
-fmt: format-go format-protos format-python
-
-############################################################
-# check section
-############################################################
-
-check: lint
-
-# All available linters: lint-dockerfiles lint-scripts lint-yaml lint-copyright-banner lint-go lint-python lint-helm lint-markdown lint-sass lint-typescript lint-protos
-# Default value will run all linters, override these make target with your requirements:
-#    eg: lint: lint-go lint-yaml
-lint: lint-all
-
-############################################################
-# test section
-############################################################
-
-test:
-	@go test ${TESTARGS} ./pkg/...
-
-test-e2e: ## Run integration e2e tests with different options.
-	@echo ... Running the same e2e tests with different args ...
-	@echo ... Running locally ...
-	- operator-sdk test local ./test/e2e --verbose --up-local --namespace=${NAMESPACE}
-	# @echo ... Running with the param ...
-	# - operator-sdk test local ./test/e2e --namespace=${NAMESPACE}
-############################################################
-# coverage section
-############################################################
-
-coverage:
-	@common/scripts/codecov.sh ${BUILD_LOCALLY}
-
-############################################################
-# install operator sdk section
-############################################################
-
-install-operator-sdk: 
-	@operator-sdk version 2> /dev/null ; if [ $$? -ne 0 ]; then ./common/scripts/install-operator-sdk.sh; fi
-
-############################################################
-# install section
-############################################################
+##@ Application
 
 install: ## Install all resources (CR/CRD's, RBCA and Operator)
 	@echo ....... Set environment variables ......
@@ -168,9 +114,17 @@ uninstall: ## Uninstall all that all performed in the $ make install
 	@echo ....... Deleting namespace ${NAMESPACE}.......
 	- kubectl delete namespace ${NAMESPACE}
 
-############################################################
-# development section
-############################################################
+##@ Development
+
+# All available format: format-go format-protos format-python
+# Default value will run all formats, override these make target with your requirements:
+#    eg: fmt: format-go format-protos
+fmt: format-go ## Format all go code
+
+# All available linters: lint-dockerfiles lint-scripts lint-yaml lint-copyright-banner lint-go lint-python lint-helm lint-markdown lint-sass lint-typescript lint-protos
+# Default value will run all linters, override these make target with your requirements:
+#    eg: lint: lint-go lint-yaml
+check: lint-all ## Check all files lint error
 
 code-vet: ## Run go vet for this project. More info: https://golang.org/cmd/vet/
 	@echo go vet
@@ -219,39 +173,59 @@ code-dev: ## Run the default dev commands which are the go tidy, fmt, vet check 
 	- make code-gen
 	- make code-lint
 
-############################################################
-# build section
-############################################################
+run: ## Run against the configured Kubernetes cluster in ~/.kube/config
+	go run ./cmd/manager/main.go
 
-build:
+##@ Build
+
+build: ## Build go binary
 	@common/scripts/gobuild.sh build/_output/bin/$(IMG) ./cmd/manager
 
-local:
+local: ## Build local go binary, default is drawin
 	@GOOS=darwin common/scripts/gobuild.sh build/_output/bin/$(IMG) ./cmd/manager
 
-############################################################
-# images section
-############################################################
+##@ Test
 
-images: build build-push-images
+test: ## Run unit test
+	@go test ${TESTARGS} ./pkg/...
+
+test-e2e: ## Run integration e2e tests with different options.
+	@echo ... Running the same e2e tests with different args ...
+	@echo ... Running locally ...
+	- operator-sdk test local ./test/e2e --verbose --up-local --namespace=${NAMESPACE}
+	# @echo ... Running with the param ...
+	# - operator-sdk test local ./test/e2e --namespace=${NAMESPACE}
+
+coverage: ## Run code coverage test
+	@common/scripts/codecov.sh ${BUILD_LOCALLY}
+
+##@ Release
+
+install-operator-sdk: ## Install operator sdk binary
+	@operator-sdk version 2> /dev/null ; if [ $$? -ne 0 ]; then ./common/scripts/install-operator-sdk.sh; fi
 
 ifeq ($(BUILD_LOCALLY),0)
     export CONFIG_DOCKER_TARGET = config-docker
 endif
-
-build-push-images: install-operator-sdk $(CONFIG_DOCKER_TARGET)
+images: install-operator-sdk $(CONFIG_DOCKER_TARGET) ## Build and push image
 	@operator-sdk build $(REGISTRY)/$(IMG):$(VERSION)
 	@docker tag $(REGISTRY)/$(IMG):$(VERSION) $(REGISTRY)/$(IMG)
 	@if [ $(BUILD_LOCALLY) -ne 1 ]; then docker push $(REGISTRY)/$(IMG):$(VERSION); docker push $(REGISTRY)/$(IMG); fi
 
-csv-push: ## Push CSV package to the catalog
+csv: ## Push CSV package to the catalog
 	@RELEASE=${CSV_VERSION} common/scripts/push-csv.sh
 
+all: fmt check test coverage build images
 
-############################################################
-# clean section
-############################################################
-clean:
+##@ Cleanup
+clean: ## Clean build binary
 	rm -f build/_output/bin/$(IMG)
 
-.PHONY: all build check lint test coverage images
+##@ Help
+help: ## Display this help
+	@echo -e "Usage:\n  make \033[36m<target>\033[0m"
+	@awk 'BEGIN {FS = ":.*##"}; \
+		/^[a-zA-Z0-9_-]+:.*?##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 } \
+		/^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+
+.PHONY: all build local run check install uninstall code-vet code-fmt code-tidy code-lint code-gen code-dev test test-e2e coverage images csv install-operator-sdk clean help
