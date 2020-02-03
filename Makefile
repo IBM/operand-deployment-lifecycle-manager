@@ -108,6 +108,12 @@ lint: lint-all
 test:
 	@go test ${TESTARGS} ./pkg/...
 
+test-e2e: ## Run integration e2e tests with different options.
+	@echo ... Running the same e2e tests with different args ...
+	@echo ... Running locally ...
+	- operator-sdk test local ./test/e2e --verbose --up-local --namespace=${NAMESPACE}
+	# @echo ... Running with the param ...
+	# - operator-sdk test local ./test/e2e --namespace=${NAMESPACE}
 ############################################################
 # coverage section
 ############################################################
@@ -193,7 +199,6 @@ code-lint: ## Run golangci-lint to lint the code
 		--enable=goconst \
 		--enable=goimports \
 		--enable=errcheck \
-		--enable=dupl \
 		--enable=unparam \
 		--enable=golint \
 		--fix
