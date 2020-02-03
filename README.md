@@ -66,8 +66,8 @@ Use the following command to check the operator logs.
 
 ### Running Tests
 
-Run `make test-e2e` to run the integration e2e tests with different options. For
-more information see the [writing e2e tests](https://github.com/operator-framework/operator-sdk/blob/master/doc/test-framework/writing-e2e-tests.md) guide.
+[e2e tests](./docs/e2e.md)
+For more information see the [writing e2e tests](https://github.com/operator-framework/operator-sdk/blob/master/doc/test-framework/writing-e2e-tests.md) guide.
 
 ### Development
 
