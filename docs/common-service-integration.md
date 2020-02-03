@@ -61,7 +61,7 @@ operators:
     sourceNamespace: openshift-marketplace
     targetNamespaces:
     - jenkins-operator
-...  
+...
 ```
 
 `name` is the name of the operator, which should be same as the services name in the `CommonServiceConfig` and `CommonServiceSet`.
