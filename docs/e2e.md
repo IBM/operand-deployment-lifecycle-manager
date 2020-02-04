@@ -9,7 +9,7 @@
 
 # Running E2E Tests
 
-1. Ensure **operator-sdk** is installed.
+1. Ensure **operator-sdk** is installed and login to your OpenShift cluster as an admin user.
 
 1. If the namespace **common-service-operator** exists, delete it. Do this to make sure the namespace is clean.
 
