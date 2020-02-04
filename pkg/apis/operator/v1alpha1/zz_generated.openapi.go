@@ -26,23 +26,23 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceConfig":       schema_pkg_apis_operator_v1alpha1_CommonServiceConfig(ref),
-		"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceConfigSpec":   schema_pkg_apis_operator_v1alpha1_CommonServiceConfigSpec(ref),
-		"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceConfigStatus": schema_pkg_apis_operator_v1alpha1_CommonServiceConfigStatus(ref),
-		"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceSet":          schema_pkg_apis_operator_v1alpha1_CommonServiceSet(ref),
-		"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceSetSpec":      schema_pkg_apis_operator_v1alpha1_CommonServiceSetSpec(ref),
-		"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceSetStatus":    schema_pkg_apis_operator_v1alpha1_CommonServiceSetStatus(ref),
-		"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperator":              schema_pkg_apis_operator_v1alpha1_MetaOperator(ref),
-		"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorSpec":          schema_pkg_apis_operator_v1alpha1_MetaOperatorSpec(ref),
-		"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorStatus":        schema_pkg_apis_operator_v1alpha1_MetaOperatorStatus(ref),
+		"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorCatalog":       schema_pkg_apis_operator_v1alpha1_MetaOperatorCatalog(ref),
+		"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorCatalogSpec":   schema_pkg_apis_operator_v1alpha1_MetaOperatorCatalogSpec(ref),
+		"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorCatalogStatus": schema_pkg_apis_operator_v1alpha1_MetaOperatorCatalogStatus(ref),
+		"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorConfig":        schema_pkg_apis_operator_v1alpha1_MetaOperatorConfig(ref),
+		"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorConfigSpec":    schema_pkg_apis_operator_v1alpha1_MetaOperatorConfigSpec(ref),
+		"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorConfigStatus":  schema_pkg_apis_operator_v1alpha1_MetaOperatorConfigStatus(ref),
+		"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorSet":           schema_pkg_apis_operator_v1alpha1_MetaOperatorSet(ref),
+		"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorSetSpec":       schema_pkg_apis_operator_v1alpha1_MetaOperatorSetSpec(ref),
+		"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorSetStatus":     schema_pkg_apis_operator_v1alpha1_MetaOperatorSetStatus(ref),
 	}
 }
 
-func schema_pkg_apis_operator_v1alpha1_CommonServiceConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_operator_v1alpha1_MetaOperatorCatalog(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "CommonServiceConfig is the Schema for the commonserviceconfigs API",
+				Description: "MetaOperatorCatalog is the Schema for the metaoperatorcatalogs API",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"kind": {
@@ -64,34 +64,134 @@ func schema_pkg_apis_operator_v1alpha1_CommonServiceConfig(ref common.ReferenceC
 							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
 						},
 					},
-					"status": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceConfigStatus"),
-						},
-					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceConfigSpec"),
+							Ref: ref("github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorCatalogSpec"),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorCatalogStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceConfigSpec", "github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceConfigStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorCatalogSpec", "github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorCatalogStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
-func schema_pkg_apis_operator_v1alpha1_CommonServiceConfigSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_operator_v1alpha1_MetaOperatorCatalogSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "CommonServiceConfigSpec defines the desired state of CommonServiceConfig",
+				Description: "MetaOperatorCatalogSpec defines the desired state of MetaOperatorCatalog",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"operators": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Operators is a list of operator definition",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.Operator"),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.Operator"},
+	}
+}
+
+func schema_pkg_apis_operator_v1alpha1_MetaOperatorCatalogStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MetaOperatorCatalogStatus defines the observed state of MetaOperatorCatalog",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"operatorsStatus": {
+						SchemaProps: spec.SchemaProps{
+							Description: "OperatorsStatus defines operator running state",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func schema_pkg_apis_operator_v1alpha1_MetaOperatorConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MetaOperatorConfig is the Schema for the metaoperatorconfigs API",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorConfigSpec"),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorConfigStatus"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorConfigSpec", "github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorConfigStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_pkg_apis_operator_v1alpha1_MetaOperatorConfigSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MetaOperatorConfigSpec defines the desired state of MetaOperatorConfig",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"services": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Services is a list of configuration of service",
+							Description: "INSERT ADDITIONAL SPEC FIELDS - desired state of cluster Important: Run \"operator-sdk generate k8s\" to regenerate code after modifying this file Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html Services is a list of configuration of service",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -110,11 +210,11 @@ func schema_pkg_apis_operator_v1alpha1_CommonServiceConfigSpec(ref common.Refere
 	}
 }
 
-func schema_pkg_apis_operator_v1alpha1_CommonServiceConfigStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_operator_v1alpha1_MetaOperatorConfigStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "CommonServiceConfigStatus defines the observed state of CommonServiceConfig",
+				Description: "MetaOperatorConfigStatus defines the observed state of MetaOperatorConfig",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"serviceStatus": {
@@ -139,11 +239,11 @@ func schema_pkg_apis_operator_v1alpha1_CommonServiceConfigStatus(ref common.Refe
 	}
 }
 
-func schema_pkg_apis_operator_v1alpha1_CommonServiceSet(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_operator_v1alpha1_MetaOperatorSet(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "CommonServiceSet is the Schema for the commonservicesets API",
+				Description: "MetaOperatorSet is the Schema for the metaoperatorsets API",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"kind": {
@@ -167,27 +267,27 @@ func schema_pkg_apis_operator_v1alpha1_CommonServiceSet(ref common.ReferenceCall
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceSetSpec"),
+							Ref: ref("github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorSetSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceSetStatus"),
+							Ref: ref("github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorSetStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceSetSpec", "github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.CommonServiceSetStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorSetSpec", "github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorSetStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
-func schema_pkg_apis_operator_v1alpha1_CommonServiceSetSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_operator_v1alpha1_MetaOperatorSetSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "CommonServiceSetSpec defines the desired state of CommonServiceSet",
+				Description: "MetaOperatorSetSpec defines the desired state of MetaOperatorSet",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"services": {
@@ -212,11 +312,11 @@ func schema_pkg_apis_operator_v1alpha1_CommonServiceSetSpec(ref common.Reference
 	}
 }
 
-func schema_pkg_apis_operator_v1alpha1_CommonServiceSetStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_operator_v1alpha1_MetaOperatorSetStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "CommonServiceSetStatus defines the observed state of CommonServiceSet",
+				Description: "MetaOperatorSetStatus defines the observed state of MetaOperatorSet",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"conditions": {
@@ -251,105 +351,5 @@ func schema_pkg_apis_operator_v1alpha1_CommonServiceSetStatus(ref common.Referen
 		},
 		Dependencies: []string{
 			"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.Condition", "github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MembersStatus"},
-	}
-}
-
-func schema_pkg_apis_operator_v1alpha1_MetaOperator(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "MetaOperator is the Schema for the metaoperators API",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"kind": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"apiVersion": {
-						SchemaProps: spec.SchemaProps{
-							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"metadata": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
-						},
-					},
-					"status": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorStatus"),
-						},
-					},
-					"spec": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorSpec"),
-						},
-					},
-				},
-			},
-		},
-		Dependencies: []string{
-			"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorSpec", "github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.MetaOperatorStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
-	}
-}
-
-func schema_pkg_apis_operator_v1alpha1_MetaOperatorSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "MetaOperatorSpec defines the desired state of MetaOperator",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"operators": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Operators is a list of operator definition",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.Operator"),
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-		Dependencies: []string{
-			"github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1.Operator"},
-	}
-}
-
-func schema_pkg_apis_operator_v1alpha1_MetaOperatorStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "MetaOperatorStatus defines the observed state of MetaOperator",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"operatorsStatus": {
-						SchemaProps: spec.SchemaProps{
-							Description: "INSERT ADDITIONAL STATUS FIELD - define observed state of cluster Important: Run \"operator-sdk generate k8s\" to regenerate code after modifying this file Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html OperatorsStatus defines operator running state",
-							Type:        []string{"object"},
-							AdditionalProperties: &spec.SchemaOrBool{
-								Allows: true,
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Type:   []string{"string"},
-										Format: "",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
 	}
 }

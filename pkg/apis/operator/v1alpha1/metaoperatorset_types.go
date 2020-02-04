@@ -23,9 +23,9 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// CommonServiceSetSpec defines the desired state of CommonServiceSet
+// MetaOperatorSetSpec defines the desired state of MetaOperatorSet
 // +k8s:openapi-gen=true
-type CommonServiceSetSpec struct {
+type MetaOperatorSetSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
@@ -70,9 +70,9 @@ type Condition struct {
 	Message        string        `json:"message,omitempty"`
 }
 
-// CommonServiceSetStatus defines the observed state of CommonServiceSet
+// MetaOperatorSetStatus defines the observed state of MetaOperatorSet
 // +k8s:openapi-gen=true
-type CommonServiceSetStatus struct {
+type MetaOperatorSetStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
@@ -97,27 +97,27 @@ type MembersStatus struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// CommonServiceSet is the Schema for the commonservicesets API
+// MetaOperatorSet is the Schema for the metaoperatorsets API
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:path=commonservicesets,shortName=css,scope=Namespaced
-type CommonServiceSet struct {
+// +kubebuilder:resource:path=metaoperatorsets,shortName=moset,scope=Namespaced
+type MetaOperatorSet struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   CommonServiceSetSpec   `json:"spec,omitempty"`
-	Status CommonServiceSetStatus `json:"status,omitempty"`
+	Spec   MetaOperatorSetSpec   `json:"spec,omitempty"`
+	Status MetaOperatorSetStatus `json:"status,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// CommonServiceSetList contains a list of CommonServiceSet
-type CommonServiceSetList struct {
+// MetaOperatorSetList contains a list of MetaOperatorSet
+type MetaOperatorSetList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []CommonServiceSet `json:"items"`
+	Items           []MetaOperatorSet `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&CommonServiceSet{}, &CommonServiceSetList{})
+	SchemeBuilder.Register(&MetaOperatorSet{}, &MetaOperatorSetList{})
 }

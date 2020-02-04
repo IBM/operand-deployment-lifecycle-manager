@@ -45,9 +45,9 @@ type Operator struct {
 	State string `json:"state,omitempty"`
 }
 
-// MetaOperatorSpec defines the desired state of MetaOperator
+// MetaOperatorCatalogSpec defines the desired state of MetaOperatorCatalog
 // +k8s:openapi-gen=true
-type MetaOperatorSpec struct {
+type MetaOperatorCatalogSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
@@ -57,12 +57,13 @@ type MetaOperatorSpec struct {
 	Operators []Operator `json:"operators,omitempty"`
 }
 
-// MetaOperatorStatus defines the observed state of MetaOperator
+// MetaOperatorCatalogStatus defines the observed state of MetaOperatorCatalog
 // +k8s:openapi-gen=true
-type MetaOperatorStatus struct {
+type MetaOperatorCatalogStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
+
 	// OperatorsStatus defines operator running state
 	// +optional
 	OperatorsStatus map[string]OperatorPhase `json:"operatorsStatus,omitempty"`
@@ -70,16 +71,16 @@ type MetaOperatorStatus struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// MetaOperator is the Schema for the metaoperators API
+// MetaOperatorCatalog is the Schema for the metaoperatorcatalogs API
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:path=metaoperators,shortName=mo,scope=Namespaced
-type MetaOperator struct {
+// +kubebuilder:resource:path=metaoperatorcatalogs,shortName=mocat,scope=Namespaced
+type MetaOperatorCatalog struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Status MetaOperatorStatus `json:"status,omitempty"`
-	Spec   MetaOperatorSpec   `json:"spec,omitempty"`
+	Spec   MetaOperatorCatalogSpec   `json:"spec,omitempty"`
+	Status MetaOperatorCatalogStatus `json:"status,omitempty"`
 }
 
 // OperatorPhase defines the operator status
@@ -93,13 +94,13 @@ const (
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// MetaOperatorList contains a list of MetaOperator
-type MetaOperatorList struct {
+// MetaOperatorCatalogList contains a list of MetaOperatorCatalog
+type MetaOperatorCatalogList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []MetaOperator `json:"items"`
+	Items           []MetaOperatorCatalog `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&MetaOperator{}, &MetaOperatorList{})
+	SchemeBuilder.Register(&MetaOperatorCatalog{}, &MetaOperatorCatalogList{})
 }
