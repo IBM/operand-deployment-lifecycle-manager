@@ -27,7 +27,7 @@
 
 ### 1. Create OperatorSource
 
-Open OCP console, click the `Plus` button on top right and paste following content, then click `Create`.
+Open OCP console, click the `Plus` button on the top right and paste the following content, then click `Create`.
 
 ```yaml
 apiVersion: operators.coreos.com/v1
@@ -46,7 +46,7 @@ spec:
 
 ### 2. Create a Namespace `common-service-operator`
 
-Open `OperatorHub` page in OCP console left menu, then `Create Project`, e.g., create a project named as `common-service-operator`.
+Open the `OperatorHub` page in OCP console left menu, then `Create Project`, e.g., create a project named `common-service-operator`.
 
 ### 3. Install Common Service Operator
 
@@ -66,7 +66,7 @@ curl -sL https://github.com/operator-framework/operator-lifecycle-manager/releas
 
 ### 1. Build Operator Registry image
 
-> You need to remove the last `type: object` in all CRDs to avoid following error: The CustomResourceDefinition "commonserviceconfigs.operator.ibm.com" is invalid: spec.validation.openAPIV3Schema: Invalid value: apiextensions.JSONSchemaProps ..... must only have "properties", "required" or "description" at the root if the status subresource is enabled
+> You need to remove the last `type: object` in all CRDs to avoid the following error: The CustomResourceDefinition "commonserviceconfigs.operator.ibm.com" is invalid: spec.validation.openAPIV3Schema: Invalid value: apiextensions.JSONSchemaProps ..... must only have "properties", "required" or "description" at the root if the status subresource is enabled
 
 ```bash
 cd deploy
@@ -128,7 +128,7 @@ oc -n common-service-operator get csv
 
 ### 1. Update CommonServiceConfig and MetaOperator custom resource
 
-Common Service Operator defines custom resource definition CommonServiceConfig, CommonServiceSet and MetaOperator and creates two example custom resource for CommonServiceConfig and MetaOperator.
+Common Service Operator defines custom resource definition CommonServiceConfig, CommonServiceSet and MetaOperator and creates two example custom resources for CommonServiceConfig and MetaOperator.
 
 In the `Operator Details` page, three generated custom resource definition are list in a line with the `Overview`. Check the custom resource definition name, then you can update the example custom resource.
 
@@ -209,13 +209,13 @@ spec:
 
 The `operators` list defines the operator lifecycle management information for each operator.
 Taking the jenkins as an example:
-- `name` is the name of the operator, which should be same as the services name in the `CommonServiceConfig` and `CommonServiceSet`.
+- `name` is the name of the operator, which should be the same as the services name in the `CommonServiceConfig` and `CommonServiceSet`.
 - `namespace` is the namespace the operator will be deployed in.
-- `channel` is the name of tracked channel.
+- `channel` is the name of a tracked channel.
 - `packageName` is the name of the package in `CatalogSource` will be deployed.
 - `sourceName` is the name of the `CatalogSource`.
 - `sourceNamespace` is the namespace of the `CatalogSource`.
-- `targetNamespaces` is a list of namespace, which `OperaterGroup` generates RBAC access for its member Operators to get access to. `targetNamespaces` is used to control the operator dependency. `targetNamespaces` should include all the namespaces of its dependent operators and its own namespace.
+- `targetNamespaces` is a list of namespaces, which `OperaterGroup` generates RBAC access for its member Operators to get access to. `targetNamespaces` is used to control the operator dependency. `targetNamespaces` should include all the namespaces of its dependent operators and its own namespace.
 
 ### 2. Create CommonServiceSet custom resource
 
@@ -243,7 +243,7 @@ spec:
 ```
 
 - `services` is a list defines the set for each service.
-- `name` is the service name, which should be the same as the services name in the `CommonServiceConfig` and operator `name` in the `MetaOperator`.
+- `name` is the service name, which should be the same as the services name in the `CommonServiceConfig` and operator name in the `MetaOperator`.
 - `channel` is an optional setting, it can overwrite the `channel` defined in the `MetaOperator`.
 - `state` defines if the service should be present or absent.
 - `description` is the description of the service.
