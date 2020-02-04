@@ -6,55 +6,7 @@ metadata:
       [
         {
           "apiVersion": "operator.ibm.com/v1alpha1",
-          "kind": "CommonServiceConfig",
-          "metadata": {
-            "name": "common-service"
-          },
-          "spec": {
-            "services": [
-              {
-                "name": "jenkins",
-                "spec": {
-                  "jenkins": {
-                    "service": {
-                      "port": 8081
-                    }
-                  }
-                }
-              },
-              {
-                "name": "etcd",
-                "spec": {
-                  "etcdCluster": {
-                    "size": 1
-                  }
-                }
-              }
-            ]
-          }
-        },
-        {
-          "apiVersion": "operator.ibm.com/v1alpha1",
-          "kind": "CommonServiceSet",
-          "metadata": {
-            "name": "common-service"
-          },
-          "spec": {
-            "services": [
-              {
-                "name": "etcd",
-                "state": "present"
-              },
-              {
-                "name": "jenkins",
-                "state": "present"
-              }
-            ]
-          }
-        },
-        {
-          "apiVersion": "operator.ibm.com/v1alpha1",
-          "kind": "MetaOperator",
+          "kind": "MetaOperatorCatalog",
           "metadata": {
             "name": "common-service"
           },
@@ -84,6 +36,54 @@ metadata:
               }
             ]
           }
+        },
+        {
+          "apiVersion": "operator.ibm.com/v1alpha1",
+          "kind": "MetaOperatorConfig",
+          "metadata": {
+            "name": "common-service"
+          },
+          "spec": {
+            "services": [
+              {
+                "name": "jenkins",
+                "spec": {
+                  "jenkins": {
+                    "service": {
+                      "port": 8081
+                    }
+                  }
+                }
+              },
+              {
+                "name": "etcd",
+                "spec": {
+                  "etcdCluster": {
+                    "size": 1
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "apiVersion": "operator.ibm.com/v1alpha1",
+          "kind": "MetaOperatorSet",
+          "metadata": {
+            "name": "common-service"
+          },
+          "spec": {
+            "services": [
+              {
+                "name": "etcd",
+                "state": "present"
+              },
+              {
+                "name": "jenkins",
+                "state": "present"
+              }
+            ]
+          }
         }
       ]
     capabilities: Seamless Upgrades
@@ -101,33 +101,14 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-    - description: Represents the intent to defines all the common services configurations
-      displayName: Services Config
-      kind: CommonServiceConfig
-      name: commonserviceconfigs.operator.ibm.com
+    - kind: MetaOperatorCatalog
+      name: metaoperatorcatalogs.operator.ibm.com
       version: v1alpha1
-    - description: Represents the intent to defines a set of services that need to
-        be installed
-      displayName: Services Set
-      kind: CommonServiceSet
-      name: commonservicesets.operator.ibm.com
-      resources:
-      - kind: Subscription
-        name: subscriptions.operators.coreos.com
-        version: v1alpha1
-      statusDescriptors:
-      - description: The status of operators for the Set.
-        displayName: Operator Status
-        path: members
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:podStatuses
+    - kind: MetaOperatorConfig
+      name: metaoperatorconfigs.operator.ibm.com
       version: v1alpha1
-    - description: |-
-        [This resource is not intended to be created or managed by users.]
-        Represents the intent to manage lifecycle of the common service operator
-      displayName: '[Internal] Operator Manage'
-      kind: MetaOperator
-      name: metaoperators.operator.ibm.com
+    - kind: MetaOperatorSet
+      name: metaoperatorsets.operator.ibm.com
       version: v1alpha1
   description: The Common Service Operator provides a simple Kubernetes CRD-Based
     API to manage the lifecycle of IBM cloud common services. With this operator,
@@ -192,6 +173,9 @@ spec:
           - jenkins.io
           resources:
           - '*'
+          - metaoperatorcatalogs
+          - metaoperatorconfigs
+          - metaoperatorsets
           verbs:
           - '*'
         serviceAccountName: common-service-operator

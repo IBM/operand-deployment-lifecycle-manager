@@ -1,3 +1,21 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Common Services Operator](#common-services-operator)
+    - [Overview](#overview)
+    - [Prerequisites](#prerequisites)
+    - [Getting Started](#getting-started)
+        - [Cloning the repository](#cloning-the-repository)
+        - [Building the operator](#building-the-operator)
+        - [Installing](#installing)
+        - [Uninstalling](#uninstalling)
+        - [Troubleshooting](#troubleshooting)
+        - [Running Tests](#running-tests)
+        - [Development](#development)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Common Services Operator
 
 ## Overview
@@ -66,8 +84,8 @@ Use the following command to check the operator logs.
 
 ### Running Tests
 
-Run `make test-e2e` to run the integration e2e tests with different options. For
-more information see the [writing e2e tests](https://github.com/operator-framework/operator-sdk/blob/master/doc/test-framework/writing-e2e-tests.md) guide.
+[End to end tests](./docs/e2e.md)
+For more information see the [writing e2e tests](https://github.com/operator-framework/operator-sdk/blob/master/doc/test-framework/writing-e2e-tests.md) guide.
 
 ### Development
 

@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-package commonserviceset
+package metaoperatorset
 
 import (
 	"context"
@@ -30,7 +30,7 @@ import (
 	"github.com/IBM/common-service-operator/pkg/util"
 )
 
-func (r *ReconcileCommonServiceSet) reconcileMetaOperator(opts map[string]operatorv1alpha1.Operator, setInstance *operatorv1alpha1.CommonServiceSet, mo *operatorv1alpha1.MetaOperator) error {
+func (r *ReconcileMetaOperatorSet) reconcileMetaOperator(opts map[string]operatorv1alpha1.Operator, setInstance *operatorv1alpha1.MetaOperatorSet, moc *operatorv1alpha1.MetaOperatorCatalog) error {
 	reqLogger := log.WithValues()
 	reqLogger.Info("Reconciling MetaOperator")
 	for _, o := range opts {
@@ -64,7 +64,7 @@ func (r *ReconcileCommonServiceSet) reconcileMetaOperator(opts map[string]operat
 					return err
 				}
 				// Subscription is absent, delete it.
-			} else if err := r.deleteSubscription(setInstance, found, mo); err != nil {
+			} else if err := r.deleteSubscription(setInstance, found, moc); err != nil {
 				return err
 			}
 		} else {
@@ -75,7 +75,7 @@ func (r *ReconcileCommonServiceSet) reconcileMetaOperator(opts map[string]operat
 	return nil
 }
 
-func (r *ReconcileCommonServiceSet) fetchOperators(mo *operatorv1alpha1.MetaOperator, cr *operatorv1alpha1.CommonServiceSet) (map[string]operatorv1alpha1.Operator, error) {
+func (r *ReconcileMetaOperatorSet) fetchOperators(moc *operatorv1alpha1.MetaOperatorCatalog, cr *operatorv1alpha1.MetaOperatorSet) (map[string]operatorv1alpha1.Operator, error) {
 
 	setMap, err := r.fetchSets(cr)
 	if err != nil {
@@ -83,7 +83,7 @@ func (r *ReconcileCommonServiceSet) fetchOperators(mo *operatorv1alpha1.MetaOper
 	}
 
 	optMap := make(map[string]operatorv1alpha1.Operator)
-	for _, v := range mo.Spec.Operators {
+	for _, v := range moc.Spec.Operators {
 		if _, ok := setMap[v.Name]; ok {
 			if setMap[v.Name].Channel != "" && setMap[v.Name].Channel != v.Channel {
 				v.Channel = setMap[v.Name].Channel
@@ -97,7 +97,7 @@ func (r *ReconcileCommonServiceSet) fetchOperators(mo *operatorv1alpha1.MetaOper
 	return optMap, nil
 }
 
-func (r *ReconcileCommonServiceSet) createSubscription(cr *operatorv1alpha1.CommonServiceSet, opt operatorv1alpha1.Operator) error {
+func (r *ReconcileMetaOperatorSet) createSubscription(cr *operatorv1alpha1.MetaOperatorSet, opt operatorv1alpha1.Operator) error {
 	logger := log.WithValues("Subscription.Namespace", opt.Namespace, "Subscription.Name", opt.Name)
 	co := generateClusterObjects(opt)
 
@@ -131,7 +131,7 @@ func (r *ReconcileCommonServiceSet) createSubscription(cr *operatorv1alpha1.Comm
 	return nil
 }
 
-func (r *ReconcileCommonServiceSet) updateSubscription(cr *operatorv1alpha1.CommonServiceSet, sub *olmv1alpha1.Subscription) error {
+func (r *ReconcileMetaOperatorSet) updateSubscription(cr *operatorv1alpha1.MetaOperatorSet, sub *olmv1alpha1.Subscription) error {
 	logger := log.WithValues("Subscription.Namespace", sub.Namespace, "Subscription.Name", sub.Name)
 
 	logger.Info("Updating Subscription")
@@ -148,7 +148,7 @@ func (r *ReconcileCommonServiceSet) updateSubscription(cr *operatorv1alpha1.Comm
 	return nil
 }
 
-func (r *ReconcileCommonServiceSet) deleteSubscription(cr *operatorv1alpha1.CommonServiceSet, sub *olmv1alpha1.Subscription, mo *operatorv1alpha1.MetaOperator) error {
+func (r *ReconcileMetaOperatorSet) deleteSubscription(cr *operatorv1alpha1.MetaOperatorSet, sub *olmv1alpha1.Subscription, moc *operatorv1alpha1.MetaOperatorCatalog) error {
 	logger := log.WithValues("Subscription.Namespace", sub.Namespace, "Subscription.Name", sub.Name)
 	installedCsv := sub.Status.InstalledCSV
 	logger.Info("Deleting a Subscription")
@@ -168,7 +168,7 @@ func (r *ReconcileCommonServiceSet) deleteSubscription(cr *operatorv1alpha1.Comm
 	if err := r.updateConditionStatus(cr, sub.Name, DeleteSuccessed); err != nil {
 		return err
 	}
-	if err := r.deleteOperatorStatus(mo, sub.Name); err != nil {
+	if err := r.deleteOperatorStatus(moc, sub.Name); err != nil {
 		return err
 	}
 	return nil
@@ -240,7 +240,7 @@ func generateOperatorGroup(namespace string, targetNamespaces []string) *olmv1.O
 	return og
 }
 
-func (r *ReconcileCommonServiceSet) checkOperatorGroup(targetNamespaces []string, namespace string) error {
+func (r *ReconcileMetaOperatorSet) checkOperatorGroup(targetNamespaces []string, namespace string) error {
 	existOG, err := r.olmClient.OperatorsV1().OperatorGroups(namespace).Get("common-service-operatorgroup", metav1.GetOptions{})
 	if err != nil && !errors.IsNotFound(err) {
 		return err

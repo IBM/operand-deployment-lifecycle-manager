@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-package metaoperator
+package metaoperatorcatalog
 
 import (
 	"context"
@@ -52,26 +52,26 @@ func Add(mgr manager.Manager) error {
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	return &ReconcileMetaOperator{
 		client:   mgr.GetClient(),
-		recorder: mgr.GetEventRecorderFor("metaoperator"),
+		recorder: mgr.GetEventRecorderFor("metaoperatorcatalog"),
 		scheme:   mgr.GetScheme()}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
-	c, err := controller.New("metaoperator-controller", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New("catalog-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}
 
 	// Watch for changes to primary resource MetaOperator
-	err = c.Watch(&source.Kind{Type: &operatorv1alpha1.MetaOperator{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &operatorv1alpha1.MetaOperatorCatalog{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
 
 	deployDirectory := os.Getenv("DEPLOY_DIR")
-	if err = util.InitInstance(deployDirectory+"/operator.ibm.com_v1alpha1_metaoperator_cr.yaml", mgr); err != nil {
+	if err = util.InitInstance(deployDirectory+"/operator.ibm.com_v1alpha1_metaoperatorcatalog_cr.yaml", mgr); err != nil {
 		log.Error(err, "Error creating CR, please create it manually")
 	}
 
@@ -102,7 +102,7 @@ func (r *ReconcileMetaOperator) Reconcile(request reconcile.Request) (reconcile.
 	reqLogger.Info("Reconciling MetaOperator")
 
 	// Fetch the MetaOperator instance
-	instance := &operatorv1alpha1.MetaOperator{}
+	instance := &operatorv1alpha1.MetaOperatorCatalog{}
 	if err := r.client.Get(context.TODO(), request.NamespacedName, instance); err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.

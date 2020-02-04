@@ -87,9 +87,9 @@ install: ## Install all resources (CR/CRD's, RBCA and Operator)
 	@echo ....... Creating namespace ....... 
 	- kubectl create namespace ${NAMESPACE}
 	@echo ....... Applying CRDS and Operator .......
-	- kubectl apply -f deploy/crds/operator.ibm.com_metaoperators_crd.yaml
-	- kubectl apply -f deploy/crds/operator.ibm.com_commonserviceconfigs_crd.yaml
-	- kubectl apply -f deploy/crds/operator.ibm.com_commonservicesets_crd.yaml
+	- kubectl apply -f deploy/crds/operator.ibm.com_metaoperatorcatalogs_crd.yaml
+	- kubectl apply -f deploy/crds/operator.ibm.com_metaoperatorconfigs_crd.yaml
+	- kubectl apply -f deploy/crds/operator.ibm.com_metaoperatorsets_crd.yaml
 	@echo ....... Applying RBAC .......
 	- kubectl apply -f deploy/service_account.yaml -n ${NAMESPACE}
 	- kubectl apply -f deploy/role.yaml -n ${NAMESPACE}
@@ -97,18 +97,18 @@ install: ## Install all resources (CR/CRD's, RBCA and Operator)
 	@echo ....... Applying Operator .......
 	- kubectl apply -f deploy/operator.yaml -n ${NAMESPACE}
 	@echo ....... Creating the Instance .......
-	- kubectl apply -f deploy/crds/operator.ibm.com_v1alpha1_commonserviceset_cr.yaml -n ${NAMESPACE}
+	- kubectl apply -f deploy/crds/operator.ibm.com_v1alpha1_metaoperatorset_cr.yaml -n ${NAMESPACE}
 
 uninstall: ## Uninstall all that all performed in the $ make install
 	@echo ....... Uninstalling .......
 	@echo ....... Deleting CR .......
-	- kubectl delete -f deploy/crds/operator.ibm.com_v1alpha1_commonserviceset_cr.yaml -n ${NAMESPACE}
+	- kubectl delete -f deploy/crds/operator.ibm.com_v1alpha1_metaoperatorset_cr.yaml -n ${NAMESPACE}
 	@echo ....... Deleting Operator .......
 	- kubectl delete -f deploy/operator.yaml -n ${NAMESPACE}
 	@echo ....... Deleting CRDs.......
-	- kubectl delete -f deploy/crds/operator.ibm.com_commonserviceconfigs_crd.yaml
-	- kubectl delete -f deploy/crds/operator.ibm.com_commonservicesets_crd.yaml
-	- kubectl delete -f deploy/crds/operator.ibm.com_metaoperators_crd.yaml
+	- kubectl delete -f deploy/crds/operator.ibm.com_metaoperatorconfigs_crd.yaml
+	- kubectl delete -f deploy/crds/operator.ibm.com_metaoperatorsets_crd.yaml
+	- kubectl delete -f deploy/crds/operator.ibm.com_metaoperatorcatalogs_crd.yaml
 	@echo ....... Deleting Rules and Service Account .......
 	- kubectl delete -f deploy/role_binding.yaml
 	- kubectl delete -f deploy/service_account.yaml

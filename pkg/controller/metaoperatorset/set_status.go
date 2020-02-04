@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-package commonserviceset
+package metaoperatorset
 
 import (
 	"context"
@@ -99,7 +99,7 @@ func newCondition(name string, ds *deployState) operatorv1alpha1.Condition {
 	}
 }
 
-func getCondition(cr *operatorv1alpha1.CommonServiceSet, name string, t operatorv1alpha1.ConditionType) (int, *operatorv1alpha1.Condition) {
+func getCondition(cr *operatorv1alpha1.MetaOperatorSet, name string, t operatorv1alpha1.ConditionType) (int, *operatorv1alpha1.Condition) {
 	for i, c := range cr.Status.Conditions {
 		if name == c.Name && t == c.Type {
 			return i, &c
@@ -108,7 +108,7 @@ func getCondition(cr *operatorv1alpha1.CommonServiceSet, name string, t operator
 	return -1, nil
 }
 
-func setCondition(cr *operatorv1alpha1.CommonServiceSet, c operatorv1alpha1.Condition) {
+func setCondition(cr *operatorv1alpha1.MetaOperatorSet, c operatorv1alpha1.Condition) {
 	pos, cp := getCondition(cr, c.Name, c.Type)
 	if cp != nil {
 		if cp.Status == c.Status && cp.Reason == c.Reason && cp.Message == c.Message {
@@ -120,7 +120,7 @@ func setCondition(cr *operatorv1alpha1.CommonServiceSet, c operatorv1alpha1.Cond
 	}
 }
 
-func (r *ReconcileCommonServiceSet) updateConditionStatus(cr *operatorv1alpha1.CommonServiceSet, name string, ds *deployState) error {
+func (r *ReconcileMetaOperatorSet) updateConditionStatus(cr *operatorv1alpha1.MetaOperatorSet, name string, ds *deployState) error {
 	c := newCondition(name, ds)
 	setCondition(cr, c)
 	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
@@ -129,7 +129,7 @@ func (r *ReconcileCommonServiceSet) updateConditionStatus(cr *operatorv1alpha1.C
 	return nil
 }
 
-func (r *ReconcileCommonServiceSet) updatePhaseStatus(cr *operatorv1alpha1.CommonServiceSet, phase operatorv1alpha1.ClusterPhase) error {
+func (r *ReconcileMetaOperatorSet) updatePhaseStatus(cr *operatorv1alpha1.MetaOperatorSet, phase operatorv1alpha1.ClusterPhase) error {
 	cr.Status.Phase = phase
 	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
 		return err
@@ -137,7 +137,7 @@ func (r *ReconcileCommonServiceSet) updatePhaseStatus(cr *operatorv1alpha1.Commo
 	return nil
 }
 
-func (r *ReconcileCommonServiceSet) updateMemberStatus(cr *operatorv1alpha1.CommonServiceSet) error {
+func (r *ReconcileMetaOperatorSet) updateMemberStatus(cr *operatorv1alpha1.MetaOperatorSet) error {
 	subs, err := r.olmClient.OperatorsV1alpha1().Subscriptions("").List(metav1.ListOptions{
 		LabelSelector: "operator.ibm.com/css-control",
 	})

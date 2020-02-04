@@ -24,13 +24,12 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// CommonServiceConfigSpec defines the desired state of CommonServiceConfig
+// MetaOperatorConfigSpec defines the desired state of MetaOperatorConfig
 // +k8s:openapi-gen=true
-type CommonServiceConfigSpec struct {
+type MetaOperatorConfigSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
-
 	// Services is a list of configuration of service
 	// +optional
 	Services []ConfigService `json:"services,omitempty"`
@@ -46,9 +45,9 @@ type ConfigService struct {
 	State string `json:"state,omitempty"`
 }
 
-// CommonServiceConfigStatus defines the observed state of CommonServiceConfig
+// MetaOperatorConfigStatus defines the observed state of MetaOperatorConfig
 // +k8s:openapi-gen=true
-type CommonServiceConfigStatus struct {
+type MetaOperatorConfigStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
@@ -64,25 +63,25 @@ type CrStatus struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// CommonServiceConfig is the Schema for the commonserviceconfigs API
+// MetaOperatorConfig is the Schema for the metaoperatorconfigs API
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:path=commonserviceconfigs,shortName=csc,scope=Namespaced
-type CommonServiceConfig struct {
+// +kubebuilder:resource:path=metaoperatorconfigs,shortName=mocon,scope=Namespaced
+type MetaOperatorConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Status CommonServiceConfigStatus `json:"status,omitempty"`
-	Spec   CommonServiceConfigSpec   `json:"spec,omitempty"`
+	Spec   MetaOperatorConfigSpec   `json:"spec,omitempty"`
+	Status MetaOperatorConfigStatus `json:"status,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// CommonServiceConfigList contains a list of CommonServiceConfig
-type CommonServiceConfigList struct {
+// MetaOperatorConfigList contains a list of MetaOperatorConfig
+type MetaOperatorConfigList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []CommonServiceConfig `json:"items"`
+	Items           []MetaOperatorConfig `json:"items"`
 }
 
 // ServicePhase defines the service status
@@ -95,5 +94,5 @@ const (
 )
 
 func init() {
-	SchemeBuilder.Register(&CommonServiceConfig{}, &CommonServiceConfigList{})
+	SchemeBuilder.Register(&MetaOperatorConfig{}, &MetaOperatorConfigList{})
 }

@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-package commonserviceset
+package metaoperatorset
 
 import (
 	"context"
@@ -22,7 +22,7 @@ import (
 	operatorv1alpha1 "github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1"
 )
 
-func (r *ReconcileCommonServiceSet) updateOperatorStatus(cr *operatorv1alpha1.MetaOperator, operatorName string, operatorStatus operatorv1alpha1.OperatorPhase) error {
+func (r *ReconcileMetaOperatorSet) updateOperatorStatus(cr *operatorv1alpha1.MetaOperatorCatalog, operatorName string, operatorStatus operatorv1alpha1.OperatorPhase) error {
 
 	if cr.Status.OperatorsStatus == nil {
 		cr.Status.OperatorsStatus = make(map[string]operatorv1alpha1.OperatorPhase)
@@ -36,7 +36,7 @@ func (r *ReconcileCommonServiceSet) updateOperatorStatus(cr *operatorv1alpha1.Me
 	return nil
 }
 
-func (r *ReconcileCommonServiceSet) deleteOperatorStatus(cr *operatorv1alpha1.MetaOperator, operatorName string) error {
+func (r *ReconcileMetaOperatorSet) deleteOperatorStatus(cr *operatorv1alpha1.MetaOperatorCatalog, operatorName string) error {
 
 	if cr.Status.OperatorsStatus != nil {
 		delete(cr.Status.OperatorsStatus, operatorName)
