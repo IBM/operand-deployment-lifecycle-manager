@@ -99,7 +99,7 @@ spec:
 
 Take the jenkins operator as an example.
 - The `name` field defines the name of the operator.
-- The `spec` field defines the `spec` configuration for each custom resource in the service.
+- The `spec` field defines the `spec` configuration for each custom resource.
 
 In this example:
 The configuration for custom resource `Jenkins` is:

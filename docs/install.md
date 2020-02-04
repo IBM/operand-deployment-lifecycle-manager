@@ -133,7 +133,7 @@ Meta Operator defines three custom resource definitions MetaOperatorConfig, Meta
 In the `Operator Details` page, three generated custom resource definition are list in a line with the `Overview`. Check the custom resource definition name, then you can update the example custom resource.
 
 For the MetaOperatorConfig,
-MetaOperatorConfig defines the individual common service CR info:
+MetaOperatorConfig defines the individual common service CR information:
 
 ```yaml
 apiVersion: operator.ibm.com/v1alpha1
@@ -153,9 +153,9 @@ spec:
         size: 1
 ```
 
-The list `services` in the `spec` defines the configuration for each service.
-Taking the above yaml as an example, In the first item in the list, service `jenkins` is customized by MetaOperatorConfig. The `name` field defines the name of the service and the `spec` field defines the `spec` configuration for each custom resource in the service.
-For example, setting in the MetaOperatorConfig
+Take the jenkins operator as an example.
+- The `name` field defines the name of the operator.
+- The `spec` field defines the `spec` configuration for each custom resource.
 
 ```yaml
       jenkins:
@@ -180,7 +180,7 @@ spec:
 ```
 
 For the MetaOperatorCatalog,
-MetaOperatorCatalog defines the individual common service operator info:
+MetaOperatorCatalog defines the individual common service operator information:
 
 ```yaml
 apiVersion: operator.ibm.com/v1alpha1
