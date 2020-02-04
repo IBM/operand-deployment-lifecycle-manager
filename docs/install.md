@@ -209,13 +209,13 @@ spec:
 
 The `operators` list defines the operator lifecycle management information for each operator.
 Taking the jenkins as an example:
-`name` is the name of the operator, which should be same as the services name in the `CommonServiceConfig` and `CommonServiceSet`.
-`namespace` is the namespace the operator will be deployed in.
-`channel` is the name of tracked channel.
-`packageName` is the name of the package in `CatalogSource` will be deployed.
-`sourceName` is the name of the `CatalogSource`.
-`sourceNamespace` is the namespace of the `CatalogSource`.
-`targetNamespaces` is a list of namespace, which `OperaterGroup` generates RBAC access for its member Operators to get access to. `targetNamespaces` is used to control the operator dependency. `targetNamespaces` should include all the namespaces of its dependent operators and its own namespace.
+- `name` is the name of the operator, which should be same as the services name in the `CommonServiceConfig` and `CommonServiceSet`.
+- `namespace` is the namespace the operator will be deployed in.
+- `channel` is the name of tracked channel.
+- `packageName` is the name of the package in `CatalogSource` will be deployed.
+- `sourceName` is the name of the `CatalogSource`.
+- `sourceNamespace` is the namespace of the `CatalogSource`.
+- `targetNamespaces` is a list of namespace, which `OperaterGroup` generates RBAC access for its member Operators to get access to. `targetNamespaces` is used to control the operator dependency. `targetNamespaces` should include all the namespaces of its dependent operators and its own namespace.
 
 ### 2. Create CommonServiceSet custom resource
 
@@ -242,11 +242,11 @@ spec:
     description: The etcd service
 ```
 
-The `services` list defines the set for each service.
-`name` is the service name, which should be the same as the services name in the `CommonServiceConfig` and operator `name` in the `MetaOperator`.
-`channel` is an optional setting, it can overwrite the `channel` defined in the `MetaOperator`.
-`state` defines if the service should be present or absent.
-`description` is the description of the service.
+- `services` is a list defines the set for each service.
+- `name` is the service name, which should be the same as the services name in the `CommonServiceConfig` and operator `name` in the `MetaOperator`.
+- `channel` is an optional setting, it can overwrite the `channel` defined in the `MetaOperator`.
+- `state` defines if the service should be present or absent.
+- `description` is the description of the service.
 
 ## Post-installation
 

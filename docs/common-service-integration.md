@@ -64,13 +64,13 @@ operators:
 ...
 ```
 
-`name` is the name of the operator, which should be same as the services name in the `CommonServiceConfig` and `CommonServiceSet`.
-`namespace` is the namespace the operator will be deployed in.
-`channel` is the name of tracked channel.
-`packageName` is the name of the package in `CatalogSource` will be deployed.
-`sourceName` is the name of the `CatalogSource`.
-`sourceNamespace` is the namespace of the `CatalogSource`.
-`targetNamespaces` is a list of namespace, which `OperaterGroup` generates RBAC access for its member Operators to get access to. `targetNamespaces` is used to control the operator dependency. `targetNamespaces` should include all the namespaces of its dependent operators and its own namespace.
+- `name` is the name of the operator, which should be same as the services name in the `CommonServiceConfig` and `CommonServiceSet`.
+- `namespace` is the namespace the operator will be deployed in.
+- `channel` is the name of tracked channel.
+- `packageName` is the name of the package in `CatalogSource` will be deployed.
+- `sourceName` is the name of the `CatalogSource`.
+- `sourceNamespace` is the namespace of the `CatalogSource`.
+- `targetNamespaces` is a list of namespace, which `OperaterGroup` generates RBAC access for its member Operators to get access to. `targetNamespaces` is used to control the operator dependency. `targetNamespaces` should include all the namespaces of its dependent operators and its own namespace.
 
 ### Edit Common Service Config custom resource
 
@@ -98,8 +98,8 @@ spec:
 ```
 
 Take the jenkins operator as an example.
-The `name` field defines the name of the operator.
-The `spec` field defines the `spec` configuration for each custom resource in the service.
+- The `name` field defines the name of the operator.
+- The `spec` field defines the `spec` configuration for each custom resource in the service.
 
 In this example:
 The configuration for custom resource `Jenkins` is:
@@ -150,15 +150,18 @@ spec:
   ...
 ```
 
-The `services` list defines the set for each service.
-`name` is the service name, which should be the same as the services name in the `CommonServiceConfig` and operator `name` in the `MetaOperator`.
-`channel` is an optional setting, it can overwrite the `channel` defined in the `MetaOperator`.
-`state` defines if the service should be present or absent.
-`description` is the description of the service.
+-  `services` is a list defines the set for each service.
+- `name` is the service name, which should be the same as the services name in the `CommonServiceConfig` and operator `name` in the `MetaOperator`.
+- `channel` is an optional setting, it can overwrite the `channel` defined in the `MetaOperator`.
+- `state` defines if the service should be present or absent.
+- `description` is the description of the service.
 
 ## 3.Make a pull request to merge the changes
 
 # End to end test
+
+**Note:** before run the e2e test, user have to push your own CSV package to source.
+more information see [Push the operator to quay.io](#push-the-operator-to-quayio).
 
 ## 1. Create OperatorSource in the Openshift cluster
 
