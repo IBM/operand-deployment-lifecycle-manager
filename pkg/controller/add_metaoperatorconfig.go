@@ -17,10 +17,10 @@
 package controller
 
 import (
-	"github.com/IBM/common-service-operator/pkg/controller/commonserviceset"
+	"github.com/IBM/common-service-operator/pkg/controller/metaoperatorconfig"
 )
 
 func init() {
 	// AddToManagerFuncs is a list of functions to create controllers and add them to a manager.
-	AddToManagerFuncs = append(AddToManagerFuncs, commonserviceset.Add)
+	AddToManagerFuncs = append(AddToManagerFuncs, metaoperatorconfig.Add)
 }

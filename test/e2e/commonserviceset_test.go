@@ -26,7 +26,7 @@ import (
 )
 
 func TestCommonServiceSet(t *testing.T) {
-	servicesetList := &operator.CommonServiceSetList{}
+	servicesetList := &operator.MetaOperatorSetList{}
 	err := framework.AddToFrameworkScheme(apis.AddToScheme, servicesetList)
 	if err != nil {
 		t.Fatalf("failed to add custom resource scheme to framework: %v", err)

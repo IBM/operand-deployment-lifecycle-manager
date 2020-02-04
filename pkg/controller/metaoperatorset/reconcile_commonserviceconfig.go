@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-package commonserviceset
+package metaoperatorset
 
 import (
 	"context"
@@ -34,9 +34,9 @@ import (
 	util "github.com/IBM/common-service-operator/pkg/util"
 )
 
-func (r *ReconcileCommonServiceSet) reconcileCommonServiceConfig(serviceConfigs map[string]operatorv1alpha1.ConfigService, csc *operatorv1alpha1.CommonServiceConfig) *multiErr {
+func (r *ReconcileMetaOperatorSet) reconcileMetaOperatorConfig(serviceConfigs map[string]operatorv1alpha1.ConfigService, csc *operatorv1alpha1.MetaOperatorConfig) *multiErr {
 	reqLogger := log.WithValues()
-	reqLogger.Info("Reconciling CommonServiceConfig")
+	reqLogger.Info("Reconciling MetaOperatorConfig")
 	merr := &multiErr{}
 	for _, service := range serviceConfigs {
 		if service.State == Present {
@@ -69,9 +69,9 @@ func (r *ReconcileCommonServiceSet) reconcileCommonServiceConfig(serviceConfigs 
 	return &multiErr{}
 }
 
-func (r *ReconcileCommonServiceSet) fetchConfigs(req reconcile.Request, cr *operatorv1alpha1.CommonServiceSet) (map[string]operatorv1alpha1.ConfigService, error) {
-	// Fetch the CommonServiceConfig instance
-	csc := &operatorv1alpha1.CommonServiceConfig{}
+func (r *ReconcileMetaOperatorSet) fetchConfigs(req reconcile.Request, cr *operatorv1alpha1.MetaOperatorSet) (map[string]operatorv1alpha1.ConfigService, error) {
+	// Fetch the MetaOperatorConfig instance
+	csc := &operatorv1alpha1.MetaOperatorConfig{}
 	if err := r.client.Get(context.TODO(), types.NamespacedName{Namespace: req.Namespace, Name: "common-service"}, csc); err != nil {
 		if errors.IsNotFound(err) {
 			return nil, nil
@@ -103,7 +103,7 @@ func (r *ReconcileCommonServiceSet) fetchConfigs(req reconcile.Request, cr *oper
 }
 
 // getCSV retrieves the Cluster Service Version
-func (r *ReconcileCommonServiceSet) getClusterServiceVersion(subName string) (*olmv1alpha1.ClusterServiceVersion, error) {
+func (r *ReconcileMetaOperatorSet) getClusterServiceVersion(subName string) (*olmv1alpha1.ClusterServiceVersion, error) {
 	logger := log.WithValues("Subscription Name", subName)
 	logger.Info(fmt.Sprintf("Looking for the Cluster Service Version"))
 	subs, listSubErr := r.olmClient.OperatorsV1alpha1().Subscriptions("").List(metav1.ListOptions{
@@ -134,8 +134,8 @@ func (r *ReconcileCommonServiceSet) getClusterServiceVersion(subName string) (*o
 	return nil, nil
 }
 
-// generateCr merge and create custome resource base on CommonServiceConfig and CSV alm-examples
-func (r *ReconcileCommonServiceSet) generateCr(service operatorv1alpha1.ConfigService, csv *olmv1alpha1.ClusterServiceVersion, csc *operatorv1alpha1.CommonServiceConfig) error {
+// generateCr merge and create custome resource base on MetaOperatorConfig and CSV alm-examples
+func (r *ReconcileMetaOperatorSet) generateCr(service operatorv1alpha1.ConfigService, csv *olmv1alpha1.ClusterServiceVersion, csc *operatorv1alpha1.MetaOperatorConfig) error {
 	almExamples := csv.ObjectMeta.Annotations["alm-examples"]
 	namespace := csv.ObjectMeta.Namespace
 	logger := log.WithValues("Subscription", service.Name)
@@ -152,7 +152,7 @@ func (r *ReconcileCommonServiceSet) generateCr(service operatorv1alpha1.ConfigSe
 
 	merr := &multiErr{}
 
-	// Merge CommonServiceConfig and Cluster Service Version alm-examples
+	// Merge MetaOperatorConfig and Cluster Service Version alm-examples
 	for _, crTemplate := range crTemplates {
 
 		// Create an unstruct object for CR and set its value to CR template
@@ -164,13 +164,13 @@ func (r *ReconcileCommonServiceSet) generateCr(service operatorv1alpha1.ConfigSe
 
 		for crdName, crConfig := range service.Spec {
 
-			// Compare the name of CommonServiceConfig and CRD name
+			// Compare the name of MetaOperatorConfig and CRD name
 			if strings.EqualFold(name.(string), crdName) {
-				logger.Info(fmt.Sprintf("Found CommonServiceConfig for %s", name))
+				logger.Info(fmt.Sprintf("Found MetaOperatorConfig for %s", name))
 				//Convert CR template spec to string
 				specJSONString, _ := json.Marshal(unstruct.Object["spec"])
 
-				// Merge CR template spec and CommonServiceConfig spec
+				// Merge CR template spec and MetaOperatorConfig spec
 				mergedCR := util.MergeCR(specJSONString, crConfig.Raw)
 
 				unstruct.Object["spec"] = mergedCR

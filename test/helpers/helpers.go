@@ -40,9 +40,9 @@ func CreateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 		return fmt.Errorf("could not get namespace: %v", err)
 	}
 
-	// create CommonServiceConfig custom resource
-	fmt.Println("--- CREATE: CommonServiceConfig Instance")
-	configInstance := newCommonServiceConfigCR(config.ConfigCrName, namespace)
+	// create.MetaOperatorConfigConfig custom resource
+	fmt.Println("--- CREATE:.MetaOperatorConfigConfig Instance")
+	configInstance := newMetaOperatorConfigCR(config.ConfigCrName, namespace)
 	err = f.Client.Create(goctx.TODO(), configInstance, &framework.CleanupOptions{TestContext: ctx, Timeout: config.CleanupTimeout, RetryInterval: config.CleanupRetry})
 	if err != nil {
 		return err
@@ -56,7 +56,7 @@ func CreateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 		return err
 	}
 
-	// create CommonServiceSet custom resource
+	// create MetaOperatorSet custom resource
 	sets := []operator.SetService{}
 	sets = append(sets, operator.SetService{
 		Name:    "etcd",
@@ -68,16 +68,16 @@ func CreateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 		State:   "present",
 	})
 
-	setInstance := &operator.CommonServiceSet{
+	setInstance := &operator.MetaOperatorSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      config.SetCrName,
 			Namespace: namespace,
 		},
-		Spec: operator.CommonServiceSetSpec{
+		Spec: operator.MetaOperatorSetSpec{
 			Services: sets,
 		},
 	}
-	fmt.Println("--- CREATE: CommonServiceSet Instance")
+	fmt.Println("--- CREATE: MetaOperatorSet Instance")
 	// use TestCtx's create helper to create the object and add a cleanup function for the new object
 	err = f.Client.Create(goctx.TODO(), setInstance, &framework.CleanupOptions{TestContext: ctx, Timeout: config.CleanupTimeout, RetryInterval: config.CleanupRetry})
 	if err != nil {
@@ -108,9 +108,9 @@ func UpdateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 	if err != nil {
 		return err
 	}
-	setInstance := &operator.CommonServiceSet{}
+	setInstance := &operator.MetaOperatorSet{}
 	fmt.Println("--- UPDATE: subscription")
-	// Get CommonServiceSet instance
+	// Get MetaOperatorSet instance
 	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.SetCrName, Namespace: namespace}, setInstance)
 	if err != nil {
 		return err
@@ -141,9 +141,9 @@ func DeleteTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 	if err != nil {
 		return fmt.Errorf("could not get namespace: %v", err)
 	}
-	setInstance := &operator.CommonServiceSet{}
+	setInstance := &operator.MetaOperatorSet{}
 	fmt.Println("--- DELETE: subscription")
-	// Get CommonServiceSet instance
+	// Get MetaOperatorSet instance
 	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.SetCrName, Namespace: namespace}, setInstance)
 	if err != nil {
 		return err
@@ -174,9 +174,9 @@ func UpdateConfigTest(olmClient *olmclient.Clientset, f *framework.Framework, ct
 	if err != nil {
 		return err
 	}
-	configInstance := &operator.CommonServiceConfig{}
+	configInstance := &operator.MetaOperatorConfig{}
 	fmt.Println("--- UPDATE: custom resource")
-	// Get CommonServiceSet instance
+	// Get MetaOperatorSet instance
 	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.ConfigCrName, Namespace: namespace}, configInstance)
 	if err != nil {
 		return err
@@ -204,7 +204,7 @@ func UpdateMetaOperatorTest(olmClient *olmclient.Clientset, f *framework.Framewo
 	if err != nil {
 		return err
 	}
-	metaOperatorInstance := &operator.MetaOperator{}
+	metaOperatorInstance := &operator.MetaOperatorCatalog{}
 	fmt.Println("--- UPDATE: MetaOperator")
 
 	// Get MetaOperator instance
@@ -234,7 +234,7 @@ func UpdateMetaOperatorTest(olmClient *olmclient.Clientset, f *framework.Framewo
 
 // GetOperators get a operator list waiting for being installed
 func GetOperators(f *framework.Framework, namespace string) (map[string]operator.Operator, error) {
-	moInstance := &operator.MetaOperator{}
+	moInstance := &operator.MetaOperatorCatalog{}
 	lastReason := ""
 	waitErr := utilwait.PollImmediate(config.WaitForRetry, config.APITimeout, func() (done bool, err error) {
 		err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.MetaCrName, Namespace: namespace}, moInstance)
@@ -330,8 +330,8 @@ func WaitForSubscriptionDelete(olmClient *olmclient.Clientset, opt metav1.Object
 // ValidateCustomeResource check the result of the common service config
 func ValidateCustomeResource(f *framework.Framework, namespace string) error {
 	fmt.Println("Validating custome resources are ready")
-	configInstance := &operator.CommonServiceConfig{}
-	// Get CommonServiceSet instance
+	configInstance := &operator.MetaOperatorConfig{}
+	// Get MetaOperatorSet instance
 	err := f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.ConfigCrName, Namespace: namespace}, configInstance)
 	if err != nil {
 		return err
@@ -364,14 +364,14 @@ func AssertNoError(t *testing.T, err error) {
 	}
 }
 
-// CommonServiceConfig instance
-func newCommonServiceConfigCR(name, namespace string) *operator.CommonServiceConfig {
-	return &operator.CommonServiceConfig{
+//MetaOperatorConfig instance
+func newMetaOperatorConfigCR(name, namespace string) *operator.MetaOperatorConfig {
+	return &operator.MetaOperatorConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: operator.CommonServiceConfigSpec{
+		Spec: operator.MetaOperatorConfigSpec{
 			Services: []operator.ConfigService{
 				{
 					Name: "etcd",
@@ -391,13 +391,13 @@ func newCommonServiceConfigCR(name, namespace string) *operator.CommonServiceCon
 }
 
 // MetaOperator instance
-func newMetaOperatorCR(name, namespace string) *operator.MetaOperator {
-	return &operator.MetaOperator{
+func newMetaOperatorCR(name, namespace string) *operator.MetaOperatorCatalog {
+	return &operator.MetaOperatorCatalog{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: operator.MetaOperatorSpec{
+		Spec: operator.MetaOperatorCatalogSpec{
 			Operators: []operator.Operator{
 				{
 					Name:            "etcd",
