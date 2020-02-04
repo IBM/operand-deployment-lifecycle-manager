@@ -2,28 +2,28 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
-- [Install the common service operator](#install-the-common-service-operator)
-    - [Install the common service operator On OCP 4.x](#install-the-common-service-operator-on-ocp-4x)
+- [Install the meta operator](#install-the-meta-operator)
+    - [Install the meta operator On OCP 4.x](#install-the-meta-operator-on-ocp-4x)
         - [1. Create OperatorSource](#1-create-operatorsource)
         - [2. Create a Namespace `common-service-operator`](#2-create-a-namespace-common-service-operator)
-        - [3. Install Common Service Operator](#3-install-common-service-operator)
+        - [3. Install meta Operator](#3-install-meta-operator)
         - [4. Check the installed operators](#4-check-the-installed-operators)
-    - [Install the common service operator On OCP 3.11](#install-the-common-service-operator-on-ocp-311)
+    - [Install the meta operator On OCP 3.11](#install-the-meta-operator-on-ocp-311)
         - [0. Install OLM](#0-install-olm)
         - [1. Build Operator Registry image](#1-build-operator-registry-image)
         - [2. Create CatalogSource](#2-create-catalogsource)
         - [3. Create Operator NS, Group, Subscription](#3-create-operator-ns-group-subscription)
         - [4. Check Operator CSV](#4-check-operator-csv)
     - [Create and update custom resource](#create-and-update-custom-resource)
-        - [1. Update CommonServiceConfig and MetaOperator custom resource](#1-update-commonserviceconfig-and-metaoperator-custom-resource)
-        - [2. Create CommonServiceSet custom resource](#2-create-commonserviceset-custom-resource)
+        - [1. Update MetaOperatorConfig and MetaOperatorCatalog custom resource](#1-update-metaoperatorconfig-and-metaoperatorcatalog-custom-resource)
+        - [2. Create MetaOperatorSet custom resource](#2-create-metaoperatorset-custom-resource)
     - [Post-installation](#post-installation)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-# Install the common service operator
+# Install the meta operator
 
-## Install the common service operator On OCP 4.x
+## Install the meta operator On OCP 4.x
 
 ### 1. Create OperatorSource
 
@@ -48,7 +48,7 @@ spec:
 
 Open the `OperatorHub` page in OCP console left menu, then `Create Project`, e.g., create a project named `common-service-operator`.
 
-### 3. Install Common Service Operator
+### 3. Install meta Operator
 
 Open `OperatorHub` and search `common-service-operator` to find the operator, and install it.
 
@@ -56,7 +56,7 @@ Open `OperatorHub` and search `common-service-operator` to find the operator, an
 
 Open `Installed Operators` page to check the installed operators.
 
-## Install the common service operator On OCP 3.11
+## Install the meta operator On OCP 3.11
 
 ### 0. Install OLM
 
@@ -66,7 +66,7 @@ curl -sL https://github.com/operator-framework/operator-lifecycle-manager/releas
 
 ### 1. Build Operator Registry image
 
-> You need to remove the last `type: object` in all CRDs to avoid the following error: The CustomResourceDefinition "commonserviceconfigs.operator.ibm.com" is invalid: spec.validation.openAPIV3Schema: Invalid value: apiextensions.JSONSchemaProps ..... must only have "properties", "required" or "description" at the root if the status subresource is enabled
+> You need to remove the last `type: object` in all CRDs to avoid the following error: The CustomResourceDefinition "metaoperatorconfigs.operator.ibm.com" is invalid: spec.validation.openAPIV3Schema: Invalid value: apiextensions.JSONSchemaProps ..... must only have "properties", "required" or "description" at the root if the status subresource is enabled
 
 ```bash
 cd deploy
@@ -126,18 +126,18 @@ oc -n common-service-operator get csv
 
 ## Create and update custom resource
 
-### 1. Update CommonServiceConfig and MetaOperator custom resource
+### 1. Update MetaOperatorConfig and MetaOperatorCatalog custom resource
 
-Common Service Operator defines custom resource definition CommonServiceConfig, CommonServiceSet and MetaOperator and creates two example custom resources for CommonServiceConfig and MetaOperator.
+Meta Operator defines three custom resource definitions MetaOperatorConfig, MetaOperatorSet and MetaOperatorCatalog and it creates two example custom resources for MetaOperatorConfig and MetaOperatorCatalog.
 
 In the `Operator Details` page, three generated custom resource definition are list in a line with the `Overview`. Check the custom resource definition name, then you can update the example custom resource.
 
-For the CommonServiceConfig,
-CommonServiceConfig defines the individual common service CR info:
+For the MetaOperatorConfig,
+MetaOperatorConfig defines the individual common service CR info:
 
 ```yaml
 apiVersion: operator.ibm.com/v1alpha1
-kind: CommonServiceConfig
+kind: MetaOperatorConfig
 metadata:
   name: common-service
 spec:
@@ -154,8 +154,8 @@ spec:
 ```
 
 The list `services` in the `spec` defines the configuration for each service.
-Taking the above yaml as an example, In the first item in the list, service `jenkins` is customized by CommonServiceConfig. The `name` field defines the name of the service and the `spec` field defines the `spec` configuration for each custom resource in the service.
-For example, setting in the CommonServiceConfig
+Taking the above yaml as an example, In the first item in the list, service `jenkins` is customized by MetaOperatorConfig. The `name` field defines the name of the service and the `spec` field defines the `spec` configuration for each custom resource in the service.
+For example, setting in the MetaOperatorConfig
 
 ```yaml
       jenkins:
@@ -179,12 +179,12 @@ spec:
     type: ClusterIP
 ```
 
-For the MetaOperator,
-MetaOperator defines the individual common service operator info:
+For the MetaOperatorCatalog,
+MetaOperatorCatalog defines the individual common service operator info:
 
 ```yaml
 apiVersion: operator.ibm.com/v1alpha1
-kind: MetaOperator
+kind: MetaOperatorCatalog
 metadata:
   name: common-service
 spec:
@@ -209,7 +209,7 @@ spec:
 
 The `operators` list defines the operator lifecycle management information for each operator.
 Taking the jenkins as an example:
-- `name` is the name of the operator, which should be the same as the services name in the `CommonServiceConfig` and `CommonServiceSet`.
+- `name` is the name of the operator, which should be the same as the services name in the `MetaOperatorConfig` and `MetaOperatorSet`.
 - `namespace` is the namespace the operator will be deployed in.
 - `channel` is the name of a tracked channel.
 - `packageName` is the name of the package in `CatalogSource` will be deployed.
@@ -217,17 +217,17 @@ Taking the jenkins as an example:
 - `sourceNamespace` is the namespace of the `CatalogSource`.
 - `targetNamespaces` is a list of namespaces, which `OperaterGroup` generates RBAC access for its member Operators to get access to. `targetNamespaces` is used to control the operator dependency. `targetNamespaces` should include all the namespaces of its dependent operators and its own namespace.
 
-### 2. Create CommonServiceSet custom resource
+### 2. Create MetaOperatorSet custom resource
 
-CommonServiceSet defines the individual common service state, such as an individual common service that should be present or absent.
+MetaOperatorSet defines the individual common service state, such as an individual common service that should be present or absent.
 
-CommonServiceSet can be created in the `CommonServiceSet` tags
+MetaOperatorSet can be created in the `MetaOperatorSet` tags
 
-This is an example of the CommonServiceSet custom resource:
+This is an example of the MetaOperatorSet custom resource:
 
 ```yaml
 apiVersion: operator.ibm.com/v1alpha1
-Kind: CommonServiceSet
+Kind: MetaOperatorSet
 metadata:
   name: common-service
 spec:
@@ -243,11 +243,11 @@ spec:
 ```
 
 - `services` is a list defines the set for each service.
-- `name` is the service name, which should be the same as the services name in the `CommonServiceConfig` and operator name in the `MetaOperator`.
-- `channel` is an optional setting, it can overwrite the `channel` defined in the `MetaOperator`.
+- `name` is the service name, which should be the same as the services name in the `MetaOperatorConfig` and operator name in the `MetaOperatorCatalog`.
+- `channel` is an optional setting, it can overwrite the `channel` defined in the `MetaOperatorCatalog`.
 - `state` defines if the service should be present or absent.
 - `description` is the description of the service.
 
 ## Post-installation
 
-The common service operators and their custom resource would be deployed in the cluster.
+The meta operators and their custom resource would be deployed in the cluster.

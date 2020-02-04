@@ -4,20 +4,20 @@
 
 - [Pre-Requisites](#pre-requisites)
     - [Push the operator to quay.io](#push-the-operator-to-quayio)
-- [Integration services with Common Service operator](#integration-services-with-common-service-operator)
-    - [1. Fork the git repository of Common Service operator](#1-fork-the-git-repository-of-common-service-operator)
+- [Integration services with meta operator](#integration-services-with-meta-operator)
+    - [1. Fork the git repository of meta operator](#1-fork-the-git-repository-of-meta-operator)
     - [2. Edit default value of custom resource](#2-edit-default-value-of-custom-resource)
-        - [Edit theMetaOperator custom resource](#edit-themetaoperator-custom-resource)
-        - [Edit the Common Service Config custom resource](#edit-the-common-service-config-custom-resource)
-        - [Edit a Common Service Set custom resource](#edit-a-common-service-set-custom-resource)
+        - [Edit the MetaOperator Catalog custom resource](#edit-the-metaoperator-catalog-custom-resource)
+        - [Edit the MetaOperator Config custom resource](#edit-the-metaoperator-config-custom-resource)
+        - [Edit a MetaOperator Set custom resource](#edit-a-metaoperator-set-custom-resource)
     - [3.Make a pull request to merge the changes](#3make-a-pull-request-to-merge-the-changes)
 - [End to end test](#end-to-end-test)
     - [1. Create an OperatorSource in the Openshift cluster](#1-create-an-operatorsource-in-the-openshift-cluster)
     - [2. Create a Namespace `common-service-operator`](#2-create-a-namespace-common-service-operator)
-    - [3. Install Common Service Operator](#3-install-common-service-operator)
+    - [3. Install meta Operator](#3-install-meta-operator)
     - [4. Check the installed operators](#4-check-the-installed-operators)
-    - [5. Edit the Common Service Config custom resource and the MetaOperator custom resource](#5-edit-the-common-service-config-custom-resource-and-the-metaoperator-custom-resource)
-    - [6. Create a Common Service Set](#6-create-a-common-service-set)
+    - [5. Edit the MetaOperator Config custom resource and the MetaOperator Catalog custom resource](#5-edit-the-metaoperator-config-custom-resource-and-the-metaoperator-catalog-custom-resource)
+    - [6. Create a MetaOperator Set](#6-create-a-metaoperator-set)
     - [7. Check the installed operators and their custom resource](#7-check-the-installed-operators-and-their-custom-resource)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -30,24 +30,24 @@ All common services OLMs and operator images should be published in public org i
 
 more information see the [push olm to quay.io](https://github.com/operator-framework/community-operators/blob/master/docs/testing-operators.md#push-to-quayio).
 
-# Integration services with Common Service operator
+# Integration services with meta operator
 
-## 1. Fork the git repository of Common Service operator
+## 1. Fork the git repository of meta operator
 
 ## 2. Edit default value of custom resource
 
-### Edit theMetaOperator custom resource
+### Edit the MetaOperator Catalog custom resource
 
 ```bash
 cd common-service-operator
-vi deploy/crds/operator.ibm.com_v1alpha1_metaoperator_cr.yaml
+vi deploy/crds/operator.ibm.com_v1alpha1_metaoperatorcatalog_cr.yaml
 ```
 
 Append the operator package information under the `operators` field.
 
 ```yaml
 apiVersion: operator.ibm.com/v1alpha1
-kind: MetaOperator
+kind: MetaOperatorCatalog
 metadata:
 name: common-service
 spec:
@@ -64,7 +64,7 @@ operators:
 ...
 ```
 
-- `name` is the name of the operator, which should be the same as the services name in the `CommonServiceConfig` and `CommonServiceSet`.
+- `name` is the name of the operator, which should be the same as the services name in the `MetaOperatorConfig` and `MetaOperatorSet`.
 - `namespace` is the namespace the operator will be deployed in.
 - `channel` is the name of a tracked channel.
 - `packageName` is the name of the package in `CatalogSource` will be deployed.
@@ -72,18 +72,18 @@ operators:
 - `sourceNamespace` is the namespaces of the `CatalogSource`.
 - `targetNamespaces` is a list of namespace, which `OperaterGroup` generates RBAC access for its member Operators to get access to. `targetNamespaces` is used to control the operator dependency. `targetNamespaces` should include all the namespaces of its dependent operators and its own namespace.
 
-### Edit the Common Service Config custom resource
+### Edit the MetaOperator Config custom resource
 
 ```bash
 cd common-service-operator
-vi deploy/crds/operator.ibm.com_v1alpha1_commonserviceconfig_cr.yaml
+vi deploy/crds/operator.ibm.com_v1alpha1_metaoperatorconfig_cr.yaml
 ```
 
 Append the operator custom resource information under the `services` field.
 
 ```yaml
 apiVersion: operator.ibm.com/v1alpha1
-kind: CommonServiceConfig
+kind: MetaOperatorConfig
 metadata:
   name: common-service
 spec:
@@ -126,18 +126,18 @@ spec:
     type: ClusterIP
 ```
 
-### Edit a Common Service Set custom resource
+### Edit a MetaOperator Set custom resource
 
 ```bash
 cd common-service-operator
-vi deploy/crds/operator.ibm.com_v1alpha1_commonserviceset_cr.yaml
+vi deploy/crds/operator.ibm.com_v1alpha1_metaoperatorset_cr.yaml
 ```
 
 Append the operator information under the `services` field.
 
 ```yaml
 apiVersion: operator.ibm.com/v1alpha1
-kind: CommonServiceSet
+kind: MetaOperatorSet
 metadata:
   name: common-service
 spec:
@@ -151,8 +151,8 @@ spec:
 ```
 
 - `services` is a list defines the set for each service.
-- `name` is the service name, which should be the same as the services name in the `CommonServiceConfig` and operator name in the `MetaOperator`.
-- `channel` is an optional setting, it can overwrite the `channel` defined in the `MetaOperator`.
+- `name` is the service name, which should be the same as the services name in the `MetaOperatorConfig` and operator name in the `MetaOperatorCatalog`.
+- `channel` is an optional setting, it can overwrite the `channel` defined in the `MetaOperatorCatalog`.
 - `state` defines if the service should be present or absent.
 - `description` is the description of the service.
 
@@ -186,7 +186,7 @@ spec:
 
 Open `OperatorHub` page in OCP console left menu, then `Create Project`, e.g., create a project named `common-service-operator`.
 
-## 3. Install Common Service Operator
+## 3. Install meta Operator
 
 Open `OperatorHub` and search `common-service-operator` to find the operator, and install it.
 
@@ -194,18 +194,18 @@ Open `OperatorHub` and search `common-service-operator` to find the operator, an
 
 Open `Installed Operators` page to check the installed operators.
 
-## 5. Edit the Common Service Config custom resource and the MetaOperator custom resource
+## 5. Edit the MetaOperator Config custom resource and the MetaOperator Catalog custom resource
 
-- [Editing Common Service Config](#edit-common-service-config-custom-resource)
-- [Editing MetaOperator](#edit-meta-operator-custom-resource)
+- [Editing MetaOperator Config](#edit-common-service-config-custom-resource)
+- [Editing MetaOperator Catalog](#edit-meta-operator-custom-resource)
 
-## 6. Create a Common Service Set
+## 6. Create a MetaOperator Set
 
 ```bash
-vi deploy/crds/operator.ibm.com_v1alpha1_commonserviceconfig_cr.yaml
-oc apply -f deploy/crds/operator.ibm.com_v1alpha1_commonserviceconfig_cr.yaml -n common-service-operator
+vi deploy/crds/operator.ibm.com_v1alpha1_metaoperatorset_cr.yaml
+oc apply -f deploy/crds/operator.ibm.com_v1alpha1_metaoperatorset_cr.yaml -n common-service-operator
 ```
 
-- [Editing Common Service Set](#edit-common-service-set-custom-resource)
+- [Editing MetaOperator Set](#edit-common-service-set-custom-resource)
 
 ## 7. Check the installed operators and their custom resource
