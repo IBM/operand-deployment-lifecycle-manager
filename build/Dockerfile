@@ -20,24 +20,24 @@ ARG VCS_REF
 ARG VCS_URL
 
 LABEL org.label-schema.vendor="IBM" \
-  org.label-schema.name="common-service-operator" \
-  org.label-schema.description="Deploy common services" \
+  org.label-schema.name="meta-operator" \
+  org.label-schema.description="Meta Operator for operators" \
   org.label-schema.vcs-ref=$VCS_REF \
   org.label-schema.vcs-url=$VCS_URL \
   org.label-schema.license="Licensed Materials - Property of IBM" \
   org.label-schema.schema-version="1.0" \
-  name="common-service-operator" \
+  name="meta-operator" \
   vendor="IBM" \
-  description="Deploy common services" \
-  summary="Deploy common services"
+  description="Meta Operator for operators" \
+  summary="Meta Operator for operators"
 
-ENV OPERATOR=/usr/local/bin/common-service-operator \
+ENV OPERATOR=/usr/local/bin/meta-operator \
   DEPLOY_DIR=/deploy \
   USER_UID=1001 \
-  USER_NAME=common-service-operator
+  USER_NAME=meta-operator
 
 # install operator binary
-COPY build/_output/bin/common-service-operator ${OPERATOR}
+COPY build/_output/bin/meta-operator ${OPERATOR}
 COPY deploy/crds ${DEPLOY_DIR}
 
 COPY build/bin /usr/local/bin

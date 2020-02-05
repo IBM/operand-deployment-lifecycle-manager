@@ -21,13 +21,13 @@
 BUILD_LOCALLY ?= 1
 
 # The namespcethat operator will be deployed in
-NAMESPACE=common-service-operator
+NAMESPACE=meta-operator
 
 # Image URL to use all building/pushing image targets;
 # Use your own docker registry and image name for dev/test by overridding the IMG and REGISTRY environment variable.
-IMG ?= common-service-operator
+IMG ?= meta-operator
 REGISTRY ?= quay.io/opencloudio
-CSV_VERSION ?= 0.0.3
+CSV_VERSION ?= 0.0.1
 
 QUAY_USERNAME ?=
 QUAY_PASSWORD ?=
@@ -63,10 +63,6 @@ else
     $(error "This system's OS $(LOCAL_OS) isn't recognized/supported")
 endif
 
-ifneq ("$(realpath $(DEST))", "$(realpath $(PWD))")
-    $(error Please run 'make' from $(DEST). Current directory is $(PWD))
-endif
-
 include common/Makefile.common.mk
 
 ############################################################
@@ -84,7 +80,7 @@ install: ## Install all resources (CR/CRD's, RBCA and Operator)
 	@echo ....... Set environment variables ......
 	- export DEPLOY_DIR=deploy/crds
 	- export WATCH_NAMESPACE=${NAMESPACE}
-	@echo ....... Creating namespace ....... 
+	@echo ....... Creating namespace .......
 	- kubectl create namespace ${NAMESPACE}
 	@echo ....... Applying CRDS and Operator .......
 	- kubectl apply -f deploy/crds/operator.ibm.com_metaoperatorcatalogs_crd.yaml

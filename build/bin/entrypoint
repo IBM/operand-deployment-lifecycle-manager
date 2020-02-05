@@ -5,7 +5,7 @@
 
 if ! whoami &>/dev/null; then
   if [ -w /etc/passwd ]; then
-    echo "${USER_NAME:-common-service-operator}:x:$(id -u):$(id -g):${USER_NAME:-common-service-operator} user:${HOME}:/sbin/nologin" >> /etc/passwd
+    echo "${USER_NAME:-meta-operator}:x:$(id -u):$(id -g):${USER_NAME:-meta-operator} user:${HOME}:/sbin/nologin" >> /etc/passwd
   fi
 fi
 

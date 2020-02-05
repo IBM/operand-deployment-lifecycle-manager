@@ -261,7 +261,7 @@ func (r *ReconcileMetaOperatorSet) waitForInstallPlan(moc *operatorv1alpha1.Meta
 	defer cancel()
 	return wait.PollImmediateUntil(time.Second*20, func() (bool, error) {
 		foundSub, err := r.olmClient.OperatorsV1alpha1().Subscriptions("").List(metav1.ListOptions{
-			LabelSelector: "operator.ibm.com/css-control",
+			LabelSelector: "operator.ibm.com/mos-control",
 		})
 		if err != nil {
 			if errors.IsNotFound(err) {

@@ -17,7 +17,7 @@
 
 set -e
 QUAY_NAMESPACE=${QUAY_NAMESPACE:-opencloudio}
-QUAY_REPOSITORY=${QUAY_REPOSITORY:-common-service}
+QUAY_REPOSITORY=${QUAY_REPOSITORY:-meta-operator-app}
 BUNDLE_DIR=${BUNDLE_DIR:-deploy/olm-catalog/meta-operator}
 
 [[ "X$QUAY_USERNAME" == "X" ]] && read -rp "Enter username quay.io: " QUAY_USERNAME

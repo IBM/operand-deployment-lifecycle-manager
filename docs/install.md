@@ -5,7 +5,7 @@
 - [Install the meta operator](#install-the-meta-operator)
     - [Install the meta operator On OCP 4.x](#install-the-meta-operator-on-ocp-4x)
         - [1. Create OperatorSource](#1-create-operatorsource)
-        - [2. Create a Namespace `common-service-operator`](#2-create-a-namespace-common-service-operator)
+        - [2. Create a Namespace `meta-operator`](#2-create-a-namespace-meta-operator)
         - [3. Install meta Operator](#3-install-meta-operator)
         - [4. Check the installed operators](#4-check-the-installed-operators)
     - [Install the meta operator On OCP 3.11](#install-the-meta-operator-on-ocp-311)
@@ -44,13 +44,13 @@ spec:
   type: appregistry
 ```
 
-### 2. Create a Namespace `common-service-operator`
+### 2. Create a Namespace `meta-operator`
 
-Open the `OperatorHub` page in OCP console left menu, then `Create Project`, e.g., create a project named `common-service-operator`.
+Open the `OperatorHub` page in OCP console left menu, then `Create Project`, e.g., create a project named `meta-operator`.
 
 ### 3. Install meta Operator
 
-Open `OperatorHub` and search `common-service-operator` to find the operator, and install it.
+Open `OperatorHub` and search `meta-operator` to find the operator, and install it.
 
 ### 4. Check the installed operators
 
@@ -93,27 +93,27 @@ spec:
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: common-service-operator
+  name: meta-operator
 
 ---
 apiVersion: operators.coreos.com/v1alpha2
 kind: OperatorGroup
 metadata:
   name: operatorgroup
-  namespace: common-service-operator
+  namespace: meta-operator
 spec:
   targetNamespaces:
-  - common-service-operator
+  - meta-operator
 
 ---
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
-  name: common-service
-  namespace: common-service-operator
+  name: meta-operator
+  namespace: meta-operator
 spec:
   channel: alpha
-  name: common-service
+  name: meta-operator
   source: opencloud-operators
   sourceNamespace: olm
 ```
@@ -121,7 +121,7 @@ spec:
 ### 4. Check Operator CSV
 
 ```bash
-oc -n common-service-operator get csv
+oc -n meta-operator get csv
 ```
 
 ## Create and update custom resource
