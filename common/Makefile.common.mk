@@ -60,7 +60,7 @@ lint-markdown:
 	@${FINDFILES} -name '*.md' -print0 | ${XARGS} mdl --ignore-front-matter --style common/config/mdl.rb
 	@${FINDFILES} -name '*.md' -print0 | ${XARGS} awesome_bot --skip-save-results --allow_ssl --allow-timeout --allow-dupe --allow-redirect --white-list ${MARKDOWN_LINT_WHITELIST}
 
-lint-all: lint-dockerfiles lint-scripts lint-yaml lint-copyright-banner lint-go lint-markdown
+lint-all: lint-copyright-banner lint-go
 
 # Run go vet for this project. More info: https://golang.org/cmd/vet/
 code-vet:
