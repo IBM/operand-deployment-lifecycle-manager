@@ -2,7 +2,7 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
-- [Common Services Operator](#common-services-operator)
+- [Meta Operator](#meta-operator)
     - [Overview](#overview)
     - [Prerequisites](#prerequisites)
     - [Getting Started](#getting-started)
@@ -16,16 +16,15 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-# Common Services Operator
+# Meta Operator
 
 ## Overview
 
-This is a common service operator for install the common service operator and instance.
+This is a meta operator for install the common service operator and instance.
 
 ## Prerequisites
 
-- [dep][dep_tool] version v0.5.0+.
-- [go][go_tool] version v1.12+.
+- [go][go_tool] version v1.13+.
 - [docker][docker_tool] version 17.03+
 - [kubectl][kubectl_tool] v1.11.3+
 - [operator-sdk][operator_install]
@@ -35,18 +34,16 @@ This is a common service operator for install the common service operator and in
 
 ### Cloning the repository
 
-Checkout this Common Service Operator repository
+Checkout this Meta Operator repository
 
 ```bash
-# mkdir $GOPATH/src/github.com/IBM
-# cd $GOPATH/src/github.com/IBM
-# git clone git@github.com:IBM/common-service-operator.git
-# cd common-service-operator
+# git clone https://github.com/IBM/meta-operator.git
+# cd meta-operator
 ```
 
 ### Building the operator
 
-Build the Common Service operator image and push it to a public registry, such as quay.io:
+Build the meta operator image and push it to a public registry, such as quay.io:
 
 ```bash
 # make image
@@ -59,15 +56,15 @@ Run `make install` to install the operator. Check that the operator is running i
 Following the expected result.
 
 ```bash
-# kubectl get all -n common-service-operator
+# kubectl get all -n meta-operator
 NAME                                           READY   STATUS    RESTARTS   AGE
-pod/common-service-operator-786d699956-z7k4n   1/1     Running   0          21s
+pod/meta-operator-786d699956-z7k4n   1/1     Running   0          21s
 
 NAME                                      READY   UP-TO-DATE   AVAILABLE   AGE
-deployment.apps/common-service-operator   1/1     1            1           22s
+deployment.apps/meta-operator   1/1     1            1           22s
 
 NAME                                                 DESIRED   CURRENT   READY   AGE
-replicaset.apps/common-service-operator-786d699956   1         1         1       22s
+replicaset.apps/meta-operator-786d699956   1         1         1       22s
 ```
 
 ### Uninstalling
@@ -79,7 +76,7 @@ To uninstall all that was performed in the above step run `make uninstall`.
 Use the following command to check the operator logs.
 
 ```bash
-# kubectl logs deployment.apps/common-service-operator -n common-service-operator
+# kubectl logs deployment.apps/meta-operator -n meta-operator
 ```
 
 ### Running Tests
@@ -91,7 +88,6 @@ For more information see the [writing e2e tests](https://github.com/operator-fra
 
 When the API or CRD changed, run `make code-dev` re-generate the code.
 
-[dep_tool]: https://golang.github.io/dep/docs/installation.html
 [go_tool]: https://golang.org/dl/
 [kubectl_tool]: https://kubernetes.io/docs/tasks/tools/install-kubectl/
 [docker_tool]: https://docs.docker.com/install/

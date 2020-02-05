@@ -28,7 +28,7 @@ import (
 	"github.com/IBM/meta-operator/test/testsuits"
 )
 
-// MetaOperator is the test group for testing Common Service Operator
+// MetaOperator is the test group for testing Meta Operator
 func MetaOperator(t *testing.T) {
 	t.Parallel()
 	ctx := framework.NewTestCtx(t)

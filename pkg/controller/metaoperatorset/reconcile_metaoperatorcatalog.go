@@ -50,7 +50,7 @@ func (r *ReconcileMetaOperatorSet) reconcileMetaOperator(opts map[string]operato
 		}
 
 		// Subscription existing and managed by Set controller
-		if _, ok := found.Labels["operator.ibm.com/css-control"]; ok {
+		if _, ok := found.Labels["operator.ibm.com/mos-control"]; ok {
 			// Check subscription if present
 			if o.State == Present {
 				// Subscription is present and channel changed, update it.
@@ -177,7 +177,7 @@ func (r *ReconcileMetaOperatorSet) deleteSubscription(cr *operatorv1alpha1.MetaO
 func generateClusterObjects(o operatorv1alpha1.Operator) *clusterObjects {
 	co := &clusterObjects{}
 	labels := map[string]string{
-		"operator.ibm.com/css-control": "true",
+		"operator.ibm.com/mos-control": "true",
 	}
 	// Namespace Object
 	co.namespace = &corev1.Namespace{
@@ -221,13 +221,13 @@ func generateClusterObjects(o operatorv1alpha1.Operator) *clusterObjects {
 
 func generateOperatorGroup(namespace string, targetNamespaces []string) *olmv1.OperatorGroup {
 	labels := map[string]string{
-		"operator.ibm.com/css-control": "true",
+		"operator.ibm.com/mos-control": "true",
 	}
 
 	// Operator Group Object
 	og := &olmv1.OperatorGroup{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "common-service-operatorgroup",
+			Name:      "service-operatorgroup",
 			Namespace: namespace,
 			Labels:    labels,
 		},

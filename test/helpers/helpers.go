@@ -240,7 +240,7 @@ func GetOperators(f *framework.Framework, namespace string) (map[string]operator
 		err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.CatalogCrName, Namespace: namespace}, moInstance)
 		if err != nil {
 			if errors.IsNotFound(err) {
-				lastReason = fmt.Sprintf("Waiting on MetaOperator instance to be created [common-service]")
+				lastReason = fmt.Sprintf("Waiting on MetaOperator instance to be created [meta-operator]")
 				return false, nil
 			}
 			return false, err
@@ -327,7 +327,7 @@ func WaitForSubscriptionDelete(olmClient *olmclient.Clientset, opt metav1.Object
 	return nil
 }
 
-// ValidateCustomeResource check the result of the common service config
+// ValidateCustomeResource check the result of the meta operator config
 func ValidateCustomeResource(f *framework.Framework, namespace string) error {
 	fmt.Println("Validating custome resources are ready")
 	configInstance := &operator.MetaOperatorConfig{}

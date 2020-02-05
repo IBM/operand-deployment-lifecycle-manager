@@ -2,7 +2,7 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
-- [Install the common service operator on vanila Kubernetes](#install-the-common-service-operator-on-vanila-kubernetes)
+- [Install the meta operator on vanila Kubernetes](#install-the-meta-operator-on-vanila-kubernetes)
     - [Deploy meta operator](#deploy-meta-operator)
         - [1. Deploy a Kubernetes cluster](#1-deploy-a-kubernetes-cluster)
         - [2. Install OLM](#2-install-olm)
@@ -15,7 +15,7 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-# Install the common service operator on vanila Kubernetes
+# Install the meta operator on vanila Kubernetes
 
 In this document, we will show you how to deploy and use the meta operator on the vanila Kubernetes.
 
@@ -65,27 +65,27 @@ kubectl apply -f - <<END
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: common-service-operator
+  name: meta-operator
 
 ---
 apiVersion: operators.coreos.com/v1alpha2
 kind: OperatorGroup
 metadata:
   name: operatorgroup
-  namespace: common-service-operator
+  namespace: meta-operator
 spec:
   targetNamespaces:
-  - common-service-operator
+  - meta-operator
 
 ---
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
-  name: common-service
-  namespace: common-service-operator
+  name: meta-operator
+  namespace: meta-operator
 spec:
   channel: alpha
-  name: common-service
+  name: meta-operator
   source: opencloud-operators
   sourceNamespace: olm
 END
@@ -94,7 +94,7 @@ END
 ### 5. Check Operator CSV
 
 ```bash
-kubectl -n common-service-operator get csv
+kubectl -n meta-operator get csv
 ```
 
 ## How to use mate operator to install services

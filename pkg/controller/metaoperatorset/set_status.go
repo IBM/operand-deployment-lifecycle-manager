@@ -139,7 +139,7 @@ func (r *ReconcileMetaOperatorSet) updatePhaseStatus(cr *operatorv1alpha1.MetaOp
 
 func (r *ReconcileMetaOperatorSet) updateMemberStatus(cr *operatorv1alpha1.MetaOperatorSet) error {
 	subs, err := r.olmClient.OperatorsV1alpha1().Subscriptions("").List(metav1.ListOptions{
-		LabelSelector: "operator.ibm.com/css-control",
+		LabelSelector: "operator.ibm.com/mos-control",
 	})
 	if err != nil {
 		return err

@@ -13,7 +13,7 @@
     - [3.Make a pull request to merge the changes](#3make-a-pull-request-to-merge-the-changes)
 - [End to end test](#end-to-end-test)
     - [1. Create an OperatorSource in the Openshift cluster](#1-create-an-operatorsource-in-the-openshift-cluster)
-    - [2. Create a Namespace `common-service-operator`](#2-create-a-namespace-common-service-operator)
+    - [2. Create a Namespace `meta-operator`](#2-create-a-namespace-meta-operator)
     - [3. Install meta Operator](#3-install-meta-operator)
     - [4. Check the installed operators](#4-check-the-installed-operators)
     - [5. Edit the MetaOperator Config custom resource and the MetaOperator Catalog custom resource](#5-edit-the-metaoperator-config-custom-resource-and-the-metaoperator-catalog-custom-resource)
@@ -186,13 +186,13 @@ spec:
   type: appregistry
 ```
 
-## 2. Create a Namespace `common-service-operator`
+## 2. Create a Namespace `meta-operator`
 
-Open `OperatorHub` page in OCP console left menu, then `Create Project`, e.g., create a project named `common-service-operator`.
+Open `OperatorHub` page in OCP console left menu, then `Create Project`, e.g., create a project named `meta-operator`.
 
 ## 3. Install meta Operator
 
-Open `OperatorHub` and search `common-service-operator` to find the operator, and install it.
+Open `OperatorHub` and search `meta-operator` to find the operator, and install it.
 
 ## 4. Check the installed operators
 
@@ -200,16 +200,16 @@ Open `Installed Operators` page to check the installed operators.
 
 ## 5. Edit the MetaOperator Config custom resource and the MetaOperator Catalog custom resource
 
-- [Editing MetaOperator Config](#edit-common-service-config-custom-resource)
+- [Editing MetaOperator Config](#edit-meta-operator-config-custom-resource)
 - [Editing MetaOperator Catalog](#edit-meta-operator-custom-resource)
 
 ## 6. Create a MetaOperator Set
 
 ```bash
 vi deploy/crds/operator.ibm.com_v1alpha1_metaoperatorset_cr.yaml
-oc apply -f deploy/crds/operator.ibm.com_v1alpha1_metaoperatorset_cr.yaml -n common-service-operator
+oc apply -f deploy/crds/operator.ibm.com_v1alpha1_metaoperatorset_cr.yaml -n meta-operator
 ```
 
-- [Editing MetaOperator Set](#edit-common-service-set-custom-resource)
+- [Editing MetaOperator Set](#edit-meta-operator-set-custom-resource)
 
 ## 7. Check the installed operators and their custom resource
