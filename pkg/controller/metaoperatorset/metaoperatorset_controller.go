@@ -42,7 +42,7 @@ import (
 	operatorv1alpha1 "github.com/IBM/meta-operator/pkg/apis/operator/v1alpha1"
 )
 
-var log = logf.Log.WithName("controller_commonserviceset")
+var log = logf.Log.WithName("controller_metaoperatorset")
 
 /**
 * USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller

@@ -35,7 +35,7 @@ import (
 	"github.com/IBM/meta-operator/pkg/util"
 )
 
-var log = logf.Log.WithName("controller_metaoperator")
+var log = logf.Log.WithName("controller_metaoperatorcatalog")
 
 /**
 * USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller

@@ -227,7 +227,7 @@ func generateOperatorGroup(namespace string, targetNamespaces []string) *olmv1.O
 	// Operator Group Object
 	og := &olmv1.OperatorGroup{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "service-operatorgroup",
+			Name:      "meta-operator-operatorgroup",
 			Namespace: namespace,
 			Labels:    labels,
 		},
@@ -241,7 +241,7 @@ func generateOperatorGroup(namespace string, targetNamespaces []string) *olmv1.O
 }
 
 func (r *ReconcileMetaOperatorSet) checkOperatorGroup(targetNamespaces []string, namespace string) error {
-	existOG, err := r.olmClient.OperatorsV1().OperatorGroups(namespace).Get("common-service-operatorgroup", metav1.GetOptions{})
+	existOG, err := r.olmClient.OperatorsV1().OperatorGroups(namespace).Get("meta-operator-operatorgroup", metav1.GetOptions{})
 	if err != nil && !errors.IsNotFound(err) {
 		return err
 	}
