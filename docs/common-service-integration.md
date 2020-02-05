@@ -5,7 +5,7 @@
 - [Pre-Requisites](#pre-requisites)
     - [Push the operator to quay.io](#push-the-operator-to-quayio)
 - [Integration services with meta operator](#integration-services-with-meta-operator)
-    - [1. Fork the git repository of meta operator](#1-fork-the-git-repository-of-meta-operator)
+    - [1. Clone the git repository of meta operator](#1-clone-the-git-repository-of-meta-operator)
     - [2. Edit default value of custom resource](#2-edit-default-value-of-custom-resource)
         - [Edit the MetaOperator Catalog custom resource](#edit-the-metaoperator-catalog-custom-resource)
         - [Edit the MetaOperator Config custom resource](#edit-the-metaoperator-config-custom-resource)
@@ -32,14 +32,18 @@ more information see the [push olm to quay.io](https://github.com/operator-frame
 
 # Integration services with meta operator
 
-## 1. Fork the git repository of meta operator
+## 1. Clone the git repository of meta operator
+
+```bash
+git clone git@github.com:IBM/meta-operator.git
+```
 
 ## 2. Edit default value of custom resource
 
 ### Edit the MetaOperator Catalog custom resource
 
 ```bash
-cd common-service-operator
+cd meta-operator
 vi deploy/crds/operator.ibm.com_v1alpha1_metaoperatorcatalog_cr.yaml
 ```
 
@@ -75,7 +79,7 @@ operators:
 ### Edit the MetaOperator Config custom resource
 
 ```bash
-cd common-service-operator
+cd meta-operator
 vi deploy/crds/operator.ibm.com_v1alpha1_metaoperatorconfig_cr.yaml
 ```
 
@@ -129,7 +133,7 @@ spec:
 ### Edit a MetaOperator Set custom resource
 
 ```bash
-cd common-service-operator
+cd meta-operator
 vi deploy/crds/operator.ibm.com_v1alpha1_metaoperatorset_cr.yaml
 ```
 
