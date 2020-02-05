@@ -113,7 +113,7 @@ metadata:
   namespace: meta-operator
 spec:
   channel: alpha
-  name: meta-operator
+  name: meta-operator-app
   source: opencloud-operators
   sourceNamespace: olm
 ```
@@ -123,6 +123,8 @@ spec:
 ```bash
 oc -n meta-operator get csv
 ```
+
+<!--
 
 ## Create and update custom resource
 
@@ -247,6 +249,8 @@ spec:
 - `channel` is an optional setting, it can overwrite the `channel` defined in the `MetaOperatorCatalog`.
 - `state` defines if the service should be present or absent.
 - `description` is the description of the service.
+
+-->
 
 ## Post-installation
 
