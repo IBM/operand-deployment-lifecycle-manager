@@ -29,18 +29,18 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 
-	operator "github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1"
-	"github.com/IBM/common-service-operator/test/config"
+	operator "github.com/IBM/meta-operator/pkg/apis/operator/v1alpha1"
+	"github.com/IBM/meta-operator/test/config"
 )
 
-// CreateTest creates a commonserviceset instance
+// CreateTest creates a MetaOperatorSet instance
 func CreateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *framework.TestCtx) error {
 	namespace, err := ctx.GetNamespace()
 	if err != nil {
 		return fmt.Errorf("could not get namespace: %v", err)
 	}
 
-	// create.MetaOperatorConfigConfig custom resource
+	// create.MetaOperatorConfig custom resource
 	fmt.Println("--- CREATE:.MetaOperatorConfigConfig Instance")
 	configInstance := newMetaOperatorConfigCR(config.ConfigCrName, namespace)
 	err = f.Client.Create(goctx.TODO(), configInstance, &framework.CleanupOptions{TestContext: ctx, Timeout: config.CleanupTimeout, RetryInterval: config.CleanupRetry})
@@ -102,7 +102,7 @@ func CreateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 	return nil
 }
 
-// UpdateTest updates a commonserviceset instance
+// UpdateTest updates a MetaOperatorSet instance
 func UpdateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *framework.TestCtx) error {
 	namespace, err := ctx.GetNamespace()
 	if err != nil {
@@ -135,7 +135,7 @@ func UpdateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 	return nil
 }
 
-//DeleteTest delete a commonserviceset instance
+//DeleteTest delete a MetaOperatorSet instance
 func DeleteTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *framework.TestCtx) error {
 	namespace, err := ctx.GetNamespace()
 	if err != nil {
@@ -168,7 +168,7 @@ func DeleteTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 	return nil
 }
 
-// UpdateConfigTest updates a commonserviceset instance
+// UpdateConfigTest updates a MetaOperatorConfig instance
 func UpdateConfigTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *framework.TestCtx) error {
 	namespace, err := ctx.GetNamespace()
 	if err != nil {
@@ -198,8 +198,8 @@ func UpdateConfigTest(olmClient *olmclient.Clientset, f *framework.Framework, ct
 	return nil
 }
 
-// UpdateMetaOperatorTest updates a MetaOperator instance
-func UpdateMetaOperatorTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *framework.TestCtx) error {
+// UpdateCatalogTest updates a MetaOperatorCatalog instance
+func UpdateCatalogTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *framework.TestCtx) error {
 	namespace, err := ctx.GetNamespace()
 	if err != nil {
 		return err
@@ -207,8 +207,8 @@ func UpdateMetaOperatorTest(olmClient *olmclient.Clientset, f *framework.Framewo
 	metaOperatorInstance := &operator.MetaOperatorCatalog{}
 	fmt.Println("--- UPDATE: MetaOperator")
 
-	// Get MetaOperator instance
-	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.MetaCrName, Namespace: namespace}, metaOperatorInstance)
+	// Get MetaOperatorCatalog instance
+	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.CatalogCrName, Namespace: namespace}, metaOperatorInstance)
 	if err != nil {
 		return err
 	}
@@ -237,7 +237,7 @@ func GetOperators(f *framework.Framework, namespace string) (map[string]operator
 	moInstance := &operator.MetaOperatorCatalog{}
 	lastReason := ""
 	waitErr := utilwait.PollImmediate(config.WaitForRetry, config.APITimeout, func() (done bool, err error) {
-		err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.MetaCrName, Namespace: namespace}, moInstance)
+		err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.CatalogCrName, Namespace: namespace}, moInstance)
 		if err != nil {
 			if errors.IsNotFound(err) {
 				lastReason = fmt.Sprintf("Waiting on MetaOperator instance to be created [common-service]")

@@ -20,19 +20,19 @@ import (
 
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
 
-	apis "github.com/IBM/common-service-operator/pkg/apis"
-	operator "github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1"
-	"github.com/IBM/common-service-operator/test/testgroups"
+	apis "github.com/IBM/meta-operator/pkg/apis"
+	operator "github.com/IBM/meta-operator/pkg/apis/operator/v1alpha1"
+	"github.com/IBM/meta-operator/test/testgroups"
 )
 
-func TestCommonServiceSet(t *testing.T) {
+func TestMetaOperatorSet(t *testing.T) {
 	servicesetList := &operator.MetaOperatorSetList{}
 	err := framework.AddToFrameworkScheme(apis.AddToScheme, servicesetList)
 	if err != nil {
 		t.Fatalf("failed to add custom resource scheme to framework: %v", err)
 	}
 	// run subtests
-	t.Run("common-service-operator", func(t *testing.T) {
-		t.Run("Operator", testgroups.CommonServiceOperator)
+	t.Run("meta-operator", func(t *testing.T) {
+		t.Run("Operator", testgroups.MetaOperator)
 	})
 }

@@ -26,8 +26,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	operatorv1alpha1 "github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1"
-	"github.com/IBM/common-service-operator/pkg/util"
+	operatorv1alpha1 "github.com/IBM/meta-operator/pkg/apis/operator/v1alpha1"
+	"github.com/IBM/meta-operator/pkg/util"
 )
 
 func (r *ReconcileMetaOperatorSet) reconcileMetaOperator(opts map[string]operatorv1alpha1.Operator, setInstance *operatorv1alpha1.MetaOperatorSet, moc *operatorv1alpha1.MetaOperatorCatalog) error {

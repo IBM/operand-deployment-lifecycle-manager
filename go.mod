@@ -1,11 +1,10 @@
-module github.com/IBM/common-service-operator
+module github.com/IBM/meta-operator
 
 go 1.13
 
 require (
 	github.com/ghodss/yaml v1.0.1-0.20180820084758-c7ce16629ff4
 	github.com/go-openapi/spec v0.19.0
-	github.com/jstemmer/go-junit-report v0.9.1 // indirect
 	github.com/operator-framework/operator-lifecycle-manager v0.0.0-20190605231540-b8a4faf68e36
 	github.com/operator-framework/operator-sdk v0.12.0
 	github.com/spf13/pflag v1.0.3

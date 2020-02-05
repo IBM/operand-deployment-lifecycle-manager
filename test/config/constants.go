@@ -47,8 +47,8 @@ const (
 	// SetCrName specifies the name of the custome resource of the common service set
 	SetCrName = "common-service"
 
-	// MetaCrName specifies the name of the custome resource of the Meta operator
-	MetaCrName = "common-service"
+	// CatalogCrName specifies the name of the custome resource of the Meta operator
+	CatalogCrName = "common-service"
 
 	// ConfigCrName specifies the name of the custome resource of the common service config
 	ConfigCrName = "common-service"

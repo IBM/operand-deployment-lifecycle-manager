@@ -30,8 +30,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	operatorv1alpha1 "github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1"
-	util "github.com/IBM/common-service-operator/pkg/util"
+	operatorv1alpha1 "github.com/IBM/meta-operator/pkg/apis/operator/v1alpha1"
+	util "github.com/IBM/meta-operator/pkg/util"
 )
 
 func (r *ReconcileMetaOperatorSet) reconcileMetaOperatorConfig(serviceConfigs map[string]operatorv1alpha1.ConfigService, csc *operatorv1alpha1.MetaOperatorConfig) *multiErr {
