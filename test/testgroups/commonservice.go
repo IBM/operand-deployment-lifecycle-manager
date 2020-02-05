@@ -23,13 +23,13 @@ import (
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
 	"github.com/operator-framework/operator-sdk/pkg/test/e2eutil"
 
-	"github.com/IBM/common-service-operator/test/config"
-	"github.com/IBM/common-service-operator/test/helpers"
-	"github.com/IBM/common-service-operator/test/testsuits"
+	"github.com/IBM/meta-operator/test/config"
+	"github.com/IBM/meta-operator/test/helpers"
+	"github.com/IBM/meta-operator/test/testsuits"
 )
 
-// CommonServiceOperator is the test group for testing Common Service Operator
-func CommonServiceOperator(t *testing.T) {
+// MetaOperator is the test group for testing Common Service Operator
+func MetaOperator(t *testing.T) {
 	t.Parallel()
 	ctx := framework.NewTestCtx(t)
 	defer ctx.Cleanup()
@@ -37,11 +37,11 @@ func CommonServiceOperator(t *testing.T) {
 	err := deployOperator(t, ctx)
 	helpers.AssertNoError(t, err)
 
-	t.Run("CommonServiceSet Create", testsuits.CommonServiceSetCreate)
-	t.Run("CommonServiceSet Create Update", testsuits.CommonServiceSetCreateUpdate)
-	t.Run("CommonServiceConfig Update", testsuits.CommonServiceSetCreateUpdate)
-	t.Run("MetaOperator Create Update", testsuits.CommonServiceSetCreateUpdate)
-	t.Run("CommonServiceSet Create Delete", testsuits.CommonServiceSetCreateDelete)
+	t.Run("MetaOperatorSet Create", testsuits.MetaOperatorSetCreate)
+	t.Run("MetaOperatorSet Create Update", testsuits.MetaOperatorSetCreateUpdate)
+	t.Run("MetaOperatorConfig Update", testsuits.MetaOperatorConfigUpdate)
+	t.Run("MetaOperatorCatalog Create Update", testsuits.MetaOperatorCatalogUpdate)
+	t.Run("MetaOperatorSet Create Delete", testsuits.MetaOperatorSetCreateDelete)
 
 }
 

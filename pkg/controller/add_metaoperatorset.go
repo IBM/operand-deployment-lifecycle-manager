@@ -17,7 +17,7 @@
 package controller
 
 import (
-	"github.com/IBM/common-service-operator/pkg/controller/metaoperatorset"
+	"github.com/IBM/meta-operator/pkg/controller/metaoperatorset"
 )
 
 func init() {

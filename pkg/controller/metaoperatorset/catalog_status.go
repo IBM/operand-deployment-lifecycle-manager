@@ -19,7 +19,7 @@ package metaoperatorset
 import (
 	"context"
 
-	operatorv1alpha1 "github.com/IBM/common-service-operator/pkg/apis/operator/v1alpha1"
+	operatorv1alpha1 "github.com/IBM/meta-operator/pkg/apis/operator/v1alpha1"
 )
 
 func (r *ReconcileMetaOperatorSet) updateOperatorStatus(cr *operatorv1alpha1.MetaOperatorCatalog, operatorName string, operatorStatus operatorv1alpha1.OperatorPhase) error {

@@ -17,7 +17,7 @@
 package controller
 
 import (
-	"github.com/IBM/common-service-operator/pkg/controller/metaoperatorcatalog"
+	"github.com/IBM/meta-operator/pkg/controller/metaoperatorcatalog"
 )
 
 func init() {

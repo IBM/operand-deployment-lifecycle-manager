@@ -22,11 +22,11 @@ import (
 	olmclient "github.com/operator-framework/operator-lifecycle-manager/pkg/api/client/clientset/versioned"
 	"github.com/operator-framework/operator-sdk/pkg/test"
 
-	"github.com/IBM/common-service-operator/test/helpers"
+	"github.com/IBM/meta-operator/test/helpers"
 )
 
-// CommonServiceSetCreate is for testing the create of the commonserviceset
-func CommonServiceSetCreate(t *testing.T) {
+// MetaOperatorSetCreate is for testing the create of the MetaOperatorSet
+func MetaOperatorSetCreate(t *testing.T) {
 
 	ctx := test.NewTestCtx(t)
 	defer ctx.Cleanup()
@@ -43,8 +43,8 @@ func CommonServiceSetCreate(t *testing.T) {
 	}
 }
 
-// CommonServiceSetCreateUpdate is for testing the create and update of the commonserviceset
-func CommonServiceSetCreateUpdate(t *testing.T) {
+// MetaOperatorSetCreateUpdate is for testing the create and update of the MetaOperatorSet
+func MetaOperatorSetCreateUpdate(t *testing.T) {
 
 	ctx := test.NewTestCtx(t)
 	defer ctx.Cleanup()
@@ -65,8 +65,8 @@ func CommonServiceSetCreateUpdate(t *testing.T) {
 	}
 }
 
-// CommonServiceSetCreateDelete is for testing the create and delete of the commonserviceset
-func CommonServiceSetCreateDelete(t *testing.T) {
+// MetaOperatorSetCreateDelete is for testing the create and delete of the MetaOperatorSet
+func MetaOperatorSetCreateDelete(t *testing.T) {
 
 	ctx := test.NewTestCtx(t)
 	defer ctx.Cleanup()
@@ -87,8 +87,8 @@ func CommonServiceSetCreateDelete(t *testing.T) {
 	}
 }
 
-// CommonServiceConfigUpdate is for testing the create and delete of the commonserviceset
-func CommonServiceConfigUpdate(t *testing.T) {
+// MetaOperatorConfigUpdate is for testing the update of the MetaOperatorConfig
+func MetaOperatorConfigUpdate(t *testing.T) {
 
 	ctx := test.NewTestCtx(t)
 	defer ctx.Cleanup()
@@ -109,8 +109,8 @@ func CommonServiceConfigUpdate(t *testing.T) {
 	}
 }
 
-// MetaOperatorUpdate is for testing the create and delete of the commonserviceset
-func MetaOperatorUpdate(t *testing.T) {
+// MetaOperatorCatalogUpdate is for testing the update of the MetaOperatorCatalog
+func MetaOperatorCatalogUpdate(t *testing.T) {
 
 	ctx := test.NewTestCtx(t)
 	defer ctx.Cleanup()
@@ -126,7 +126,7 @@ func MetaOperatorUpdate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err = helpers.UpdateMetaOperatorTest(olmClient, f, ctx); err != nil {
+	if err = helpers.UpdateCatalogTest(olmClient, f, ctx); err != nil {
 		t.Fatal(err)
 	}
 }
