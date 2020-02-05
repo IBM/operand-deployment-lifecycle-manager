@@ -33,6 +33,9 @@ get-cluster-credentials: activate-serviceaccount
 config-docker: get-cluster-credentials
 	@common/scripts/config_docker.sh
 
+install-operator-sdk:
+	@operator-sdk version 2> /dev/null ; if [ $$? -ne 0 ]; then ./common/scripts/install-operator-sdk.sh; fi
+
 FINDFILES=find . \( -path ./.git -o -path ./.github \) -prune -o -type f
 XARGS = xargs -0 ${XARGS_FLAGS}
 CLEANXARGS = xargs ${XARGS_FLAGS}
@@ -46,9 +49,6 @@ lint-scripts:
 lint-yaml:
 	@${FINDFILES} \( -name '*.yml' -o -name '*.yaml' \) -print0 | ${XARGS} grep -L -e "{{" | ${CLEANXARGS} yamllint -c ./common/config/.yamllint.yml
 
-lint-helm:
-	@${FINDFILES} -name 'Chart.yaml' -print0 | ${XARGS} -L 1 dirname | ${CLEANXARGS} helm lint
-
 lint-copyright-banner:
 	@${FINDFILES} \( -name '*.go' -o -name '*.cc' -o -name '*.h' -o -name '*.proto' -o -name '*.py' -o -name '*.sh' \) \( ! \( -name '*.gen.go' -o -name '*.pb.go' -o -name '*_pb2.py' \) \) -print0 |\
 		${XARGS} common/scripts/lint_copyright_banner.sh
@@ -56,31 +56,35 @@ lint-copyright-banner:
 lint-go:
 	@${FINDFILES} -name '*.go' \( ! \( -name '*.gen.go' -o -name '*.pb.go' \) \) -print0 | ${XARGS} common/scripts/lint_go.sh
 
-lint-python:
-	@${FINDFILES} -name '*.py' \( ! \( -name '*_pb2.py' \) \) -print0 | ${XARGS} autopep8 --max-line-length 160 --exit-code -d
-
 lint-markdown:
 	@${FINDFILES} -name '*.md' -print0 | ${XARGS} mdl --ignore-front-matter --style common/config/mdl.rb
 	@${FINDFILES} -name '*.md' -print0 | ${XARGS} awesome_bot --skip-save-results --allow_ssl --allow-timeout --allow-dupe --allow-redirect --white-list ${MARKDOWN_LINT_WHITELIST}
 
-lint-sass:
-	@${FINDFILES} -name '*.scss' -print0 | ${XARGS} sass-lint -c common/config/sass-lint.yml --verbose
+lint-all: lint-dockerfiles lint-scripts lint-yaml lint-copyright-banner lint-go lint-markdown
 
-lint-typescript:
-	@${FINDFILES} -name '*.ts' -print0 | ${XARGS} tslint -c common/config/tslint.json
+# Run go vet for this project. More info: https://golang.org/cmd/vet/
+code-vet:
+	@echo go vet
+	go vet $$(go list ./... )
 
-lint-protos:
-	@$(FINDFILES) -name '*.proto' -print0 | $(XARGS) -L 1 prototool lint --protoc-bin-path=/usr/bin/protoc
+# Run go fmt for this project
+code-fmt:
+	@echo go fmt
+	go fmt $$(go list ./... )
 
-lint-all: lint-dockerfiles lint-scripts lint-yaml lint-helm lint-copyright-banner lint-go lint-python lint-markdown lint-sass lint-typescript lint-protos
+# Run go mod tidy to update dependencies
+code-tidy:
+	@echo go mod tidy
+	go mod tidy -v
 
-format-go:
-	@${FINDFILES} -name '*.go' \( ! \( -name '*.gen.go' -o -name '*.pb.go' \) \) -print0 | ${XARGS} goimports -w -local "github.com/IBM"
+# Run the operator-sdk commands to generated code (k8s and openapi and csv)
+code-gen:
+	@echo Updating the deep copy files with the changes in the API
+	operator-sdk generate k8s
+	# @echo Updating the CRD files with the OpenAPI validations
+	# operator-sdk generate openapi
+	@echo Updating the CSV files with the changes in the CRD
+	operator-sdk olm-catalog gen-csv --csv-version ${CSV_VERSION} --update-crds
 
-format-python:
-	@${FINDFILES} -name '*.py' -print0 | ${XARGS} autopep8 --max-line-length 160 --aggressive --aggressive -i
 
-format-protos:
-	@$(FINDFILES) -name '*.proto' -print0 | $(XARGS) -L 1 prototool format -w
-
-.PHONY: lint-dockerfiles lint-scripts lint-yaml lint-copyright-banner lint-go lint-python lint-helm lint-markdown lint-sass lint-typescript lint-protos lint-all format-go format-python format-protos config-docker
+.PHONY: code-vet code-fmt code-tidy code-gen lint-dockerfiles lint-scripts lint-yaml lint-copyright-banner lint-go lint-markdown  lint-all config-docker install-operator-sdk

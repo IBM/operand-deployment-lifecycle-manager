@@ -34,21 +34,8 @@ QUAY_PASSWORD ?=
 
 MARKDOWN_LINT_WHITELIST=https://quay.io/cnr
 
-# Github host to use for checking the source tree;
-# Override this variable ue with your own value if you're working on forked repo.
-GIT_HOST ?= github.com/IBM
-
-PWD := $(shell pwd)
-BASE_DIR := $(shell basename $(PWD))
-
-# Keep an existing GOPATH, make a private one if it is undefined
-GOPATH_DEFAULT := $(PWD)/.go
-export GOPATH ?= $(GOPATH_DEFAULT)
-GOBIN_DEFAULT := $(GOPATH)/bin
-export GOBIN ?= $(GOBIN_DEFAULT)
 TESTARGS_DEFAULT := "-v"
 export TESTARGS ?= $(TESTARGS_DEFAULT)
-DEST := $(GOPATH)/src/$(GIT_HOST)/$(BASE_DIR)
 VERSION ?= $(shell git describe --exact-match 2> /dev/null || \
                  git describe --match=$(git rev-parse --short=8 HEAD) --always --dirty --abbrev=8)
 
@@ -64,15 +51,6 @@ else
 endif
 
 include common/Makefile.common.mk
-
-############################################################
-# work section
-############################################################
-$(GOBIN):
-	@echo "create gobin"
-	@mkdir -p $(GOBIN)
-
-work: $(GOBIN)
 
 ##@ Application
 
@@ -114,62 +92,14 @@ uninstall: ## Uninstall all that all performed in the $ make install
 
 ##@ Development
 
-# All available format: format-go format-protos format-python
-# Default value will run all formats, override these make target with your requirements:
-#    eg: fmt: format-go format-protos
-fmt: format-go ## Format all go code
-
-# All available linters: lint-dockerfiles lint-scripts lint-yaml lint-copyright-banner lint-go lint-python lint-helm lint-markdown lint-sass lint-typescript lint-protos
-# Default value will run all linters, override these make target with your requirements:
-#    eg: lint: lint-go lint-yaml
 check: lint-all ## Check all files lint error
 
-code-vet: ## Run go vet for this project. More info: https://golang.org/cmd/vet/
-	@echo go vet
-	go vet $$(go list ./... )
-
-code-fmt: ## Run go fmt for this project
-	@echo go fmt
-	go fmt $$(go list ./... )
-
-code-tidy: ## Run go mod tidy to update dependencies
-	@echo go mod tidy
-	go mod tidy -v
-
-code-lint: ## Run golangci-lint to lint the code
-	@if  ! [ -x "$$(command -v golangci-lint)" ]; then echo "Don't find golangci-lint. Installing golangci-lint"; curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh| sh -s -- -b "$$(go env GOPATH)"/bin v1.21.0; fi;
-	@golangci-lint run --disable-all \
-		--deadline 5m \
-		--enable=nakedret \
-		--enable=interfacer \
-		--enable=varcheck \
-		--enable=deadcode \
-		--enable=structcheck \
-		--enable=misspell \
-		--enable=maligned \
-		--enable=ineffassign \
-		--enable=goconst \
-		--enable=goimports \
-		--enable=errcheck \
-		--enable=unparam \
-		--enable=golint \
-		--fix
-
-code-gen: ## Run the operator-sdk commands to generated code (k8s and openapi and csv)
-	@echo Updating the deep copy files with the changes in the API
-	operator-sdk generate k8s
-	@echo Updating the CRD files with the OpenAPI validations
-	operator-sdk generate openapi
-	@echo Updating the CSV files with the changes in the CRD
-	operator-sdk olm-catalog gen-csv --csv-version ${CSV_VERSION} --update-crds
-
-code-dev: ## Run the default dev commands which are the go tidy, fmt, vet check the lint then execute the $ make code-gen
+code-dev: ## Run the default dev commands which are the go tidy, fmt, vet then execute the $ make code-gen
 	@echo Running the common required commands for developments purposes
 	- make code-tidy
 	- make code-fmt
 	- make code-vet
 	- make code-gen
-	- make code-lint
 
 run: ## Run against the configured Kubernetes cluster in ~/.kube/config
 	go run ./cmd/manager/main.go
@@ -178,9 +108,6 @@ run: ## Run against the configured Kubernetes cluster in ~/.kube/config
 
 build: ## Build go binary
 	@common/scripts/gobuild.sh build/_output/bin/$(IMG) ./cmd/manager
-
-local: ## Build local go binary, default is drawin
-	@GOOS=darwin common/scripts/gobuild.sh build/_output/bin/$(IMG) ./cmd/manager
 
 ##@ Test
 
@@ -199,9 +126,6 @@ coverage: ## Run code coverage test
 
 ##@ Release
 
-install-operator-sdk: ## Install operator sdk binary
-	@operator-sdk version 2> /dev/null ; if [ $$? -ne 0 ]; then ./common/scripts/install-operator-sdk.sh; fi
-
 ifeq ($(BUILD_LOCALLY),0)
     export CONFIG_DOCKER_TARGET = config-docker
 endif
@@ -213,7 +137,7 @@ images: install-operator-sdk $(CONFIG_DOCKER_TARGET) ## Build and push image
 csv: ## Push CSV package to the catalog
 	@RELEASE=${CSV_VERSION} common/scripts/push-csv.sh
 
-all: fmt check test coverage build images
+all: check test coverage build images
 
 ##@ Cleanup
 clean: ## Clean build binary
@@ -221,9 +145,9 @@ clean: ## Clean build binary
 
 ##@ Help
 help: ## Display this help
-	@echo -e "Usage:\n  make \033[36m<target>\033[0m"
+	@echo "Usage:\n  make \033[36m<target>\033[0m"
 	@awk 'BEGIN {FS = ":.*##"}; \
 		/^[a-zA-Z0-9_-]+:.*?##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 } \
 		/^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
-.PHONY: all build local run check install uninstall code-vet code-fmt code-tidy code-lint code-gen code-dev test test-e2e coverage images csv install-operator-sdk clean help
+.PHONY: all build run check install uninstall code-dev test test-e2e coverage images csv clean help
