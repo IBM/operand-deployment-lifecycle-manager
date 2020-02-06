@@ -42,6 +42,7 @@ VERSION ?= $(shell git describe --exact-match 2> /dev/null || \
                  git describe --match=$(git rev-parse --short=8 HEAD) --always --dirty --abbrev=8)
 
 LOCAL_OS := $(shell uname)
+LOCAL_ARCH := $(shell uname -m)
 ifeq ($(LOCAL_OS),Linux)
     TARGET_OS ?= linux
     XARGS_FLAGS="-r"
@@ -110,11 +111,46 @@ code-dev: ## Run the default dev commands which are the go tidy, fmt, vet then e
 run: ## Run against the configured Kubernetes cluster in ~/.kube/config
 	go run ./cmd/manager/main.go
 
+ifeq ($(BUILD_LOCALLY),0)
+    export CONFIG_DOCKER_TARGET = config-docker
+endif
+
 ##@ Build
 
 build:
 	@echo "Building the meta-operator binary"
-	env GOOS=$(GOOS) GOARCH=$(GOARCH) go build -i -ldflags="-extldflags -static" -o build/_output/bin/$(IMG) ./cmd/manager
+	@CGO_ENABLED=0 go build -o build/_output/bin/$(IMG) ./cmd/manager
+	@strip build/_output/bin/$(IMG)
+
+build-image: build $(CONFIG_DOCKER_TARGET)
+	$(eval ARCH := $(shell uname -m|sed 's/x86_64/amd64/'))
+	docker build -t $(REGISTRY)/$(IMG)-$(ARCH):$(VERSION) -f build/Dockerfile .
+	@\rm -f build/_output/bin/meta-operator
+	@if [ $(BUILD_LOCALLY) -ne 1 ] && [ "$(ARCH)" = "amd64" ]; then docker push $(REGISTRY)/$(IMG)-$(ARCH):$(VERSION); fi
+
+# runs on amd64 machine
+build-image-ppc64le: build-ppc64le $(CONFIG_DOCKER_TARGET)
+ifeq ($(LOCAL_OS),Linux)
+ifeq ($(LOCAL_ARCH),x86_64)
+	GOOS=linux GOARCH=ppc64le CGO_ENABLED=0 go build -o build/_output/bin/meta-operator-ppc64le ./cmd/manager
+	docker run --rm --privileged multiarch/qemu-user-static:register --reset
+	docker build -t $(REGISTRY)/$(IMG)-ppc64le:$(VERSION) -f build/Dockerfile.ppc64le .
+	@\rm -f build/_output/bin/meta-operator-ppc64le
+	@if [ $(BUILD_LOCALLY) -ne 1 ]; then docker push $(REGISTRY)/$(IMG)-ppc64le:$(VERSION); fi
+endif
+endif
+
+# runs on amd64 machine
+build-image-s390x: build-s390x $(CONFIG_DOCKER_TARGET)
+ifeq ($(LOCAL_OS),Linux)
+ifeq ($(LOCAL_ARCH),x86_64)
+	GOOS=linux GOARCH=s390x CGO_ENABLED=0 go build -o build/_output/bin/meta-operator-s390x ./cmd/manager
+	docker run --rm --privileged multiarch/qemu-user-static:register --reset
+	docker build -t $(REGISTRY)/$(IMG)-s390x:$(VERSION) -f build/Dockerfile.s390x .
+	@\rm -f build/_output/bin/meta-operator-s390x
+	@if [ $(BUILD_LOCALLY) -ne 1 ]; then docker push $(REGISTRY)/$(IMG)-s390x:$(VERSION); fi
+endif
+endif
 
 ##@ Test
 
@@ -133,13 +169,15 @@ coverage: ## Run code coverage test
 
 ##@ Release
 
-ifeq ($(BUILD_LOCALLY),0)
-    export CONFIG_DOCKER_TARGET = config-docker
+images: build-image build-image-ppc64le build-image-s390x
+ifeq ($(LOCAL_OS),Linux)
+ifeq ($(LOCAL_ARCH),x86_64)
+	@curl -L -o /tmp/manifest-tool https://github.com/estesp/manifest-tool/releases/download/v1.0.0/manifest-tool-linux-amd64
+	@chmod +x /tmp/manifest-tool
+	/tmp/manifest-tool push from-args --platforms linux/amd64,linux/ppc64le,linux/s390x --template $(REGISTRY)/$(IMG)-ARCH:$(VERSION) --target $(REGISTRY)/$(IMG) --ignore-missing
+	/tmp/manifest-tool push from-args --platforms linux/amd64,linux/ppc64le,linux/s390x --template $(REGISTRY)/$(IMG)-ARCH:$(VERSION) --target $(REGISTRY)/$(IMG):$(VERSION) --ignore-missing
 endif
-images: install-operator-sdk $(CONFIG_DOCKER_TARGET) ## Build and push image
-	@operator-sdk build $(REGISTRY)/$(IMG):$(VERSION)
-	@docker tag $(REGISTRY)/$(IMG):$(VERSION) $(REGISTRY)/$(IMG)
-	@if [ $(BUILD_LOCALLY) -ne 1 ]; then docker push $(REGISTRY)/$(IMG):$(VERSION); docker push $(REGISTRY)/$(IMG); fi
+endif
 
 csv: ## Push CSV package to the catalog
 	@RELEASE=${CSV_VERSION} common/scripts/push-csv.sh

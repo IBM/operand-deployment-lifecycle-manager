@@ -14,7 +14,13 @@
 # limitations under the License.
 #
 
-FROM registry.access.redhat.com/ubi8/ubi-minimal:8.1-328
+FROM alpine as builder
+
+RUN wget -O /qemu-ppc64le-static https://github.com/multiarch/qemu-user-static/releases/latest/download/qemu-ppc64le-static
+
+RUN chmod +x /qemu-ppc64le-static
+
+FROM registry.access.redhat.com/ubi8/ubi-minimal@sha256:f8174ab3c2fb4bd8aae29c48e077ba8e67c91904a639dd950b4c7e21c857cfec
 ARG VCS_REF
 ARG VCS_URL
 
@@ -35,8 +41,10 @@ ENV OPERATOR=/usr/local/bin/meta-operator \
   USER_UID=1001 \
   USER_NAME=meta-operator
 
+COPY --from=builder /qemu-ppc64le-static /usr/bin/
+
 # install operator binary
-COPY build/_output/bin/meta-operator ${OPERATOR}
+COPY build/_output/bin/meta-operator-ppc64le ${OPERATOR}
 COPY deploy/crds ${DEPLOY_DIR}
 
 COPY build/bin /usr/local/bin
