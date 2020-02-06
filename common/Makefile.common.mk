@@ -81,8 +81,10 @@ code-tidy:
 code-gen:
 	@echo Updating the deep copy files with the changes in the API
 	operator-sdk generate k8s
-	# @echo Updating the CRD files with the OpenAPI validations
-	# operator-sdk generate openapi
+	# Workaround for relative/absolute path issue
+	# see https://github.com/IBM/meta-operator/pull/32
+	@echo Updating the CRD files with the OpenAPI validations
+	GOPATH=/tmp operator-sdk generate openapi
 	@echo Updating the CSV files with the changes in the CRD
 	operator-sdk olm-catalog gen-csv --csv-version ${CSV_VERSION} --update-crds
 
