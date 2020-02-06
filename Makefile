@@ -129,7 +129,7 @@ build-image: build $(CONFIG_DOCKER_TARGET)
 	@if [ $(BUILD_LOCALLY) -ne 1 ] && [ "$(ARCH)" = "amd64" ]; then docker push $(REGISTRY)/$(IMG)-$(ARCH):$(VERSION); fi
 
 # runs on amd64 machine
-build-image-ppc64le: build-ppc64le $(CONFIG_DOCKER_TARGET)
+build-image-ppc64le: $(CONFIG_DOCKER_TARGET)
 ifeq ($(LOCAL_OS),Linux)
 ifeq ($(LOCAL_ARCH),x86_64)
 	GOOS=linux GOARCH=ppc64le CGO_ENABLED=0 go build -o build/_output/bin/meta-operator-ppc64le ./cmd/manager
@@ -141,7 +141,7 @@ endif
 endif
 
 # runs on amd64 machine
-build-image-s390x: build-s390x $(CONFIG_DOCKER_TARGET)
+build-image-s390x: $(CONFIG_DOCKER_TARGET)
 ifeq ($(LOCAL_OS),Linux)
 ifeq ($(LOCAL_ARCH),x86_64)
 	GOOS=linux GOARCH=s390x CGO_ENABLED=0 go build -o build/_output/bin/meta-operator-s390x ./cmd/manager
