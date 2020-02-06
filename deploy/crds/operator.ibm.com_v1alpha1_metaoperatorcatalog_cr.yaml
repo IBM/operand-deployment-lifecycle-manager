@@ -20,3 +20,4 @@ spec:
     sourceNamespace: openshift-marketplace
     targetNamespaces:
       - etcd-operator
+status: {}

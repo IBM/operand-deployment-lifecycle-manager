@@ -8,3 +8,4 @@ spec:
     state: present
   - name: jenkins
     state: present
+status: {}

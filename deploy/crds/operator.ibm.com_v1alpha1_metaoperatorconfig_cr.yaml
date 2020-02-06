@@ -13,3 +13,4 @@ spec:
     spec:
       etcdCluster:
         size: 1
+status: {}
