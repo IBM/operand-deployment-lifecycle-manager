@@ -29,6 +29,7 @@ type MetaOperatorSetSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
+	// +listType=set
 	Services []SetService `json:"services"`
 }
 
@@ -78,6 +79,7 @@ type MetaOperatorSetStatus struct {
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
 	// Conditions represents the current state of the Set Service
 	// +optional
+	// +listType=set
 	Conditions []Condition `json:"conditions,omitempty"`
 	// Members represnets the current operators of the set
 	// +optional

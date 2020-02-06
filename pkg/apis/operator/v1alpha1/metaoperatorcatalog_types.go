@@ -54,6 +54,7 @@ type MetaOperatorCatalogSpec struct {
 
 	// Operators is a list of operator definition
 	// +optional
+	// +listType=set
 	Operators []Operator `json:"operators,omitempty"`
 }
 

@@ -6,7 +6,7 @@
 *.dylib
 build/_output
 build/_test
-
+/bin
 .vscode
 
 # Test binary, built with `go test -c`

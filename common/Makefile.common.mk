@@ -71,9 +71,12 @@ code-gen:
 	# Workaround for relative/absolute path issue
 	# see https://github.com/IBM/meta-operator/pull/32
 	@echo Updating the CRD files with the OpenAPI validations
-	GOPATH=/tmp operator-sdk generate openapi
+	# Build the latest openapi-gen from source
+	which ./bin/openapi-gen > /dev/null || go build -o ./bin/openapi-gen k8s.io/kube-openapi/cmd/openapi-gen
+	# Run openapi-gen for each of your API group/version packages
+	GOPATH=/tmp ./bin/openapi-gen --logtostderr=true -o "" -i ./pkg/apis/operator/v1alpha1 -O zz_generated.openapi -p ./pkg/apis/operator/v1alpha1/ -h ./hack/boilerplate.go.txt -r "-"
 	@echo Updating the CSV files with the changes in the CRD
-	operator-sdk olm-catalog gen-csv --csv-version ${CSV_VERSION} --update-crds
+	operator-sdk generate csv --csv-version ${CSV_VERSION} --update-crds
 
 
 .PHONY: code-vet code-fmt code-tidy code-gen lint-copyright-banner lint-go lint-all config-docker install-operator-sdk
