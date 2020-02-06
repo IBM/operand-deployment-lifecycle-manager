@@ -217,6 +217,9 @@ func (r *ReconcileMetaOperatorSet) Reconcile(request reconcile.Request) (reconci
 	// Fetch Subscriptions and check the status of install plan
 	err = r.waitForInstallPlan(moc)
 	if err != nil {
+		if err.Error() == "timed out waiting for the condition" {
+			return reconcile.Result{Requeue: true}, nil
+		}
 		return reconcile.Result{}, err
 	}
 
@@ -257,9 +260,11 @@ func (r *ReconcileMetaOperatorSet) Reconcile(request reconcile.Request) (reconci
 
 func (r *ReconcileMetaOperatorSet) waitForInstallPlan(moc *operatorv1alpha1.MetaOperatorCatalog) error {
 	reqLogger := log.WithValues()
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*5)
+	reqLogger.Info("Waiting for subscriptions to be ready ...")
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*2)
 	defer cancel()
-	return wait.PollImmediateUntil(time.Second*20, func() (bool, error) {
+	subs := make(map[string]string)
+	err := wait.PollImmediateUntil(time.Second*20, func() (bool, error) {
 		foundSub, err := r.olmClient.OperatorsV1alpha1().Subscriptions("").List(metav1.ListOptions{
 			LabelSelector: "operator.ibm.com/mos-control",
 		})
@@ -269,11 +274,12 @@ func (r *ReconcileMetaOperatorSet) waitForInstallPlan(moc *operatorv1alpha1.Meta
 			}
 			return false, err
 		}
-
+		ready := true
 		for _, sub := range foundSub.Items {
 			if sub.Status.Install == nil {
-				reqLogger.Info("Waiting for Install Plan of " + sub.ObjectMeta.Name + " is ready")
-				return false, nil
+				subs[sub.ObjectMeta.Name] = "Install Plan is not ready"
+				ready = false
+				continue
 			}
 
 			ip, err := r.olmClient.OperatorsV1alpha1().InstallPlans(sub.Namespace).Get(sub.Status.InstallPlanRef.Name, metav1.GetOptions{})
@@ -284,17 +290,27 @@ func (r *ReconcileMetaOperatorSet) waitForInstallPlan(moc *operatorv1alpha1.Meta
 			}
 
 			if ip.Status.Phase != olmv1alpha1.InstallPlanPhaseComplete {
-				reqLogger.Info("Waiting for Cluster Service Version of " + ip.Spec.ClusterServiceVersionNames[0] + " is ready")
-				return false, nil
+				subs[sub.ObjectMeta.Name] = "Cluster Service Version is not ready"
+				ready = false
+				continue
 			}
 
 			err = r.updateOperatorStatus(moc, sub.ObjectMeta.Name, operatorv1alpha1.OperatorRunning)
 			if err != nil {
 				return false, err
 			}
+			subs[sub.ObjectMeta.Name] = "Ready"
 		}
-		return true, nil
+
+		return ready, nil
 	}, ctx.Done())
+	if err != nil {
+		for sub, state := range subs {
+			reqLogger.Info("Subscription " + sub + " state: " + state)
+		}
+		return err
+	}
+	return nil
 }
 
 func (r *ReconcileMetaOperatorSet) fetchSets(currentCr *operatorv1alpha1.MetaOperatorSet) (map[string]operatorv1alpha1.SetService, error) {
