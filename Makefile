@@ -19,6 +19,8 @@
 # If set to 1, then you need to also set 'DOCKER_USERNAME' and 'DOCKER_PASSWORD'
 # environment variables before build the repo.
 BUILD_LOCALLY ?= 1
+TARGET_GOOS=linux
+TARGET_GOARCH=amd64
 
 # The namespcethat operator will be deployed in
 NAMESPACE=meta-operator
@@ -100,14 +102,19 @@ code-dev: ## Run the default dev commands which are the go tidy, fmt, vet then e
 	- make code-fmt
 	- make code-vet
 	- make code-gen
+	@echo Running the common required commands for code delivery
+	- make check
+	- make test
+	- make build
 
 run: ## Run against the configured Kubernetes cluster in ~/.kube/config
 	go run ./cmd/manager/main.go
 
 ##@ Build
 
-build: ## Build go binary
-	@common/scripts/gobuild.sh build/_output/bin/$(IMG) ./cmd/manager
+build:
+	@echo "Building the meta-operator binary"
+	env GOOS=$(GOOS) GOARCH=$(GOARCH) go build -i -ldflags="-extldflags -static" -o build/_output/bin/$(IMG) ./cmd/manager
 
 ##@ Test
 
