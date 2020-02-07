@@ -106,16 +106,66 @@ spec:
       displayName: MetaOperatorCatalog
       kind: MetaOperatorCatalog
       name: metaoperatorcatalogs.operator.ibm.com
+      specDescriptors:
+      - description: A list defines the catalog information for operators.
+        displayName: Operators
+        path: operators
+        x-descriptors:
+        - 'urn:alm:descriptor:com.tectonic.ui:text'
+      statusDescriptors:
+      - description: The status of operators.
+        displayName: Operator Status
+        path: OperatorsStatus
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:podStatuses
       version: v1alpha1
     - description: MetaOperatorConfig is the Schema for the metaoperatorconfigs API
       displayName: MetaOperatorConfig
       kind: MetaOperatorConfig
       name: metaoperatorconfigs.operator.ibm.com
+      specDescriptors:
+      - description: A list defines the configuration for each service.
+        displayName: Services
+        path: services
+        x-descriptors:
+        - 'urn:alm:descriptor:com.tectonic.ui:text'
+      statusDescriptors:
+      - description: The status of custom resources.
+        displayName: Custom resource Status
+        path: ServiceStatus
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:podStatuses
       version: v1alpha1
     - description: MetaOperatorSet is the Schema for the metaoperatorsets API
       displayName: MetaOperatorSet
       kind: MetaOperatorSet
       name: metaoperatorsets.operator.ibm.com
+      resources:
+      - kind: Subscription
+        name: subscriptions.operators.coreos.com
+        version: v1alpha1
+      specDescriptors:
+      - description: A list defines the set for each service.
+        displayName: Services
+        path: services
+        x-descriptors:
+        - 'urn:alm:descriptor:com.tectonic.ui:text'
+      statusDescriptors:
+      - description: The status of operators.
+        displayName: Operator Status
+        path: members
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:podStatuses
+      - description: The condition of operators installation.
+        displayName: Operator Condition
+        path: conditions
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:podStatuses
+      - description: The phase of operators installation.
+        displayName: Operator phase
+        path: phase
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:podStatuses
       version: v1alpha1
   description: The Meta Operator provides a simple Kubernetes CRD-Based API to manage
     the lifecycle of IBM cloud common services. With this operator, you can simply

@@ -2,10 +2,10 @@ apiVersion: operator.ibm.com/v1alpha1
 kind: MetaOperatorSet
 metadata:
   name: common-service
+status: {}
 spec:
   services:
   - name: etcd
     state: present
   - name: jenkins
     state: present
-status: {}

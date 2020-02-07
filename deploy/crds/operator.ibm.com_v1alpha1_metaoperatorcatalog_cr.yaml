@@ -2,6 +2,7 @@ apiVersion: operator.ibm.com/v1alpha1
 kind: MetaOperatorCatalog
 metadata:
   name: common-service
+status: {}
 spec:
   operators:
   - name: jenkins
@@ -20,4 +21,3 @@ spec:
     sourceNamespace: openshift-marketplace
     targetNamespaces:
       - etcd-operator
-status: {}
