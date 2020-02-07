@@ -170,6 +170,7 @@ coverage: ## Run code coverage test
 scorecard: ## Run scorecard test
 	@echo ... Running the scorecard test
 	- operator-sdk scorecard --verbose
+
 ##@ Release
 
 images: build-image build-image-ppc64le build-image-s390x
