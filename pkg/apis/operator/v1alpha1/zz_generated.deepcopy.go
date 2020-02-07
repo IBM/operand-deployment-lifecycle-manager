@@ -307,17 +307,9 @@ func (in *MetaOperatorConfigStatus) DeepCopyInto(out *MetaOperatorConfigStatus) 
 	*out = *in
 	if in.ServiceStatus != nil {
 		in, out := &in.ServiceStatus, &out.ServiceStatus
-		*out = make(map[string]*CrStatus, len(*in))
+		*out = make(map[string]CrStatus, len(*in))
 		for key, val := range *in {
-			var outVal *CrStatus
-			if val == nil {
-				(*out)[key] = nil
-			} else {
-				in, out := &val, &outVal
-				*out = new(CrStatus)
-				(*in).DeepCopyInto(*out)
-			}
-			(*out)[key] = outVal
+			(*out)[key] = *val.DeepCopy()
 		}
 	}
 	return
