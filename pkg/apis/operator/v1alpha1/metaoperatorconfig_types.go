@@ -32,6 +32,7 @@ type MetaOperatorConfigSpec struct {
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
 	// Services is a list of configuration of service
 	// +optional
+	// +listType=set
 	Services []ConfigService `json:"services,omitempty"`
 }
 
@@ -53,7 +54,7 @@ type MetaOperatorConfigStatus struct {
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
 	// ServiceStatus defines all the status of a operator
 	// +optional
-	ServiceStatus map[string]*CrStatus `json:"serviceStatus,omitempty"`
+	ServiceStatus map[string]CrStatus `json:"serviceStatus,omitempty"`
 }
 
 // CrStatus defines the status of the custom resource

@@ -25,16 +25,18 @@ import (
 func (r *ReconcileMetaOperatorSet) updateServiceStatus(cr *operatorv1alpha1.MetaOperatorConfig, operatorName, serviceName string, serviceStatus operatorv1alpha1.ServicePhase) error {
 
 	if cr.Status.ServiceStatus == nil {
-		cr.Status.ServiceStatus = make(map[string]*operatorv1alpha1.CrStatus)
+		cr.Status.ServiceStatus = make(map[string]operatorv1alpha1.CrStatus)
 	}
 
 	_, ok := cr.Status.ServiceStatus[operatorName]
 	if !ok {
-		cr.Status.ServiceStatus[operatorName] = &operatorv1alpha1.CrStatus{}
+		cr.Status.ServiceStatus[operatorName] = operatorv1alpha1.CrStatus{}
 	}
 
 	if cr.Status.ServiceStatus[operatorName].CrStatus == nil {
-		cr.Status.ServiceStatus[operatorName].CrStatus = make(map[string]operatorv1alpha1.ServicePhase)
+		tmp := cr.Status.ServiceStatus[operatorName]
+		tmp.CrStatus = make(map[string]operatorv1alpha1.ServicePhase)
+		cr.Status.ServiceStatus[operatorName] = tmp
 	}
 
 	cr.Status.ServiceStatus[operatorName].CrStatus[serviceName] = serviceStatus
