@@ -35,7 +35,8 @@ metadata:
                 ]
               }
             ]
-          }
+          },
+          "status": {}
         },
         {
           "apiVersion": "operator.ibm.com/v1alpha1",
@@ -64,7 +65,8 @@ metadata:
                 }
               }
             ]
-          }
+          },
+          "status": {}
         },
         {
           "apiVersion": "operator.ibm.com/v1alpha1",
@@ -83,7 +85,8 @@ metadata:
                 "state": "present"
               }
             ]
-          }
+          },
+          "status": {}
         }
       ]
     capabilities: Basic Install
