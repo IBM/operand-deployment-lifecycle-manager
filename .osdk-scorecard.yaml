@@ -1,6 +1,6 @@
 scorecard:
   # Setting a global scorecard option
-  output: json
+  bundle: deploy/olm-catalog/meta-operator
   plugins:
     - basic:
         cr-manifest:
