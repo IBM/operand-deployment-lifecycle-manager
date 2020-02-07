@@ -102,14 +102,17 @@ spec:
     owned:
     - description: MetaOperatorCatalog is the Schema for the metaoperatorcatalogs
         API
+      displayName: MetaOperatorCatalog
       kind: MetaOperatorCatalog
       name: metaoperatorcatalogs.operator.ibm.com
       version: v1alpha1
     - description: MetaOperatorConfig is the Schema for the metaoperatorconfigs API
+      displayName: MetaOperatorConfig
       kind: MetaOperatorConfig
       name: metaoperatorconfigs.operator.ibm.com
       version: v1alpha1
     - description: MetaOperatorSet is the Schema for the metaoperatorsets API
+      displayName: MetaOperatorSet
       kind: MetaOperatorSet
       name: metaoperatorsets.operator.ibm.com
       version: v1alpha1
