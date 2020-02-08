@@ -266,7 +266,7 @@ spec:
                       fieldPath: metadata.name
                 - name: OPERATOR_NAME
                   value: meta-operator
-                image: quay.io/opencloudio/meta-operator
+                image: quay.io/opencloudio/meta-operator:latest
                 imagePullPolicy: Always
                 name: meta-operator
                 resources: {}
@@ -299,5 +299,4 @@ spec:
   maturity: alpha
   provider:
     name: IBM
-  replaces: meta-operator.v0.0.0
   version: 0.0.1

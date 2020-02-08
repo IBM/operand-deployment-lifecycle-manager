@@ -12,11 +12,11 @@ spec:
       labels:
         name: meta-operator
     spec:
-      serviceAccount: meta-operator
+      serviceAccountName: meta-operator
       containers:
         - name: meta-operator
           # Replace this with the built image name
-          image: quay.io/opencloudio/meta-operator
+          image: quay.io/opencloudio/meta-operator:latest
           command:
           - meta-operator
           imagePullPolicy: Always
