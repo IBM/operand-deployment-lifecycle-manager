@@ -2,7 +2,6 @@ apiVersion: operator.ibm.com/v1alpha1
 kind: MetaOperatorConfig
 metadata:
   name: common-service
-status: {}
 spec:
   services:
   - name: jenkins
