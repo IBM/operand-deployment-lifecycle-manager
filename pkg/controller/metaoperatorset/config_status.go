@@ -22,22 +22,37 @@ import (
 	operatorv1alpha1 "github.com/IBM/meta-operator/pkg/apis/operator/v1alpha1"
 )
 
-func (r *ReconcileMetaOperatorSet) updateServiceStatus(cr *operatorv1alpha1.MetaOperatorConfig, operatorName, serviceName string, serviceStatus operatorv1alpha1.ServicePhase) error {
+func (r *ReconcileMetaOperatorSet) initServiceStatus(cr *operatorv1alpha1.MetaOperatorConfig) error {
 
 	if cr.Status.ServiceStatus == nil {
 		cr.Status.ServiceStatus = make(map[string]operatorv1alpha1.CrStatus)
 	}
 
-	_, ok := cr.Status.ServiceStatus[operatorName]
-	if !ok {
-		cr.Status.ServiceStatus[operatorName] = operatorv1alpha1.CrStatus{}
+	for _, operator := range cr.Spec.Services {
+		_, ok := cr.Status.ServiceStatus[operator.Name]
+		if !ok {
+			cr.Status.ServiceStatus[operator.Name] = operatorv1alpha1.CrStatus{}
+		}
+
+		if cr.Status.ServiceStatus[operator.Name].CrStatus == nil {
+			tmp := cr.Status.ServiceStatus[operator.Name]
+			tmp.CrStatus = make(map[string]operatorv1alpha1.ServicePhase)
+			cr.Status.ServiceStatus[operator.Name] = tmp
+		}
+		for service := range operator.Spec {
+			if _, ok := cr.Status.ServiceStatus[operator.Name].CrStatus[service]; !ok {
+				cr.Status.ServiceStatus[operator.Name].CrStatus[service] = operatorv1alpha1.ServiceReady
+			}
+		}
 	}
 
-	if cr.Status.ServiceStatus[operatorName].CrStatus == nil {
-		tmp := cr.Status.ServiceStatus[operatorName]
-		tmp.CrStatus = make(map[string]operatorv1alpha1.ServicePhase)
-		cr.Status.ServiceStatus[operatorName] = tmp
+	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
+		return err
 	}
+	return nil
+}
+
+func (r *ReconcileMetaOperatorSet) updateServiceStatus(cr *operatorv1alpha1.MetaOperatorConfig, operatorName, serviceName string, serviceStatus operatorv1alpha1.ServicePhase) error {
 
 	cr.Status.ServiceStatus[operatorName].CrStatus[serviceName] = serviceStatus
 	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
