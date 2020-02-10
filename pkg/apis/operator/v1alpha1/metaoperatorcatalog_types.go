@@ -89,6 +89,7 @@ type OperatorPhase string
 
 // Operator status
 const (
+	OperatorReady   OperatorPhase = "Ready for Deployment"
 	OperatorRunning OperatorPhase = "Running"
 	OperatorFailed  OperatorPhase = "Failed"
 )

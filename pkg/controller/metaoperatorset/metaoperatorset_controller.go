@@ -160,6 +160,34 @@ func (r *ReconcileMetaOperatorSet) Reconcile(request reconcile.Request) (reconci
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling MetaOperatorSet")
 
+	// Fetch the MetaOperatorCatalog instance
+	moc := &operatorv1alpha1.MetaOperatorCatalog{}
+	if err := r.client.Get(context.TODO(), types.NamespacedName{Namespace: request.Namespace, Name: "common-service"}, moc); err != nil {
+		if errors.IsNotFound(err) {
+			return reconcile.Result{}, nil
+		}
+		return reconcile.Result{}, err
+	}
+
+	// Initialize MetaOperatorCatalog status
+	if err := r.initOperatorStatus(moc); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	// Fetch the MetaOperatorConfig instance
+	csc := &operatorv1alpha1.MetaOperatorConfig{}
+	if err := r.client.Get(context.TODO(), types.NamespacedName{Namespace: request.Namespace, Name: "common-service"}, csc); err != nil {
+		if errors.IsNotFound(err) {
+			return reconcile.Result{}, nil
+		}
+		return reconcile.Result{}, err
+	}
+
+	// Initialize MetaOperatorConfig status
+	if err := r.initServiceStatus(csc); err != nil {
+		return reconcile.Result{}, err
+	}
+
 	// Fetch the MetaOperatorSet instance
 	setInstance := &operatorv1alpha1.MetaOperatorSet{}
 	if err := r.client.Get(context.TODO(), request.NamespacedName, setInstance); err != nil {
@@ -172,15 +200,6 @@ func (r *ReconcileMetaOperatorSet) Reconcile(request reconcile.Request) (reconci
 		if err := r.addFinalizer(setInstance); err != nil {
 			return reconcile.Result{}, err
 		}
-	}
-
-	// Fetch the MetaOperatorCatalog instance
-	moc := &operatorv1alpha1.MetaOperatorCatalog{}
-	if err := r.client.Get(context.TODO(), types.NamespacedName{Namespace: request.Namespace, Name: "common-service"}, moc); err != nil {
-		if errors.IsNotFound(err) {
-			return reconcile.Result{}, nil
-		}
-		return reconcile.Result{}, err
 	}
 
 	// Fetch all subscription definition
@@ -198,13 +217,6 @@ func (r *ReconcileMetaOperatorSet) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
-	csc := &operatorv1alpha1.MetaOperatorConfig{}
-	if err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: request.Namespace, Name: "common-service"}, csc); err != nil {
-		if errors.IsNotFound(err) {
-			return reconcile.Result{}, nil
-		}
-		return reconcile.Result{}, err
-	}
 	// Fetch MetaOperatorConfig instance
 	serviceConfigs, err := r.fetchConfigs(request, setInstance)
 	if serviceConfigs == nil {

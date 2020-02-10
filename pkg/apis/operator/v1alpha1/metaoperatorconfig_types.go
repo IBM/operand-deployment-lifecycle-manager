@@ -90,6 +90,7 @@ type ServicePhase string
 
 // Service status
 const (
+	ServiceReady   ServicePhase = "Ready for Deployment"
 	ServiceRunning ServicePhase = "Running"
 	ServiceFailed  ServicePhase = "Failed"
 )
