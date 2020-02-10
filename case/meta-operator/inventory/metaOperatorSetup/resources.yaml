@@ -1,0 +1,34 @@
+
+# USER ACTION REQUIRED:
+#   This is a scaffold file intended for the user to modify with their own CASE information.
+#   Please delete this comment after the proper modifications have been done.
+
+resources:
+  resourceDefs:
+    files:
+    - mediaType: application/vnd.case.resource.k8s.v1+yaml
+      ref: deploy/crds/operator.ibm.com_metaoperatorcatalogs_crd.yaml
+    - mediaType: application/vnd.case.resource.k8s.v1+yaml
+      ref: deploy/crds/operator.ibm.com_metaoperatorconfigs_crd.yaml
+    - mediaType: application/vnd.case.resource.k8s.v1+yaml
+      ref: deploy/crds/operator.ibm.com_metaoperatorsets_crd.yaml
+    - mediaType: application/vnd.case.resource.k8s.v1+yaml
+      ref: deploy/olm-catalog/meta-operator/0.0.1/meta-operator.v0.0.1.clusterserviceversion.yaml
+    - mediaType: application/vnd.case.resource.k8s.v1+yaml
+      ref: deploy/olm-catalog/meta-operator/0.0.1/operator.ibm.com_metaoperatorcatalogs_crd.yaml
+    - mediaType: application/vnd.case.resource.k8s.v1+yaml
+      ref: deploy/olm-catalog/meta-operator/0.0.1/operator.ibm.com_metaoperatorconfigs_crd.yaml
+    - mediaType: application/vnd.case.resource.k8s.v1+yaml
+      ref: deploy/olm-catalog/meta-operator/0.0.1/operator.ibm.com_metaoperatorsets_crd.yaml
+    - mediaType: application/vnd.case.resource.k8s.v1+yaml
+      ref: deploy/olm-catalog/meta-operator/meta-operator.package.yaml
+    - mediaType: application/vnd.case.resource.k8s.v1+yaml
+      ref: deploy/operator.yaml
+    - mediaType: application/vnd.case.resource.k8s.v1+yaml
+      ref: deploy/role.yaml
+    - mediaType: application/vnd.case.resource.k8s.v1+yaml
+      ref: deploy/role_binding.yaml
+    - mediaType: application/vnd.case.resource.k8s.v1+yaml
+      ref: deploy/service_account.yaml
+    - mediaType: application/vnd.case.resource.image.manifest.v1
+      ref: manifest.yaml

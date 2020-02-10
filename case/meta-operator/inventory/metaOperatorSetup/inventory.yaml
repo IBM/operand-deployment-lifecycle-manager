@@ -1,0 +1,9 @@
+
+# USER ACTION REQUIRED:
+#   This is a scaffold file intended for the user to modify with their own CASE information.
+#   Please delete this comment after the proper modifications have been done.
+
+inventory:
+  k8sScope: cluster
+  metadata:
+    name: metaOperatorSetup

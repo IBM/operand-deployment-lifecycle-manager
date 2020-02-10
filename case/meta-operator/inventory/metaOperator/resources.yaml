@@ -1,0 +1,14 @@
+
+# USER ACTION REQUIRED:
+#   This is a scaffold file intended for the user to modify with their own CASE information.
+#   Please delete this comment after the proper modifications have been done.
+
+resources:
+  resourceDefs:
+    files:
+    - mediaType: application/vnd.case.resource.k8s.v1+yaml
+      ref: deploy/crds/operator.ibm.com_v1alpha1_metaoperatorcatalog_cr.yaml
+    - mediaType: application/vnd.case.resource.k8s.v1+yaml
+      ref: deploy/crds/operator.ibm.com_v1alpha1_metaoperatorconfig_cr.yaml
+    - mediaType: application/vnd.case.resource.k8s.v1+yaml
+      ref: deploy/crds/operator.ibm.com_v1alpha1_metaoperatorset_cr.yaml

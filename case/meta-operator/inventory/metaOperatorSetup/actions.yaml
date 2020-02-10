@@ -1,0 +1,210 @@
+
+# USER ACTION REQUIRED:
+#   This is a scaffold file intended for the user to modify with their own CASE information.
+#   Please delete this comment after the proper modifications have been done.
+
+actions:
+  actionDefs:
+    install:
+      roles: []
+      k8sPermissions:
+        rules:
+        - rule:
+            group: ""
+            resource: pods
+            verbs:
+            - '*'
+            version: ""
+        - rule:
+            group: ""
+            resource: services
+            verbs:
+            - '*'
+            version: ""
+        - rule:
+            group: ""
+            resource: services/finalizers
+            verbs:
+            - '*'
+            version: ""
+        - rule:
+            group: ""
+            resource: endpoints
+            verbs:
+            - '*'
+            version: ""
+        - rule:
+            group: ""
+            resource: persistentvolumeclaims
+            verbs:
+            - '*'
+            version: ""
+        - rule:
+            group: ""
+            resource: events
+            verbs:
+            - '*'
+            version: ""
+        - rule:
+            group: ""
+            resource: configmaps
+            verbs:
+            - '*'
+            version: ""
+        - rule:
+            group: ""
+            resource: secrets
+            verbs:
+            - '*'
+            version: ""
+        - rule:
+            group: ""
+            resource: namespaces
+            verbs:
+            - '*'
+            version: ""
+        - rule:
+            group: apps
+            resource: deployments
+            verbs:
+            - '*'
+            version: ""
+        - rule:
+            group: apps
+            resource: daemonsets
+            verbs:
+            - '*'
+            version: ""
+        - rule:
+            group: apps
+            resource: replicasets
+            verbs:
+            - '*'
+            version: ""
+        - rule:
+            group: apps
+            resource: statefulsets
+            verbs:
+            - '*'
+            version: ""
+        - rule:
+            group: apps
+            resource: deployments/finalizers
+            verbs:
+            - update
+            version: ""
+        - rule:
+            group: ""
+            resource: pods
+            verbs:
+            - get
+            - list
+            version: ""
+        - rule:
+            group: apps
+            resource: replicasets
+            verbs:
+            - get
+            version: ""
+        - rule:
+            group: apps
+            resource: deployments
+            verbs:
+            - get
+            version: ""
+        - rule:
+            group: operator.ibm.com
+            resource: '*'
+            verbs:
+            - '*'
+            version: ""
+        - rule:
+            group: operator.ibm.com
+            resource: metaoperatorcatalogs
+            verbs:
+            - '*'
+            version: ""
+        - rule:
+            group: operator.ibm.com
+            resource: metaoperatorconfigs
+            verbs:
+            - '*'
+            version: ""
+        - rule:
+            group: operator.ibm.com
+            resource: metaoperatorsets
+            verbs:
+            - '*'
+            version: ""
+        - rule:
+            group: operators.coreos.com
+            resource: '*'
+            verbs:
+            - '*'
+            version: ""
+        - rule:
+            group: operators.coreos.com
+            resource: metaoperatorcatalogs
+            verbs:
+            - '*'
+            version: ""
+        - rule:
+            group: operators.coreos.com
+            resource: metaoperatorconfigs
+            verbs:
+            - '*'
+            version: ""
+        - rule:
+            group: operators.coreos.com
+            resource: metaoperatorsets
+            verbs:
+            - '*'
+            version: ""
+        - rule:
+            group: etcd.database.coreos.com
+            resource: '*'
+            verbs:
+            - '*'
+            version: ""
+        - rule:
+            group: etcd.database.coreos.com
+            resource: metaoperatorcatalogs
+            verbs:
+            - '*'
+            version: ""
+        - rule:
+            group: etcd.database.coreos.com
+            resource: metaoperatorconfigs
+            verbs:
+            - '*'
+            version: ""
+        - rule:
+            group: etcd.database.coreos.com
+            resource: metaoperatorsets
+            verbs:
+            - '*'
+            version: ""
+        - rule:
+            group: jenkins.io
+            resource: '*'
+            verbs:
+            - '*'
+            version: ""
+        - rule:
+            group: jenkins.io
+            resource: metaoperatorcatalogs
+            verbs:
+            - '*'
+            version: ""
+        - rule:
+            group: jenkins.io
+            resource: metaoperatorconfigs
+            verbs:
+            - '*'
+            version: ""
+        - rule:
+            group: jenkins.io
+            resource: metaoperatorsets
+            verbs:
+            - '*'
+            version: ""

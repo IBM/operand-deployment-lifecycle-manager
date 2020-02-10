@@ -1,0 +1,150 @@
+
+# USER ACTION REQUIRED:
+#   This is a scaffold file intended for the user to modify with their own CASE information.
+#   Please delete this comment after the proper modifications have been done.
+
+prereqs:
+  prereqDefs:
+    k8sDistros: {}
+      # ibmCloud:
+        # distribution: ibmCloud
+        # semver: '>=1.11.3'
+      # ibmCloudPrivate:
+        # distribution: ibmCloudPrivate
+        # semver: '>=1.11.3'
+      # kubernetes:
+        # distribution: kubernetes
+        # semver: '>=1.11.3'
+      # openshift:
+        # distribution: openshift
+        # semver: '>=1.11.3'
+    k8sResourceVersions: {}
+      # clusterrole:
+        # apiGroup: rbac.authorization.k8s.io
+        # kind: ClusterRole
+        # version: v1
+      # clusterrolebinding:
+        # apiGroup: rbac.authorization.k8s.io
+        # kind: ClusterRoleBinding
+        # version: v1
+      # clusterserviceversion:
+        # apiGroup: operators.coreos.com
+        # kind: ClusterServiceVersion
+        # version: v1alpha1
+      # customresourcedefinition:
+        # apiGroup: apiextensions.k8s.io
+        # kind: CustomResourceDefinition
+        # version: v1beta1
+      # deployment:
+        # apiGroup: apps
+        # kind: Deployment
+        # version: v1
+      # metaoperatorcatalog:
+        # apiGroup: operator.ibm.com
+        # kind: MetaOperatorCatalog
+        # version: v1alpha1
+      # metaoperatorconfig:
+        # apiGroup: operator.ibm.com
+        # kind: MetaOperatorConfig
+        # version: v1alpha1
+      # metaoperatorset:
+        # apiGroup: operator.ibm.com
+        # kind: MetaOperatorSet
+        # version: v1alpha1
+      # serviceaccount:
+        # apiGroup: ""
+        # kind: ServiceAccount
+        # version: v1
+    k8sResources: {}
+      # commonServiceMetaOperatorCatalog:
+        # apiGroup: operator.ibm.com
+        # kind: MetaOperatorCatalog
+        # name: common-service
+        # selector:
+          # matchExpressions: []
+        # version: v1alpha1
+      # commonServiceMetaOperatorConfig:
+        # apiGroup: operator.ibm.com
+        # kind: MetaOperatorConfig
+        # name: common-service
+        # selector:
+          # matchExpressions: []
+        # version: v1alpha1
+      # commonServiceMetaOperatorSet:
+        # apiGroup: operator.ibm.com
+        # kind: MetaOperatorSet
+        # name: common-service
+        # selector:
+          # matchExpressions: []
+        # version: v1alpha1
+      # ibmRestrictedPSP:
+        # apiGroup: policy
+        # kind: PodSecurityPolicy
+        # name: ibm-restricted-psp
+        # selector:
+          # matchExpressions: []
+        # version: v1beta1
+      # ibmRestrictedSCC:
+        # apiGroup: security.openshift.io
+        # kind: SecurityContextConstraints
+        # name: ibm-restricted-scc
+        # selector:
+          # matchExpressions: []
+        # version: v1
+      # metaOperatorClusterRole:
+        # apiGroup: rbac.authorization.k8s.io
+        # kind: ClusterRole
+        # name: meta-operator
+        # selector:
+          # matchExpressions: []
+        # version: v1
+      # metaOperatorClusterRoleBinding:
+        # apiGroup: rbac.authorization.k8s.io
+        # kind: ClusterRoleBinding
+        # name: meta-operator
+        # selector:
+          # matchExpressions: []
+        # version: v1
+      # metaOperatorDeployment:
+        # apiGroup: apps
+        # kind: Deployment
+        # name: meta-operator
+        # selector:
+          # matchExpressions: []
+        # version: v1
+      # metaOperatorServiceAccount:
+        # apiGroup: ""
+        # kind: ServiceAccount
+        # name: meta-operator
+        # selector:
+          # matchExpressions: []
+        # version: v1
+      # metaOperatorV001ClusterServiceVersion:
+        # apiGroup: operators.coreos.com
+        # kind: ClusterServiceVersion
+        # name: meta-operator.v0.0.1
+        # selector:
+          # matchExpressions: []
+        # version: v1alpha1
+      # metaoperatorcatalogsOperatorIbmComCustomResourceDefinition:
+        # apiGroup: apiextensions.k8s.io
+        # kind: CustomResourceDefinition
+        # name: metaoperatorcatalogs.operator.ibm.com
+        # selector:
+          # matchExpressions: []
+        # version: v1beta1
+      # metaoperatorconfigsOperatorIbmComCustomResourceDefinition:
+        # apiGroup: apiextensions.k8s.io
+        # kind: CustomResourceDefinition
+        # name: metaoperatorconfigs.operator.ibm.com
+        # selector:
+          # matchExpressions: []
+        # version: v1beta1
+      # metaoperatorsetsOperatorIbmComCustomResourceDefinition:
+        # apiGroup: apiextensions.k8s.io
+        # kind: CustomResourceDefinition
+        # name: metaoperatorsets.operator.ibm.com
+        # selector:
+          # matchExpressions: []
+        # version: v1beta1
+    ibmCoreServices: {}
