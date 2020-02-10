@@ -167,6 +167,10 @@ test-e2e: ## Run integration e2e tests with different options.
 coverage: ## Run code coverage test
 	@common/scripts/codecov.sh ${BUILD_LOCALLY}
 
+scorecard: ## Run scorecard test
+	@echo ... Running the scorecard test
+	- operator-sdk scorecard --verbose
+
 ##@ Release
 
 images: build-image build-image-ppc64le build-image-s390x

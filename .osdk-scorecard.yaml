@@ -1,0 +1,11 @@
+scorecard:
+  # Setting a global scorecard option
+  bundle: deploy/olm-catalog/meta-operator
+  plugins:
+    - basic:
+        cr-manifest:
+          - "deploy/crds/operator.ibm.com_v1alpha1_metaoperatorset_cr.yaml"
+    - olm:
+        cr-manifest:
+          - "deploy/crds/operator.ibm.com_v1alpha1_metaoperatorset_cr.yaml"
+        csv-path: "deploy/olm-catalog/meta-operator/0.0.1/meta-operator.v0.0.1.clusterserviceversion.yaml"
