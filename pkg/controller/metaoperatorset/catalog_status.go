@@ -22,6 +22,28 @@ import (
 	operatorv1alpha1 "github.com/IBM/meta-operator/pkg/apis/operator/v1alpha1"
 )
 
+func (r *ReconcileMetaOperatorSet) initOperatorStatus(cr *operatorv1alpha1.MetaOperatorCatalog) error {
+
+	if cr.Status.OperatorsStatus == nil {
+		cr.Status.OperatorsStatus = make(map[string]operatorv1alpha1.OperatorPhase)
+	}
+	change := false
+	for _, operator := range cr.Spec.Operators {
+		if _, ok := cr.Status.OperatorsStatus[operator.Name]; !ok {
+			cr.Status.OperatorsStatus[operator.Name] = operatorv1alpha1.OperatorReady
+			change = true
+		}
+	}
+
+	if change {
+		if err := r.client.Status().Update(context.TODO(), cr); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (r *ReconcileMetaOperatorSet) updateOperatorStatus(cr *operatorv1alpha1.MetaOperatorCatalog, operatorName string, operatorStatus operatorv1alpha1.OperatorPhase) error {
 
 	if cr.Status.OperatorsStatus == nil {
