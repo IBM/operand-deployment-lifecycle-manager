@@ -219,8 +219,8 @@ func (r *ReconcileMetaOperatorSet) generateCr(service operatorv1alpha1.ConfigSer
 						merr.Add(crGetErr)
 						continue
 					}
-					unstruct.Object["metadata"] = existingCR.Object["metadata"]
-					if crUpdateErr := r.client.Update(context.TODO(), &unstruct); crUpdateErr != nil {
+					existingCR.Object["spec"] = unstruct.Object["spec"]
+					if crUpdateErr := r.client.Update(context.TODO(), existingCR); crUpdateErr != nil {
 						stateUpdateErr := r.updateServiceStatus(csc, service.Name, crdName, operatorv1alpha1.ServiceFailed)
 						if stateUpdateErr != nil {
 							merr.Add(stateUpdateErr)
