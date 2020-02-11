@@ -50,7 +50,7 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileMetaOperator{
+	return &ReconcileMetaOperatorCatalog{
 		client:   mgr.GetClient(),
 		recorder: mgr.GetEventRecorderFor("metaoperatorcatalog"),
 		scheme:   mgr.GetScheme()}
@@ -78,11 +78,11 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-// blank assignment to verify that ReconcileMetaOperator implements reconcile.Reconciler
-var _ reconcile.Reconciler = &ReconcileMetaOperator{}
+// blank assignment to verify that ReconcileMetaOperatorCatalog implements reconcile.Reconciler
+var _ reconcile.Reconciler = &ReconcileMetaOperatorCatalog{}
 
-// ReconcileMetaOperator reconciles a MetaOperator object
-type ReconcileMetaOperator struct {
+// ReconcileMetaOperatorCatalog reconciles a MetaOperator object
+type ReconcileMetaOperatorCatalog struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
 	client   client.Client
@@ -97,9 +97,9 @@ type ReconcileMetaOperator struct {
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *ReconcileMetaOperator) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+func (r *ReconcileMetaOperatorCatalog) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
-	reqLogger.Info("Reconciling MetaOperator")
+	reqLogger.Info("Reconciling MetaOperatorCatalog")
 
 	// Fetch the MetaOperator instance
 	instance := &operatorv1alpha1.MetaOperatorCatalog{}
