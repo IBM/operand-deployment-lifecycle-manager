@@ -20,3 +20,12 @@ spec:
     sourceNamespace: openshift-marketplace
     targetNamespaces:
       - etcd-operator
+  - name: ibm-cert-manager-operator
+    namespace: ibm-cs-certmanager
+    channel: <unsure>
+    packageName: ibm-cert-manager-operator
+    sourceName: <unsure>
+    sourceNamespace: <unsure>
+    targetNamespaces:
+      - ibm-cs-certmanager
+      - cert-manager

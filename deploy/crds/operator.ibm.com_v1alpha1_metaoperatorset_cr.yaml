@@ -8,3 +8,6 @@ spec:
     state: present
   - name: jenkins
     state: present
+  - name: ibm-cert-manager-operator
+    state: present
+    description: The operator that maintains the lifecycle of a certificate manager service.
