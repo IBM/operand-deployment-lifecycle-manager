@@ -42,6 +42,9 @@ spec:
                   channel:
                     description: Name of the channel to track
                     type: string
+                  description:
+                    description: Description of a common service
+                    type: string
                   installPlanApproval:
                     description: Approval mode for emitted InstallPlans
                     type: string

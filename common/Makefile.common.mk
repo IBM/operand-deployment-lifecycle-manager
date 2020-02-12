@@ -72,6 +72,7 @@ code-gen:
 	# see https://github.com/IBM/meta-operator/pull/32
 	@echo Updating the CRD files with the OpenAPI validations
 	# Build the latest openapi-gen from source
+	operator-sdk generate crds
 	which ./build/_generate/bin/openapi-gen > /dev/null || go build -o ./build/_generate/bin/openapi-gen k8s.io/kube-openapi/cmd/openapi-gen
 	# Run openapi-gen for each of your API group/version packages
 	GOPATH=/tmp ./build/_generate/bin/openapi-gen --logtostderr=true -o "" -i ./pkg/apis/operator/v1alpha1 -O zz_generated.openapi -p ./pkg/apis/operator/v1alpha1/ -h ./hack/boilerplate.go.txt -r "-"

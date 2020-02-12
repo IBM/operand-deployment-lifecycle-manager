@@ -39,6 +39,8 @@ type Operator struct {
 	PackageName string `json:"packageName"`
 	// Name of the channel to track
 	Channel string `json:"channel,omitempty"`
+	// Description of a common service
+	Description string `json:"description,omitempty"`
 	// Approval mode for emitted InstallPlans
 	InstallPlanApproval string `json:"installPlanApproval,omitempty"`
 	// State is a flag to enable or disable service
