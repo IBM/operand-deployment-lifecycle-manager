@@ -26,4 +26,4 @@ spec:
     packageName: ibm-cert-manager-operator
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
-    description: Operator for managing deployment of cert-manager service. Dependent on Kubernetes >= 1.11.6
+    description: Operator for managing deployment of cert-manager service.
