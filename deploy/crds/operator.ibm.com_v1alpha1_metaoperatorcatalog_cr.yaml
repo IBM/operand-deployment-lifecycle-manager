@@ -22,8 +22,8 @@ spec:
       - etcd-operator
   - name: ibm-cert-manager-operator
     namespace: ibm-cs-certmanager
-    channel: <unsure>
+    channel: alpha
     packageName: ibm-cert-manager-operator
-    sourceName: <unsure>
-    sourceNamespace: <unsure>
+    sourceName: opencloud-operators
+    sourceNamespace: openshift-marketplace
     description: Operator for managing deployment of cert-manager service. Dependent on Kubernetes >= 1.11.6
