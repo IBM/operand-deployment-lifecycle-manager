@@ -218,6 +218,7 @@ Taking the jenkins as an example:
 - `sourceName` is the name of the `CatalogSource`.
 - `sourceNamespace` is the namespace of the `CatalogSource`.
 - `targetNamespaces` is a list of namespaces, which `OperaterGroup` generates RBAC access for its member Operators to get access to. `targetNamespaces` is used to control the operator dependency. `targetNamespaces` should include all the namespaces of its dependent operators and its own namespace.
+- `description` is used to add a detailed description for service including clarifying the dependency.
 
 ### 2. Create MetaOperatorSet custom resource
 
