@@ -54,8 +54,10 @@ func (r *ReconcileMetaOperatorSet) reconcileMetaOperator(opts map[string]operato
 			// Check subscription if present
 			if o.State == Present {
 				// Subscription is present and channel changed, update it.
-				if found.Spec.Channel != o.Channel {
+				if found.Spec.Channel != o.Channel || found.Spec.CatalogSource != o.SourceName || found.Spec.CatalogSourceNamespace != o.SourceNamespace  {
 					found.Spec.Channel = o.Channel
+					found.Spec.CatalogSource = o.SourceName
+					found.Spec.CatalogSourceNamespace = o.SourceNamespace
 					if err = r.updateSubscription(setInstance, found); err != nil {
 						return err
 					}
