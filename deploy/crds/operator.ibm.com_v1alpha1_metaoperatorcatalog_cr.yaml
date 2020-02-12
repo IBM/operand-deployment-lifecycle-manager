@@ -26,6 +26,4 @@ spec:
     packageName: ibm-cert-manager-operator
     sourceName: <unsure>
     sourceNamespace: <unsure>
-    targetNamespaces:
-      - ibm-cs-certmanager
-      - cert-manager
+    description: Operator for managing deployment of cert-manager service. Dependent on Kubernetes >= 1.11.6
