@@ -4,6 +4,9 @@ metadata:
   name: common-service
 spec:
   services:
+  - name: ibm-metering-operator
+    state: present
+    description: The service used to meter workloads in a kubernetes cluster
   - name: etcd
     state: present
   - name: jenkins

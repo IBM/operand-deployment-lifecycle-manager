@@ -4,6 +4,16 @@ metadata:
   name: common-service
 spec:
   services:
+  - name: ibm-metering-operator
+    spec:
+      Metering:
+        iamNamespace: kube-system
+        mongodb:
+          host: mongodb.kube-system.svc.cluster.local
+      MeteringUI:
+        iamNamespace: kube-system
+        mongodb:
+          host: mongodb.kube-system.svc.cluster.local
   - name: jenkins
     spec:
       jenkins:

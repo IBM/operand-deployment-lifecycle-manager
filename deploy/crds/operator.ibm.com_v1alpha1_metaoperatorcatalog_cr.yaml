@@ -4,6 +4,14 @@ metadata:
   name: common-service
 spec:
   operators:
+  - name: ibm-metering-operator
+    namespace: ibm-metering-operator
+    channel: alpha
+    packageName: ibm-metering-operator-app
+    sourceName: opencloud-operators
+    sourceNamespace: openshift-marketplace
+    targetNamespaces:
+      - ibm-metering-operator
   - name: jenkins
     namespace: jenkins-operator
     channel: alpha
