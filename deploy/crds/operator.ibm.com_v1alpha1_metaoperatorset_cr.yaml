@@ -10,4 +10,4 @@ spec:
     state: present
   - name: ibm-cert-manager-operator
     state: present
-    description: The operator that maintains the lifecycle of a certificate manager service.
+    description: Operator for managing deployment of cert-manager service.
