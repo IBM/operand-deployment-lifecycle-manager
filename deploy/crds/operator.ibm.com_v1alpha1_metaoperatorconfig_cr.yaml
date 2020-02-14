@@ -15,14 +15,4 @@ spec:
         size: 1
   - name: ibm-licensing-operator
     spec:
-      IBMLicensing:
-        apiSecretToken: ibm-licensing-token
-        datasource: datacollector
-        httpsCertsSource: self-signed
-        httpsEnable: false
-        imageRegistry: hyc-cloud-private-integration-docker-local.artifactory.swg-devops.com/ibmcom/ibm-licensing-amd64
-        imageTagPostfix: 1.0.0
-        logLevel: INFO
-        instanceNamespace: kube-system
-        imagePullSecrets:
-        - artifactory-token
+      IBMLicensing: {}

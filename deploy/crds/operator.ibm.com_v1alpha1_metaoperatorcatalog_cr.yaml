@@ -21,10 +21,10 @@ spec:
     targetNamespaces:
       - etcd-operator
   - name: ibm-licensing-operator
-    namespace: licensing-operator
+    namespace: ibm-licensing-operator
     channel: alpha
     packageName: ibm-licensing-operator-app
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
     targetNamespaces:
-      - licensing-operator
+      - ibm-licensing-operator
