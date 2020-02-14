@@ -13,3 +13,6 @@ spec:
     spec:
       etcdCluster:
         size: 1
+  - name: ibm-licensing-operator
+    spec:
+      IBMLicensing: {}

@@ -8,3 +8,5 @@ spec:
     state: present
   - name: jenkins
     state: present
+  - name: ibm-licensing-operator
+    state: present
