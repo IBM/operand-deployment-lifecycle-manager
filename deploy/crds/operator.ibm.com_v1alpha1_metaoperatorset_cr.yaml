@@ -5,7 +5,7 @@ metadata:
 spec:
   services:
   - name: ibm-metering-operator
-    state: present
+    state: absent
     description: The service used to meter workloads in a kubernetes cluster
   - name: etcd
     state: present
