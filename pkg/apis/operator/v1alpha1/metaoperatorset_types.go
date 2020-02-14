@@ -93,7 +93,7 @@ type MembersStatus struct {
 	// Ready are the operator members that are ready
 	// The member names are the same as the subscription
 	Ready []string `json:"ready,omitempty"`
-	// Unready are the etcd members not ready
+	// Unready is that operator members are not ready
 	Unready []string `json:"unready,omitempty"`
 }
 
