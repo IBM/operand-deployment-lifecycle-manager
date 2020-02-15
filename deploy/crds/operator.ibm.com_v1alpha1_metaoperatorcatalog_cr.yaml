@@ -12,22 +12,6 @@ spec:
     sourceNamespace: openshift-marketplace
     targetNamespaces:
       - ibm-metering-operator
-  - name: jenkins
-    namespace: jenkins-operator
-    channel: alpha
-    packageName: jenkins-operator
-    sourceName: community-operators
-    sourceNamespace: openshift-marketplace
-    targetNamespaces:
-      - jenkins-operator
-  - name: etcd
-    namespace: etcd-operator
-    channel: singlenamespace-alpha
-    packageName: etcd
-    sourceName: community-operators
-    sourceNamespace: openshift-marketplace
-    targetNamespaces:
-      - etcd-operator
   - name: ibm-licensing-operator
     namespace: ibm-licensing-operator
     channel: alpha

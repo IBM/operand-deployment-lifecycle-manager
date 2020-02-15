@@ -8,15 +8,6 @@ spec:
     spec:
       metering: {}
       meteringUI: {}
-  - name: jenkins
-    spec:
-      jenkins:
-        service:
-          port: 8081
-  - name: etcd
-    spec:
-      etcdCluster:
-        size: 1
   - name: ibm-licensing-operator
     spec:
       IBMLicensing: {}

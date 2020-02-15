@@ -7,9 +7,5 @@ spec:
   - name: ibm-metering-operator
     state: absent
     description: The service used to meter workloads in a kubernetes cluster
-  - name: etcd
-    state: present
-  - name: jenkins
-    state: present
   - name: ibm-licensing-operator
     state: present

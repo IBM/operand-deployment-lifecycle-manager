@@ -14,24 +14,24 @@ metadata:
             "operators": [
               {
                 "channel": "alpha",
-                "name": "jenkins",
-                "namespace": "jenkins-operator",
-                "packageName": "jenkins-operator",
-                "sourceName": "community-operators",
+                "name": "ibm-metering-operator",
+                "namespace": "ibm-metering-operator",
+                "packageName": "ibm-metering-operator-app",
+                "sourceName": "opencloud-operators",
                 "sourceNamespace": "openshift-marketplace",
                 "targetNamespaces": [
-                  "jenkins-operator"
+                  "ibm-metering-operator"
                 ]
               },
               {
-                "channel": "singlenamespace-alpha",
-                "name": "etcd",
-                "namespace": "etcd-operator",
-                "packageName": "etcd",
-                "sourceName": "community-operators",
+                "channel": "alpha",
+                "name": "ibm-licensing-operator",
+                "namespace": "ibm-licensing-operator",
+                "packageName": "ibm-licensing-operator-app",
+                "sourceName": "opencloud-operators",
                 "sourceNamespace": "openshift-marketplace",
                 "targetNamespaces": [
-                  "etcd-operator"
+                  "ibm-licensing-operator"
                 ]
               }
             ]
@@ -46,21 +46,16 @@ metadata:
           "spec": {
             "services": [
               {
-                "name": "jenkins",
+                "name": "ibm-metering-operator",
                 "spec": {
-                  "jenkins": {
-                    "service": {
-                      "port": 8081
-                    }
-                  }
+                  "metering": {},
+                  "meteringUI": {}
                 }
               },
               {
-                "name": "etcd",
+                "name": "ibm-licensing-operator",
                 "spec": {
-                  "etcdCluster": {
-                    "size": 1
-                  }
+                  "IBMLicensing": {}
                 }
               }
             ]
@@ -75,11 +70,12 @@ metadata:
           "spec": {
             "services": [
               {
-                "name": "etcd",
-                "state": "present"
+                "description": "The service used to meter workloads in a kubernetes cluster",
+                "name": "ibm-metering-operator",
+                "state": "absent"
               },
               {
-                "name": "jenkins",
+                "name": "ibm-licensing-operator",
                 "state": "present"
               }
             ]

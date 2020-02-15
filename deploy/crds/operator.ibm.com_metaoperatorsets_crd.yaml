@@ -95,7 +95,7 @@ spec:
                     type: string
                   type: array
                 unready:
-                  description: Unready are the etcd members not ready
+                  description: Unready is that operator members are not ready
                   items:
                     type: string
                   type: array
