@@ -26,14 +26,11 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 // TestConfigConfig runs ReconcileMetaOperatorConfig.Reconcile() against a
 // fake client that tracks a MetaOperatorConfig object.
 func TestConfigController(t *testing.T) {
-	// Set the logger to development mode for verbose logs.
-	logf.SetLogger(logf.ZapLogger(true))
 
 	var (
 		name      = "meta-operator-config"
