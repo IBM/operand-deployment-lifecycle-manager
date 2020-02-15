@@ -3,7 +3,6 @@ module github.com/IBM/meta-operator
 go 1.13
 
 require (
-	github.com/IBM/ibm-mongodb-operator v0.0.0-20200214144212-f37962b2a5b6
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/go-openapi/spec v0.19.4
 	github.com/operator-framework/operator-lifecycle-manager v0.0.0-20191115003340-16619cd27fa5
