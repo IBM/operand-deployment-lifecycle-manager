@@ -38,6 +38,15 @@ metadata:
                 "packageName": "ibm-mongodb-operator-app",
                 "sourceName": "opencloud-operators",
                 "sourceNamespace": "openshift-marketplace"
+              },
+              {
+                "channel": "alpha",
+                "description": "Operator for managing deployment of cert-manager service.",
+                "name": "ibm-cert-manager-operator",
+                "namespace": "ibm-cert-manager-operator",
+                "packageName": "ibm-cert-manager-operator",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace"
               }
             ]
           }
@@ -68,6 +77,12 @@ metadata:
                 "spec": {
                   "mongodb": {}
                 }
+              },
+              {
+                "name": "ibm-cert-manager-operator",
+                "spec": {
+                  "certManager": {}
+                }
               }
             ]
           }
@@ -93,6 +108,11 @@ metadata:
               {
                 "description": "The service used to create mongodb in a kubernetes cluster",
                 "name": "ibm-mongodb-operator",
+                "state": "present"
+              },
+              {
+                "description": "Operator for managing deployment of cert-manager service.",
+                "name": "ibm-cert-manager-operator",
                 "state": "present"
               }
             ]

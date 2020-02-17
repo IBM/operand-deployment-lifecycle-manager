@@ -25,3 +25,10 @@ spec:
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
     description: The service used to create mongodb in a kubernetes cluster
+  - name: ibm-cert-manager-operator
+    namespace: ibm-cert-manager-operator
+    channel: alpha
+    packageName: ibm-cert-manager-operator
+    sourceName: opencloud-operators
+    sourceNamespace: openshift-marketplace
+    description: Operator for managing deployment of cert-manager service.
