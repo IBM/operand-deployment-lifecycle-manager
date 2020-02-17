@@ -8,7 +8,7 @@ build/_output
 build/_test
 build/_generate
 .vscode
-
+env
 # Test binary, built with `go test -c`
 *.test
 
