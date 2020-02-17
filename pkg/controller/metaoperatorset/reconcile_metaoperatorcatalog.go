@@ -225,7 +225,9 @@ func generateOperatorGroup(namespace string, targetNamespaces []string) *olmv1.O
 	labels := map[string]string{
 		"operator.ibm.com/mos-control": "true",
 	}
-
+	if targetNamespaces == nil {
+		targetNamespaces = append(targetNamespaces, namespace)
+	}
 	// Operator Group Object
 	og := &olmv1.OperatorGroup{
 		ObjectMeta: metav1.ObjectMeta{
