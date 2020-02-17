@@ -222,8 +222,6 @@ spec:
         - apiGroups:
           - operator.ibm.com
           - operators.coreos.com
-          - etcd.database.coreos.com
-          - jenkins.io
           resources:
           - '*'
           - metaoperatorcatalogs
@@ -263,7 +261,7 @@ spec:
                 imagePullPolicy: Always
                 name: meta-operator
                 resources: {}
-              serviceAccount: meta-operator
+              serviceAccountName: meta-operator
     strategy: deployment
   installModes:
   - supported: true
