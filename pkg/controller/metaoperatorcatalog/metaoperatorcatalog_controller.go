@@ -71,6 +71,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	deployDirectory := os.Getenv("DEPLOY_DIR")
+	log.Info("initializing default metaoperatorcatalog")
 	if err = util.InitInstance(deployDirectory+"/operator.ibm.com_v1alpha1_metaoperatorcatalog_cr.yaml", mgr); err != nil {
 		log.Error(err, "Error creating CR, please create it manually")
 	}
