@@ -250,6 +250,10 @@ func (r *ReconcileMetaOperatorSet) checkOperatorGroup(targetNamespaces []string,
 		return err
 	}
 
+	if targetNamespaces == nil {
+		targetNamespaces = append(targetNamespaces, namespace)
+	}
+
 	if util.Equal(existOG.Spec.TargetNamespaces, targetNamespaces) {
 		return nil
 	}
