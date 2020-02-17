@@ -10,13 +10,18 @@ spec:
     packageName: ibm-metering-operator-app
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
-    targetNamespaces:
-      - ibm-metering-operator
+    description: The service used to meter workloads in a kubernetes cluster
   - name: ibm-licensing-operator
     namespace: ibm-licensing-operator
     channel: alpha
     packageName: ibm-licensing-operator-app
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
-    targetNamespaces:
-      - ibm-licensing-operator
+    description: The service used to management the license in a kubernetes cluster
+  - name: ibm-mongodb-operator
+    namespace: ibm-mongodb-operator
+    channel: alpha
+    packageName: ibm-mongodb-operator-app
+    sourceName: opencloud-operators
+    sourceNamespace: openshift-marketplace
+    description: The service used to create mongodb in a kubernetes cluster

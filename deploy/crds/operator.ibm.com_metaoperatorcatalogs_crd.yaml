@@ -78,7 +78,6 @@ spec:
                 - packageName
                 - sourceName
                 - sourceNamespace
-                - targetNamespaces
                 type: object
               type: array
           type: object

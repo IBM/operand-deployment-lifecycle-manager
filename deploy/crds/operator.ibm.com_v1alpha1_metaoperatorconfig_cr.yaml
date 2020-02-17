@@ -11,3 +11,6 @@ spec:
   - name: ibm-licensing-operator
     spec:
       IBMLicensing: {}
+  - name: ibm-mongodb-operator
+    spec:
+      mongodb: {}
