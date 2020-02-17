@@ -14,25 +14,30 @@ metadata:
             "operators": [
               {
                 "channel": "alpha",
-                "name": "jenkins",
-                "namespace": "jenkins-operator",
-                "packageName": "jenkins-operator",
-                "sourceName": "community-operators",
-                "sourceNamespace": "openshift-marketplace",
-                "targetNamespaces": [
-                  "jenkins-operator"
-                ]
+                "description": "The service used to meter workloads in a kubernetes cluster",
+                "name": "ibm-metering-operator",
+                "namespace": "ibm-metering-operator",
+                "packageName": "ibm-metering-operator-app",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace"
               },
               {
-                "channel": "singlenamespace-alpha",
-                "name": "etcd",
-                "namespace": "etcd-operator",
-                "packageName": "etcd",
-                "sourceName": "community-operators",
-                "sourceNamespace": "openshift-marketplace",
-                "targetNamespaces": [
-                  "etcd-operator"
-                ]
+                "channel": "alpha",
+                "description": "The service used to management the license in a kubernetes cluster",
+                "name": "ibm-licensing-operator",
+                "namespace": "ibm-licensing-operator",
+                "packageName": "ibm-licensing-operator-app",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace"
+              },
+              {
+                "channel": "alpha",
+                "description": "The service used to create mongodb in a kubernetes cluster",
+                "name": "ibm-mongodb-operator",
+                "namespace": "ibm-mongodb-operator",
+                "packageName": "ibm-mongodb-operator-app",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace"
               }
             ]
           }
@@ -46,21 +51,22 @@ metadata:
           "spec": {
             "services": [
               {
-                "name": "jenkins",
+                "name": "ibm-metering-operator",
                 "spec": {
-                  "jenkins": {
-                    "service": {
-                      "port": 8081
-                    }
-                  }
+                  "metering": {},
+                  "meteringUI": {}
                 }
               },
               {
-                "name": "etcd",
+                "name": "ibm-licensing-operator",
                 "spec": {
-                  "etcdCluster": {
-                    "size": 1
-                  }
+                  "IBMLicensing": {}
+                }
+              },
+              {
+                "name": "ibm-mongodb-operator",
+                "spec": {
+                  "mongodb": {}
                 }
               }
             ]
@@ -75,11 +81,18 @@ metadata:
           "spec": {
             "services": [
               {
-                "name": "etcd",
+                "description": "The service used to meter workloads in a kubernetes cluster",
+                "name": "ibm-metering-operator",
+                "state": "absent"
+              },
+              {
+                "description": "The service used to management the license in a kubernetes cluster",
+                "name": "ibm-licensing-operator",
                 "state": "present"
               },
               {
-                "name": "jenkins",
+                "description": "The service used to create mongodb in a kubernetes cluster",
+                "name": "ibm-mongodb-operator",
                 "state": "present"
               }
             ]
@@ -226,8 +239,6 @@ spec:
         - apiGroups:
           - operator.ibm.com
           - operators.coreos.com
-          - etcd.database.coreos.com
-          - jenkins.io
           resources:
           - '*'
           - metaoperatorcatalogs
@@ -261,13 +272,17 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.name
+                - name: POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
                 - name: OPERATOR_NAME
                   value: meta-operator
                 image: quay.io/opencloudio/meta-operator:latest
                 imagePullPolicy: Always
                 name: meta-operator
                 resources: {}
-              serviceAccount: meta-operator
+              serviceAccountName: meta-operator
     strategy: deployment
   installModes:
   - supported: true
@@ -276,7 +291,7 @@ spec:
     type: SingleNamespace
   - supported: false
     type: MultiNamespace
-  - supported: true
+  - supported: false
     type: AllNamespaces
   keywords:
   - IBM

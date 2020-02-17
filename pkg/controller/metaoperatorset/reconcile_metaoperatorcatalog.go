@@ -225,7 +225,9 @@ func generateOperatorGroup(namespace string, targetNamespaces []string) *olmv1.O
 	labels := map[string]string{
 		"operator.ibm.com/mos-control": "true",
 	}
-
+	if targetNamespaces == nil {
+		targetNamespaces = append(targetNamespaces, namespace)
+	}
 	// Operator Group Object
 	og := &olmv1.OperatorGroup{
 		ObjectMeta: metav1.ObjectMeta{
@@ -246,6 +248,10 @@ func (r *ReconcileMetaOperatorSet) checkOperatorGroup(targetNamespaces []string,
 	existOG, err := r.olmClient.OperatorsV1().OperatorGroups(namespace).Get("meta-operator-operatorgroup", metav1.GetOptions{})
 	if err != nil && !errors.IsNotFound(err) {
 		return err
+	}
+
+	if targetNamespaces == nil {
+		targetNamespaces = append(targetNamespaces, namespace)
 	}
 
 	if util.Equal(existOG.Spec.TargetNamespaces, targetNamespaces) {

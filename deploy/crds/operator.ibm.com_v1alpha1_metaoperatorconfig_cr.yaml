@@ -4,18 +4,16 @@ metadata:
   name: common-service
 spec:
   services:
-  - name: jenkins
+  - name: ibm-metering-operator
     spec:
-      jenkins:
-        service:
-          port: 8081
-  - name: etcd
+      metering: {}
+      meteringUI: {}
+  - name: ibm-licensing-operator
     spec:
-      etcdCluster:
-        size: 1
+      IBMLicensing: {}
+  - name: ibm-mongodb-operator
+    spec:
+      mongodb: {}
   - name: ibm-cert-manager-operator
     spec:
-      enableWebhook: true
-      imageRegistry: quay.io/opencloudio
-      pullSecret:
-        name: pull-secret-1
+      certManager: {}

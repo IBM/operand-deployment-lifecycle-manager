@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-package metaoperatorcatalog
+package metaoperatorconfig
 
 import (
 	"testing"
@@ -28,12 +28,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-// TestCatalogController runs ReconcileMetaOperatorCatalog.Reconcile() against a
-// fake client that tracks a MetaOperatorCatalog object.
-func TestCatalogController(t *testing.T) {
+// TestConfigConfig runs ReconcileMetaOperatorConfig.Reconcile() against a
+// fake client that tracks a MetaOperatorConfig object.
+func TestConfigController(t *testing.T) {
 
 	var (
-		name      = "meta-operator-catalog"
+		name      = "meta-operator-config"
 		namespace = "common-service"
 	)
 	// Mock request to simulate Reconcile() being called on an event for a
@@ -45,34 +45,24 @@ func TestCatalogController(t *testing.T) {
 		},
 	}
 
-	// A metaoperatorcatalog resource with metadata and spec.
-	catalog := &v1alpha1.MetaOperatorCatalog{
+	// A metaoperatorconfig resource with metadata and spec.
+	config := &v1alpha1.MetaOperatorConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: v1alpha1.MetaOperatorCatalogSpec{
-			Operators: []v1alpha1.Operator{
+		Spec: v1alpha1.MetaOperatorConfigSpec{
+			Services: []v1alpha1.ConfigService{
 				{
-					Name:            "etcd",
-					Namespace:       "etcd-operator",
-					SourceName:      "community-operators",
-					SourceNamespace: "openshift-marketplace",
-					PackageName:     "etcd",
-					Channel:         "singlenamespace-alpha",
-					TargetNamespaces: []string{
-						"etcd-operator",
+					Name: "jenkins",
+					Spec: map[string]runtime.RawExtension{
+						"jenkins": {Raw: []byte(`{"service":{"port": 8081}}`)},
 					},
 				},
 				{
-					Name:            "jenkins",
-					Namespace:       "jenkins-operator",
-					SourceName:      "community-operators",
-					SourceNamespace: "openshift-marketplace",
-					PackageName:     "jenkins-operator",
-					Channel:         "alpha",
-					TargetNamespaces: []string{
-						"jenkins-operator",
+					Name: "etcd",
+					Spec: map[string]runtime.RawExtension{
+						"etcdCluster": {Raw: []byte(`{"size": 1}`)},
 					},
 				},
 			},
@@ -80,16 +70,16 @@ func TestCatalogController(t *testing.T) {
 	}
 	// Objects to track in the fake client.
 	objs := []runtime.Object{
-		catalog,
+		config,
 	}
 
 	// Register operator types with the runtime scheme.
 	s := scheme.Scheme
-	s.AddKnownTypes(v1alpha1.SchemeGroupVersion, catalog)
+	s.AddKnownTypes(v1alpha1.SchemeGroupVersion, config)
 	// Create a fake client to mock API calls.
 	cl := fake.NewFakeClient(objs...)
-	// Create a ReconcileMetaOperatorCatalog object with the scheme and fake client.
-	r := &ReconcileMetaOperatorCatalog{client: cl, scheme: s}
+	// Create a ReconcileMetaOperatorConfig object with the scheme and fake client.
+	r := &ReconcileMetaOperatorConfig{client: cl, scheme: s}
 
 	res, err := r.Reconcile(req)
 	if err != nil {
@@ -102,8 +92,8 @@ func TestCatalogController(t *testing.T) {
 
 	// Create a fake client to mock instance not found.
 	cl = fake.NewFakeClient()
-	// Create a ReconcileMetaOperatorCatalog object with the scheme and fake client.
-	r = &ReconcileMetaOperatorCatalog{client: cl, scheme: s}
+	// Create a ReconcileMetaOperatorConfig object with the scheme and fake client.
+	r = &ReconcileMetaOperatorConfig{client: cl, scheme: s}
 
 	res, err = r.Reconcile(req)
 	if err != nil {

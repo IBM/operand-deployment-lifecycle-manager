@@ -4,10 +4,15 @@ metadata:
   name: common-service
 spec:
   services:
-  - name: etcd
+  - name: ibm-metering-operator
+    state: absent
+    description: The service used to meter workloads in a kubernetes cluster
+  - name: ibm-licensing-operator
     state: present
-  - name: jenkins
+    description: The service used to management the license in a kubernetes cluster
+  - name: ibm-mongodb-operator
     state: present
+    description: The service used to create mongodb in a kubernetes cluster
   - name: ibm-cert-manager-operator
     state: present
     description: Operator for managing deployment of cert-manager service.

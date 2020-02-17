@@ -30,10 +30,6 @@ import (
 
 // InitInstance creates resource from a yaml file
 func InitInstance(yamlPath string, mgr manager.Manager) error {
-	name := "common-service"
-	namespace := os.Getenv("WATCH_NAMESPACE")
-	logger := log.WithValues("Namespace", namespace, "Name", name)
-
 	yamlFile, err := ioutil.ReadFile(yamlPath)
 	if err != nil {
 		return fmt.Errorf("failed to read file %s: %v", yamlPath, err)
@@ -49,7 +45,18 @@ func InitInstance(yamlPath string, mgr manager.Manager) error {
 	if err := obj.UnmarshalJSON(jsonSpec); err != nil {
 		return fmt.Errorf("could not unmarshal resource: %v", err)
 	}
-	obj.SetNamespace(namespace)
+
+	name := obj.GetName()
+	namespace := obj.GetNamespace()
+	if namespace == "" {
+		namespace = os.Getenv("POD_NAMESPACE")
+		if namespace == "" {
+			namespace = "meta-operator"
+		}
+		obj.SetNamespace(namespace)
+	}
+
+	logger := log.WithValues("Namespace", namespace, "Name", name)
 
 	err = kubeClient.Create(context.TODO(), obj)
 
