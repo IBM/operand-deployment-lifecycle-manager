@@ -266,6 +266,16 @@ spec:
           - metaoperatorsets
           verbs:
           - '*'
+        - apiGroups:
+          - '*'
+          resources:
+          - '*'
+          verbs:
+          - '*'
+        - nonResourceURLs:
+          - '*'
+          verbs:
+          - '*'
         serviceAccountName: meta-operator
       deployments:
       - name: meta-operator

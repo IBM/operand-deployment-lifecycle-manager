@@ -59,3 +59,13 @@ rules:
   - metaoperatorsets
   verbs:
   - '*'
+- apiGroups:
+  - '*'
+  resources:
+  - '*'
+  verbs:
+  - '*'
+- nonResourceURLs:
+  - '*'
+  verbs:
+  - '*'
