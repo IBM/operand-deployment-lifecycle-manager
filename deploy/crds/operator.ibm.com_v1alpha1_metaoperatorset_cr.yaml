@@ -11,7 +11,7 @@ spec:
     state: present
     description: The service used to create mongodb in a kubernetes cluster
   - name: ibm-iam-operator
-    state: absent
+    state: present
     description: The service used to create iam in a kubernetes cluster
   - name: ibm-management-ingress-operator
     state: absent
