@@ -4,15 +4,24 @@ metadata:
   name: common-service
 spec:
   services:
+  - name: ibm-cert-manager-operator
+    state: present
+    description: Operator for managing deployment of cert-manager service.
+  - name: ibm-mongodb-operator
+    state: present
+    description: The service used to create mongodb in a kubernetes cluster
+  - name: ibm-iam-operator
+    state: absent
+    description: The service used to create iam in a kubernetes cluster
+  - name: ibm-management-ingress-operator
+    state: absent
+    description: The service used to create mangement-ingress in a kubernetes cluster
   - name: ibm-metering-operator
     state: absent
     description: The service used to meter workloads in a kubernetes cluster
   - name: ibm-licensing-operator
-    state: present
-    description: The service used to management the license in a kubernetes cluster
-  - name: ibm-mongodb-operator
-    state: present
-    description: The service used to create mongodb in a kubernetes cluster
-  - name: ibm-cert-manager-operator
-    state: present
-    description: Operator for managing deployment of cert-manager service.
+    state: absent
+    description: The service used to manage the license in a kubernetes cluster
+  - name: ibm-commonui-operator
+    state: absent
+    description: The service used to provide commonui in a kubernetes cluster
