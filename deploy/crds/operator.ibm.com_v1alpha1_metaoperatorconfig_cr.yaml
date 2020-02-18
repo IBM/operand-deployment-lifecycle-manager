@@ -19,4 +19,10 @@ spec:
       certManager: {}
   - name: ibm-iam-operator
     spec:
-      Authentication: {}
+      authentication: {}
+      oidcclientwatcher: {}
+      pap: {}
+      policycontroller: {}
+      policydecision: {}
+      secretwatcher: {}
+      securityonboarding: {}
