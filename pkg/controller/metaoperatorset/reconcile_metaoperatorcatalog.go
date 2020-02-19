@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	operatorv1alpha1 "github.com/IBM/meta-operator/pkg/apis/operator/v1alpha1"
 	"github.com/IBM/meta-operator/pkg/util"
@@ -119,6 +120,13 @@ func (r *ReconcileMetaOperatorSet) createSubscription(cr *operatorv1alpha1.MetaO
 	// Create subscription
 	logger.Info("Creating a new Subscription")
 	sub := co.subscription
+	setControllerErr := controllerutil.SetControllerReference(cr, sub, r.scheme)
+	if setControllerErr != nil {
+		if updateErr := r.updateConditionStatus(cr, sub.Name, InstallFailed); updateErr != nil {
+			return updateErr
+		}
+		return err
+	}
 	_, err = r.olmClient.OperatorsV1alpha1().Subscriptions(sub.Namespace).Create(sub)
 	if err != nil && !errors.IsAlreadyExists(err) {
 		if updateErr := r.updateConditionStatus(cr, sub.Name, InstallFailed); updateErr != nil {

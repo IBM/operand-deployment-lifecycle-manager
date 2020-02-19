@@ -34,7 +34,7 @@ import (
 	util "github.com/IBM/meta-operator/pkg/util"
 )
 
-func (r *ReconcileMetaOperatorSet) reconcileMetaOperatorConfig(serviceConfigs map[string]operatorv1alpha1.ConfigService, csc *operatorv1alpha1.MetaOperatorConfig) *multiErr {
+func (r *ReconcileMetaOperatorSet) reconcileMetaOperatorConfig(cr *operatorv1alpha1.MetaOperatorSet, serviceConfigs map[string]operatorv1alpha1.ConfigService, csc *operatorv1alpha1.MetaOperatorConfig) *multiErr {
 	reqLogger := log.WithValues()
 	reqLogger.Info("Reconciling MetaOperatorConfig")
 	merr := &multiErr{}
@@ -51,6 +51,17 @@ func (r *ReconcileMetaOperatorSet) reconcileMetaOperatorConfig(serviceConfigs ma
 			}
 
 			if csv == nil {
+				continue
+			}
+
+			setControllerErr := controllerutil.SetControllerReference(cr, csv, r.scheme)
+			if setControllerErr != nil {
+				merr.Add(setControllerErr)
+				continue
+			}
+
+			if _, err = r.olmClient.OperatorsV1alpha1().ClusterServiceVersions(csv.Namespace).Update(csv); err != nil {
+				merr.Add(err)
 				continue
 			}
 
@@ -142,7 +153,7 @@ func (r *ReconcileMetaOperatorSet) generateCr(service operatorv1alpha1.ConfigSer
 
 	// Create a slice for crTemplates
 	var crTemplates []interface{}
-
+	fmt.Println(almExamples)
 	// Convert CR template string to slice
 	crTemplatesErr := json.Unmarshal([]byte(almExamples), &crTemplates)
 	if crTemplatesErr != nil {

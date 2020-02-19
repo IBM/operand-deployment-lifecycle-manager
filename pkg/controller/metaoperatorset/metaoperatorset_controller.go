@@ -236,7 +236,7 @@ func (r *ReconcileMetaOperatorSet) Reconcile(request reconcile.Request) (reconci
 	}
 
 	// Reconcile the MetaOperatorConfig
-	merr := r.reconcileMetaOperatorConfig(serviceConfigs, csc)
+	merr := r.reconcileMetaOperatorConfig(setInstance, serviceConfigs, csc)
 
 	if len(merr.errors) != 0 {
 		return reconcile.Result{}, merr
