@@ -25,3 +25,6 @@ spec:
   - name: ibm-commonui-operator
     state: absent
     description: The service used to provide commonui in a kubernetes cluster
+  - name: ibm-healthcheck-operator
+    state: present
+    description: The service used to check cluster health in a kubernetes cluster

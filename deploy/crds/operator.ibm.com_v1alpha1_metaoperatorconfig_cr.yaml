@@ -26,3 +26,6 @@ spec:
       policydecision: {}
       secretwatcher: {}
       securityonboarding: {}
+  - name: ibm-healthcheck-operator
+    spec:
+      healthService: {}
