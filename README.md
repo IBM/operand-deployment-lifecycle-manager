@@ -3,16 +3,17 @@
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
 - [Meta Operator](#meta-operator)
-    - [Overview](#overview)
-    - [Prerequisites](#prerequisites)
-    - [Getting Started](#getting-started)
-        - [Cloning the repository](#cloning-the-repository)
-        - [Building the operator](#building-the-operator)
-        - [Installing](#installing)
-        - [Uninstalling](#uninstalling)
-        - [Troubleshooting](#troubleshooting)
-        - [Running Tests](#running-tests)
-        - [Development](#development)
+  - [Overview](#overview)
+  - [Prerequisites](#prerequisites)
+  - [Common Service Onboarding](#common-service-onboarding)
+  - [Getting Started](#getting-started)
+    - [Cloning the repository](#cloning-the-repository)
+    - [Building the operator](#building-the-operator)
+    - [Installing](#installing)
+    - [Uninstalling](#uninstalling)
+    - [Troubleshooting](#troubleshooting)
+    - [Running Tests](#running-tests)
+    - [Development](#development)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -30,6 +31,10 @@ This is a meta operator for install the common service operator and instance.
 - [operator-sdk][operator_install]
 - Access to a Kubernetes v1.11.3+ cluster
 
+## Common Service Onboarding
+
+- [common-service-onboarding](./docs/install/common-service-integration.md)
+
 ## Getting Started
 
 ### Cloning the repository
@@ -46,7 +51,7 @@ Checkout this Meta Operator repository
 Build the meta operator image and push it to a public registry, such as quay.io:
 
 ```bash
-# make image
+# make images
 ```
 
 ### Installing
@@ -81,7 +86,7 @@ Use the following command to check the operator logs.
 
 ### Running Tests
 
-[End to end tests](./docs/e2e.md)
+[End to end tests](./docs/dev/e2e.md)
 For more information see the [writing e2e tests](https://github.com/operator-framework/operator-sdk/blob/master/doc/test-framework/writing-e2e-tests.md) guide.
 
 ### Development
