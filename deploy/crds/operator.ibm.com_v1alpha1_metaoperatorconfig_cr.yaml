@@ -20,3 +20,12 @@ spec:
   - name: ibm-healthcheck-operator
     spec:
       healthService: {}
+  - name: ibm-management-repo-operator
+    spec:
+      management-repo: {}
+  - name: ibm-helm-repo-operator
+    spec:
+      helm-repo: {}
+  - name: ibm-helm-api-operator
+    spec:
+      helm-api: {}

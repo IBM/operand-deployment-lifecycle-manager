@@ -39,3 +39,24 @@ spec:
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
     description: Operator for managing deployment of health check service.
+  - name: ibm-management-repo-operator
+    namespace: ibm-management-repo-operator
+    channel: alpha
+    packageName: ibm-management-repo-operator
+    sourceName: opencloud-operators
+    sourceNamespace: openshift-marketplace
+    description: Operator for helm management repo component.
+  - name: ibm-helm-repo-operator
+    namespace: ibm-helm-repo-operator
+    channel: alpha
+    packageName: ibm-helm-repo-operator
+    sourceName: opencloud-operators
+    sourceNamespace: openshift-marketplace
+    description: Operator for helm repo component.
+  - name: ibm-helm-api-operator
+    namespace: ibm-helm-api-operator
+    channel: alpha
+    packageName: ibm-helm-api-operator
+    sourceName: opencloud-operators
+    sourceNamespace: openshift-marketplace
+    description: Operator for helm api component.

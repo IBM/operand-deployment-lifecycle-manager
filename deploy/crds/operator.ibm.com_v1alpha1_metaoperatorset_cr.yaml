@@ -28,3 +28,12 @@ spec:
   - name: ibm-healthcheck-operator
     state: present
     description: The service used to check cluster health in a kubernetes cluster
+  - name: ibm-management-repo-operator
+    state: adsent
+    description: Operator for adding helm management repo component
+  - name: ibm-helm-repo-operator
+    state: adsent
+    description: Operator for adding helm helm repo component
+  - name: ibm-management-repo-operator
+    state: adsent
+    description: Operator for adding helm api component
