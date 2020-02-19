@@ -126,7 +126,7 @@ type ReconcileMetaOperatorSet struct {
 	client    client.Client
 	recorder  record.EventRecorder
 	scheme    *runtime.Scheme
-	olmClient *olmclient.Clientset
+	olmClient olmclient.Interface
 }
 
 type clusterObjects struct {

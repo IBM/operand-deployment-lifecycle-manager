@@ -254,10 +254,6 @@ func (r *ReconcileMetaOperatorSet) checkOperatorGroup(targetNamespaces []string,
 		targetNamespaces = append(targetNamespaces, namespace)
 	}
 
-	if util.Equal(existOG.Spec.TargetNamespaces, targetNamespaces) {
-		return nil
-	}
-
 	if errors.IsNotFound(err) {
 		og := generateOperatorGroup(namespace, targetNamespaces)
 		_, err := r.olmClient.OperatorsV1().OperatorGroups(namespace).Create(og)
@@ -265,6 +261,9 @@ func (r *ReconcileMetaOperatorSet) checkOperatorGroup(targetNamespaces []string,
 			return err
 		}
 	} else {
+		if util.Equal(existOG.Spec.TargetNamespaces, targetNamespaces) {
+			return nil
+		}
 		existOG.Spec.TargetNamespaces = targetNamespaces
 		_, err := r.olmClient.OperatorsV1().OperatorGroups(namespace).Update(existOG)
 		if err != nil {
