@@ -102,8 +102,6 @@ operators:
     packageName: jenkins-operator
     sourceName: community-operators
     sourceNamespace: openshift-marketplace
-    targetNamespaces:
-    - jenkins-operator
     description: The jenkins service depends on ...
 ...
 ```
@@ -114,7 +112,6 @@ operators:
 - `packageName` is the name of the package in `CatalogSource` will be deployed.
 - `sourceName` is the name of the `CatalogSource`.
 - `sourceNamespace` is the namespaces of the `CatalogSource`.
-- `targetNamespaces` is a list of namespace, which `OperaterGroup` generates RBAC access for its member Operators to get access to. `targetNamespaces` is used to control the operator dependency. `targetNamespaces` should include all the namespaces of its dependent operators and its own namespace.
 - `description` is used to add a detailed description for service including clarifying the dependency.
 
 ### Edit the MetaOperator Config custom resource

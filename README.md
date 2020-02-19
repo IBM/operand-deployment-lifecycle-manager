@@ -51,7 +51,7 @@ Checkout this Meta Operator repository
 Build the meta operator image and push it to a public registry, such as quay.io:
 
 ```bash
-# make image
+# make images
 ```
 
 ### Installing
