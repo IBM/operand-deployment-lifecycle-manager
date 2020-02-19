@@ -3,26 +3,36 @@
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
 - [Pre-Requisites](#pre-requisites)
-    - [Push the operator to quay.io](#push-the-operator-to-quayio)
-- [Integration services with meta operator](#integration-services-with-meta-operator)
-    - [1. Clone the git repository of meta operator](#1-clone-the-git-repository-of-meta-operator)
-    - [2. Edit default value of custom resource](#2-edit-default-value-of-custom-resource)
-        - [Edit the MetaOperator Catalog custom resource](#edit-the-metaoperator-catalog-custom-resource)
-        - [Edit the MetaOperator Config custom resource](#edit-the-metaoperator-config-custom-resource)
-        - [Edit a MetaOperator Set custom resource](#edit-a-metaoperator-set-custom-resource)
-    - [3.Make a pull request to merge the changes](#3make-a-pull-request-to-merge-the-changes)
+  - [Check your operator bundle](#check-your-operator-bundle)
+  - [Push the operator to quay.io](#push-the-operator-to-quayio)
+  - [Verify your operator on the Openshift console](#verify-your-operator-on-the-openshift-console)
+    - [1. Create OperatorSource](#1-create-operatorsource)
+    - [2. Create a Namespace for your operator](#2-create-a-namespace-for-your-operator)
+    - [3. Install Operator](#3-install-operator)
+- [Common Service Onboarding](#common-service-onboarding)
+  - [1. Clone the git repository of meta operator](#1-clone-the-git-repository-of-meta-operator)
+  - [2. Edit default value of custom resource](#2-edit-default-value-of-custom-resource)
+    - [Edit the MetaOperator Catalog custom resource](#edit-the-metaoperator-catalog-custom-resource)
+    - [Edit the MetaOperator Config custom resource](#edit-the-metaoperator-config-custom-resource)
+    - [Edit a MetaOperator Set custom resource](#edit-a-metaoperator-set-custom-resource)
+  - [3.Make a pull request to merge the changes](#3make-a-pull-request-to-merge-the-changes)
 - [End to end test](#end-to-end-test)
-    - [1. Create an OperatorSource in the Openshift cluster](#1-create-an-operatorsource-in-the-openshift-cluster)
-    - [2. Create a Namespace `meta-operator`](#2-create-a-namespace-meta-operator)
-    - [3. Install meta Operator](#3-install-meta-operator)
-    - [4. Check the installed operators](#4-check-the-installed-operators)
-    - [5. Edit the MetaOperator Config custom resource and the MetaOperator Catalog custom resource](#5-edit-the-metaoperator-config-custom-resource-and-the-metaoperator-catalog-custom-resource)
-    - [6. Create a MetaOperator Set](#6-create-a-metaoperator-set)
-    - [7. Check the installed operators and their custom resource](#7-check-the-installed-operators-and-their-custom-resource)
+  - [1. Create an OperatorSource in the Openshift cluster](#1-create-an-operatorsource-in-the-openshift-cluster)
+  - [2. Create a Namespace `meta-operator`](#2-create-a-namespace-meta-operator)
+  - [3. Install meta Operator](#3-install-meta-operator)
+  - [4. Check the installed operators](#4-check-the-installed-operators)
+  - [5. Edit the MetaOperator Config custom resource and the MetaOperator Catalog custom resource](#5-edit-the-metaoperator-config-custom-resource-and-the-metaoperator-catalog-custom-resource)
+  - [6. Create a MetaOperator Set](#6-create-a-metaoperator-set)
+  - [7. Check the installed operators and their custom resource](#7-check-the-installed-operators-and-their-custom-resource)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 # Pre-Requisites
+
+## Check your operator bundle
+
+- [operator-courier](https://github.com/operator-framework/operator-courier)
+- [scorecard](https://github.com/operator-framework/operator-sdk/blob/master/doc/test-framework/scorecard.md)
 
 ## Push the operator to quay.io
 
@@ -30,7 +40,36 @@ All common services OLMs and operator images should be published in public org i
 
 more information see the [push olm to quay.io](https://github.com/operator-framework/community-operators/blob/master/docs/testing-operators.md#push-to-quayio).
 
-# Integration services with meta operator
+## Verify your operator on the Openshift console
+
+### 1. Create OperatorSource
+
+Open OCP console, click the `Plus` button on the top right and paste the following content, then click `Create`.
+
+```yaml
+apiVersion: operators.coreos.com/v1
+kind: OperatorSource
+metadata:
+  name: opencloud-operators
+  namespace: openshift-marketplace
+spec:
+  authorizationToken: {}
+  displayName: IBMCS Operators
+  endpoint: https://quay.io/cnr
+  publisher: IBM
+  registryNamespace: opencloudio
+  type: appregistry
+```
+
+### 2. Create a Namespace for your operator
+
+Open the `OperatorHub` page in OCP console left menu, then `Create Project`.
+
+### 3. Install Operator
+
+Open `OperatorHub`, search your operator and install it.
+
+# Common Service Onboarding
 
 ## 1. Clone the git repository of meta operator
 
@@ -105,7 +144,7 @@ spec:
 
 Take the jenkins operator as an example.
 - The `name` field defines the name of the operator.
-- The `spec` field defines the `spec` configuration for each custom resource.
+- The `spec` field defines a map. Its key `jenkins` is the kind name of the custom resource. Its value `service.port: 8081` will be merged to the `spec` field of custom resource `jenkins`.
 
 In this example:
 The configuration for custom resource `Jenkins` is:
@@ -130,6 +169,23 @@ spec:
   service:
     port: 8081
     type: ClusterIP
+```
+
+**Note:** When onboarding your operator, you need to put all the default configuration into the `alm-example`of your CSV and leave the value of map in `spec` to `{}`.
+For example:
+
+```yaml
+apiVersion: operator.ibm.com/v1alpha1
+kind: MetaOperatorConfig
+metadata:
+  name: common-service
+spec:
+  services:
+  ...
+  - name: jenkins
+    spec:
+      jenkins: {}
+  ...
 ```
 
 ### Edit a MetaOperator Set custom resource
