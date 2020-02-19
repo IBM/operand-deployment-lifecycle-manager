@@ -17,3 +17,6 @@ spec:
   - name: ibm-cert-manager-operator
     spec:
       certManager: {}
+  - name: ibm-healthcheck-operator
+    spec:
+      healthService: {}
