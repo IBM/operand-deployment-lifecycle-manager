@@ -153,7 +153,7 @@ func (r *ReconcileMetaOperatorSet) generateCr(service operatorv1alpha1.ConfigSer
 
 	// Create a slice for crTemplates
 	var crTemplates []interface{}
-	fmt.Println(almExamples)
+
 	// Convert CR template string to slice
 	crTemplatesErr := json.Unmarshal([]byte(almExamples), &crTemplates)
 	if crTemplatesErr != nil {
