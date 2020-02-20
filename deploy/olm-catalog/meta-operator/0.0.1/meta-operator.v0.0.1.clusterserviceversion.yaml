@@ -61,7 +61,7 @@ metadata:
                 "channel": "alpha",
                 "description": "Operator for managing deployment of IAM service.",
                 "name": "ibm-iam-operator",
-                "namespace": "ibm-iam-operator",
+                "namespace": "ibm-common-services,
                 "packageName": "ibm-iam-operator-app",
                 "sourceName": "opencloud-operators",
                 "sourceNamespace": "openshift-marketplace"
