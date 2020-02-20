@@ -40,7 +40,7 @@ spec:
     sourceNamespace: openshift-marketplace
     description: Operator for managing deployment of health check service.
   - name: ibm-commonui-operator
-    namespace: ibm-commonui-operator
+    namespace: ibm-common-services
     channel: alpha
     packageName: ibm-commonui-operator-app
     sourceName: opencloud-operators
