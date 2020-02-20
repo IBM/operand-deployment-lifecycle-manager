@@ -16,7 +16,7 @@ metadata:
                 "channel": "alpha",
                 "description": "The service used to display common header and IAM pages for the cluster",
                 "name": "ibm-commonui-operator",
-                "namespace": "ibm-commonui-operator",
+                "namespace": "ibm-common-services",
                 "packageName": "ibm-commonui-operator-app",
                 "sourceName": "opencloud-operators",
                 "sourceNamespace": "openshift-marketplace"
