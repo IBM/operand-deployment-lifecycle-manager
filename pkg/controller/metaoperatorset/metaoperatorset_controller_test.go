@@ -31,7 +31,6 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 
 	"github.com/IBM/meta-operator/pkg/apis/operator/v1alpha1"
 )
@@ -39,8 +38,7 @@ import (
 // TestSetController runs ReconcileMetaOperatorSet.Reconcile() against a
 // fake client that tracks a MetaOperatorSet object.
 func TestInitSet(t *testing.T) {
-	// Set the logger to development mode for verbose logs.
-	logf.SetLogger(logf.ZapLogger(true))
+
 	req := getRequest()
 	r := getReconcilerWithoutMOS()
 
