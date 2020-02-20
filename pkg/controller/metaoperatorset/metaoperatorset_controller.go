@@ -18,6 +18,7 @@ package metaoperatorset
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -28,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -161,13 +161,22 @@ func (r *ReconcileMetaOperatorSet) Reconcile(request reconcile.Request) (reconci
 	reqLogger.Info("Reconciling MetaOperatorSet")
 
 	// Fetch the MetaOperatorCatalog instance
-	moc := &operatorv1alpha1.MetaOperatorCatalog{}
-	if err := r.client.Get(context.TODO(), types.NamespacedName{Namespace: request.Namespace, Name: "common-service"}, moc); err != nil {
+	mocList := &operatorv1alpha1.MetaOperatorCatalogList{}
+	if err := r.client.List(context.TODO(), mocList, &client.ListOptions{Namespace: request.Namespace}); err != nil {
 		if errors.IsNotFound(err) {
 			return reconcile.Result{}, nil
 		}
 		return reconcile.Result{}, err
 	}
+
+	switch mocnum := len(mocList.Items); {
+	case mocnum < 1:
+		return reconcile.Result{}, nil
+	case mocnum > 1:
+		reqLogger.Error(fmt.Errorf("multiple MetaOperatorCatalog in one namespace"), "There are multiple MetaOperatorCatalog custom resource in "+request.Namespace+". Choose the first one " + mocList.Items[0].Name)
+	}
+
+	moc := &mocList.Items[0]
 
 	// Initialize MetaOperatorCatalog status
 	if err := r.initOperatorStatus(moc); err != nil {
@@ -175,13 +184,22 @@ func (r *ReconcileMetaOperatorSet) Reconcile(request reconcile.Request) (reconci
 	}
 
 	// Fetch the MetaOperatorConfig instance
-	csc := &operatorv1alpha1.MetaOperatorConfig{}
-	if err := r.client.Get(context.TODO(), types.NamespacedName{Namespace: request.Namespace, Name: "common-service"}, csc); err != nil {
+	cscList := &operatorv1alpha1.MetaOperatorConfigList{}
+	if err := r.client.List(context.TODO(), cscList, &client.ListOptions{Namespace: request.Namespace}); err != nil {
 		if errors.IsNotFound(err) {
 			return reconcile.Result{}, nil
 		}
 		return reconcile.Result{}, err
 	}
+
+	switch cscnum := len(cscList.Items); {
+	case cscnum < 1:
+		return reconcile.Result{}, nil
+	case cscnum > 1:
+		reqLogger.Error(fmt.Errorf("multiple MetaOperatorConfig in one namespace"), "There are multiple MetaOperatorCatalog custom resource in "+request.Namespace+". Choose the first one "+ cscList.Items[0].Name)
+	}
+
+	csc := &cscList.Items[0]
 
 	// Initialize MetaOperatorConfig status
 	if err := r.initServiceStatus(csc); err != nil {
