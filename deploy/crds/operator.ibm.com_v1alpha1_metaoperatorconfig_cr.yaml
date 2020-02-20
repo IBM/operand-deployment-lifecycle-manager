@@ -21,6 +21,6 @@ spec:
     spec:
       healthService: {}
   - name: ibm-commonui-operator
-      spec:
-        commonWebUI: {}
-        legacyHeader: {}
+    spec:
+      commonWebUI: {}
+      legacyHeader: {}
