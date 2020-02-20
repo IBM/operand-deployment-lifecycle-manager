@@ -56,6 +56,15 @@ metadata:
                 "packageName": "ibm-healthcheck-operator-app",
                 "sourceName": "opencloud-operators",
                 "sourceNamespace": "openshift-marketplace"
+              },
+              {
+                "channel": "alpha",
+                "description": "Operator for managing deployment of IAM service.",
+                "name": "ibm-iam-operator",
+                "namespace": "ibm-iam-operator",
+                "packageName": "ibm-iam-operator-app",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace"
               }
             ]
           }
@@ -97,6 +106,18 @@ metadata:
                 "name": "ibm-healthcheck-operator",
                 "spec": {
                   "healthService": {}
+                }
+              },
+              {
+                "name": "ibm-iam-operator",
+                "spec": {
+                  "authentication": {},
+                  "oidcclientwatcher": {},
+                  "pap": {},
+                  "policycontroller": {},
+                  "policydecision": {},
+                  "secretwatcher": {},
+                  "securityonboarding": {}
                 }
               }
             ]
@@ -140,6 +161,10 @@ metadata:
               },
               {
                 "name": "ibm-healthcheck-operator",
+                "state": "present"
+              },
+              {
+                "name": "ibm-iam-operator",
                 "state": "present"
               }
             ]

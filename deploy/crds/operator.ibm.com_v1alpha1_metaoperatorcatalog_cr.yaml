@@ -32,6 +32,13 @@ spec:
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
     description: Operator for managing deployment of cert-manager service.
+  - name: ibm-iam-operator
+    namespace: ibm-iam-operator
+    channel: alpha
+    packageName: ibm-iam-operator
+    sourceName: opencloud-operators
+    sourceNamespace: openshift-marketplace
+    description: Operator for managing deployment of iam service.
   - name: ibm-healthcheck-operator
     namespace: ibm-healthcheck-operator
     channel: alpha
