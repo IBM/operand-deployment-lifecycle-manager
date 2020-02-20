@@ -35,10 +35,9 @@ type MetaOperatorSetSpec struct {
 
 // SetService is the service configuration for a common service
 type SetService struct {
-	Name        string `json:"name"`
-	Channel     string `json:"channel,omitempty"`
-	State       string `json:"state"`
-	Description string `json:"description,omitempty"`
+	Name    string `json:"name"`
+	Channel string `json:"channel,omitempty"`
+	State   string `json:"state"`
 }
 
 // ConditionType is the condition of a service
