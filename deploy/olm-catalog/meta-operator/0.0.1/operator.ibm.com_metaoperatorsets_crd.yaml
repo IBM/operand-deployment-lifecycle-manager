@@ -44,8 +44,6 @@ spec:
                 properties:
                   channel:
                     type: string
-                  description:
-                    type: string
                   name:
                     type: string
                   state:
