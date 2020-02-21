@@ -383,8 +383,8 @@ Open `Installed Operators` page to check the installed operators.
 
 ## 5. Edit the MetaOperator Config custom resource and the MetaOperator Catalog custom resource
 
-- [Editing MetaOperator Config](#edit-meta-operator-config-custom-resource)
-- [Editing MetaOperator Catalog](#edit-meta-operator-custom-resource)
+- [Editing MetaOperator Config](#edit-the-metaoperator-config-custom-resource)
+- [Editing MetaOperator Catalog](#edit-the-metaoperator-catalog-custom-resource)
 
 ## 6. Create a MetaOperator Set
 
@@ -393,6 +393,6 @@ vi deploy/crds/operator.ibm.com_v1alpha1_metaoperatorset_cr.yaml
 oc apply -f deploy/crds/operator.ibm.com_v1alpha1_metaoperatorset_cr.yaml -n meta-operator
 ```
 
-- [Editing MetaOperator Set](#edit-meta-operator-set-custom-resource)
+- [Editing MetaOperator Set](#edit-a-metaoperator-set-custom-resource)
 
 ## 7. Check the installed operators and their custom resource
