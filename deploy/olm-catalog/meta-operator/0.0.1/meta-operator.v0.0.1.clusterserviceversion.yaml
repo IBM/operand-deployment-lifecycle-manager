@@ -25,7 +25,7 @@ metadata:
                 "channel": "alpha",
                 "description": "The service used to meter workloads in a kubernetes cluster",
                 "name": "ibm-metering-operator",
-                "namespace": "ibm-metering-operator",
+                "namespace": "ibm-common-services",
                 "packageName": "ibm-metering-operator-app",
                 "sourceName": "opencloud-operators",
                 "sourceNamespace": "openshift-marketplace"
@@ -34,7 +34,7 @@ metadata:
                 "channel": "alpha",
                 "description": "The service used to management the license in a kubernetes cluster",
                 "name": "ibm-licensing-operator",
-                "namespace": "ibm-licensing-operator",
+                "namespace": "ibm-common-services",
                 "packageName": "ibm-licensing-operator-app",
                 "sourceName": "opencloud-operators",
                 "sourceNamespace": "openshift-marketplace"
@@ -43,7 +43,7 @@ metadata:
                 "channel": "alpha",
                 "description": "The service used to create mongodb in a kubernetes cluster",
                 "name": "ibm-mongodb-operator",
-                "namespace": "ibm-mongodb-operator",
+                "namespace": "ibm-common-services",
                 "packageName": "ibm-mongodb-operator-app",
                 "sourceName": "opencloud-operators",
                 "sourceNamespace": "openshift-marketplace"
@@ -52,8 +52,35 @@ metadata:
                 "channel": "alpha",
                 "description": "Operator for managing deployment of cert-manager service.",
                 "name": "ibm-cert-manager-operator",
-                "namespace": "ibm-cert-manager-operator",
+                "namespace": "ibm-common-services",
                 "packageName": "ibm-cert-manager-operator",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace"
+              },
+              {
+                "channel": "alpha",
+                "description": "Operator for managing deployment of iam service.",
+                "name": "ibm-iam-operator",
+                "namespace": "ibm-common-services",
+                "packageName": "ibm-iam-operator",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace"
+              },
+              {
+                "channel": "alpha",
+                "description": "Operator for managing deployment of health check service.",
+                "name": "ibm-healthcheck-operator",
+                "namespace": "ibm-common-services",
+                "packageName": "ibm-healthcheck-operator-app",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace"
+              },
+              {
+                "channel": "alpha",
+                "description": "Operator for managing deployment of management ingress service.",
+                "name": "ibm-management-ingress-operator",
+                "namespace": "ibm-common-services",
+                "packageName": "ibm-management-ingress-operator-app",
                 "sourceName": "opencloud-operators",
                 "sourceNamespace": "openshift-marketplace"
               }
@@ -99,6 +126,30 @@ metadata:
                 "spec": {
                   "certManager": {}
                 }
+              },
+              {
+                "name": "ibm-iam-operator",
+                "spec": {
+                  "authentication": {},
+                  "oidcclientwatcher": {},
+                  "pap": {},
+                  "policycontroller": {},
+                  "policydecision": {},
+                  "secretwatcher": {},
+                  "securityonboarding": {}
+                }
+              },
+              {
+                "name": "ibm-healthcheck-operator",
+                "spec": {
+                  "healthService": {}
+                }
+              },
+              {
+                "name": "ibm-management-ingress-operator",
+                "spec": {
+                  "managementingress": {}
+                }
               }
             ]
           }
@@ -112,23 +163,35 @@ metadata:
           "spec": {
             "services": [
               {
-                "description": "The service used to meter workloads in a kubernetes cluster",
-                "name": "ibm-metering-operator",
-                "state": "absent"
-              },
-              {
-                "description": "The service used to management the license in a kubernetes cluster",
-                "name": "ibm-licensing-operator",
+                "name": "ibm-cert-manager-operator",
                 "state": "present"
               },
               {
-                "description": "The service used to create mongodb in a kubernetes cluster",
                 "name": "ibm-mongodb-operator",
                 "state": "present"
               },
               {
-                "description": "Operator for managing deployment of cert-manager service.",
-                "name": "ibm-cert-manager-operator",
+                "name": "ibm-iam-operator",
+                "state": "present"
+              },
+              {
+                "name": "ibm-management-ingress-operator",
+                "state": "absent"
+              },
+              {
+                "name": "ibm-metering-operator",
+                "state": "absent"
+              },
+              {
+                "name": "ibm-licensing-operator",
+                "state": "absent"
+              },
+              {
+                "name": "ibm-commonui-operator",
+                "state": "absent"
+              },
+              {
+                "name": "ibm-healthcheck-operator",
                 "state": "present"
               }
             ]
@@ -189,10 +252,6 @@ spec:
       displayName: MetaOperatorSet
       kind: MetaOperatorSet
       name: metaoperatorsets.operator.ibm.com
-      resources:
-      - kind: Subscription
-        name: subscriptions.operators.coreos.com
-        version: v1alpha1
       specDescriptors:
       - description: A list defines the set for each service.
         displayName: Services
@@ -211,10 +270,10 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:podStatuses
       - description: The phase of operators installation.
-        displayName: Operator phase
+        displayName: Operator Phase
         path: phase
         x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:podStatuses
+        - urn:alm:descriptor:com.tectonic.ui:text
       version: v1alpha1
   description: The Meta Operator provides a simple Kubernetes CRD-Based API to manage
     the lifecycle of IBM cloud common services. With this operator, you can simply

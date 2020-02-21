@@ -27,7 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	operatorv1alpha1 "github.com/IBM/meta-operator/pkg/apis/operator/v1alpha1"
-	"github.com/IBM/meta-operator/pkg/util"
 )
 
 func (r *ReconcileMetaOperatorSet) reconcileMetaOperator(opts map[string]operatorv1alpha1.Operator, setInstance *operatorv1alpha1.MetaOperatorSet, moc *operatorv1alpha1.MetaOperatorCatalog) error {
@@ -61,9 +60,6 @@ func (r *ReconcileMetaOperatorSet) reconcileMetaOperator(opts map[string]operato
 					if err = r.updateSubscription(setInstance, found); err != nil {
 						return err
 					}
-				}
-				if err := r.checkOperatorGroup(o.TargetNamespaces, o.Namespace); err != nil {
-					return err
 				}
 				// Subscription is absent, delete it.
 			} else if err := r.deleteSubscription(setInstance, found, moc); err != nil {
@@ -110,10 +106,16 @@ func (r *ReconcileMetaOperatorSet) createSubscription(cr *operatorv1alpha1.MetaO
 	}
 
 	// Create required operatorgroup
-	og := co.operatorGroup
-	_, err := r.olmClient.OperatorsV1().OperatorGroups(og.Namespace).Create(og)
-	if err != nil && !errors.IsAlreadyExists(err) {
+	existOG, err := r.olmClient.OperatorsV1().OperatorGroups(co.operatorGroup.Namespace).List(metav1.ListOptions{})
+	if err != nil {
 		return err
+	}
+	if existOG.Items == nil {
+		og := co.operatorGroup
+		_, err := r.olmClient.OperatorsV1().OperatorGroups(og.Namespace).Create(og)
+		if err != nil && !errors.IsAlreadyExists(err) {
+			return err
+		}
 	}
 
 	// Create subscription
@@ -242,33 +244,4 @@ func generateOperatorGroup(namespace string, targetNamespaces []string) *olmv1.O
 	og.SetGroupVersionKind(schema.GroupVersionKind{Group: olmv1.SchemeGroupVersion.Group, Kind: "OperatorGroup", Version: olmv1.SchemeGroupVersion.Version})
 
 	return og
-}
-
-func (r *ReconcileMetaOperatorSet) checkOperatorGroup(targetNamespaces []string, namespace string) error {
-	existOG, err := r.olmClient.OperatorsV1().OperatorGroups(namespace).Get("meta-operator-operatorgroup", metav1.GetOptions{})
-	if err != nil && !errors.IsNotFound(err) {
-		return err
-	}
-
-	if targetNamespaces == nil {
-		targetNamespaces = append(targetNamespaces, namespace)
-	}
-
-	if errors.IsNotFound(err) {
-		og := generateOperatorGroup(namespace, targetNamespaces)
-		_, err := r.olmClient.OperatorsV1().OperatorGroups(namespace).Create(og)
-		if err != nil {
-			return err
-		}
-	} else {
-		if util.Equal(existOG.Spec.TargetNamespaces, targetNamespaces) {
-			return nil
-		}
-		existOG.Spec.TargetNamespaces = targetNamespaces
-		_, err := r.olmClient.OperatorsV1().OperatorGroups(namespace).Update(existOG)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }

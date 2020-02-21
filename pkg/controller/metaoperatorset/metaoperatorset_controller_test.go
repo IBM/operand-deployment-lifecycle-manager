@@ -169,10 +169,9 @@ func mos(name, namespace, state, channel string) *v1alpha1.MetaOperatorSet {
 		Spec: v1alpha1.MetaOperatorSetSpec{
 			Services: []v1alpha1.SetService{
 				{
-					Name:        "etcd",
-					Channel:     channel,
-					State:       state,
-					Description: "",
+					Name:    "etcd",
+					Channel: channel,
+					State:   state,
 				},
 			},
 		},

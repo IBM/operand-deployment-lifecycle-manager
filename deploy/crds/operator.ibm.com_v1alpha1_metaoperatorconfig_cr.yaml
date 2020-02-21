@@ -17,6 +17,15 @@ spec:
   - name: ibm-cert-manager-operator
     spec:
       certManager: {}
+  - name: ibm-iam-operator
+    spec:
+      authentication: {}
+      oidcclientwatcher: {}
+      pap: {}
+      policycontroller: {}
+      policydecision: {}
+      secretwatcher: {}
+      securityonboarding: {}
   - name: ibm-healthcheck-operator
     spec:
       healthService: {}
@@ -24,3 +33,6 @@ spec:
     spec:
       commonWebUI: {}
       legacyHeader: {}
+  - name: ibm-management-ingress-operator
+    spec:
+      managementingress: {}
