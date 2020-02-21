@@ -5,42 +5,42 @@ metadata:
 spec:
   operators:
   - name: ibm-metering-operator
-    namespace: ibm-metering-operator
+    namespace: ibm-common-services
     channel: alpha
     packageName: ibm-metering-operator-app
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
     description: The service used to meter workloads in a kubernetes cluster
   - name: ibm-licensing-operator
-    namespace: ibm-licensing-operator
+    namespace: ibm-common-services
     channel: alpha
     packageName: ibm-licensing-operator-app
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
     description: The service used to management the license in a kubernetes cluster
   - name: ibm-mongodb-operator
-    namespace: ibm-mongodb-operator
+    namespace: ibm-common-services
     channel: alpha
     packageName: ibm-mongodb-operator-app
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
     description: The service used to create mongodb in a kubernetes cluster
   - name: ibm-cert-manager-operator
-    namespace: ibm-cert-manager-operator
+    namespace: ibm-common-services
     channel: alpha
     packageName: ibm-cert-manager-operator
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
     description: Operator for managing deployment of cert-manager service.
   - name: ibm-iam-operator
-    namespace: ibm-iam-operator
+    namespace: ibm-common-services
     channel: alpha
     packageName: ibm-iam-operator
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
     description: Operator for managing deployment of iam service.
   - name: ibm-healthcheck-operator
-    namespace: ibm-healthcheck-operator
+    namespace: ibm-common-services
     channel: alpha
     packageName: ibm-healthcheck-operator-app
     sourceName: opencloud-operators
