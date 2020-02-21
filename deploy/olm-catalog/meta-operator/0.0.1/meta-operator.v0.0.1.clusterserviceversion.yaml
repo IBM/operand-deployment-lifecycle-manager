@@ -65,6 +65,15 @@ metadata:
                 "packageName": "ibm-iam-operator-app",
                 "sourceName": "opencloud-operators",
                 "sourceNamespace": "openshift-marketplace"
+              },
+              {
+                "channel": "alpha",
+                "description": "Operator for managing deployment of management ingress service.",
+                "name": "ibm-management-ingress-operator",
+                "namespace": "ibm-common-services,
+                "packageName": "ibm-management-ingress-operator-app",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace"
               }
             ]
           }
@@ -119,6 +128,12 @@ metadata:
                   "secretwatcher": {},
                   "securityonboarding": {}
                 }
+              },
+              {
+                "name": "ibm-management-ingress-operator",
+                "spec": {
+                  "managementingress": {}
+                }
               }
             ]
           }
@@ -145,7 +160,7 @@ metadata:
               },
               {
                 "name": "ibm-management-ingress-operator",
-                "state": "absent"
+                "state": "present"
               },
               {
                 "name": "ibm-metering-operator",
