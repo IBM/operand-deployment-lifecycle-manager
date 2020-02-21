@@ -107,7 +107,7 @@ operators:
 ```
 
 - `name` is the name of the operator, which should be the same as the services name in the `MetaOperatorConfig` and `MetaOperatorSet`.
-- `namespace` is the namespace the operator will be deployed in.
+- `namespace` is the namespace the operator will be deployed in. For the common services, they need to be installed in the `ibm-common-services` namespace.
 - `channel` is the name of a tracked channel.
 - `packageName` is the name of the package in `CatalogSource` will be deployed.
 - `sourceName` is the name of the `CatalogSource`.

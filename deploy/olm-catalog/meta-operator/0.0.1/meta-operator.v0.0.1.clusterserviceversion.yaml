@@ -16,7 +16,7 @@ metadata:
                 "channel": "alpha",
                 "description": "The service used to meter workloads in a kubernetes cluster",
                 "name": "ibm-metering-operator",
-                "namespace": "ibm-metering-operator",
+                "namespace": "ibm-common-services",
                 "packageName": "ibm-metering-operator-app",
                 "sourceName": "opencloud-operators",
                 "sourceNamespace": "openshift-marketplace"
@@ -25,7 +25,7 @@ metadata:
                 "channel": "alpha",
                 "description": "The service used to management the license in a kubernetes cluster",
                 "name": "ibm-licensing-operator",
-                "namespace": "ibm-licensing-operator",
+                "namespace": "ibm-common-services",
                 "packageName": "ibm-licensing-operator-app",
                 "sourceName": "opencloud-operators",
                 "sourceNamespace": "openshift-marketplace"
@@ -34,7 +34,7 @@ metadata:
                 "channel": "alpha",
                 "description": "The service used to create mongodb in a kubernetes cluster",
                 "name": "ibm-mongodb-operator",
-                "namespace": "ibm-mongodb-operator",
+                "namespace": "ibm-common-services",
                 "packageName": "ibm-mongodb-operator-app",
                 "sourceName": "opencloud-operators",
                 "sourceNamespace": "openshift-marketplace"
@@ -43,7 +43,7 @@ metadata:
                 "channel": "alpha",
                 "description": "Operator for managing deployment of cert-manager service.",
                 "name": "ibm-cert-manager-operator",
-                "namespace": "ibm-cert-manager-operator",
+                "namespace": "ibm-common-services",
                 "packageName": "ibm-cert-manager-operator",
                 "sourceName": "opencloud-operators",
                 "sourceNamespace": "openshift-marketplace"
@@ -52,7 +52,7 @@ metadata:
                 "channel": "alpha",
                 "description": "Operator for managing deployment of health check service.",
                 "name": "ibm-healthcheck-operator",
-                "namespace": "ibm-healthcheck-operator",
+                "namespace": "ibm-common-services",
                 "packageName": "ibm-healthcheck-operator-app",
                 "sourceName": "opencloud-operators",
                 "sourceNamespace": "openshift-marketplace"
@@ -61,7 +61,7 @@ metadata:
                 "channel": "alpha",
                 "description": "Operator for managing deployment of IAM service.",
                 "name": "ibm-iam-operator",
-                "namespace": "ibm-iam-operator",
+                "namespace": "ibm-common-services,
                 "packageName": "ibm-iam-operator-app",
                 "sourceName": "opencloud-operators",
                 "sourceNamespace": "openshift-marketplace"
