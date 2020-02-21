@@ -180,7 +180,17 @@ func (r *ReconcileMetaOperatorSet) Reconcile(request reconcile.Request) (reconci
 	case mocnum < 1:
 		return reconcile.Result{}, nil
 	case mocnum > 1:
-		reqLogger.Error(fmt.Errorf("multiple MetaOperatorCatalog in one namespace"), "There are multiple MetaOperatorCatalog custom resource in "+request.Namespace+". Choose the first one "+mocList.Items[0].Name)
+		reqLogger.Error(fmt.Errorf("multiple MetaOperatorCatalog in one namespace"),
+		"There are multiple MetaOperatorCatalog custom resource in "+
+		request.Namespace+
+		". Choose the first one "+
+		mocList.Items[0].Name+
+		" and Delete the others")
+		for i:=1; i < mocnum; i++ {
+			if err := r.client.Delete(context.TODO(), &mocList.Items[i]); err != nil {
+				return reconcile.Result{}, err
+			}
+		}
 	}
 
 	moc := &mocList.Items[0]
@@ -203,7 +213,17 @@ func (r *ReconcileMetaOperatorSet) Reconcile(request reconcile.Request) (reconci
 	case cscnum < 1:
 		return reconcile.Result{}, nil
 	case cscnum > 1:
-		reqLogger.Error(fmt.Errorf("multiple MetaOperatorConfig in one namespace"), "There are multiple MetaOperatorConfig custom resource in "+request.Namespace+". Choose the first one "+cscList.Items[0].Name)
+		reqLogger.Error(fmt.Errorf("multiple MetaOperatorConfig in one namespace"),
+		 "There are multiple MetaOperatorConfig custom resource in "+
+		 request.Namespace+
+		 ". Choose the first one "+
+		 cscList.Items[0].Name+
+		 " and Delete the others")
+		 for i:=1; i < cscnum; i++ {
+			 if err := r.client.Delete(context.TODO(), &cscList.Items[i]); err != nil {
+				 return reconcile.Result{}, err
+			 }
+		 }
 	}
 
 	csc := &cscList.Items[0]
