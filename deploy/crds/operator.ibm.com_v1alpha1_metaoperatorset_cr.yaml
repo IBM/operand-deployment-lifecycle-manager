@@ -11,7 +11,7 @@ spec:
   - name: ibm-iam-operator
     state: present
   - name: ibm-management-ingress-operator
-    state: absent
+    state: present
   - name: ibm-metering-operator
     state: absent
   - name: ibm-licensing-operator
