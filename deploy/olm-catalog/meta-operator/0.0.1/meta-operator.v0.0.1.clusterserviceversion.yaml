@@ -160,7 +160,7 @@ metadata:
               },
               {
                 "name": "ibm-management-ingress-operator",
-                "state": "present"
+                "state": "absent"
               },
               {
                 "name": "ibm-metering-operator",
