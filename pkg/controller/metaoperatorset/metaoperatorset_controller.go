@@ -18,6 +18,7 @@ package metaoperatorset
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -28,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -160,13 +160,18 @@ func (r *ReconcileMetaOperatorSet) Reconcile(request reconcile.Request) (reconci
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling MetaOperatorSet")
 
+	// Fetch the MetaOperatorSet instance
+	setInstance := &operatorv1alpha1.MetaOperatorSet{}
+	if err := r.client.Get(context.TODO(), request.NamespacedName, setInstance); err != nil {
+		// Error reading the object - requeue the request.
+		return reconcile.Result{}, client.IgnoreNotFound(err)
+	}
+
 	// Fetch the MetaOperatorCatalog instance
-	moc := &operatorv1alpha1.MetaOperatorCatalog{}
-	if err := r.client.Get(context.TODO(), types.NamespacedName{Namespace: request.Namespace, Name: "common-service"}, moc); err != nil {
-		if errors.IsNotFound(err) {
-			return reconcile.Result{}, nil
-		}
-		return reconcile.Result{}, err
+	moc, err := r.listandDeleteCatalog(setInstance.Namespace)
+
+	if err != nil {
+		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
 
 	// Initialize MetaOperatorCatalog status
@@ -175,24 +180,15 @@ func (r *ReconcileMetaOperatorSet) Reconcile(request reconcile.Request) (reconci
 	}
 
 	// Fetch the MetaOperatorConfig instance
-	csc := &operatorv1alpha1.MetaOperatorConfig{}
-	if err := r.client.Get(context.TODO(), types.NamespacedName{Namespace: request.Namespace, Name: "common-service"}, csc); err != nil {
-		if errors.IsNotFound(err) {
-			return reconcile.Result{}, nil
-		}
-		return reconcile.Result{}, err
+	csc, err := r.listandDeleteConfig(setInstance.Namespace)
+
+	if err != nil {
+		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
 
 	// Initialize MetaOperatorConfig status
 	if err := r.initServiceStatus(csc); err != nil {
 		return reconcile.Result{}, err
-	}
-
-	// Fetch the MetaOperatorSet instance
-	setInstance := &operatorv1alpha1.MetaOperatorSet{}
-	if err := r.client.Get(context.TODO(), request.NamespacedName, setInstance); err != nil {
-		// Error reading the object - requeue the request.
-		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
 
 	// Add finalizer
@@ -368,4 +364,45 @@ func (r *ReconcileMetaOperatorSet) addFinalizer(cr *operatorv1alpha1.MetaOperato
 		}
 	}
 	return nil
+}
+
+func (r *ReconcileMetaOperatorSet) listandDeleteConfig(namespace string) (*operatorv1alpha1.MetaOperatorConfig, error) {
+	reqLogger := log.WithValues("Request.Namespace", namespace)
+	reqLogger.Info("Fetch MetaOperatorConfig instance")
+
+	// Fetch the MetaOperatorConfig instance
+	cscList := &operatorv1alpha1.MetaOperatorConfigList{}
+	if err := r.client.List(context.TODO(), cscList, &client.ListOptions{Namespace: namespace}); err != nil {
+		return nil, err
+	}
+
+	if len(cscList.Items) > 1 {
+		reqLogger.Error(fmt.Errorf("multiple MetaOperatorConfig in one namespace"),
+			"There are multiple MetaOperatorConfig custom resource in "+
+				namespace+
+				". Choose the first one "+
+				cscList.Items[0].Name+
+				". You need to leave one and delete the others")
+	}
+	return &cscList.Items[0], nil
+}
+
+func (r *ReconcileMetaOperatorSet) listandDeleteCatalog(namespace string) (*operatorv1alpha1.MetaOperatorCatalog, error) {
+	reqLogger := log.WithValues("Request.Namespace", namespace)
+	reqLogger.Info("Fetch MetaOperatorCatalog instance")
+	// Fetch the MetaOperatorCatalog instance
+	mocList := &operatorv1alpha1.MetaOperatorCatalogList{}
+	if err := r.client.List(context.TODO(), mocList, &client.ListOptions{Namespace: namespace}); err != nil {
+		return nil, err
+	}
+
+	if len(mocList.Items) > 1 {
+		reqLogger.Error(fmt.Errorf("multiple MetaOperatorCatalog in one namespace"),
+			"There are multiple MetaOperatorCatalog custom resource in "+
+				namespace+
+				". Choose the first one "+
+				mocList.Items[0].Name+
+				". You need to leave one and delete the others")
+	}
+	return &mocList.Items[0], nil
 }
