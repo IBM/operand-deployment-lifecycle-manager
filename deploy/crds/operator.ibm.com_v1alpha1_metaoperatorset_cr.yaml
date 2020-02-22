@@ -20,3 +20,5 @@ spec:
     state: absent
   - name: ibm-healthcheck-operator
     state: present
+  - name: ibm-auditlogging-operator
+    state: absent
