@@ -168,32 +168,11 @@ func (r *ReconcileMetaOperatorSet) Reconcile(request reconcile.Request) (reconci
 	}
 
 	// Fetch the MetaOperatorCatalog instance
-	mocList := &operatorv1alpha1.MetaOperatorCatalogList{}
-	if err := r.client.List(context.TODO(), mocList, &client.ListOptions{Namespace: setInstance.Namespace}); err != nil {
-		if errors.IsNotFound(err) {
-			return reconcile.Result{}, nil
-		}
-		return reconcile.Result{}, err
-	}
+	moc, err := r.listandDeleteCatalog(setInstance.Namespace)
 
-	switch mocnum := len(mocList.Items); {
-	case mocnum < 1:
-		return reconcile.Result{}, nil
-	case mocnum > 1:
-		reqLogger.Error(fmt.Errorf("multiple MetaOperatorCatalog in one namespace"),
-		"There are multiple MetaOperatorCatalog custom resource in "+
-		request.Namespace+
-		". Choose the first one "+
-		mocList.Items[0].Name+
-		" and Delete the others")
-		for i:=1; i < mocnum; i++ {
-			if err := r.client.Delete(context.TODO(), &mocList.Items[i]); err != nil {
-				return reconcile.Result{}, err
-			}
-		}
+	if err != nil {
+		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
-
-	moc := &mocList.Items[0]
 
 	// Initialize MetaOperatorCatalog status
 	if err := r.initOperatorStatus(moc); err != nil {
@@ -201,32 +180,11 @@ func (r *ReconcileMetaOperatorSet) Reconcile(request reconcile.Request) (reconci
 	}
 
 	// Fetch the MetaOperatorConfig instance
-	cscList := &operatorv1alpha1.MetaOperatorConfigList{}
-	if err := r.client.List(context.TODO(), cscList, &client.ListOptions{Namespace: setInstance.Namespace}); err != nil {
-		if errors.IsNotFound(err) {
-			return reconcile.Result{}, nil
-		}
-		return reconcile.Result{}, err
-	}
+	csc, err := r.listandDeleteConfig(setInstance.Namespace)
 
-	switch cscnum := len(cscList.Items); {
-	case cscnum < 1:
-		return reconcile.Result{}, nil
-	case cscnum > 1:
-		reqLogger.Error(fmt.Errorf("multiple MetaOperatorConfig in one namespace"),
-		 "There are multiple MetaOperatorConfig custom resource in "+
-		 request.Namespace+
-		 ". Choose the first one "+
-		 cscList.Items[0].Name+
-		 " and Delete the others")
-		 for i:=1; i < cscnum; i++ {
-			 if err := r.client.Delete(context.TODO(), &cscList.Items[i]); err != nil {
-				 return reconcile.Result{}, err
-			 }
-		 }
+	if err != nil {
+		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
-
-	csc := &cscList.Items[0]
 
 	// Initialize MetaOperatorConfig status
 	if err := r.initServiceStatus(csc); err != nil {
@@ -406,4 +364,45 @@ func (r *ReconcileMetaOperatorSet) addFinalizer(cr *operatorv1alpha1.MetaOperato
 		}
 	}
 	return nil
+}
+
+func (r *ReconcileMetaOperatorSet) listandDeleteConfig(namespace string) (*operatorv1alpha1.MetaOperatorConfig, error) {
+	reqLogger := log.WithValues("Request.Namespace", namespace)
+	reqLogger.Info("Fetch MetaOperatorConfig instance")
+
+	// Fetch the MetaOperatorConfig instance
+	cscList := &operatorv1alpha1.MetaOperatorConfigList{}
+	if err := r.client.List(context.TODO(), cscList, &client.ListOptions{Namespace: namespace}); err != nil {
+		return nil, err
+	}
+
+	if len(cscList.Items) > 1 {
+		reqLogger.Error(fmt.Errorf("multiple MetaOperatorConfig in one namespace"),
+			"There are multiple MetaOperatorConfig custom resource in "+
+				namespace+
+				". Choose the first one "+
+				cscList.Items[0].Name+
+				". You need to leave one and delete the others")
+	}
+	return &cscList.Items[0], nil
+}
+
+func (r *ReconcileMetaOperatorSet) listandDeleteCatalog(namespace string) (*operatorv1alpha1.MetaOperatorCatalog, error) {
+	reqLogger := log.WithValues("Request.Namespace", namespace)
+	reqLogger.Info("Fetch MetaOperatorCatalog instance")
+	// Fetch the MetaOperatorCatalog instance
+	mocList := &operatorv1alpha1.MetaOperatorCatalogList{}
+	if err := r.client.List(context.TODO(), mocList, &client.ListOptions{Namespace: namespace}); err != nil {
+		return nil, err
+	}
+
+	if len(mocList.Items) > 1 {
+		reqLogger.Error(fmt.Errorf("multiple MetaOperatorCatalog in one namespace"),
+			"There are multiple MetaOperatorCatalog custom resource in "+
+				namespace+
+				". Choose the first one "+
+				mocList.Items[0].Name+
+				". You need to leave one and delete the others")
+	}
+	return &mocList.Items[0], nil
 }
