@@ -53,3 +53,10 @@ spec:
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
     description: Operator for managing deployment of management ingress service.
+  - name: ibm-auditlogging-operator
+    namespace: ibm-common-services
+    channel: alpha
+    packageName: ibm-auditlogging-operator-app
+    sourceName: opencloud-operators
+    sourceNamespace: openshift-marketplace
+    description: Operator for managing deployment of auditlogging service.

@@ -75,6 +75,15 @@ metadata:
                 "sourceName": "opencloud-operators",
                 "sourceNamespace": "openshift-marketplace"
               }
+              {
+                "channel": "alpha",
+                "description": "Operator for managing deployment of auditlogging service.",
+                "name": "ibm-auditlogging-operator",
+                "namespace": "ibm-common-services",
+                "packageName": "ibm-auditlogging-operator-app",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace"
+              }
             ]
           }
         },
@@ -135,6 +144,13 @@ metadata:
                   "managementingress": {}
                 }
               }
+              {
+                "name": "ibm-auditlogging-operator",
+                "spec": {
+                  "auditloggings": {},
+                  "auditpolicies": {}
+                }
+              }
             ]
           }
         },
@@ -177,6 +193,10 @@ metadata:
               {
                 "name": "ibm-healthcheck-operator",
                 "state": "present"
+              },
+              {
+                "name": "ibm-auditlogging-operator",
+                "state": "absent"
               }
             ]
           }
