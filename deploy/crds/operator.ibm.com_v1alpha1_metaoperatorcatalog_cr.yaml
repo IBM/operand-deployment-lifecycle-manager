@@ -46,6 +46,13 @@ spec:
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
     description: Operator for managing deployment of health check service.
+  - name: ibm-commonui-operator
+    namespace: ibm-common-services
+    channel: alpha
+    packageName: ibm-commonui-operator-app
+    sourceName: opencloud-operators
+    sourceNamespace: openshift-marketplace
+    description: The service that services the login page, common header, LDAP, and Team resources pages
   - name: ibm-management-ingress-operator
     namespace: ibm-common-services
     channel: alpha

@@ -29,6 +29,10 @@ spec:
   - name: ibm-healthcheck-operator
     spec:
       healthService: {}
+  - name: ibm-commonui-operator
+    spec:
+      commonWebUI: {}
+      legacyHeader: {}
   - name: ibm-management-ingress-operator
     spec:
       managementingress: {}

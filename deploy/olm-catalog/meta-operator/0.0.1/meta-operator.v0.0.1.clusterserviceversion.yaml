@@ -14,6 +14,15 @@ metadata:
             "operators": [
               {
                 "channel": "alpha",
+                "description": "The service used to display common header and IAM pages for the cluster",
+                "name": "ibm-commonui-operator",
+                "namespace": "ibm-common-services",
+                "packageName": "ibm-commonui-operator-app",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace"
+              },
+              {
+                "channel": "alpha",
                 "description": "The service used to meter workloads in a kubernetes cluster",
                 "name": "ibm-metering-operator",
                 "namespace": "ibm-common-services",
@@ -95,6 +104,13 @@ metadata:
           },
           "spec": {
             "services": [
+              {
+                "name": "ibm-commonui-operator",
+                "spec": {
+                  "commonWebUI": {},
+                  "legacyHeader": {}
+                }
+              },
               {
                 "name": "ibm-metering-operator",
                 "spec": {
