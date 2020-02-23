@@ -37,6 +37,6 @@ spec:
     spec:
       managementingress: {}
   - name: ibm-auditlogging-operator
-      spec:
-        auditloggings: {}
-        auditpolicies: {}
+    spec:
+      auditloggings: {}
+      auditpolicies: {}
