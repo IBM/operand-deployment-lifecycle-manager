@@ -12,6 +12,8 @@ spec:
     state: present
   - name: ibm-management-ingress-operator
     state: absent
+  - name: ibm-ingress-nginx-operator
+    state: absent
   - name: ibm-metering-operator
     state: absent
   - name: ibm-licensing-operator
