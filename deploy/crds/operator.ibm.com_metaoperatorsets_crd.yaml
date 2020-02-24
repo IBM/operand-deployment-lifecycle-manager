@@ -83,26 +83,35 @@ spec:
                     type: string
                 type: object
               type: array
-            members:
-              description: Members represnets the current operators of the set
-              properties:
-                ready:
-                  description: Ready are the operator members that are ready The member
-                    names are the same as the subscription
-                  items:
+            member:
+              description: Members represnets the current operand status of the set
+              items:
+                description: MemberStatus show if the Operator is ready
+                properties:
+                  name:
+                    description: The member name are the same as the subscription
+                      name
                     type: string
-                  type: array
-                unready:
-                  description: Unready is that operator members are not ready
-                  items:
-                    type: string
-                  type: array
-              type: object
+                  phase:
+                    description: The operand phase include None, Creating, Running,
+                      Failed
+                    properties:
+                      operandPhase:
+                        description: ServicePhase defines the service status
+                        type: string
+                      operatorPhase:
+                        description: ClusterServiceVersionPhase is a label for the
+                          condition of a ClusterServiceVersion at the current time.
+                        type: string
+                    type: object
+                required:
+                - name
+                - phase
+                type: object
+              type: array
             phase:
               description: Phase is the cluster running phase
               type: string
-          required:
-          - phase
           type: object
       type: object
   version: v1alpha1

@@ -34,9 +34,9 @@ import (
 	util "github.com/IBM/meta-operator/pkg/util"
 )
 
-func (r *ReconcileMetaOperatorSet) reconcileMetaOperatorConfig(serviceConfigs map[string]operatorv1alpha1.ConfigService, csc *operatorv1alpha1.MetaOperatorConfig) *multiErr {
+func (r *ReconcileMetaOperatorSet) reconcileOperand(serviceConfigs map[string]operatorv1alpha1.ConfigService, csc *operatorv1alpha1.MetaOperatorConfig) *multiErr {
 	reqLogger := log.WithValues()
-	reqLogger.Info("Reconciling MetaOperatorConfig")
+	reqLogger.Info("Reconciling Operand")
 	merr := &multiErr{}
 	for _, service := range serviceConfigs {
 		if service.State == Present {

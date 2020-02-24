@@ -354,10 +354,17 @@ func schema_pkg_apis_operator_v1alpha1_MetaOperatorSetStatus(ref common.Referenc
 							},
 						},
 					},
-					"members": {
+					"member": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Members represnets the current operators of the set",
-							Ref:         ref("./pkg/apis/operator/v1alpha1.MembersStatus"),
+							Description: "Members represnets the current operand status of the set",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("./pkg/apis/operator/v1alpha1.MemberStatus"),
+									},
+								},
+							},
 						},
 					},
 					"phase": {
@@ -368,10 +375,9 @@ func schema_pkg_apis_operator_v1alpha1_MetaOperatorSetStatus(ref common.Referenc
 						},
 					},
 				},
-				Required: []string{"phase"},
 			},
 		},
 		Dependencies: []string{
-			"./pkg/apis/operator/v1alpha1.Condition", "./pkg/apis/operator/v1alpha1.MembersStatus"},
+			"./pkg/apis/operator/v1alpha1.Condition", "./pkg/apis/operator/v1alpha1.MemberStatus"},
 	}
 }

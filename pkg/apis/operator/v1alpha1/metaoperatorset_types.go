@@ -17,6 +17,7 @@
 package v1alpha1
 
 import (
+	olmv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -53,6 +54,7 @@ const (
 	ConditionDelete  ConditionType = "Delete"
 
 	ClusterPhaseNone     ClusterPhase = ""
+	ClusterPhasePending  ClusterPhase = "Pending"
 	ClusterPhaseCreating ClusterPhase = "Creating"
 	ClusterPhaseUpdating ClusterPhase = "Updating"
 	ClusterPhaseDeleting ClusterPhase = "Deleting"
@@ -80,20 +82,26 @@ type MetaOperatorSetStatus struct {
 	// +optional
 	// +listType=set
 	Conditions []Condition `json:"conditions,omitempty"`
-	// Members represnets the current operators of the set
+	// Members represnets the current operand status of the set
 	// +optional
-	Members MembersStatus `json:"members,omitempty"`
+	Members []MemberStatus `json:"member,omitempty"`
 	// Phase is the cluster running phase
+	// +optional
 	Phase ClusterPhase `json:"phase"`
 }
 
-// MembersStatus show if the Operator is ready
-type MembersStatus struct {
-	// Ready are the operator members that are ready
-	// The member names are the same as the subscription
-	Ready []string `json:"ready,omitempty"`
-	// Unready is that operator members are not ready
-	Unready []string `json:"unready,omitempty"`
+// MemberPhase show the phase of the operator and operator instance
+type MemberPhase struct {
+	OperatorPhase olmv1alpha1.ClusterServiceVersionPhase `json:"operatorPhase,omitempty"`
+	OperandPhase  ServicePhase                           `json:"operandPhase,omitempty"`
+}
+
+// MemberStatus show if the Operator is ready
+type MemberStatus struct {
+	// The member name are the same as the subscription name
+	Name string `json:"name"`
+	// The operand phase include None, Creating, Running, Failed
+	Phase MemberPhase `json:"phase"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
