@@ -35,7 +35,10 @@ spec:
       legacyHeader: {}
   - name: ibm-management-ingress-operator
     spec:
-      managementingress: {}
+      managementIngress: {}
+  - name: ibm-ingress-nginx-operator
+    spec:
+      nginxIngress: {}
   - name: ibm-auditlogging-operator
     spec:
       auditloggings: {}
