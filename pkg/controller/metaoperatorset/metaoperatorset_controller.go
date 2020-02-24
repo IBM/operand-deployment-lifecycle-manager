@@ -207,9 +207,7 @@ func (r *ReconcileMetaOperatorSet) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, nil
 	}
 
-	err = r.reconcileMetaOperator(opts, setInstance, moc)
-
-	if err != nil {
+	if err = r.reconcileOperator(opts, setInstance, moc); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -231,25 +229,14 @@ func (r *ReconcileMetaOperatorSet) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
-	// Reconcile the MetaOperatorConfig
-	merr := r.reconcileMetaOperatorConfig(serviceConfigs, csc)
+	// Reconcile the Operand
+	merr := r.reconcileOperand(serviceConfigs, csc)
 
 	if len(merr.errors) != 0 {
 		return reconcile.Result{}, merr
 	}
 
-	// Check unready number of subscription
 	if err := r.updateMemberStatus(setInstance); err != nil {
-		return reconcile.Result{}, err
-	}
-	if setInstance.Status.Members.Unready != nil {
-		if err := r.updatePhaseStatus(setInstance, operatorv1alpha1.ClusterPhaseCreating); err != nil {
-			return reconcile.Result{}, err
-		}
-		reqLogger.Info("Waiting for all the operators ready ......")
-		return reconcile.Result{Requeue: true}, nil
-	}
-	if err := r.updatePhaseStatus(setInstance, operatorv1alpha1.ClusterPhaseRunning); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -261,6 +248,12 @@ func (r *ReconcileMetaOperatorSet) Reconcile(request reconcile.Request) (reconci
 		if err != nil {
 			return reconcile.Result{}, err
 		}
+	}
+
+	// Check if all csv deploy successed
+	if setInstance.Status.Phase != operatorv1alpha1.ClusterPhaseRunning {
+		reqLogger.Info("Waiting for all the operands deploy successed")
+		return reconcile.Result{RequeueAfter: 5}, nil
 	}
 
 	return reconcile.Result{}, nil

@@ -23,7 +23,7 @@ TARGET_GOOS=linux
 TARGET_GOARCH=amd64
 
 # The namespcethat operator will be deployed in
-NAMESPACE=meta-operator
+NAMESPACE=ibm-common-services
 
 # Image URL to use all building/pushing image targets;
 # Use your own docker registry and image name for dev/test by overridding the IMG and REGISTRY environment variable.

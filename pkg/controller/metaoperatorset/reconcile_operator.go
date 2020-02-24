@@ -29,9 +29,9 @@ import (
 	operatorv1alpha1 "github.com/IBM/meta-operator/pkg/apis/operator/v1alpha1"
 )
 
-func (r *ReconcileMetaOperatorSet) reconcileMetaOperator(opts map[string]operatorv1alpha1.Operator, setInstance *operatorv1alpha1.MetaOperatorSet, moc *operatorv1alpha1.MetaOperatorCatalog) error {
+func (r *ReconcileMetaOperatorSet) reconcileOperator(opts map[string]operatorv1alpha1.Operator, setInstance *operatorv1alpha1.MetaOperatorSet, moc *operatorv1alpha1.MetaOperatorCatalog) error {
 	reqLogger := log.WithValues()
-	reqLogger.Info("Reconciling MetaOperator")
+	reqLogger.Info("Reconciling Operator")
 	for _, o := range opts {
 		// Check subscription if exist
 		found, err := r.olmClient.OperatorsV1alpha1().Subscriptions(o.Namespace).Get(o.Name, metav1.GetOptions{})
@@ -68,6 +68,10 @@ func (r *ReconcileMetaOperatorSet) reconcileMetaOperator(opts map[string]operato
 		} else {
 			// Subscription existing and not managed by Set controller
 			reqLogger.WithValues("Subscription.Namespace", found.Namespace, "Subscription.Name", found.Name).Info("Subscription has created by other user, ignore create it.")
+		}
+
+		if err := r.updateMemberStatus(setInstance); err != nil {
+			return err
 		}
 	}
 	return nil
