@@ -168,10 +168,14 @@ func (r *ReconcileMetaOperatorSet) Reconcile(request reconcile.Request) (reconci
 	}
 
 	// Fetch the MetaOperatorCatalog instance
-	moc, err := r.listandDeleteCatalog(setInstance.Namespace)
+	moc, err := r.listCatalog(setInstance.Namespace)
+
+	if moc == nil {
+		return reconcile.Result{}, nil
+	}
 
 	if err != nil {
-		return reconcile.Result{}, client.IgnoreNotFound(err)
+		return reconcile.Result{}, err
 	}
 
 	// Initialize MetaOperatorCatalog status
@@ -180,10 +184,14 @@ func (r *ReconcileMetaOperatorSet) Reconcile(request reconcile.Request) (reconci
 	}
 
 	// Fetch the MetaOperatorConfig instance
-	csc, err := r.listandDeleteConfig(setInstance.Namespace)
+	csc, err := r.listConfig(setInstance.Namespace)
+
+	if csc == nil {
+		return reconcile.Result{}, nil
+	}
 
 	if err != nil {
-		return reconcile.Result{}, client.IgnoreNotFound(err)
+		return reconcile.Result{}, err
 	}
 
 	// Initialize MetaOperatorConfig status
@@ -359,7 +367,7 @@ func (r *ReconcileMetaOperatorSet) addFinalizer(cr *operatorv1alpha1.MetaOperato
 	return nil
 }
 
-func (r *ReconcileMetaOperatorSet) listandDeleteConfig(namespace string) (*operatorv1alpha1.MetaOperatorConfig, error) {
+func (r *ReconcileMetaOperatorSet) listConfig(namespace string) (*operatorv1alpha1.MetaOperatorConfig, error) {
 	reqLogger := log.WithValues("Request.Namespace", namespace)
 	reqLogger.Info("Fetch MetaOperatorConfig instance")
 
@@ -367,6 +375,10 @@ func (r *ReconcileMetaOperatorSet) listandDeleteConfig(namespace string) (*opera
 	cscList := &operatorv1alpha1.MetaOperatorConfigList{}
 	if err := r.client.List(context.TODO(), cscList, &client.ListOptions{Namespace: namespace}); err != nil {
 		return nil, err
+	}
+
+	if len(cscList.Items) == 0 {
+		return nil, nil
 	}
 
 	if len(cscList.Items) > 1 {
@@ -380,13 +392,17 @@ func (r *ReconcileMetaOperatorSet) listandDeleteConfig(namespace string) (*opera
 	return &cscList.Items[0], nil
 }
 
-func (r *ReconcileMetaOperatorSet) listandDeleteCatalog(namespace string) (*operatorv1alpha1.MetaOperatorCatalog, error) {
+func (r *ReconcileMetaOperatorSet) listCatalog(namespace string) (*operatorv1alpha1.MetaOperatorCatalog, error) {
 	reqLogger := log.WithValues("Request.Namespace", namespace)
 	reqLogger.Info("Fetch MetaOperatorCatalog instance")
 	// Fetch the MetaOperatorCatalog instance
 	mocList := &operatorv1alpha1.MetaOperatorCatalogList{}
 	if err := r.client.List(context.TODO(), mocList, &client.ListOptions{Namespace: namespace}); err != nil {
 		return nil, err
+	}
+
+	if len(mocList.Items) == 0 {
+		return nil, nil
 	}
 
 	if len(mocList.Items) > 1 {
