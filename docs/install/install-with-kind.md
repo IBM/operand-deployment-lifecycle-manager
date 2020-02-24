@@ -3,15 +3,12 @@
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
 - [Install the meta operator on vanila Kubernetes](#install-the-meta-operator-on-vanila-kubernetes)
-    - [Deploy meta operator](#deploy-meta-operator)
-        - [1. Deploy a Kubernetes cluster](#1-deploy-a-kubernetes-cluster)
-        - [2. Install OLM](#2-install-olm)
-        - [3. Create CatalogSource](#3-create-catalogsource)
-        - [4. Create Operator Namespace, OperatorGroup, Subscription](#4-create-operator-namespace-operatorgroup-subscription)
-        - [5. Check Operator CSV](#5-check-operator-csv)
-    - [How to use mate operator to install services](#how-to-use-mate-operator-to-install-services)
-        - [1. Update MetaOperatorConfig and MetaOperatorCatalog custom resource](#1-update-metaoperatorconfig-and-metaoperatorcatalog-custom-resource)
-        - [2. Create MetaOperatorSet custom resource](#2-create-metaoperatorset-custom-resource)
+  - [Deploy meta operator](#deploy-meta-operator)
+    - [1. Deploy a Kubernetes cluster](#1-deploy-a-kubernetes-cluster)
+    - [2. Install OLM](#2-install-olm)
+    - [3. Create CatalogSource](#3-create-catalogsource)
+    - [4. Create Operator Namespace, OperatorGroup, Subscription](#4-create-operator-namespace-operatorgroup-subscription)
+    - [5. Check Operator CSV](#5-check-operator-csv)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -65,24 +62,24 @@ kubectl apply -f - <<END
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: meta-operator
+  name: ibm-common-services
 
 ---
 apiVersion: operators.coreos.com/v1alpha2
 kind: OperatorGroup
 metadata:
   name: operatorgroup
-  namespace: meta-operator
+  namespace: ibm-common-services
 spec:
   targetNamespaces:
-  - meta-operator
+  - ibm-common-services
 
 ---
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
   name: meta-operator
-  namespace: meta-operator
+  namespace: ibm-common-services
 spec:
   channel: alpha
   name: meta-operator-app

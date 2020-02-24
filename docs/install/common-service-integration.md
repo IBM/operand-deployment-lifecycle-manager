@@ -27,7 +27,7 @@
   - [3.Make a pull request to merge the changes](#3make-a-pull-request-to-merge-the-changes)
 - [End to end test](#end-to-end-test)
   - [1. Create an OperatorSource in the Openshift cluster](#1-create-an-operatorsource-in-the-openshift-cluster)
-  - [2. Create a Namespace `meta-operator`](#2-create-a-namespace-meta-operator)
+  - [2. Create a Namespace `ibm-common-services`](#2-create-a-namespace-ibm-common-services)
   - [3. Install meta Operator](#3-install-meta-operator)
   - [4. Check the installed operators](#4-check-the-installed-operators)
   - [5. Edit the MetaOperator Config custom resource and the MetaOperator Catalog custom resource](#5-edit-the-metaoperator-config-custom-resource-and-the-metaoperator-catalog-custom-resource)
@@ -369,9 +369,9 @@ spec:
   type: appregistry
 ```
 
-## 2. Create a Namespace `meta-operator`
+## 2. Create a Namespace `ibm-common-services`
 
-Open `OperatorHub` page in OCP console left menu, then `Create Project`, e.g., create a project named `meta-operator`.
+Open `OperatorHub` page in OCP console left menu, then `Create Project`, e.g., create a project named `ibm-common-services`.
 
 ## 3. Install meta Operator
 
@@ -390,7 +390,7 @@ Open `Installed Operators` page to check the installed operators.
 
 ```bash
 vi deploy/crds/operator.ibm.com_v1alpha1_metaoperatorset_cr.yaml
-oc apply -f deploy/crds/operator.ibm.com_v1alpha1_metaoperatorset_cr.yaml -n meta-operator
+oc apply -f deploy/crds/operator.ibm.com_v1alpha1_metaoperatorset_cr.yaml -n ibm-common-services
 ```
 
 - [Editing MetaOperator Set](#edit-a-metaoperator-set-custom-resource)
