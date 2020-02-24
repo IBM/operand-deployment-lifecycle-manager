@@ -11,16 +11,16 @@
 
 1. Ensure **operator-sdk** is installed and login to your OpenShift cluster as an admin user.
 
-1. If the namespace **meta-operator** exists, delete it. Do this to make sure the namespace is clean.
+1. If the namespace **ibm-common-services** exists, delete it. Do this to make sure the namespace is clean.
 
     ```bash
-    oc delete namespace meta-operator
+    oc delete namespace ibm-common-services
     ```
 
-1. Create the namespace **meta-operator**.
+1. Create the namespace **ibm-common-services**.
 
     ```bash
-    oc create namespace meta-operator
+    oc create namespace ibm-common-services
     ```
 
 1. Run the test using `make test-e2e`  command locally.
