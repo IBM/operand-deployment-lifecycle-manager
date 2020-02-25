@@ -3,21 +3,18 @@
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
 - [Install the meta operator](#install-the-meta-operator)
-    - [Install the meta operator On OCP 4.x](#install-the-meta-operator-on-ocp-4x)
-        - [1. Create OperatorSource](#1-create-operatorsource)
-        - [2. Create a Namespace `meta-operator`](#2-create-a-namespace-meta-operator)
-        - [3. Install meta Operator](#3-install-meta-operator)
-        - [4. Check the installed operators](#4-check-the-installed-operators)
-    - [Install the meta operator On OCP 3.11](#install-the-meta-operator-on-ocp-311)
-        - [0. Install OLM](#0-install-olm)
-        - [1. Build Operator Registry image](#1-build-operator-registry-image)
-        - [2. Create CatalogSource](#2-create-catalogsource)
-        - [3. Create Operator NS, Group, Subscription](#3-create-operator-ns-group-subscription)
-        - [4. Check Operator CSV](#4-check-operator-csv)
-    - [Create and update custom resource](#create-and-update-custom-resource)
-        - [1. Update MetaOperatorConfig and MetaOperatorCatalog custom resource](#1-update-metaoperatorconfig-and-metaoperatorcatalog-custom-resource)
-        - [2. Create MetaOperatorSet custom resource](#2-create-metaoperatorset-custom-resource)
-    - [Post-installation](#post-installation)
+  - [Install the meta operator On OCP 4.x](#install-the-meta-operator-on-ocp-4x)
+    - [1. Create OperatorSource](#1-create-operatorsource)
+    - [2. Create a Namespace `ibm-common-services`](#2-create-a-namespace-ibm-common-services)
+    - [3. Install meta Operator](#3-install-meta-operator)
+    - [4. Check the installed operators](#4-check-the-installed-operators)
+  - [Install the meta operator On OCP 3.11](#install-the-meta-operator-on-ocp-311)
+    - [0. Install OLM](#0-install-olm)
+    - [1. Build Operator Registry image](#1-build-operator-registry-image)
+    - [2. Create CatalogSource](#2-create-catalogsource)
+    - [3. Create Operator NS, Group, Subscription](#3-create-operator-ns-group-subscription)
+    - [4. Check Operator CSV](#4-check-operator-csv)
+  - [Post-installation](#post-installation)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -44,9 +41,9 @@ spec:
   type: appregistry
 ```
 
-### 2. Create a Namespace `meta-operator`
+### 2. Create a Namespace `ibm-common-services`
 
-Open the `OperatorHub` page in OCP console left menu, then `Create Project`, e.g., create a project named `meta-operator`.
+Open the `OperatorHub` page in OCP console left menu, then `Create Project`, e.g., create a project named `ibm-common-services`.
 
 ### 3. Install meta Operator
 
@@ -93,24 +90,24 @@ spec:
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: meta-operator
+  name: ibm-common-services
 
 ---
 apiVersion: operators.coreos.com/v1alpha2
 kind: OperatorGroup
 metadata:
   name: operatorgroup
-  namespace: meta-operator
+  namespace: ibm-common-services
 spec:
   targetNamespaces:
-  - meta-operator
+  - ibm-common-services
 
 ---
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
   name: meta-operator
-  namespace: meta-operator
+  namespace: ibm-common-services
 spec:
   channel: alpha
   name: meta-operator-app
