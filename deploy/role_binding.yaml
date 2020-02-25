@@ -5,7 +5,7 @@ metadata:
 subjects:
 - kind: ServiceAccount
   name: meta-operator
-  namespace: meta-operator
+  namespace: ibm-common-services
 roleRef:
   kind: ClusterRole
   name: meta-operator

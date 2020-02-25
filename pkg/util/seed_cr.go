@@ -51,7 +51,7 @@ func InitInstance(yamlPath string, mgr manager.Manager) error {
 	if namespace == "" {
 		namespace = os.Getenv("POD_NAMESPACE")
 		if namespace == "" {
-			namespace = "meta-operator"
+			namespace = "ibm-common-services"
 		}
 		obj.SetNamespace(namespace)
 	}
