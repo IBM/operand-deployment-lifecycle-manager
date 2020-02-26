@@ -28,23 +28,23 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		"./pkg/apis/operator/v1alpha1.OperandConfig":            schema_pkg_apis_operator_v1alpha1_MetaOperatorConfig(ref),
-		"./pkg/apis/operator/v1alpha1.MetaOperatorConfigSpec":   schema_pkg_apis_operator_v1alpha1_MetaOperatorConfigSpec(ref),
-		"./pkg/apis/operator/v1alpha1.MetaOperatorConfigStatus": schema_pkg_apis_operator_v1alpha1_MetaOperatorConfigStatus(ref),
-		"./pkg/apis/operator/v1alpha1.OperandRegistry":          schema_pkg_apis_operator_v1alpha1_OperandRegistry(ref),
-		"./pkg/apis/operator/v1alpha1.OperandRegistrySpec":      schema_pkg_apis_operator_v1alpha1_OperandRegistrySpec(ref),
-		"./pkg/apis/operator/v1alpha1.OperandRegistryStatus":    schema_pkg_apis_operator_v1alpha1_OperandRegistryStatus(ref),
-		"./pkg/apis/operator/v1alpha1.OperandRequest":           schema_pkg_apis_operator_v1alpha1_OperandRequest(ref),
-		"./pkg/apis/operator/v1alpha1.OperandRequestSpec":       schema_pkg_apis_operator_v1alpha1_OperandRequestSpec(ref),
-		"./pkg/apis/operator/v1alpha1.OperandRequestStatus":     schema_pkg_apis_operator_v1alpha1_OperandRequestStatus(ref),
+		"./pkg/apis/operator/v1alpha1.OperandConfig":         schema_pkg_apis_operator_v1alpha1_OperandConfig(ref),
+		"./pkg/apis/operator/v1alpha1.OperandConfigSpec":     schema_pkg_apis_operator_v1alpha1_OperandConfigSpec(ref),
+		"./pkg/apis/operator/v1alpha1.OperandConfigStatus":   schema_pkg_apis_operator_v1alpha1_OperandConfigStatus(ref),
+		"./pkg/apis/operator/v1alpha1.OperandRegistry":       schema_pkg_apis_operator_v1alpha1_OperandRegistry(ref),
+		"./pkg/apis/operator/v1alpha1.OperandRegistrySpec":   schema_pkg_apis_operator_v1alpha1_OperandRegistrySpec(ref),
+		"./pkg/apis/operator/v1alpha1.OperandRegistryStatus": schema_pkg_apis_operator_v1alpha1_OperandRegistryStatus(ref),
+		"./pkg/apis/operator/v1alpha1.OperandRequest":        schema_pkg_apis_operator_v1alpha1_OperandRequest(ref),
+		"./pkg/apis/operator/v1alpha1.OperandRequestSpec":    schema_pkg_apis_operator_v1alpha1_OperandRequestSpec(ref),
+		"./pkg/apis/operator/v1alpha1.OperandRequestStatus":  schema_pkg_apis_operator_v1alpha1_OperandRequestStatus(ref),
 	}
 }
 
-func schema_pkg_apis_operator_v1alpha1_MetaOperatorConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_operator_v1alpha1_OperandConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "OperandConfig is the Schema for the metaoperatorconfigs API",
+				Description: "OperandConfig is the Schema for the operandconfigs API",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"kind": {
@@ -68,27 +68,27 @@ func schema_pkg_apis_operator_v1alpha1_MetaOperatorConfig(ref common.ReferenceCa
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("./pkg/apis/operator/v1alpha1.MetaOperatorConfigSpec"),
+							Ref: ref("./pkg/apis/operator/v1alpha1.OperandConfigSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("./pkg/apis/operator/v1alpha1.MetaOperatorConfigStatus"),
+							Ref: ref("./pkg/apis/operator/v1alpha1.OperandConfigStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"./pkg/apis/operator/v1alpha1.MetaOperatorConfigSpec", "./pkg/apis/operator/v1alpha1.MetaOperatorConfigStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"./pkg/apis/operator/v1alpha1.OperandConfigSpec", "./pkg/apis/operator/v1alpha1.OperandConfigStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
-func schema_pkg_apis_operator_v1alpha1_MetaOperatorConfigSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_operator_v1alpha1_OperandConfigSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "MetaOperatorConfigSpec defines the desired state of OperandConfig",
+				Description: "OperandConfigSpec defines the desired state of OperandConfig",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"services": {
@@ -117,11 +117,11 @@ func schema_pkg_apis_operator_v1alpha1_MetaOperatorConfigSpec(ref common.Referen
 	}
 }
 
-func schema_pkg_apis_operator_v1alpha1_MetaOperatorConfigStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_operator_v1alpha1_OperandConfigStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "MetaOperatorConfigStatus defines the observed state of OperandConfig",
+				Description: "OperandConfigStatus defines the observed state of OperandConfig",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"serviceStatus": {

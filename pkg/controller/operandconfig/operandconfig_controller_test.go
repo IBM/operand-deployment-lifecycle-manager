@@ -28,7 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-// TestConfigConfig runs ReconcileMetaOperatorConfig.Reconcile() against a
+// TestConfigConfig runs ReconcileOperandConfig.Reconcile() against a
 // fake client that tracks a OperandConfig object.
 func TestConfigController(t *testing.T) {
 
@@ -45,7 +45,7 @@ func TestConfigController(t *testing.T) {
 		},
 	}
 
-	// A metaoperatorconfig resource with metadata and spec.
+	// A operandconfig resource with metadata and spec.
 	config := &v1alpha1.OperandConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -78,8 +78,8 @@ func TestConfigController(t *testing.T) {
 	s.AddKnownTypes(v1alpha1.SchemeGroupVersion, config)
 	// Create a fake client to mock API calls.
 	cl := fake.NewFakeClient(objs...)
-	// Create a ReconcileMetaOperatorConfig object with the scheme and fake client.
-	r := &ReconcileMetaOperatorConfig{client: cl, scheme: s}
+	// Create a ReconcileOperandConfig object with the scheme and fake client.
+	r := &ReconcileOperandConfig{client: cl, scheme: s}
 
 	res, err := r.Reconcile(req)
 	if err != nil {
@@ -92,8 +92,8 @@ func TestConfigController(t *testing.T) {
 
 	// Create a fake client to mock instance not found.
 	cl = fake.NewFakeClient()
-	// Create a ReconcileMetaOperatorConfig object with the scheme and fake client.
-	r = &ReconcileMetaOperatorConfig{client: cl, scheme: s}
+	// Create a ReconcileOperandConfig object with the scheme and fake client.
+	r = &ReconcileOperandConfig{client: cl, scheme: s}
 
 	res, err = r.Reconcile(req)
 	if err != nil {
