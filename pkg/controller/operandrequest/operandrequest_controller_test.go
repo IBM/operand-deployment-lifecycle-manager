@@ -138,7 +138,7 @@ func moc(name, namespace string) *v1alpha1.OperandConfig {
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: v1alpha1.MetaOperatorConfigSpec{
+		Spec: v1alpha1.OperandConfigSpec{
 			Services: []v1alpha1.ConfigService{
 				{
 					Name: "etcd",

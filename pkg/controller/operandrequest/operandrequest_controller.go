@@ -372,7 +372,7 @@ func (r *ReconcileOperandRequest) listConfig(namespace string) (*operatorv1alpha
 	reqLogger.Info("Fetch OperandConfig instance")
 
 	// Fetch the OperandConfig instance
-	cscList := &operatorv1alpha1.MetaOperatorConfigList{}
+	cscList := &operatorv1alpha1.OperandConfigList{}
 	if err := r.client.List(context.TODO(), cscList, &client.ListOptions{Namespace: namespace}); err != nil {
 		return nil, err
 	}

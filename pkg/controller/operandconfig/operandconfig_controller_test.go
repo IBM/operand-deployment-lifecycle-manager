@@ -51,7 +51,7 @@ func TestConfigController(t *testing.T) {
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: v1alpha1.MetaOperatorConfigSpec{
+		Spec: v1alpha1.OperandConfigSpec{
 			Services: []v1alpha1.ConfigService{
 				{
 					Name: "jenkins",

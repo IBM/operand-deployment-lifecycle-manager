@@ -385,7 +385,7 @@ func newMetaOperatorConfigCR(name, namespace string) *operator.OperandConfig {
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: operator.MetaOperatorConfigSpec{
+		Spec: operator.OperandConfigSpec{
 			Services: []operator.ConfigService{
 				{
 					Name: "etcd",
