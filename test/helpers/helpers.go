@@ -254,7 +254,7 @@ func GetOperators(f *framework.Framework, namespace string) (map[string]operator
 		err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.CatalogCrName, Namespace: namespace}, moInstance)
 		if err != nil {
 			if errors.IsNotFound(err) {
-				lastReason = fmt.Sprintf("Waiting on MetaOperator instance to be created [meta-operator]")
+				lastReason = fmt.Sprintf("Waiting on MetaOperator instance to be created [operand-deployment-lifecycle-manager]")
 				return false, nil
 			}
 			return false, err

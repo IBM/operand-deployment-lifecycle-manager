@@ -18,17 +18,17 @@
   - [Add required CRD into CSV](#add-required-crd-into-csv)
     - [Required CRDs](#required-crds)
 - [Common Service Onboarding](#common-service-onboarding)
-  - [1. Clone the git repository of meta operator](#1-clone-the-git-repository-of-meta-operator)
+  - [1. Clone the git repository of meta operator](#1-clone-the-git-repository-of-operand-deployment-lifecycle-manager)
   - [2. Edit default value of custom resource](#2-edit-default-value-of-custom-resource)
     - [Edit the MetaOperator Catalog custom resource](#edit-the-metaoperator-catalog-custom-resource)
     - [Edit the MetaOperator Config custom resource](#edit-the-metaoperator-config-custom-resource)
     - [Edit a MetaOperator Set custom resource](#edit-a-metaoperator-set-custom-resource)
-    - [Edit alm-example in the meta-operator CSV](#edit-alm-example-in-the-meta-operator-csv)
+    - [Edit alm-example in the operand-deployment-lifecycle-manager CSV](#edit-alm-example-in-the-operand-deployment-lifecycle-manager-csv)
   - [3.Make a pull request to merge the changes](#3make-a-pull-request-to-merge-the-changes)
 - [End to end test](#end-to-end-test)
   - [1. Create an OperatorSource in the Openshift cluster](#1-create-an-operatorsource-in-the-openshift-cluster)
   - [2. Create a Namespace `ibm-common-services`](#2-create-a-namespace-ibm-common-services)
-  - [3. Install meta Operator](#3-install-meta-operator)
+  - [3. Install meta Operator](#3-install-operand-deployment-lifecycle-manager)
   - [4. Check the installed operators](#4-check-the-installed-operators)
   - [5. Edit the MetaOperator Config custom resource and the MetaOperator Catalog custom resource](#5-edit-the-metaoperator-config-custom-resource-and-the-metaoperator-catalog-custom-resource)
   - [6. Create a MetaOperator Set](#6-create-a-metaoperator-set)
@@ -198,7 +198,7 @@ The Lifecycle Manager will ensure all required CSVs have an APIService that is a
 ## 1. Clone the git repository of meta operator
 
 ```bash
-git clone git@github.com:IBM/meta-operator.git
+git clone git@github.com:IBM/operand-deployment-lifecycle-manager.git
 ```
 
 ## 2. Edit default value of custom resource
@@ -206,7 +206,7 @@ git clone git@github.com:IBM/meta-operator.git
 ### Edit the MetaOperator Catalog custom resource
 
 ```bash
-cd meta-operator
+cd operand-deployment-lifecycle-manager
 vi deploy/crds/operator.ibm.com_v1alpha1_operandregistry_cr.yaml
 ```
 
@@ -241,7 +241,7 @@ operators:
 ### Edit the MetaOperator Config custom resource
 
 ```bash
-cd meta-operator
+cd operand-deployment-lifecycle-manager
 vi deploy/crds/operator.ibm.com_v1alpha1_metaoperatorconfig_cr.yaml
 ```
 
@@ -312,7 +312,7 @@ spec:
 ### Edit a MetaOperator Set custom resource
 
 ```bash
-cd meta-operator
+cd operand-deployment-lifecycle-manager
 vi deploy/crds/operator.ibm.com_v1alpha1_operandrequest_cr.yaml
 ```
 
@@ -339,9 +339,9 @@ spec:
 - `state` defines if the service should be present or absent.
 - `description` is the description of the service.
 
-### Edit alm-example in the meta-operator CSV
+### Edit alm-example in the operand-deployment-lifecycle-manager CSV
 
-Add the changes for operandrequest operandregistry and metaoperatorconfig in the [alm-example](https://github.com/IBM/meta-operator/blob/master/deploy/olm-catalog/meta-operator/0.0.1/meta-operator.v0.0.1.clusterserviceversion.yaml#L5)
+Add the changes for operandrequest operandregistry and metaoperatorconfig in the [alm-example](https://github.com/IBM/operand-deployment-lifecycle-manager/blob/master/deploy/olm-catalog/operand-deployment-lifecycle-manager/0.0.1/operand-deployment-lifecycle-manager.v0.0.1.clusterserviceversion.yaml#L5)
 
 ## 3.Make a pull request to merge the changes
 
@@ -375,7 +375,7 @@ Open `OperatorHub` page in OCP console left menu, then `Create Project`, e.g., c
 
 ## 3. Install meta Operator
 
-Open `OperatorHub` and search `meta-operator` to find the operator, and install it.
+Open `OperatorHub` and search `operand-deployment-lifecycle-manager` to find the operator, and install it.
 
 ## 4. Check the installed operators
 

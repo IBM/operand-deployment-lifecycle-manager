@@ -17,8 +17,8 @@
 
 set -e
 QUAY_NAMESPACE=${QUAY_NAMESPACE:-opencloudio}
-QUAY_REPOSITORY=${QUAY_REPOSITORY:-meta-operator-app}
-BUNDLE_DIR=${BUNDLE_DIR:-deploy/olm-catalog/meta-operator}
+QUAY_REPOSITORY=${QUAY_REPOSITORY:-operand-deployment-lifecycle-manager-app}
+BUNDLE_DIR=${BUNDLE_DIR:-deploy/olm-catalog/operand-deployment-lifecycle-manager}
 
 [[ "X$QUAY_USERNAME" == "X" ]] && read -rp "Enter username quay.io: " QUAY_USERNAME
 [[ "X$QUAY_PASSWORD" == "X" ]] && read -rsp "Enter password quay.io: " QUAY_PASSWORD && echo

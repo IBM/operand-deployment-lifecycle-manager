@@ -2,13 +2,13 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
-- [Install the meta operator](#install-the-meta-operator)
-  - [Install the meta operator On OCP 4.x](#install-the-meta-operator-on-ocp-4x)
+- [Install the meta operator](#install-the-operand-deployment-lifecycle-manager)
+  - [Install the meta operator On OCP 4.x](#install-the-operand-deployment-lifecycle-manager-on-ocp-4x)
     - [1. Create OperatorSource](#1-create-operatorsource)
     - [2. Create a Namespace `ibm-common-services`](#2-create-a-namespace-ibm-common-services)
-    - [3. Install meta Operator](#3-install-meta-operator)
+    - [3. Install meta Operator](#3-install-operand-deployment-lifecycle-manager)
     - [4. Check the installed operators](#4-check-the-installed-operators)
-  - [Install the meta operator On OCP 3.11](#install-the-meta-operator-on-ocp-311)
+  - [Install the meta operator On OCP 3.11](#install-the-operand-deployment-lifecycle-manager-on-ocp-311)
     - [0. Install OLM](#0-install-olm)
     - [1. Build Operator Registry image](#1-build-operator-registry-image)
     - [2. Create CatalogSource](#2-create-catalogsource)
@@ -47,7 +47,7 @@ Open the `OperatorHub` page in OCP console left menu, then `Create Project`, e.g
 
 ### 3. Install meta Operator
 
-Open `OperatorHub` and search `meta-operator` to find the operator, and install it.
+Open `OperatorHub` and search `operand-deployment-lifecycle-manager` to find the operator, and install it.
 
 ### 4. Check the installed operators
 
@@ -106,11 +106,11 @@ spec:
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
-  name: meta-operator
+  name: operand-deployment-lifecycle-manager
   namespace: ibm-common-services
 spec:
   channel: alpha
-  name: meta-operator-app
+  name: operand-deployment-lifecycle-manager-app
   source: opencloud-operators
   sourceNamespace: olm
 ```
@@ -118,7 +118,7 @@ spec:
 ### 4. Check Operator CSV
 
 ```bash
-oc -n meta-operator get csv
+oc -n operand-deployment-lifecycle-manager get csv
 ```
 
 <!--
