@@ -256,9 +256,6 @@ spec:
       displayName: OperandConfig
       kind: OperandConfig
       name: operandconfigs.operator.ibm.com
-      resources:
-      - kind: OperandConfig
-        version: v1alpha1 
       specDescriptors:
       - description: Services is a list of configuration of service
         displayName: Services
@@ -268,9 +265,6 @@ spec:
       displayName: OperandRegistry
       kind: OperandRegistry
       name: operandregistries.operator.ibm.com
-      resources:
-      - kind: OperandRegistry
-        version: v1alpha1
       specDescriptors:
       - description: Operators is a list of operator OLM definition
         displayName: Operators
@@ -280,24 +274,12 @@ spec:
       displayName: OperandRequest
       kind: OperandRequest
       name: operandrequests.operator.ibm.com
-      resources:
-      - kind: subscriptions
-        version: v1alpha1
-      - kind: installplans
-        version: v1alpha1
-      - kind: operatorgroups
-        version: v1
       specDescriptors:
-      - description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster Important:
-          Run "operator-sdk generate k8s" to regenerate code after modifying this
-          file Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html'
+      - description: Services defines a list of operator installation states
         displayName: Services
         path: services
       statusDescriptors:
-      - description: 'INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-          Important: Run "operator-sdk generate k8s" to regenerate code after modifying
-          this file Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
-          Conditions represents the current state of the Set Service'
+      - description: Conditions represents the current state of the Set Service
         displayName: Conditions
         path: conditions
         x-descriptors:
