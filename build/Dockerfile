@@ -19,24 +19,24 @@ ARG VCS_REF
 ARG VCS_URL
 
 LABEL org.label-schema.vendor="IBM" \
-  org.label-schema.name="meta-operator" \
-  org.label-schema.description="Meta Operator for operators" \
+  org.label-schema.name="odlm" \
+  org.label-schema.description="Manager the lifecycle of the operands" \
   org.label-schema.vcs-ref=$VCS_REF \
   org.label-schema.vcs-url=$VCS_URL \
   org.label-schema.license="Licensed Materials - Property of IBM" \
   org.label-schema.schema-version="1.0" \
-  name="meta-operator" \
+  name="odlm" \
   vendor="IBM" \
-  description="Meta Operator for operators" \
-  summary="Meta Operator for operators"
+  description="Manager the lifecycle of the operands" \
+  summary="Manager the lifecycle of the operands"
 
-ENV OPERATOR=/usr/local/bin/meta-operator \
+ENV OPERATOR=/usr/local/bin/odlm \
   DEPLOY_DIR=/deploy \
   USER_UID=1001 \
-  USER_NAME=meta-operator
+  USER_NAME=odlm
 
 # install operator binary
-COPY build/_output/bin/meta-operator ${OPERATOR}
+COPY build/_output/bin/odlm ${OPERATOR}
 COPY deploy/crds ${DEPLOY_DIR}
 
 COPY build/bin /usr/local/bin
