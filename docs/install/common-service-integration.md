@@ -18,20 +18,20 @@
   - [Add required CRD into CSV](#add-required-crd-into-csv)
     - [Required CRDs](#required-crds)
 - [Common Service Onboarding](#common-service-onboarding)
-  - [1. Clone the git repository of meta operator](#1-clone-the-git-repository-of-meta-operator)
+  - [1. Clone the git repository of operand deployment lifecycle manager](#1-clone-the-git-repository-of-operand-deployment-lifecycle-manager)
   - [2. Edit default value of custom resource](#2-edit-default-value-of-custom-resource)
-    - [Edit the MetaOperator Catalog custom resource](#edit-the-metaoperator-catalog-custom-resource)
-    - [Edit the MetaOperator Config custom resource](#edit-the-metaoperator-config-custom-resource)
-    - [Edit a MetaOperator Set custom resource](#edit-a-metaoperator-set-custom-resource)
-    - [Edit alm-example in the meta-operator CSV](#edit-alm-example-in-the-meta-operator-csv)
+    - [Edit the ODLM Registry custom resource](#edit-the-odlm-registry-custom-resource)
+    - [Edit the ODLM Config custom resource](#edit-the-odlm-config-custom-resource)
+    - [Edit a ODLM Set custom resource](#edit-a-odlm-set-custom-resource)
+    - [Edit alm-example in the ODLM CSV](#edit-alm-example-in-the-odlm-csv)
   - [3.Make a pull request to merge the changes](#3make-a-pull-request-to-merge-the-changes)
 - [End to end test](#end-to-end-test)
   - [1. Create an OperatorSource in the Openshift cluster](#1-create-an-operatorsource-in-the-openshift-cluster)
   - [2. Create a Namespace `ibm-common-services`](#2-create-a-namespace-ibm-common-services)
-  - [3. Install meta Operator](#3-install-meta-operator)
+  - [3. Install ODLM Operator](#3-install-odlm-operator)
   - [4. Check the installed operators](#4-check-the-installed-operators)
-  - [5. Edit the MetaOperator Config custom resource and the MetaOperator Catalog custom resource](#5-edit-the-metaoperator-config-custom-resource-and-the-metaoperator-catalog-custom-resource)
-  - [6. Create a MetaOperator Set](#6-create-a-metaoperator-set)
+  - [5. Edit the ODLM Config custom resource and the ODLM Registry custom resource](#5-edit-the-odlm-config-custom-resource-and-the-odlm-registry-custom-resource)
+  - [6. Create a ODLM Set](#6-create-a-odlm-set)
   - [7. Check the installed operators and their custom resource](#7-check-the-installed-operators-and-their-custom-resource)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -195,18 +195,18 @@ The Lifecycle Manager will ensure all required CSVs have an APIService that is a
 
 # Common Service Onboarding
 
-## 1. Clone the git repository of meta operator
+## 1. Clone the git repository of operand deployment lifecycle manager
 
 ```bash
-git clone git@github.com:IBM/meta-operator.git
+git clone https://github.com/IBM/operand-deployment-lifecycle-manager.git
 ```
 
 ## 2. Edit default value of custom resource
 
-### Edit the MetaOperator Catalog custom resource
+### Edit the ODLM Registry custom resource
 
 ```bash
-cd meta-operator
+cd operand-deployment-lifecycle-manager
 vi deploy/crds/operator.ibm.com_v1alpha1_operandregistry_cr.yaml
 ```
 
@@ -238,11 +238,11 @@ operators:
 - `sourceNamespace` is the namespaces of the `CatalogSource`.
 - `description` is used to add a detailed description for service including clarifying the dependency.
 
-### Edit the MetaOperator Config custom resource
+### Edit the ODLM Config custom resource
 
 ```bash
-cd meta-operator
-vi deploy/crds/operator.ibm.com_v1alpha1_metaoperatorconfig_cr.yaml
+cd operand-deployment-lifecycle-manager
+vi deploy/crds/operator.ibm.com_v1alpha1_operandconfig_cr.yaml
 ```
 
 Append the operator custom resource information under the `services` field.
@@ -309,10 +309,10 @@ spec:
   ...
 ```
 
-### Edit a MetaOperator Set custom resource
+### Edit a ODLM Set custom resource
 
 ```bash
-cd meta-operator
+cd operand-deployment-lifecycle-manager
 vi deploy/crds/operator.ibm.com_v1alpha1_operandrequest_cr.yaml
 ```
 
@@ -339,9 +339,9 @@ spec:
 - `state` defines if the service should be present or absent.
 - `description` is the description of the service.
 
-### Edit alm-example in the meta-operator CSV
+### Edit alm-example in the ODLM CSV
 
-Add the changes for operandrequest operandregistry and metaoperatorconfig in the [alm-example](https://github.com/IBM/meta-operator/blob/master/deploy/olm-catalog/meta-operator/0.0.1/meta-operator.v0.0.1.clusterserviceversion.yaml#L5)
+Add the changes for operandrequest operandregistry and operandconfig in the [alm-example](https://github.com/IBM/operand-deployment-lifecycle-manager/blob/1741453336631f1df9d3337ff507e10819458197/deploy/olm-catalog/operand-deployment-lifecycle-manager/0.0.1/operand-deployment-lifecycle-manager.v0.0.1.clusterserviceversion.yaml#L5)
 
 ## 3.Make a pull request to merge the changes
 
@@ -373,26 +373,26 @@ spec:
 
 Open `OperatorHub` page in OCP console left menu, then `Create Project`, e.g., create a project named `ibm-common-services`.
 
-## 3. Install meta Operator
+## 3. Install ODLM Operator
 
-Open `OperatorHub` and search `meta-operator` to find the operator, and install it.
+Open `OperatorHub` and search `operand-deployment-lifecycle-manager` to find the operator, and install it.
 
 ## 4. Check the installed operators
 
 Open `Installed Operators` page to check the installed operators.
 
-## 5. Edit the MetaOperator Config custom resource and the MetaOperator Catalog custom resource
+## 5. Edit the ODLM Config custom resource and the ODLM Registry custom resource
 
-- [Editing MetaOperator Config](#edit-the-metaoperator-config-custom-resource)
-- [Editing MetaOperator Catalog](#edit-the-metaoperator-catalog-custom-resource)
+- [Editing ODLM Config](#edit-the-operand-config-custom-resource)
+- [Editing ODLM Registry](#edit-the-operand-registry-custom-resource)
 
-## 6. Create a MetaOperator Set
+## 6. Create a ODLM Set
 
 ```bash
 vi deploy/crds/operator.ibm.com_v1alpha1_operandrequest_cr.yaml
 oc apply -f deploy/crds/operator.ibm.com_v1alpha1_operandrequest_cr.yaml -n ibm-common-services
 ```
 
-- [Editing MetaOperator Set](#edit-a-metaoperator-set-custom-resource)
+- [Editing ODLM Set](#edit-a-operand-set-custom-resource)
 
 ## 7. Check the installed operators and their custom resource
