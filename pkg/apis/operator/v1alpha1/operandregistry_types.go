@@ -77,7 +77,7 @@ type OperandRegistryStatus struct {
 // OperandRegistry is the Schema for the operandregistries API
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:path=operandregistries,shortName=mocat,scope=Namespaced
+// +kubebuilder:resource:path=operandregistries,shortName=or,scope=Namespaced
 type OperandRegistry struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
