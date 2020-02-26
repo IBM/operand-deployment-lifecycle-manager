@@ -35,7 +35,7 @@ import (
 	"github.com/IBM/operand-deployment-lifecycle-manager/pkg/util"
 )
 
-var log = logf.Log.WithName("controller_metaoperatorconfig")
+var log = logf.Log.WithName("controller_operandconfig")
 
 /**
 * USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
@@ -55,7 +55,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 		log.Error(err, "Initialize the OLM client failed.")
 		return nil
 	}
-	return &ReconcileMetaOperatorConfig{client: mgr.GetClient(), scheme: mgr.GetScheme(), olmClient: olmClientset}
+	return &ReconcileOperandConfig{client: mgr.GetClient(), scheme: mgr.GetScheme(), olmClient: olmClientset}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -74,19 +74,19 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	// Create an example OperandConfig CR
 	deployDirectory := os.Getenv("DEPLOY_DIR")
-	log.Info("initializing default metaoperatorconfig")
-	if err = util.InitInstance(deployDirectory+"/operator.ibm.com_v1alpha1_metaoperatorconfig_cr.yaml", mgr); err != nil {
+	log.Info("initializing default operandconfig")
+	if err = util.InitInstance(deployDirectory+"/operator.ibm.com_v1alpha1_operandconfig_cr.yaml", mgr); err != nil {
 		log.Error(err, "Error creating CR, please create it manually")
 	}
 
 	return nil
 }
 
-// blank assignment to verify that ReconcileMetaOperatorConfig implements reconcile.Reconciler
-var _ reconcile.Reconciler = &ReconcileMetaOperatorConfig{}
+// blank assignment to verify that ReconcileOperandConfig implements reconcile.Reconciler
+var _ reconcile.Reconciler = &ReconcileOperandConfig{}
 
-// ReconcileMetaOperatorConfig reconciles a OperandConfig object
-type ReconcileMetaOperatorConfig struct {
+// ReconcileOperandConfig reconciles a OperandConfig object
+type ReconcileOperandConfig struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
 	client    client.Client
@@ -101,7 +101,7 @@ type ReconcileMetaOperatorConfig struct {
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *ReconcileMetaOperatorConfig) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+func (r *ReconcileOperandConfig) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling OperandConfig")
 

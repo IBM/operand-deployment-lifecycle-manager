@@ -42,7 +42,7 @@ var log = logf.Log.WithName("controller_operandregistry")
 * business logic.  Delete these comments after modifying this file.*
  */
 
-// Add creates a new MetaOperator Controller and adds it to the Manager. The Manager will set fields on the Controller
+// Add creates a new OperandRegistry Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
@@ -64,7 +64,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// Watch for changes to primary resource MetaOperator
+	// Watch for changes to primary resource OperandRegistry
 	err = c.Watch(&source.Kind{Type: &operatorv1alpha1.OperandRegistry{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
@@ -82,7 +82,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 // blank assignment to verify that ReconcileOperandRegistry implements reconcile.Reconciler
 var _ reconcile.Reconciler = &ReconcileOperandRegistry{}
 
-// ReconcileOperandRegistry reconciles a MetaOperator object
+// ReconcileOperandRegistry reconciles a OperandRegistry object
 type ReconcileOperandRegistry struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
@@ -92,8 +92,8 @@ type ReconcileOperandRegistry struct {
 	// olmClient *olmclient.Clientset
 }
 
-// Reconcile reads that state of the cluster for a MetaOperator object and makes changes based on the state read
-// and what is in the MetaOperator.Spec
+// Reconcile reads that state of the cluster for a OperandRegistry object and makes changes based on the state read
+// and what is in the OperandRegistry.Spec
 // TODO(user): Modify this Reconcile function to implement your Controller logic.
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
@@ -102,7 +102,7 @@ func (r *ReconcileOperandRegistry) Reconcile(request reconcile.Request) (reconci
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling OperandRegistry")
 
-	// Fetch the MetaOperator instance
+	// Fetch the OperandRegistry instance
 	instance := &operatorv1alpha1.OperandRegistry{}
 	if err := r.client.Get(context.TODO(), request.NamespacedName, instance); err != nil {
 		if errors.IsNotFound(err) {
