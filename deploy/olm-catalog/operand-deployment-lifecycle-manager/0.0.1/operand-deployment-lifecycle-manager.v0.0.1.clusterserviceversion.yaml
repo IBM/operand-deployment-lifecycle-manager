@@ -80,6 +80,12 @@ metadata:
                   "auditloggings": {},
                   "auditpolicies": {}
                 }
+              },
+              {
+                "name": "ibm-catalog-operator",
+                "spec": {
+                  "icpCatalogChart": {}
+                }
               }
             ]
           }
@@ -181,6 +187,15 @@ metadata:
                 "packageName": "ibm-auditlogging-operator-app",
                 "sourceName": "opencloud-operators",
                 "sourceNamespace": "openshift-marketplace"
+              },
+              {
+                "channel": "alpha",
+                "description": "Operator for managing deployment of catalog UI service.",
+                "name": "ibm-catalog-operator",
+                "namespace": "ibm-common-services",
+                "packageName": "ibm-catalog-operator-app",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace"
               }
             ]
           }
@@ -231,6 +246,10 @@ metadata:
               },
               {
                 "name": "ibm-auditlogging-operator",
+                "state": "absent"
+              },
+              {
+                "name": "ibm-catalog-operator",
                 "state": "absent"
               }
             ]
