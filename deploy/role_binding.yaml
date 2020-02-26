@@ -1,12 +1,12 @@
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: meta-operator
+  name: operand-deployment-lifecycle-manager
 subjects:
 - kind: ServiceAccount
-  name: meta-operator
+  name: operand-deployment-lifecycle-manager
   namespace: ibm-common-services
 roleRef:
   kind: ClusterRole
-  name: meta-operator
+  name: operand-deployment-lifecycle-manager
   apiGroup: rbac.authorization.k8s.io

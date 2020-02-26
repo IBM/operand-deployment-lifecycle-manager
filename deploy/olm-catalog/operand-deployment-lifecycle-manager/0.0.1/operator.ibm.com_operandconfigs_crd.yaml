@@ -1,22 +1,22 @@
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  name: metaoperatorconfigs.operator.ibm.com
+  name: operandconfigs.operator.ibm.com
 spec:
   group: operator.ibm.com
   names:
     kind: OperandConfig
-    listKind: MetaOperatorConfigList
-    plural: metaoperatorconfigs
+    listKind: OperandConfigList
+    plural: operandconfigs
     shortNames:
-    - mocon
-    singular: metaoperatorconfig
+    - opcon
+    singular: operandconfig
   scope: Namespaced
   subresources:
     status: {}
   validation:
     openAPIV3Schema:
-      description: OperandConfig is the Schema for the metaoperatorconfigs API
+      description: OperandConfig is the Schema for the operandconfigs API
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -31,7 +31,7 @@ spec:
         metadata:
           type: object
         spec:
-          description: MetaOperatorConfigSpec defines the desired state of OperandConfig
+          description: OperandConfigSpec defines the desired state of OperandConfig
           properties:
             services:
               description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
@@ -60,7 +60,7 @@ spec:
               type: array
           type: object
         status:
-          description: MetaOperatorConfigStatus defines the observed state of OperandConfig
+          description: OperandConfigStatus defines the observed state of OperandConfig
           properties:
             serviceStatus:
               additionalProperties:

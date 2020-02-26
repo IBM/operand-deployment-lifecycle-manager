@@ -86,6 +86,7 @@ type OperandRequestStatus struct {
 	// +optional
 	Members []MemberStatus `json:"member,omitempty"`
 	// Phase is the cluster running phase
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
 	// +optional
 	Phase ClusterPhase `json:"phase"`
 }
@@ -109,7 +110,8 @@ type MemberStatus struct {
 // OperandRequest is the Schema for the operandrequests API
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:path=operandrequests,shortName=moset,scope=Namespaced
+// +kubebuilder:resource:path=operandrequests,shortName=opreq,scope=Namespaced
+// +operator-sdk:gen-csv:customresourcedefinitions.displayName="OperandRequest"
 type OperandRequest struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

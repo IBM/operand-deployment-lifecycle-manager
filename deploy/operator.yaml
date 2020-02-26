@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: odlm
+  name: operand-deployment-lifecycle-manager
 spec:
   replicas: 1
   selector:
     matchLabels:
-      name: odlm
+      name: operand-deployment-lifecycle-manager
   template:
     metadata:
       labels:
-        name: odlm
+        name: operand-deployment-lifecycle-manager
     spec:
-      serviceAccountName: odlm
+      serviceAccountName: operand-deployment-lifecycle-manager
       containers:
-        - name: odlm
+        - name: operand-deployment-lifecycle-manager
           # Replace this with the built image name
           image: quay.io/opencloudio/odlm:latest
           command:
@@ -32,4 +32,4 @@ spec:
                 fieldRef:
                   fieldPath: metadata.namespace
             - name: OPERATOR_NAME
-              value: "odlm"
+              value: "operand-deployment-lifecycle-manager"

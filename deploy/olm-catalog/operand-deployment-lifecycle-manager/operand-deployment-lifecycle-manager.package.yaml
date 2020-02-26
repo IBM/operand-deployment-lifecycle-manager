@@ -1,0 +1,5 @@
+channels:
+- currentCSV: operand-deployment-lifecycle-manager.v0.0.1
+  name: alpha
+defaultChannel: alpha
+packageName: operand-deployment-lifecycle-manager-app

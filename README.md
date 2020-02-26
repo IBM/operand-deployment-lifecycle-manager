@@ -2,7 +2,7 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
-- [Meta Operator](#meta-operator)
+- [Operand Deployment Lifecycle Manager](#operand-deployment-lifecycle-manager)
   - [Overview](#overview)
   - [Prerequisites](#prerequisites)
   - [Common Service Onboarding](#common-service-onboarding)
@@ -17,7 +17,7 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-# Meta Operator
+# Operand Deployment Lifecycle Manager
 
 ## Overview
 
@@ -39,13 +39,11 @@ This is a meta operator for install the common service operator and instance.
 
 ### Cloning the repository
 
-Checkout this Meta Operator repository
+Checkout this Operand Deployment Lifecycle Manager repository
 
 ```bash
-# mkdir -p $GOPATH/src/github.com/
-# cd $GOPATH/src/github.com/
-# git clone https://github.com/IBM/meta-operator.git
-# cd meta-operator
+# git clone https://github.com/IBM/operand-deployment-lifecycle-manager.git
+# cd operand-deployment-lifecycle-manager
 ```
 
 ### Building the operator
@@ -65,13 +63,13 @@ Following the expected result.
 ```bash
 # kubectl get all -n ibm-common-services
 NAME                                           READY   STATUS    RESTARTS   AGE
-pod/meta-operator-786d699956-z7k4n   1/1     Running   0          21s
+pod/operand-deployment-lifecycle-manager-786d699956-z7k4n   1/1     Running   0          21s
 
 NAME                                      READY   UP-TO-DATE   AVAILABLE   AGE
-deployment.apps/meta-operator   1/1     1            1           22s
+deployment.apps/operand-deployment-lifecycle-manager   1/1     1            1           22s
 
 NAME                                                 DESIRED   CURRENT   READY   AGE
-replicaset.apps/meta-operator-786d699956   1         1         1       22s
+replicaset.apps/operand-deployment-lifecycle-manager-786d699956   1         1         1       22s
 ```
 
 ### Uninstalling
@@ -83,7 +81,7 @@ To uninstall all that was performed in the above step run `make uninstall`.
 Use the following command to check the operator logs.
 
 ```bash
-# kubectl logs deployment.apps/meta-operator -n ibm-common-services
+# kubectl logs deployment.apps/operand-deployment-lifecycle-manager -n ibm-common-services
 ```
 
 ### Running Tests
