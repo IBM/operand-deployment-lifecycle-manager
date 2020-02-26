@@ -19,10 +19,10 @@ package operandrequest
 import (
 	"context"
 
-	operatorv1alpha1 "github.com/IBM/meta-operator/pkg/apis/operator/v1alpha1"
+	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 )
 
-func (r *ReconcileOperandRequest) initServiceStatus(cr *operatorv1alpha1.MetaOperatorConfig) error {
+func (r *ReconcileOperandRequest) initServiceStatus(cr *operatorv1alpha1.OperandConfig) error {
 
 	if cr.Status.ServiceStatus == nil {
 		cr.Status.ServiceStatus = make(map[string]operatorv1alpha1.CrStatus)
@@ -52,7 +52,7 @@ func (r *ReconcileOperandRequest) initServiceStatus(cr *operatorv1alpha1.MetaOpe
 	return nil
 }
 
-func (r *ReconcileOperandRequest) updateServiceStatus(cr *operatorv1alpha1.MetaOperatorConfig, operatorName, serviceName string, serviceStatus operatorv1alpha1.ServicePhase) error {
+func (r *ReconcileOperandRequest) updateServiceStatus(cr *operatorv1alpha1.OperandConfig, operatorName, serviceName string, serviceStatus operatorv1alpha1.ServicePhase) error {
 
 	cr.Status.ServiceStatus[operatorName].CrStatus[serviceName] = serviceStatus
 	if err := r.client.Status().Update(context.TODO(), cr); err != nil {

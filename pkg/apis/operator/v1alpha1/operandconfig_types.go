@@ -24,7 +24,7 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// MetaOperatorConfigSpec defines the desired state of MetaOperatorConfig
+// MetaOperatorConfigSpec defines the desired state of OperandConfig
 // +k8s:openapi-gen=true
 type MetaOperatorConfigSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
@@ -46,7 +46,7 @@ type ConfigService struct {
 	State string `json:"state,omitempty"`
 }
 
-// MetaOperatorConfigStatus defines the observed state of MetaOperatorConfig
+// MetaOperatorConfigStatus defines the observed state of OperandConfig
 // +k8s:openapi-gen=true
 type MetaOperatorConfigStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
@@ -64,11 +64,11 @@ type CrStatus struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// MetaOperatorConfig is the Schema for the metaoperatorconfigs API
+// OperandConfig is the Schema for the metaoperatorconfigs API
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=metaoperatorconfigs,shortName=mocon,scope=Namespaced
-type MetaOperatorConfig struct {
+type OperandConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
@@ -78,11 +78,11 @@ type MetaOperatorConfig struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// MetaOperatorConfigList contains a list of MetaOperatorConfig
+// MetaOperatorConfigList contains a list of OperandConfig
 type MetaOperatorConfigList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []MetaOperatorConfig `json:"items"`
+	Items           []OperandConfig `json:"items"`
 }
 
 // ServicePhase defines the service status
@@ -96,5 +96,5 @@ const (
 )
 
 func init() {
-	SchemeBuilder.Register(&MetaOperatorConfig{}, &MetaOperatorConfigList{})
+	SchemeBuilder.Register(&OperandConfig{}, &MetaOperatorConfigList{})
 }

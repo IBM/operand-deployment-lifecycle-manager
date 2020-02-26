@@ -107,7 +107,7 @@ metadata:
         },
         {
           "apiVersion": "operator.ibm.com/v1alpha1",
-          "kind": "MetaOperatorConfig",
+          "kind": "OperandConfig",
           "metadata": {
             "name": "common-service"
           },
@@ -270,9 +270,9 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:podStatuses
       version: v1alpha1
-    - description: MetaOperatorConfig is the Schema for the metaoperatorconfigs API
-      displayName: MetaOperatorConfig
-      kind: MetaOperatorConfig
+    - description: OperandConfig is the Schema for the metaoperatorconfigs API
+      displayName: OperandConfig
+      kind: OperandConfig
       name: metaoperatorconfigs.operator.ibm.com
       specDescriptors:
       - description: A list defines the configuration for each service.

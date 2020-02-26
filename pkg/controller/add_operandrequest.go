@@ -17,7 +17,7 @@
 package controller
 
 import (
-	"github.com/IBM/meta-operator/pkg/controller/operandrequest"
+	"github.com/IBM/operand-deployment-lifecycle-manager/pkg/controller/operandrequest"
 )
 
 func init() {

@@ -26,7 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	operatorv1alpha1 "github.com/IBM/meta-operator/pkg/apis/operator/v1alpha1"
+	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 )
 
 func (r *ReconcileOperandRequest) reconcileOperator(opts map[string]operatorv1alpha1.Operator, setInstance *operatorv1alpha1.OperandRequest, moc *operatorv1alpha1.OperandRegistry) error {

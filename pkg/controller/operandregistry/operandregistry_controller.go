@@ -31,8 +31,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	operatorv1alpha1 "github.com/IBM/meta-operator/pkg/apis/operator/v1alpha1"
-	"github.com/IBM/meta-operator/pkg/util"
+	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
+	"github.com/IBM/operand-deployment-lifecycle-manager/pkg/util"
 )
 
 var log = logf.Log.WithName("controller_operandregistry")

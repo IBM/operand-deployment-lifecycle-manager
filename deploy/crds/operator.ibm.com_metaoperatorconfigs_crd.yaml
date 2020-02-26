@@ -5,18 +5,18 @@ metadata:
 spec:
   group: operator.ibm.com
   names:
-    kind: MetaOperatorConfig
-    listKind: MetaOperatorConfigList
+    kind: OperandConfig
+    listKind: OperandConfigList
     plural: metaoperatorconfigs
     shortNames:
     - mocon
-    singular: metaoperatorconfig
+    singular: operandconfig
   scope: Namespaced
   subresources:
     status: {}
   validation:
     openAPIV3Schema:
-      description: MetaOperatorConfig is the Schema for the metaoperatorconfigs API
+      description: OperandConfig is the Schema for the metaoperatorconfigs API
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -31,7 +31,7 @@ spec:
         metadata:
           type: object
         spec:
-          description: MetaOperatorConfigSpec defines the desired state of MetaOperatorConfig
+          description: MetaOperatorConfigSpec defines the desired state of OperandConfig
           properties:
             services:
               description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
@@ -60,7 +60,7 @@ spec:
               type: array
           type: object
         status:
-          description: MetaOperatorConfigStatus defines the observed state of MetaOperatorConfig
+          description: MetaOperatorConfigStatus defines the observed state of OperandConfig
           properties:
             serviceStatus:
               additionalProperties:

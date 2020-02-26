@@ -39,7 +39,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	operatorv1alpha1 "github.com/IBM/meta-operator/pkg/apis/operator/v1alpha1"
+	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 )
 
 var log = logf.Log.WithName("controller_operandrequest")
@@ -89,8 +89,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// Watch for changes to primary resource MetaOperatorConfig
-	err = c.Watch(&source.Kind{Type: &operatorv1alpha1.MetaOperatorConfig{}}, &handler.EnqueueRequestForObject{})
+	// Watch for changes to primary resource OperandConfig
+	err = c.Watch(&source.Kind{Type: &operatorv1alpha1.OperandConfig{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -183,7 +183,7 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, err
 	}
 
-	// Fetch the MetaOperatorConfig instance
+	// Fetch the OperandConfig instance
 	csc, err := r.listConfig(setInstance.Namespace)
 
 	if csc == nil {
@@ -194,7 +194,7 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, err
 	}
 
-	// Initialize MetaOperatorConfig status
+	// Initialize OperandConfig status
 	if err := r.initServiceStatus(csc); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -219,7 +219,7 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, err
 	}
 
-	// Fetch MetaOperatorConfig instance
+	// Fetch OperandConfig instance
 	serviceConfigs, err := r.fetchConfigs(request, setInstance)
 	if serviceConfigs == nil {
 		if err != nil {
@@ -367,11 +367,11 @@ func (r *ReconcileOperandRequest) addFinalizer(cr *operatorv1alpha1.OperandReque
 	return nil
 }
 
-func (r *ReconcileOperandRequest) listConfig(namespace string) (*operatorv1alpha1.MetaOperatorConfig, error) {
+func (r *ReconcileOperandRequest) listConfig(namespace string) (*operatorv1alpha1.OperandConfig, error) {
 	reqLogger := log.WithValues("Request.Namespace", namespace)
-	reqLogger.Info("Fetch MetaOperatorConfig instance")
+	reqLogger.Info("Fetch OperandConfig instance")
 
-	// Fetch the MetaOperatorConfig instance
+	// Fetch the OperandConfig instance
 	cscList := &operatorv1alpha1.MetaOperatorConfigList{}
 	if err := r.client.List(context.TODO(), cscList, &client.ListOptions{Namespace: namespace}); err != nil {
 		return nil, err
@@ -382,8 +382,8 @@ func (r *ReconcileOperandRequest) listConfig(namespace string) (*operatorv1alpha
 	}
 
 	if len(cscList.Items) > 1 {
-		reqLogger.Error(fmt.Errorf("multiple MetaOperatorConfig in one namespace"),
-			"There are multiple MetaOperatorConfig custom resource in "+
+		reqLogger.Error(fmt.Errorf("multiple OperandConfig in one namespace"),
+			"There are multiple OperandConfig custom resource in "+
 				namespace+
 				". Choose the first one "+
 				cscList.Items[0].Name+

@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-package metaoperatorconfig
+package operandconfig
 
 import (
 	"context"
@@ -31,8 +31,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	operatorv1alpha1 "github.com/IBM/meta-operator/pkg/apis/operator/v1alpha1"
-	"github.com/IBM/meta-operator/pkg/util"
+	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
+	"github.com/IBM/operand-deployment-lifecycle-manager/pkg/util"
 )
 
 var log = logf.Log.WithName("controller_metaoperatorconfig")
@@ -42,7 +42,7 @@ var log = logf.Log.WithName("controller_metaoperatorconfig")
 * business logic.  Delete these comments after modifying this file.*
  */
 
-// Add creates a new MetaOperatorConfig Controller and adds it to the Manager. The Manager will set fields on the Controller
+// Add creates a new OperandConfig Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
@@ -66,13 +66,13 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// Watch for changes to primary resource MetaOperatorConfig
-	err = c.Watch(&source.Kind{Type: &operatorv1alpha1.MetaOperatorConfig{}}, &handler.EnqueueRequestForObject{})
+	// Watch for changes to primary resource OperandConfig
+	err = c.Watch(&source.Kind{Type: &operatorv1alpha1.OperandConfig{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
 
-	// Create an example MetaOperatorConfig CR
+	// Create an example OperandConfig CR
 	deployDirectory := os.Getenv("DEPLOY_DIR")
 	log.Info("initializing default metaoperatorconfig")
 	if err = util.InitInstance(deployDirectory+"/operator.ibm.com_v1alpha1_metaoperatorconfig_cr.yaml", mgr); err != nil {
@@ -85,7 +85,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 // blank assignment to verify that ReconcileMetaOperatorConfig implements reconcile.Reconciler
 var _ reconcile.Reconciler = &ReconcileMetaOperatorConfig{}
 
-// ReconcileMetaOperatorConfig reconciles a MetaOperatorConfig object
+// ReconcileMetaOperatorConfig reconciles a OperandConfig object
 type ReconcileMetaOperatorConfig struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
@@ -94,8 +94,8 @@ type ReconcileMetaOperatorConfig struct {
 	olmClient *olmclient.Clientset
 }
 
-// Reconcile reads that state of the cluster for a MetaOperatorConfig object and makes changes based on the state read
-// and what is in the MetaOperatorConfig.Spec
+// Reconcile reads that state of the cluster for a OperandConfig object and makes changes based on the state read
+// and what is in the OperandConfig.Spec
 // TODO(user): Modify this Reconcile function to implement your Controller logic.  This example creates
 // a Pod as an example
 // Note:
@@ -103,10 +103,10 @@ type ReconcileMetaOperatorConfig struct {
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileMetaOperatorConfig) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
-	reqLogger.Info("Reconciling MetaOperatorConfig")
+	reqLogger.Info("Reconciling OperandConfig")
 
-	// Fetch the MetaOperatorConfig instance
-	instance := &operatorv1alpha1.MetaOperatorConfig{}
+	// Fetch the OperandConfig instance
+	instance := &operatorv1alpha1.OperandConfig{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {

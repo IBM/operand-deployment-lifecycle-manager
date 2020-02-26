@@ -23,9 +23,9 @@ import (
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
 	"github.com/operator-framework/operator-sdk/pkg/test/e2eutil"
 
-	"github.com/IBM/meta-operator/test/config"
-	"github.com/IBM/meta-operator/test/helpers"
-	"github.com/IBM/meta-operator/test/testsuits"
+	"github.com/IBM/operand-deployment-lifecycle-manager/test/config"
+	"github.com/IBM/operand-deployment-lifecycle-manager/test/helpers"
+	"github.com/IBM/operand-deployment-lifecycle-manager/test/testsuits"
 )
 
 // MetaOperator is the test group for testing Meta Operator
@@ -39,7 +39,7 @@ func MetaOperator(t *testing.T) {
 
 	t.Run("OperandRequest Create", testsuits.OperandRequestCreate)
 	t.Run("OperandRequest Create Update", testsuits.OperandRequestCreateUpdate)
-	t.Run("MetaOperatorConfig Update", testsuits.MetaOperatorConfigUpdate)
+	t.Run("OperandConfig Update", testsuits.MetaOperatorConfigUpdate)
 	t.Run("OperandRegistry Create Update", testsuits.OperandRegistryUpdate)
 	t.Run("OperandRequest Create Delete", testsuits.OperandRequestCreateDelete)
 

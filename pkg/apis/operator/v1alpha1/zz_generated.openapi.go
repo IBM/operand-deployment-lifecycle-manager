@@ -28,7 +28,7 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		"./pkg/apis/operator/v1alpha1.MetaOperatorConfig":       schema_pkg_apis_operator_v1alpha1_MetaOperatorConfig(ref),
+		"./pkg/apis/operator/v1alpha1.OperandConfig":            schema_pkg_apis_operator_v1alpha1_MetaOperatorConfig(ref),
 		"./pkg/apis/operator/v1alpha1.MetaOperatorConfigSpec":   schema_pkg_apis_operator_v1alpha1_MetaOperatorConfigSpec(ref),
 		"./pkg/apis/operator/v1alpha1.MetaOperatorConfigStatus": schema_pkg_apis_operator_v1alpha1_MetaOperatorConfigStatus(ref),
 		"./pkg/apis/operator/v1alpha1.OperandRegistry":          schema_pkg_apis_operator_v1alpha1_OperandRegistry(ref),
@@ -44,7 +44,7 @@ func schema_pkg_apis_operator_v1alpha1_MetaOperatorConfig(ref common.ReferenceCa
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "MetaOperatorConfig is the Schema for the metaoperatorconfigs API",
+				Description: "OperandConfig is the Schema for the metaoperatorconfigs API",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"kind": {
@@ -88,7 +88,7 @@ func schema_pkg_apis_operator_v1alpha1_MetaOperatorConfigSpec(ref common.Referen
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "MetaOperatorConfigSpec defines the desired state of MetaOperatorConfig",
+				Description: "MetaOperatorConfigSpec defines the desired state of OperandConfig",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"services": {
@@ -121,7 +121,7 @@ func schema_pkg_apis_operator_v1alpha1_MetaOperatorConfigStatus(ref common.Refer
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "MetaOperatorConfigStatus defines the observed state of MetaOperatorConfig",
+				Description: "MetaOperatorConfigStatus defines the observed state of OperandConfig",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"serviceStatus": {

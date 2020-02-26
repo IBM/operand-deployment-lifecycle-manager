@@ -22,7 +22,7 @@ import (
 	olmclient "github.com/operator-framework/operator-lifecycle-manager/pkg/api/client/clientset/versioned"
 	"github.com/operator-framework/operator-sdk/pkg/test"
 
-	"github.com/IBM/meta-operator/test/helpers"
+	"github.com/IBM/operand-deployment-lifecycle-manager/test/helpers"
 )
 
 // OperandRequestCreate is for testing the create of the OperandRequest
@@ -87,7 +87,7 @@ func OperandRequestCreateDelete(t *testing.T) {
 	}
 }
 
-// MetaOperatorConfigUpdate is for testing the update of the MetaOperatorConfig
+// MetaOperatorConfigUpdate is for testing the update of the OperandConfig
 func MetaOperatorConfigUpdate(t *testing.T) {
 
 	ctx := test.NewTestCtx(t)

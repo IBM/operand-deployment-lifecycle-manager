@@ -30,11 +30,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	operatorv1alpha1 "github.com/IBM/meta-operator/pkg/apis/operator/v1alpha1"
-	util "github.com/IBM/meta-operator/pkg/util"
+	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
+	util "github.com/IBM/operand-deployment-lifecycle-manager/pkg/util"
 )
 
-func (r *ReconcileOperandRequest) reconcileOperand(serviceConfigs map[string]operatorv1alpha1.ConfigService, csc *operatorv1alpha1.MetaOperatorConfig) *multiErr {
+func (r *ReconcileOperandRequest) reconcileOperand(serviceConfigs map[string]operatorv1alpha1.ConfigService, csc *operatorv1alpha1.OperandConfig) *multiErr {
 	reqLogger := log.WithValues()
 	reqLogger.Info("Reconciling Operand")
 	merr := &multiErr{}
@@ -70,8 +70,8 @@ func (r *ReconcileOperandRequest) reconcileOperand(serviceConfigs map[string]ope
 }
 
 func (r *ReconcileOperandRequest) fetchConfigs(req reconcile.Request, cr *operatorv1alpha1.OperandRequest) (map[string]operatorv1alpha1.ConfigService, error) {
-	// Fetch the MetaOperatorConfig instance
-	csc := &operatorv1alpha1.MetaOperatorConfig{}
+	// Fetch the OperandConfig instance
+	csc := &operatorv1alpha1.OperandConfig{}
 	if err := r.client.Get(context.TODO(), types.NamespacedName{Namespace: req.Namespace, Name: "common-service"}, csc); err != nil {
 		if errors.IsNotFound(err) {
 			return nil, nil
@@ -134,8 +134,8 @@ func (r *ReconcileOperandRequest) getClusterServiceVersion(subName string) (*olm
 	return nil, nil
 }
 
-// generateCr merge and create custome resource base on MetaOperatorConfig and CSV alm-examples
-func (r *ReconcileOperandRequest) generateCr(service operatorv1alpha1.ConfigService, csv *olmv1alpha1.ClusterServiceVersion, csc *operatorv1alpha1.MetaOperatorConfig) error {
+// generateCr merge and create custome resource base on OperandConfig and CSV alm-examples
+func (r *ReconcileOperandRequest) generateCr(service operatorv1alpha1.ConfigService, csv *olmv1alpha1.ClusterServiceVersion, csc *operatorv1alpha1.OperandConfig) error {
 	almExamples := csv.ObjectMeta.Annotations["alm-examples"]
 	namespace := csv.ObjectMeta.Namespace
 	logger := log.WithValues("Subscription", service.Name)
@@ -152,7 +152,7 @@ func (r *ReconcileOperandRequest) generateCr(service operatorv1alpha1.ConfigServ
 
 	merr := &multiErr{}
 
-	// Merge MetaOperatorConfig and Cluster Service Version alm-examples
+	// Merge OperandConfig and Cluster Service Version alm-examples
 	for _, crTemplate := range crTemplates {
 
 		// Create an unstruct object for CR and set its value to CR template
@@ -164,13 +164,13 @@ func (r *ReconcileOperandRequest) generateCr(service operatorv1alpha1.ConfigServ
 
 		for crdName, crConfig := range service.Spec {
 
-			// Compare the name of MetaOperatorConfig and CRD name
+			// Compare the name of OperandConfig and CRD name
 			if strings.EqualFold(name.(string), crdName) {
-				logger.Info(fmt.Sprintf("Found MetaOperatorConfig for %s", name))
+				logger.Info(fmt.Sprintf("Found OperandConfig for %s", name))
 				//Convert CR template spec to string
 				specJSONString, _ := json.Marshal(unstruct.Object["spec"])
 
-				// Merge CR template spec and MetaOperatorConfig spec
+				// Merge CR template spec and OperandConfig spec
 				mergedCR := util.MergeCR(specJSONString, crConfig.Raw)
 
 				unstruct.Object["spec"] = mergedCR
