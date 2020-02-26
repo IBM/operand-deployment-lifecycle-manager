@@ -84,7 +84,7 @@ metadata:
               {
                 "name": "ibm-catalog-operator",
                 "spec": {
-                  "catalogUIService": {}
+                  "icpCatalogChart": {}
                 }
               }
             ]

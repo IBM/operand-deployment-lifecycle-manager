@@ -45,5 +45,5 @@ spec:
       auditpolicies: {}
   - name: ibm-catalog-operator
     spec:
-      catalogUIService: {}
+      icpCatalogChart: {}
       
