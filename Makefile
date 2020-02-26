@@ -27,7 +27,7 @@ NAMESPACE=ibm-common-services
 
 # Image URL to use all building/pushing image targets;
 # Use your own docker registry and image name for dev/test by overridding the IMG and REGISTRY environment variable.
-IMG ?= meta-operator
+IMG ?= odlm 
 REGISTRY ?= quay.io/opencloudio
 CSV_VERSION ?= 0.0.1
 
@@ -120,24 +120,24 @@ endif
 ##@ Build
 
 build:
-	@echo "Building the meta-operator binary"
+	@echo "Building the odlm binary"
 	@CGO_ENABLED=0 go build -o build/_output/bin/$(IMG) ./cmd/manager
 	@strip $(STRIP_FLAGS) build/_output/bin/$(IMG)
 
 build-image: build $(CONFIG_DOCKER_TARGET)
 	$(eval ARCH := $(shell uname -m|sed 's/x86_64/amd64/'))
 	docker build -t $(REGISTRY)/$(IMG)-$(ARCH):$(VERSION) -f build/Dockerfile .
-	@\rm -f build/_output/bin/meta-operator
+	@\rm -f build/_output/bin/odlm
 	@if [ $(BUILD_LOCALLY) -ne 1 ] && [ "$(ARCH)" = "amd64" ]; then docker push $(REGISTRY)/$(IMG)-$(ARCH):$(VERSION); fi
 
 # runs on amd64 machine
 build-image-ppc64le: $(CONFIG_DOCKER_TARGET)
 ifeq ($(LOCAL_OS),Linux)
 ifeq ($(LOCAL_ARCH),x86_64)
-	GOOS=linux GOARCH=ppc64le CGO_ENABLED=0 go build -o build/_output/bin/meta-operator-ppc64le ./cmd/manager
+	GOOS=linux GOARCH=ppc64le CGO_ENABLED=0 go build -o build/_output/bin/odlm-ppc64le ./cmd/manager
 	docker run --rm --privileged multiarch/qemu-user-static:register --reset
 	docker build -t $(REGISTRY)/$(IMG)-ppc64le:$(VERSION) -f build/Dockerfile.ppc64le .
-	@\rm -f build/_output/bin/meta-operator-ppc64le
+	@\rm -f build/_output/bin/odlm-ppc64le
 	@if [ $(BUILD_LOCALLY) -ne 1 ]; then docker push $(REGISTRY)/$(IMG)-ppc64le:$(VERSION); fi
 endif
 endif
@@ -146,10 +146,10 @@ endif
 build-image-s390x: $(CONFIG_DOCKER_TARGET)
 ifeq ($(LOCAL_OS),Linux)
 ifeq ($(LOCAL_ARCH),x86_64)
-	GOOS=linux GOARCH=s390x CGO_ENABLED=0 go build -o build/_output/bin/meta-operator-s390x ./cmd/manager
+	GOOS=linux GOARCH=s390x CGO_ENABLED=0 go build -o build/_output/bin/odlm-s390x ./cmd/manager
 	docker run --rm --privileged multiarch/qemu-user-static:register --reset
 	docker build -t $(REGISTRY)/$(IMG)-s390x:$(VERSION) -f build/Dockerfile.s390x .
-	@\rm -f build/_output/bin/meta-operator-s390x
+	@\rm -f build/_output/bin/odlm-s390x
 	@if [ $(BUILD_LOCALLY) -ne 1 ]; then docker push $(REGISTRY)/$(IMG)-s390x:$(VERSION); fi
 endif
 endif
