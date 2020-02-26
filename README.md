@@ -42,6 +42,8 @@ This is a meta operator for install the common service operator and instance.
 Checkout this Meta Operator repository
 
 ```bash
+# mkdir -p $GOPATH/src/github.com/
+# cd $GOPATH/src/github.com/
 # git clone https://github.com/IBM/meta-operator.git
 # cd meta-operator
 ```
@@ -61,7 +63,7 @@ Run `make install` to install the operator. Check that the operator is running i
 Following the expected result.
 
 ```bash
-# kubectl get all -n meta-operator
+# kubectl get all -n ibm-common-services
 NAME                                           READY   STATUS    RESTARTS   AGE
 pod/meta-operator-786d699956-z7k4n   1/1     Running   0          21s
 
@@ -81,7 +83,7 @@ To uninstall all that was performed in the above step run `make uninstall`.
 Use the following command to check the operator logs.
 
 ```bash
-# kubectl logs deployment.apps/meta-operator -n meta-operator
+# kubectl logs deployment.apps/meta-operator -n ibm-common-services
 ```
 
 ### Running Tests
