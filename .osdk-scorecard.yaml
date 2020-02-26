@@ -4,13 +4,8 @@ scorecard:
   plugins:
     - basic:
         cr-manifest:
-          - "deploy/crds/operator.ibm.com_v1alpha1_operandconfig_cr.yaml"
-          - "deploy/crds/operator.ibm.com_v1alpha1_operandregistry_cr.yaml"
-          - "deploy/crds/operator.ibm.com_v1alpha1_operandrequest_cr.yaml"
-        csv-path: "deploy/olm-catalog/operand-deployment-lifecycle-manager/0.0.1/operand-deployment-lifecycle-manager.v0.0.1.clusterserviceversion.yaml"
+          - "deploy/crds/operator.ibm.com_v1alpha1_metaoperatorset_cr.yaml"
     - olm:
         cr-manifest:
-          - "deploy/crds/operator.ibm.com_v1alpha1_operandconfig_cr.yaml"
-          - "deploy/crds/operator.ibm.com_v1alpha1_operandregistry_cr.yaml"
-          - "deploy/crds/operator.ibm.com_v1alpha1_operandrequest_cr.yaml"
+          - "deploy/crds/operator.ibm.com_v1alpha1_metaoperatorset_cr.yaml"
         csv-path: "deploy/olm-catalog/operand-deployment-lifecycle-manager/0.0.1/operand-deployment-lifecycle-manager.v0.0.1.clusterserviceversion.yaml"

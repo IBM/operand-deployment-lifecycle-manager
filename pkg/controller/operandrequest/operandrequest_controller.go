@@ -160,8 +160,15 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling OperandRequest")
 
+	// Fetch the OperandRequest instance
+	setInstance := &operatorv1alpha1.OperandRequest{}
+	if err := r.client.Get(context.TODO(), request.NamespacedName, setInstance); err != nil {
+		// Error reading the object - requeue the request.
+		return reconcile.Result{}, client.IgnoreNotFound(err)
+	}
+
 	// Fetch the OperandRegistry instance
-	moc, err := r.listCatalog(request.NamespacedName)
+	moc, err := r.listCatalog(setInstance.Namespace)
 
 	if moc == nil {
 		return reconcile.Result{}, nil
@@ -177,7 +184,7 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 	}
 
 	// Fetch the OperandConfig instance
-	csc, err := r.listConfig(request.NamespacedName)
+	csc, err := r.listConfig(setInstance.Namespace)
 
 	if csc == nil {
 		return reconcile.Result{}, nil
@@ -190,13 +197,6 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 	// Initialize OperandConfig status
 	if err := r.initServiceStatus(csc); err != nil {
 		return reconcile.Result{}, err
-	}
-
-	// Fetch the OperandRequest instance
-	setInstance := &operatorv1alpha1.OperandRequest{}
-	if err := r.client.Get(context.TODO(), request.NamespacedName, setInstance); err != nil {
-		// Error reading the object - requeue the request.
-		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
 
 	// Add finalizer
