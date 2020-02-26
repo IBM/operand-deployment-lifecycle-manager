@@ -86,8 +86,9 @@ Use the following command to check the operator logs.
 
 ### Running Tests
 
-[End to end tests](./docs/dev/e2e.md)
+- [End to end tests](./docs/dev/e2e.md)
 For more information see the [writing e2e tests](https://github.com/operator-framework/operator-sdk/blob/master/doc/test-framework/writing-e2e-tests.md) guide.
+- [scorecard](./doc/dev/scorecard.md)
 
 ### Development
 
