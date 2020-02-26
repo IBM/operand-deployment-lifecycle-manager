@@ -59,13 +59,13 @@ include common/Makefile.common.mk
 
 ##@ Application
 
-install: ## Install all resources (CR/CRD's, RBCA and Operator)
+install: ## Install all resources (CR/CRD's, RBAC and Operator)
 	@echo ....... Set environment variables ......
 	- export DEPLOY_DIR=deploy/crds
 	- export WATCH_NAMESPACE=${NAMESPACE}
 	@echo ....... Creating namespace .......
 	- kubectl create namespace ${NAMESPACE}
-	@echo ....... Applying CRDS and Operator .......
+	@echo ....... Applying CRDs .......
 	- kubectl apply -f deploy/crds/operator.ibm.com_metaoperatorcatalogs_crd.yaml
 	- kubectl apply -f deploy/crds/operator.ibm.com_metaoperatorconfigs_crd.yaml
 	- kubectl apply -f deploy/crds/operator.ibm.com_metaoperatorsets_crd.yaml
@@ -81,19 +81,19 @@ install: ## Install all resources (CR/CRD's, RBCA and Operator)
 uninstall: ## Uninstall all that all performed in the $ make install
 	@echo ....... Uninstalling .......
 	@echo ....... Deleting CR .......
-	- kubectl delete -f deploy/crds/operator.ibm.com_v1alpha1_metaoperatorset_cr.yaml -n ${NAMESPACE}
+	- kubectl delete -f deploy/crds/operator.ibm.com_v1alpha1_metaoperatorset_cr.yaml -n ${NAMESPACE} --ignore-not-found
 	@echo ....... Deleting Operator .......
-	- kubectl delete -f deploy/operator.yaml -n ${NAMESPACE}
+	- kubectl delete -f deploy/operator.yaml -n ${NAMESPACE} --ignore-not-found
 	@echo ....... Deleting CRDs.......
-	- kubectl delete -f deploy/crds/operator.ibm.com_metaoperatorconfigs_crd.yaml
-	- kubectl delete -f deploy/crds/operator.ibm.com_metaoperatorsets_crd.yaml
-	- kubectl delete -f deploy/crds/operator.ibm.com_metaoperatorcatalogs_crd.yaml
+	- kubectl delete -f deploy/crds/operator.ibm.com_metaoperatorconfigs_crd.yaml --ignore-not-found
+	- kubectl delete -f deploy/crds/operator.ibm.com_metaoperatorsets_crd.yaml --ignore-not-found
+	- kubectl delete -f deploy/crds/operator.ibm.com_metaoperatorcatalogs_crd.yaml --ignore-not-found
 	@echo ....... Deleting Rules and Service Account .......
-	- kubectl delete -f deploy/role_binding.yaml
-	- kubectl delete -f deploy/service_account.yaml -n ${NAMESPACE}
-	- kubectl delete -f deploy/role.yaml
+	- kubectl delete -f deploy/role_binding.yaml --ignore-not-found
+	- kubectl delete -f deploy/service_account.yaml -n ${NAMESPACE} --ignore-not-found
+	- kubectl delete -f deploy/role.yaml --ignore-not-found
 	@echo ....... Deleting namespace ${NAMESPACE}.......
-	- kubectl delete namespace ${NAMESPACE}
+	- kubectl delete namespace ${NAMESPACE} --ignore-not-found
 
 ##@ Development
 
