@@ -2,7 +2,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   creationTimestamp: null
-  name: meta-operator
+  name: operand-deployment-lifecycle-manager
 rules:
 - apiGroups:
   - ""
@@ -30,7 +30,7 @@ rules:
 - apiGroups:
   - apps
   resourceNames:
-  - meta-operator
+  - operand-deployment-lifecycle-manager
   resources:
   - deployments/finalizers
   verbs:
@@ -55,7 +55,7 @@ rules:
   resources:
   - '*'
   - operandregistries
-  - metaoperatorconfigs
+  - operandconfigs
   - operandrequests
   verbs:
   - '*'

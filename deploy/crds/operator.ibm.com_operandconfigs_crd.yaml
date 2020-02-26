@@ -9,7 +9,7 @@ spec:
     listKind: OperandConfigList
     plural: operandconfigs
     shortNames:
-    - oc
+    - opcon
     singular: operandconfig
   scope: Namespaced
   subresources:

@@ -67,7 +67,8 @@ type CrStatus struct {
 // OperandConfig is the Schema for the operandconfigs API
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:path=operandconfigs,shortName=oc,scope=Namespaced
+// +kubebuilder:resource:path=operandconfigs,shortName=opcon,scope=Namespaced
+// +operator-sdk:gen-csv:customresourcedefinitions.displayName="OperandConfig"
 type OperandConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

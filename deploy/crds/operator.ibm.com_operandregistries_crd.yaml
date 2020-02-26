@@ -9,7 +9,7 @@ spec:
     listKind: OperandRegistryList
     plural: operandregistries
     shortNames:
-    - or
+    - opreg
     singular: operandregistry
   scope: Namespaced
   subresources:

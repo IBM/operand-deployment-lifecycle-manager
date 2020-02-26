@@ -9,7 +9,7 @@ spec:
     listKind: OperandRequestList
     plural: operandrequests
     shortNames:
-    - moset
+    - opreq
     singular: operandrequest
   scope: Namespaced
   subresources:
