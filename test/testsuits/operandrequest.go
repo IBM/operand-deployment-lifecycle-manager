@@ -25,8 +25,8 @@ import (
 	"github.com/IBM/meta-operator/test/helpers"
 )
 
-// MetaOperatorSetCreate is for testing the create of the MetaOperatorSet
-func MetaOperatorSetCreate(t *testing.T) {
+// OperandRequestCreate is for testing the create of the OperandRequest
+func OperandRequestCreate(t *testing.T) {
 
 	ctx := test.NewTestCtx(t)
 	defer ctx.Cleanup()
@@ -43,8 +43,8 @@ func MetaOperatorSetCreate(t *testing.T) {
 	}
 }
 
-// MetaOperatorSetCreateUpdate is for testing the create and update of the MetaOperatorSet
-func MetaOperatorSetCreateUpdate(t *testing.T) {
+// OperandRequestCreateUpdate is for testing the create and update of the OperandRequest
+func OperandRequestCreateUpdate(t *testing.T) {
 
 	ctx := test.NewTestCtx(t)
 	defer ctx.Cleanup()
@@ -65,8 +65,8 @@ func MetaOperatorSetCreateUpdate(t *testing.T) {
 	}
 }
 
-// MetaOperatorSetCreateDelete is for testing the create and delete of the MetaOperatorSet
-func MetaOperatorSetCreateDelete(t *testing.T) {
+// OperandRequestCreateDelete is for testing the create and delete of the OperandRequest
+func OperandRequestCreateDelete(t *testing.T) {
 
 	ctx := test.NewTestCtx(t)
 	defer ctx.Cleanup()

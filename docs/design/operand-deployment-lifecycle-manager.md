@@ -202,7 +202,7 @@ OperandRequests defines which operator/operand want to be installed int the clus
 
 ```yaml
 apiVersion: operator.ibm.com/v1alpha1
-Kind: MetaOperatorSet
+Kind: OperandRequest
 metadata:
   name: common-service
 spec:
@@ -275,7 +275,7 @@ roleRef:
 
     This should be optional if the default configurations match the requirement.
 
-3. User creates the MetaOperatorSet CR from OLM
+3. User creates the OperandRequest CR from OLM
 
     This tells ODLM that users want to install some of the individual operator/operand.
 

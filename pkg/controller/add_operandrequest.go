@@ -17,10 +17,10 @@
 package controller
 
 import (
-	"github.com/IBM/meta-operator/pkg/controller/metaoperatorset"
+	"github.com/IBM/meta-operator/pkg/controller/operandrequest"
 )
 
 func init() {
 	// AddToManagerFuncs is a list of functions to create controllers and add them to a manager.
-	AddToManagerFuncs = append(AddToManagerFuncs, metaoperatorset.Add)
+	AddToManagerFuncs = append(AddToManagerFuncs, operandrequest.Add)
 }

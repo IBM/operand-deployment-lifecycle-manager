@@ -31,12 +31,12 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"./pkg/apis/operator/v1alpha1.MetaOperatorConfig":       schema_pkg_apis_operator_v1alpha1_MetaOperatorConfig(ref),
 		"./pkg/apis/operator/v1alpha1.MetaOperatorConfigSpec":   schema_pkg_apis_operator_v1alpha1_MetaOperatorConfigSpec(ref),
 		"./pkg/apis/operator/v1alpha1.MetaOperatorConfigStatus": schema_pkg_apis_operator_v1alpha1_MetaOperatorConfigStatus(ref),
-		"./pkg/apis/operator/v1alpha1.MetaOperatorSet":          schema_pkg_apis_operator_v1alpha1_MetaOperatorSet(ref),
-		"./pkg/apis/operator/v1alpha1.MetaOperatorSetSpec":      schema_pkg_apis_operator_v1alpha1_MetaOperatorSetSpec(ref),
-		"./pkg/apis/operator/v1alpha1.MetaOperatorSetStatus":    schema_pkg_apis_operator_v1alpha1_MetaOperatorSetStatus(ref),
 		"./pkg/apis/operator/v1alpha1.OperandRegistry":          schema_pkg_apis_operator_v1alpha1_OperandRegistry(ref),
 		"./pkg/apis/operator/v1alpha1.OperandRegistrySpec":      schema_pkg_apis_operator_v1alpha1_OperandRegistrySpec(ref),
 		"./pkg/apis/operator/v1alpha1.OperandRegistryStatus":    schema_pkg_apis_operator_v1alpha1_OperandRegistryStatus(ref),
+		"./pkg/apis/operator/v1alpha1.OperandRequest":           schema_pkg_apis_operator_v1alpha1_OperandRequest(ref),
+		"./pkg/apis/operator/v1alpha1.OperandRequestSpec":       schema_pkg_apis_operator_v1alpha1_OperandRequestSpec(ref),
+		"./pkg/apis/operator/v1alpha1.OperandRequestStatus":     schema_pkg_apis_operator_v1alpha1_OperandRequestStatus(ref),
 	}
 }
 
@@ -146,137 +146,6 @@ func schema_pkg_apis_operator_v1alpha1_MetaOperatorConfigStatus(ref common.Refer
 	}
 }
 
-func schema_pkg_apis_operator_v1alpha1_MetaOperatorSet(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "MetaOperatorSet is the Schema for the metaoperatorsets API",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"kind": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"apiVersion": {
-						SchemaProps: spec.SchemaProps{
-							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"metadata": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
-						},
-					},
-					"spec": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("./pkg/apis/operator/v1alpha1.MetaOperatorSetSpec"),
-						},
-					},
-					"status": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("./pkg/apis/operator/v1alpha1.MetaOperatorSetStatus"),
-						},
-					},
-				},
-			},
-		},
-		Dependencies: []string{
-			"./pkg/apis/operator/v1alpha1.MetaOperatorSetSpec", "./pkg/apis/operator/v1alpha1.MetaOperatorSetStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
-	}
-}
-
-func schema_pkg_apis_operator_v1alpha1_MetaOperatorSetSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "MetaOperatorSetSpec defines the desired state of MetaOperatorSet",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"services": {
-						VendorExtensible: spec.VendorExtensible{
-							Extensions: spec.Extensions{
-								"x-kubernetes-list-type": "set",
-							},
-						},
-						SchemaProps: spec.SchemaProps{
-							Description: "INSERT ADDITIONAL SPEC FIELDS - desired state of cluster Important: Run \"operator-sdk generate k8s\" to regenerate code after modifying this file Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("./pkg/apis/operator/v1alpha1.SetService"),
-									},
-								},
-							},
-						},
-					},
-				},
-				Required: []string{"services"},
-			},
-		},
-		Dependencies: []string{
-			"./pkg/apis/operator/v1alpha1.SetService"},
-	}
-}
-
-func schema_pkg_apis_operator_v1alpha1_MetaOperatorSetStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "MetaOperatorSetStatus defines the observed state of MetaOperatorSet",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"conditions": {
-						VendorExtensible: spec.VendorExtensible{
-							Extensions: spec.Extensions{
-								"x-kubernetes-list-type": "set",
-							},
-						},
-						SchemaProps: spec.SchemaProps{
-							Description: "INSERT ADDITIONAL STATUS FIELD - define observed state of cluster Important: Run \"operator-sdk generate k8s\" to regenerate code after modifying this file Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html Conditions represents the current state of the Set Service",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("./pkg/apis/operator/v1alpha1.Condition"),
-									},
-								},
-							},
-						},
-					},
-					"member": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Members represnets the current operand status of the set",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("./pkg/apis/operator/v1alpha1.MemberStatus"),
-									},
-								},
-							},
-						},
-					},
-					"phase": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Phase is the cluster running phase",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-				},
-			},
-		},
-		Dependencies: []string{
-			"./pkg/apis/operator/v1alpha1.Condition", "./pkg/apis/operator/v1alpha1.MemberStatus"},
-	}
-}
-
 func schema_pkg_apis_operator_v1alpha1_OperandRegistry(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -379,5 +248,136 @@ func schema_pkg_apis_operator_v1alpha1_OperandRegistryStatus(ref common.Referenc
 				},
 			},
 		},
+	}
+}
+
+func schema_pkg_apis_operator_v1alpha1_OperandRequest(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "OperandRequest is the Schema for the operandrequests API",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("./pkg/apis/operator/v1alpha1.OperandRequestSpec"),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("./pkg/apis/operator/v1alpha1.OperandRequestStatus"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"./pkg/apis/operator/v1alpha1.OperandRequestSpec", "./pkg/apis/operator/v1alpha1.OperandRequestStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_pkg_apis_operator_v1alpha1_OperandRequestSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "OperandRequestSpec defines the desired state of OperandRequest",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"services": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "set",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "INSERT ADDITIONAL SPEC FIELDS - desired state of cluster Important: Run \"operator-sdk generate k8s\" to regenerate code after modifying this file Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("./pkg/apis/operator/v1alpha1.SetService"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"services"},
+			},
+		},
+		Dependencies: []string{
+			"./pkg/apis/operator/v1alpha1.SetService"},
+	}
+}
+
+func schema_pkg_apis_operator_v1alpha1_OperandRequestStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "OperandRequestStatus defines the observed state of OperandRequest",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"conditions": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "set",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "INSERT ADDITIONAL STATUS FIELD - define observed state of cluster Important: Run \"operator-sdk generate k8s\" to regenerate code after modifying this file Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html Conditions represents the current state of the Set Service",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("./pkg/apis/operator/v1alpha1.Condition"),
+									},
+								},
+							},
+						},
+					},
+					"member": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Members represnets the current operand status of the set",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("./pkg/apis/operator/v1alpha1.MemberStatus"),
+									},
+								},
+							},
+						},
+					},
+					"phase": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Phase is the cluster running phase",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"./pkg/apis/operator/v1alpha1.Condition", "./pkg/apis/operator/v1alpha1.MemberStatus"},
 	}
 }

@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-package metaoperatorset
+package operandrequest
 
 import (
 	"context"
@@ -35,8 +35,8 @@ import (
 	"github.com/IBM/meta-operator/pkg/apis/operator/v1alpha1"
 )
 
-// TestSetController runs ReconcileMetaOperatorSet.Reconcile() against a
-// fake client that tracks a MetaOperatorSet object.
+// TestSetController runs ReconcileOperandRequest.Reconcile() against a
+// fake client that tracks a OperandRequest object.
 func TestInitSet(t *testing.T) {
 
 	req := getRequest()
@@ -94,11 +94,11 @@ func TestDeleteSet(t *testing.T) {
 	_, err := r.Reconcile(req)
 	assert.NoError(err)
 
-	mos := &v1alpha1.MetaOperatorSet{}
+	mos := &v1alpha1.OperandRequest{}
 	err = r.client.Get(context.TODO(), req.NamespacedName, mos)
 	assert.NoError(err)
 
-	// Mark MetaOperatorSet Cr as delete state
+	// Mark OperandRequest Cr as delete state
 	deleteTime := metav1.NewTime(time.Now())
 	mos.SetDeletionTimestamp(&deleteTime)
 
@@ -151,20 +151,20 @@ func moc(name, namespace string) *v1alpha1.MetaOperatorConfig {
 	}
 }
 
-// Return MetaOperatorSet obj
-func mos(name, namespace, state, channel string) *v1alpha1.MetaOperatorSet {
+// Return OperandRequest obj
+func mos(name, namespace, state, channel string) *v1alpha1.OperandRequest {
 	if channel == "" {
 		channel = "alpha"
 	}
 	if state == "" {
 		state = "present"
 	}
-	return &v1alpha1.MetaOperatorSet{
+	return &v1alpha1.OperandRequest{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: v1alpha1.MetaOperatorSetSpec{
+		Spec: v1alpha1.OperandRequestSpec{
 			Services: []v1alpha1.SetService{
 				{
 					Name:    "etcd",
@@ -253,7 +253,7 @@ func getRequest() reconcile.Request {
 	}
 }
 
-func getReconcilerWithoutMOS() ReconcileMetaOperatorSet {
+func getReconcilerWithoutMOS() ReconcileOperandRequest {
 	var (
 		name      = "common-service"
 		namespace = "meta-operator"
@@ -268,7 +268,7 @@ func getReconcilerWithoutMOS() ReconcileMetaOperatorSet {
 	return getReconciler(metaObjs, olmObjs)
 }
 
-func getReconcilerWithMOS() ReconcileMetaOperatorSet {
+func getReconcilerWithMOS() ReconcileOperandRequest {
 	var (
 		name      = "common-service"
 		namespace = "meta-operator"
@@ -284,7 +284,7 @@ func getReconcilerWithMOS() ReconcileMetaOperatorSet {
 	return getReconciler(metaObjs, olmObjs)
 }
 
-func getReconciler(metaObjs, olmObjs []runtime.Object) ReconcileMetaOperatorSet {
+func getReconciler(metaObjs, olmObjs []runtime.Object) ReconcileOperandRequest {
 	s := scheme.Scheme
 	v1alpha1.SchemeBuilder.AddToScheme(s)
 	olmv1.SchemeBuilder.AddToScheme(s)
@@ -296,8 +296,8 @@ func getReconciler(metaObjs, olmObjs []runtime.Object) ReconcileMetaOperatorSet 
 	// Create a fake OLM client to mock OLM API calls.
 	olmClient := fakeolmclient.NewSimpleClientset(olmObjs...)
 
-	// Return a ReconcileMetaOperatorSet object with the scheme and fake client.
-	return ReconcileMetaOperatorSet{
+	// Return a ReconcileOperandRequest object with the scheme and fake client.
+	return ReconcileOperandRequest{
 		scheme:    s,
 		client:    client,
 		olmClient: olmClient,

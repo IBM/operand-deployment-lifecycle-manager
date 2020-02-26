@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-package metaoperatorset
+package operandrequest
 
 import (
 	"context"
@@ -42,14 +42,14 @@ import (
 	operatorv1alpha1 "github.com/IBM/meta-operator/pkg/apis/operator/v1alpha1"
 )
 
-var log = logf.Log.WithName("controller_metaoperatorset")
+var log = logf.Log.WithName("controller_operandrequest")
 
 /**
 * USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
 * business logic.  Delete these comments after modifying this file.*
  */
 
-// Add creates a new MetaOperatorSet Controller and adds it to the Manager. The Manager will set fields on the Controller
+// Add creates a new OperandRequest Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
@@ -62,7 +62,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 		log.Error(err, "Initialize the OLM client failed.")
 		return nil
 	}
-	return &ReconcileMetaOperatorSet{
+	return &ReconcileOperandRequest{
 		client:    mgr.GetClient(),
 		recorder:  mgr.GetEventRecorderFor("serviceset"),
 		scheme:    mgr.GetScheme(),
@@ -77,8 +77,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// Watch for changes to primary resource MetaOperatorSet
-	err = c.Watch(&source.Kind{Type: &operatorv1alpha1.MetaOperatorSet{}}, &handler.EnqueueRequestForObject{})
+	// Watch for changes to primary resource OperandRequest
+	err = c.Watch(&source.Kind{Type: &operatorv1alpha1.OperandRequest{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -96,10 +96,10 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// TODO(user): Modify this to be the types you create that are owned by the primary resource
-	// Watch for changes to secondary resource Pods and requeue the owner MetaOperatorSet
+	// Watch for changes to secondary resource Pods and requeue the owner OperandRequest
 	err = c.Watch(&source.Kind{Type: &olmv1alpha1.Subscription{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
-		OwnerType:    &operatorv1alpha1.MetaOperatorSet{},
+		OwnerType:    &operatorv1alpha1.OperandRequest{},
 	})
 	if err != nil {
 		return err
@@ -107,7 +107,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	err = c.Watch(&source.Kind{Type: &olmv1.OperatorGroup{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
-		OwnerType:    &operatorv1alpha1.MetaOperatorSet{},
+		OwnerType:    &operatorv1alpha1.OperandRequest{},
 	})
 	if err != nil {
 		return err
@@ -116,11 +116,11 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-// blank assignment to verify that ReconcileMetaOperatorSet implements reconcile.Reconciler
-var _ reconcile.Reconciler = &ReconcileMetaOperatorSet{}
+// blank assignment to verify that ReconcileOperandRequest implements reconcile.Reconciler
+var _ reconcile.Reconciler = &ReconcileOperandRequest{}
 
-// ReconcileMetaOperatorSet reconciles a MetaOperatorSet object
-type ReconcileMetaOperatorSet struct {
+// ReconcileOperandRequest reconciles a OperandRequest object
+type ReconcileOperandRequest struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
 	client    client.Client
@@ -151,17 +151,17 @@ func (mer *multiErr) Add(err error) {
 	mer.errors = append(mer.errors, err.Error())
 }
 
-// Reconcile reads that state of the cluster for a MetaOperatorSet object and makes changes based on the state read
-// and what is in the MetaOperatorSet.Spec
+// Reconcile reads that state of the cluster for a OperandRequest object and makes changes based on the state read
+// and what is in the OperandRequest.Spec
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *ReconcileMetaOperatorSet) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
-	reqLogger.Info("Reconciling MetaOperatorSet")
+	reqLogger.Info("Reconciling OperandRequest")
 
-	// Fetch the MetaOperatorSet instance
-	setInstance := &operatorv1alpha1.MetaOperatorSet{}
+	// Fetch the OperandRequest instance
+	setInstance := &operatorv1alpha1.OperandRequest{}
 	if err := r.client.Get(context.TODO(), request.NamespacedName, setInstance); err != nil {
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, client.IgnoreNotFound(err)
@@ -267,7 +267,7 @@ func (r *ReconcileMetaOperatorSet) Reconcile(request reconcile.Request) (reconci
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileMetaOperatorSet) waitForInstallPlan(moc *operatorv1alpha1.OperandRegistry) error {
+func (r *ReconcileOperandRequest) waitForInstallPlan(moc *operatorv1alpha1.OperandRegistry) error {
 	reqLogger := log.WithValues()
 	reqLogger.Info("Waiting for subscriptions to be ready ...")
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*2)
@@ -322,8 +322,8 @@ func (r *ReconcileMetaOperatorSet) waitForInstallPlan(moc *operatorv1alpha1.Oper
 	return nil
 }
 
-func (r *ReconcileMetaOperatorSet) fetchSets(currentCr *operatorv1alpha1.MetaOperatorSet) (map[string]operatorv1alpha1.SetService, error) {
-	crs := &operatorv1alpha1.MetaOperatorSetList{}
+func (r *ReconcileOperandRequest) fetchSets(currentCr *operatorv1alpha1.OperandRequest) (map[string]operatorv1alpha1.SetService, error) {
+	crs := &operatorv1alpha1.OperandRequestList{}
 	if err := r.client.List(context.TODO(), crs); err != nil {
 		if errors.IsNotFound(err) {
 			return nil, nil
@@ -355,7 +355,7 @@ func addSet(sets map[string]operatorv1alpha1.SetService, set operatorv1alpha1.Se
 	return sets
 }
 
-func (r *ReconcileMetaOperatorSet) addFinalizer(cr *operatorv1alpha1.MetaOperatorSet) error {
+func (r *ReconcileOperandRequest) addFinalizer(cr *operatorv1alpha1.OperandRequest) error {
 	if len(cr.GetFinalizers()) < 1 && cr.GetDeletionTimestamp() == nil {
 		cr.SetFinalizers([]string{"finalizer.set.ibm.com"})
 		// Update CR
@@ -367,7 +367,7 @@ func (r *ReconcileMetaOperatorSet) addFinalizer(cr *operatorv1alpha1.MetaOperato
 	return nil
 }
 
-func (r *ReconcileMetaOperatorSet) listConfig(namespace string) (*operatorv1alpha1.MetaOperatorConfig, error) {
+func (r *ReconcileOperandRequest) listConfig(namespace string) (*operatorv1alpha1.MetaOperatorConfig, error) {
 	reqLogger := log.WithValues("Request.Namespace", namespace)
 	reqLogger.Info("Fetch MetaOperatorConfig instance")
 
@@ -392,7 +392,7 @@ func (r *ReconcileMetaOperatorSet) listConfig(namespace string) (*operatorv1alph
 	return &cscList.Items[0], nil
 }
 
-func (r *ReconcileMetaOperatorSet) listCatalog(namespace string) (*operatorv1alpha1.OperandRegistry, error) {
+func (r *ReconcileOperandRequest) listCatalog(namespace string) (*operatorv1alpha1.OperandRegistry, error) {
 	reqLogger := log.WithValues("Request.Namespace", namespace)
 	reqLogger.Info("Fetch OperandRegistry instance")
 	// Fetch the OperandRegistry instance

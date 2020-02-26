@@ -37,11 +37,11 @@ func MetaOperator(t *testing.T) {
 	err := deployOperator(t, ctx)
 	helpers.AssertNoError(t, err)
 
-	t.Run("MetaOperatorSet Create", testsuits.MetaOperatorSetCreate)
-	t.Run("MetaOperatorSet Create Update", testsuits.MetaOperatorSetCreateUpdate)
+	t.Run("OperandRequest Create", testsuits.OperandRequestCreate)
+	t.Run("OperandRequest Create Update", testsuits.OperandRequestCreateUpdate)
 	t.Run("MetaOperatorConfig Update", testsuits.MetaOperatorConfigUpdate)
 	t.Run("OperandRegistry Create Update", testsuits.OperandRegistryUpdate)
-	t.Run("MetaOperatorSet Create Delete", testsuits.MetaOperatorSetCreateDelete)
+	t.Run("OperandRequest Create Delete", testsuits.OperandRequestCreateDelete)
 
 }
 

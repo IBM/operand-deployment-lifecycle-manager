@@ -100,7 +100,7 @@ kubectl -n meta-operator get csv
 
 ### 1. Update MetaOperatorConfig and OperandRegistry custom resource
 
-Meta Operator defines three custom resource definitions `MetaOperatorConfig`, `MetaOperatorSet` and `OperandRegistry` and it creates two example custom resources for `MetaOperatorConfig` and `OperandRegistry`.
+Meta Operator defines three custom resource definitions `MetaOperatorConfig`, `OperandRequest` and `OperandRegistry` and it creates two example custom resources for `MetaOperatorConfig` and `OperandRegistry`.
 
 For the `MetaOperatorConfig`,
 `MetaOperatorConfig` defines the individual common service CR info:
@@ -182,7 +182,7 @@ spec:
 
 The `operators` list defines the operator lifecycle management information for each operator.
 Taking the jenkins as an example:
-- `name` is the name of the operator, which should be the same as the services name in the `MetaOperatorConfig` and `MetaOperatorSet`.
+- `name` is the name of the operator, which should be the same as the services name in the `MetaOperatorConfig` and `OperandRequest`.
 - `namespace` is the namespace the operator will be deployed in.
 - `channel` is the name of a tracked channel.
 - `packageName` is the name of the package in `CatalogSource` will be deployed.
@@ -191,15 +191,15 @@ Taking the jenkins as an example:
 - `targetNamespaces` is a list of namespaces, which `OperaterGroup` generates RBAC access for its member Operators to get access to. `targetNamespaces` is used to control the operator dependency. `targetNamespaces` should include all the namespaces of its dependent operators and its own namespace.
 - `description` is used to add a detailed description for service including clarifying the dependency.
 
-### 2. Create MetaOperatorSet custom resource
+### 2. Create OperandRequest custom resource
 
-`MetaOperatorSet` defines the individual common service state, such as an individual common service that should be deployed.
+`OperandRequest` defines the individual common service state, such as an individual common service that should be deployed.
 
-This is an example of the MetaOperatorSet custom resource:
+This is an example of the OperandRequest custom resource:
 
 ```yaml
 apiVersion: operator.ibm.com/v1alpha1
-kind: MetaOperatorSet
+kind: OperandRequest
 metadata:
   name: common-service
 spec:

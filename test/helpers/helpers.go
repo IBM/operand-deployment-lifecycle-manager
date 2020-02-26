@@ -34,7 +34,7 @@ import (
 	"github.com/IBM/meta-operator/test/config"
 )
 
-// CreateTest creates a MetaOperatorSet instance
+// CreateTest creates a OperandRequest instance
 func CreateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *framework.TestCtx) error {
 	namespace, err := ctx.GetNamespace()
 	if err != nil {
@@ -57,7 +57,7 @@ func CreateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 		return err
 	}
 
-	// create MetaOperatorSet custom resource
+	// create OperandRequest custom resource
 	sets := []operator.SetService{}
 	sets = append(sets, operator.SetService{
 		Name:    "etcd",
@@ -69,17 +69,17 @@ func CreateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 		State:   "present",
 	})
 
-	setInstance := &operator.MetaOperatorSet{
+	setInstance := &operator.OperandRequest{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      config.SetCrName,
 			Namespace: namespace,
 		},
-		Spec: operator.MetaOperatorSetSpec{
+		Spec: operator.OperandRequestSpec{
 			Services: sets,
 		},
 	}
 
-	fmt.Println("--- CREATE: MetaOperatorSet Instance")
+	fmt.Println("--- CREATE: OperandRequest Instance")
 	// use TestCtx's create helper to create the object and add a cleanup function for the new object
 	err = f.Client.Create(goctx.TODO(), setInstance, &framework.CleanupOptions{TestContext: ctx, Timeout: config.CleanupTimeout, RetryInterval: config.CleanupRetry})
 	if err != nil {
@@ -116,15 +116,15 @@ func CreateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 	return nil
 }
 
-// UpdateTest updates a MetaOperatorSet instance
+// UpdateTest updates a OperandRequest instance
 func UpdateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *framework.TestCtx) error {
 	namespace, err := ctx.GetNamespace()
 	if err != nil {
 		return err
 	}
-	setInstance := &operator.MetaOperatorSet{}
+	setInstance := &operator.OperandRequest{}
 	fmt.Println("--- UPDATE: subscription")
-	// Get MetaOperatorSet instance
+	// Get OperandRequest instance
 	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.SetCrName, Namespace: namespace}, setInstance)
 	if err != nil {
 		return err
@@ -149,15 +149,15 @@ func UpdateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 	return nil
 }
 
-//DeleteTest delete a MetaOperatorSet instance
+//DeleteTest delete a OperandRequest instance
 func DeleteTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *framework.TestCtx) error {
 	namespace, err := ctx.GetNamespace()
 	if err != nil {
 		return fmt.Errorf("could not get namespace: %v", err)
 	}
-	setInstance := &operator.MetaOperatorSet{}
+	setInstance := &operator.OperandRequest{}
 	fmt.Println("--- DELETE: subscription")
-	// Get MetaOperatorSet instance
+	// Get OperandRequest instance
 	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.SetCrName, Namespace: namespace}, setInstance)
 	if err != nil {
 		return err
@@ -190,7 +190,7 @@ func UpdateConfigTest(olmClient *olmclient.Clientset, f *framework.Framework, ct
 	}
 	configInstance := &operator.MetaOperatorConfig{}
 	fmt.Println("--- UPDATE: custom resource")
-	// Get MetaOperatorSet instance
+	// Get OperandRequest instance
 	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.ConfigCrName, Namespace: namespace}, configInstance)
 	if err != nil {
 		return err
@@ -345,7 +345,7 @@ func WaitForSubscriptionDelete(olmClient *olmclient.Clientset, opt metav1.Object
 func ValidateCustomeResource(f *framework.Framework, namespace string) error {
 	fmt.Println("Validating custome resources are ready")
 	configInstance := &operator.MetaOperatorConfig{}
-	// Get MetaOperatorSet instance
+	// Get OperandRequest instance
 	err := f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.ConfigCrName, Namespace: namespace}, configInstance)
 	if err != nil {
 		return err

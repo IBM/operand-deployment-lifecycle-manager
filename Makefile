@@ -27,7 +27,7 @@ NAMESPACE=ibm-common-services
 
 # Image URL to use all building/pushing image targets;
 # Use your own docker registry and image name for dev/test by overridding the IMG and REGISTRY environment variable.
-IMG ?= odlm 
+IMG ?= odlm
 REGISTRY ?= quay.io/opencloudio
 CSV_VERSION ?= 0.0.1
 
@@ -68,7 +68,7 @@ install: ## Install all resources (CR/CRD's, RBAC and Operator)
 	@echo ....... Applying CRDs .......
 	- kubectl apply -f deploy/crds/operator.ibm.com_operandregistries_crd.yaml
 	- kubectl apply -f deploy/crds/operator.ibm.com_metaoperatorconfigs_crd.yaml
-	- kubectl apply -f deploy/crds/operator.ibm.com_metaoperatorsets_crd.yaml
+	- kubectl apply -f deploy/crds/operator.ibm.com_operandrequests_crd.yaml
 	@echo ....... Applying RBAC .......
 	- kubectl apply -f deploy/service_account.yaml -n ${NAMESPACE}
 	- kubectl apply -f deploy/role.yaml
@@ -76,17 +76,17 @@ install: ## Install all resources (CR/CRD's, RBAC and Operator)
 	@echo ....... Applying Operator .......
 	- kubectl apply -f deploy/operator.yaml -n ${NAMESPACE}
 	@echo ....... Creating the Instance .......
-	- kubectl apply -f deploy/crds/operator.ibm.com_v1alpha1_metaoperatorset_cr.yaml -n ${NAMESPACE}
+	- kubectl apply -f deploy/crds/operator.ibm.com_v1alpha1_operandrequest_cr.yaml -n ${NAMESPACE}
 
 uninstall: ## Uninstall all that all performed in the $ make install
 	@echo ....... Uninstalling .......
 	@echo ....... Deleting CR .......
-	- kubectl delete -f deploy/crds/operator.ibm.com_v1alpha1_metaoperatorset_cr.yaml -n ${NAMESPACE} --ignore-not-found
+	- kubectl delete -f deploy/crds/operator.ibm.com_v1alpha1_operandrequest_cr.yaml -n ${NAMESPACE} --ignore-not-found
 	@echo ....... Deleting Operator .......
 	- kubectl delete -f deploy/operator.yaml -n ${NAMESPACE} --ignore-not-found
 	@echo ....... Deleting CRDs.......
+	- kubectl delete -f deploy/crds/operator.ibm.com_operandrequests_crd.yaml --ignore-not-found
 	- kubectl delete -f deploy/crds/operator.ibm.com_metaoperatorconfigs_crd.yaml --ignore-not-found
-	- kubectl delete -f deploy/crds/operator.ibm.com_metaoperatorsets_crd.yaml --ignore-not-found
 	- kubectl delete -f deploy/crds/operator.ibm.com_operandregistries_crd.yaml --ignore-not-found
 	@echo ....... Deleting Rules and Service Account .......
 	- kubectl delete -f deploy/role_binding.yaml --ignore-not-found

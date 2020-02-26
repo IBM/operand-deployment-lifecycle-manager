@@ -56,7 +56,7 @@ rules:
   - '*'
   - operandregistries
   - metaoperatorconfigs
-  - metaoperatorsets
+  - operandrequests
   verbs:
   - '*'
 - apiGroups:
