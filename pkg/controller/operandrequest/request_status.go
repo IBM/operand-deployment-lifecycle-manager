@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-package metaoperatorset
+package operandrequest
 
 import (
 	"context"
@@ -101,7 +101,7 @@ func newCondition(name string, ds *deployState) operatorv1alpha1.Condition {
 	}
 }
 
-func getCondition(cr *operatorv1alpha1.MetaOperatorSet, name string, t operatorv1alpha1.ConditionType) (int, *operatorv1alpha1.Condition) {
+func getCondition(cr *operatorv1alpha1.OperandRequest, name string, t operatorv1alpha1.ConditionType) (int, *operatorv1alpha1.Condition) {
 	for i, c := range cr.Status.Conditions {
 		if name == c.Name && t == c.Type {
 			return i, &c
@@ -110,7 +110,7 @@ func getCondition(cr *operatorv1alpha1.MetaOperatorSet, name string, t operatorv
 	return -1, nil
 }
 
-func setCondition(cr *operatorv1alpha1.MetaOperatorSet, c operatorv1alpha1.Condition) {
+func setCondition(cr *operatorv1alpha1.OperandRequest, c operatorv1alpha1.Condition) {
 	pos, cp := getCondition(cr, c.Name, c.Type)
 	if cp != nil {
 		if cp.Status == c.Status && cp.Reason == c.Reason && cp.Message == c.Message {
@@ -122,7 +122,7 @@ func setCondition(cr *operatorv1alpha1.MetaOperatorSet, c operatorv1alpha1.Condi
 	}
 }
 
-func (r *ReconcileMetaOperatorSet) updateConditionStatus(cr *operatorv1alpha1.MetaOperatorSet, name string, ds *deployState) error {
+func (r *ReconcileOperandRequest) updateConditionStatus(cr *operatorv1alpha1.OperandRequest, name string, ds *deployState) error {
 	c := newCondition(name, ds)
 	setCondition(cr, c)
 	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
@@ -141,7 +141,7 @@ func newMember(name string, operatorPhase olmv1alpha1.ClusterServiceVersionPhase
 	}
 }
 
-func getMember(cr *operatorv1alpha1.MetaOperatorSet, name string) (int, *operatorv1alpha1.MemberStatus) {
+func getMember(cr *operatorv1alpha1.OperandRequest, name string) (int, *operatorv1alpha1.MemberStatus) {
 	for i, m := range cr.Status.Members {
 		if name == m.Name {
 			return i, &m
@@ -150,7 +150,7 @@ func getMember(cr *operatorv1alpha1.MetaOperatorSet, name string) (int, *operato
 	return -1, nil
 }
 
-func setMember(cr *operatorv1alpha1.MetaOperatorSet, newM operatorv1alpha1.MemberStatus) {
+func setMember(cr *operatorv1alpha1.OperandRequest, newM operatorv1alpha1.MemberStatus) {
 	pos, oldM := getMember(cr, newM.Name)
 	if oldM != nil {
 		if oldM.Phase == newM.Phase {
@@ -162,7 +162,7 @@ func setMember(cr *operatorv1alpha1.MetaOperatorSet, newM operatorv1alpha1.Membe
 	}
 }
 
-func (r *ReconcileMetaOperatorSet) updateMemberStatus(cr *operatorv1alpha1.MetaOperatorSet) error {
+func (r *ReconcileOperandRequest) updateMemberStatus(cr *operatorv1alpha1.OperandRequest) error {
 	subs, err := r.olmClient.OperatorsV1alpha1().Subscriptions("").List(metav1.ListOptions{
 		LabelSelector: "operator.ibm.com/mos-control",
 	})

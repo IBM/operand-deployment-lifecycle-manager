@@ -25,8 +25,8 @@ import (
 	"github.com/IBM/meta-operator/test/testgroups"
 )
 
-func TestMetaOperatorSet(t *testing.T) {
-	servicesetList := &operator.MetaOperatorSetList{}
+func TestOperandRequest(t *testing.T) {
+	servicesetList := &operator.OperandRequestList{}
 	err := framework.AddToFrameworkScheme(apis.AddToScheme, servicesetList)
 	if err != nil {
 		t.Fatalf("failed to add custom resource scheme to framework: %v", err)

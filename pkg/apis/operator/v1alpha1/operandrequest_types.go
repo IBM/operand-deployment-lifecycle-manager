@@ -24,9 +24,9 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// MetaOperatorSetSpec defines the desired state of MetaOperatorSet
+// OperandRequestSpec defines the desired state of OperandRequest
 // +k8s:openapi-gen=true
-type MetaOperatorSetSpec struct {
+type OperandRequestSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
@@ -72,9 +72,9 @@ type Condition struct {
 	Message        string        `json:"message,omitempty"`
 }
 
-// MetaOperatorSetStatus defines the observed state of MetaOperatorSet
+// OperandRequestStatus defines the observed state of OperandRequest
 // +k8s:openapi-gen=true
-type MetaOperatorSetStatus struct {
+type OperandRequestStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
@@ -106,27 +106,27 @@ type MemberStatus struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// MetaOperatorSet is the Schema for the metaoperatorsets API
+// OperandRequest is the Schema for the operandrequests API
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:path=metaoperatorsets,shortName=moset,scope=Namespaced
-type MetaOperatorSet struct {
+// +kubebuilder:resource:path=operandrequests,shortName=moset,scope=Namespaced
+type OperandRequest struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   MetaOperatorSetSpec   `json:"spec,omitempty"`
-	Status MetaOperatorSetStatus `json:"status,omitempty"`
+	Spec   OperandRequestSpec   `json:"spec,omitempty"`
+	Status OperandRequestStatus `json:"status,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// MetaOperatorSetList contains a list of MetaOperatorSet
-type MetaOperatorSetList struct {
+// OperandRequestList contains a list of OperandRequest
+type OperandRequestList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []MetaOperatorSet `json:"items"`
+	Items           []OperandRequest `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&MetaOperatorSet{}, &MetaOperatorSetList{})
+	SchemeBuilder.Register(&OperandRequest{}, &OperandRequestList{})
 }

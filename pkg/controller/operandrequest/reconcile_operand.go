@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-package metaoperatorset
+package operandrequest
 
 import (
 	"context"
@@ -34,7 +34,7 @@ import (
 	util "github.com/IBM/meta-operator/pkg/util"
 )
 
-func (r *ReconcileMetaOperatorSet) reconcileOperand(serviceConfigs map[string]operatorv1alpha1.ConfigService, csc *operatorv1alpha1.MetaOperatorConfig) *multiErr {
+func (r *ReconcileOperandRequest) reconcileOperand(serviceConfigs map[string]operatorv1alpha1.ConfigService, csc *operatorv1alpha1.MetaOperatorConfig) *multiErr {
 	reqLogger := log.WithValues()
 	reqLogger.Info("Reconciling Operand")
 	merr := &multiErr{}
@@ -69,7 +69,7 @@ func (r *ReconcileMetaOperatorSet) reconcileOperand(serviceConfigs map[string]op
 	return &multiErr{}
 }
 
-func (r *ReconcileMetaOperatorSet) fetchConfigs(req reconcile.Request, cr *operatorv1alpha1.MetaOperatorSet) (map[string]operatorv1alpha1.ConfigService, error) {
+func (r *ReconcileOperandRequest) fetchConfigs(req reconcile.Request, cr *operatorv1alpha1.OperandRequest) (map[string]operatorv1alpha1.ConfigService, error) {
 	// Fetch the MetaOperatorConfig instance
 	csc := &operatorv1alpha1.MetaOperatorConfig{}
 	if err := r.client.Get(context.TODO(), types.NamespacedName{Namespace: req.Namespace, Name: "common-service"}, csc); err != nil {
@@ -103,7 +103,7 @@ func (r *ReconcileMetaOperatorSet) fetchConfigs(req reconcile.Request, cr *opera
 }
 
 // getCSV retrieves the Cluster Service Version
-func (r *ReconcileMetaOperatorSet) getClusterServiceVersion(subName string) (*olmv1alpha1.ClusterServiceVersion, error) {
+func (r *ReconcileOperandRequest) getClusterServiceVersion(subName string) (*olmv1alpha1.ClusterServiceVersion, error) {
 	logger := log.WithValues("Subscription Name", subName)
 	logger.Info(fmt.Sprintf("Looking for the Cluster Service Version"))
 	subs, listSubErr := r.olmClient.OperatorsV1alpha1().Subscriptions("").List(metav1.ListOptions{
@@ -135,7 +135,7 @@ func (r *ReconcileMetaOperatorSet) getClusterServiceVersion(subName string) (*ol
 }
 
 // generateCr merge and create custome resource base on MetaOperatorConfig and CSV alm-examples
-func (r *ReconcileMetaOperatorSet) generateCr(service operatorv1alpha1.ConfigService, csv *olmv1alpha1.ClusterServiceVersion, csc *operatorv1alpha1.MetaOperatorConfig) error {
+func (r *ReconcileOperandRequest) generateCr(service operatorv1alpha1.ConfigService, csv *olmv1alpha1.ClusterServiceVersion, csc *operatorv1alpha1.MetaOperatorConfig) error {
 	almExamples := csv.ObjectMeta.Annotations["alm-examples"]
 	namespace := csv.ObjectMeta.Namespace
 	logger := log.WithValues("Subscription", service.Name)

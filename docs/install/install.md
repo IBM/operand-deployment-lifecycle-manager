@@ -127,7 +127,7 @@ oc -n meta-operator get csv
 
 ### 1. Update MetaOperatorConfig and OperandRegistry custom resource
 
-Meta Operator defines three custom resource definitions MetaOperatorConfig, MetaOperatorSet and OperandRegistry and it creates two example custom resources for MetaOperatorConfig and OperandRegistry.
+Meta Operator defines three custom resource definitions MetaOperatorConfig, OperandRequest and OperandRegistry and it creates two example custom resources for MetaOperatorConfig and OperandRegistry.
 
 In the `Operator Details` page, three generated custom resource definition are list in a line with the `Overview`. Check the custom resource definition name, then you can update the example custom resource.
 
@@ -208,7 +208,7 @@ spec:
 
 The `operators` list defines the operator lifecycle management information for each operator.
 Taking the jenkins as an example:
-- `name` is the name of the operator, which should be the same as the services name in the `MetaOperatorConfig` and `MetaOperatorSet`.
+- `name` is the name of the operator, which should be the same as the services name in the `MetaOperatorConfig` and `OperandRequest`.
 - `namespace` is the namespace the operator will be deployed in.
 - `channel` is the name of a tracked channel.
 - `packageName` is the name of the package in `CatalogSource` will be deployed.
@@ -217,17 +217,17 @@ Taking the jenkins as an example:
 - `targetNamespaces` is a list of namespaces, which `OperaterGroup` generates RBAC access for its member Operators to get access to. `targetNamespaces` is used to control the operator dependency. `targetNamespaces` should include all the namespaces of its dependent operators and its own namespace.
 - `description` is used to add a detailed description for service including clarifying the dependency.
 
-### 2. Create MetaOperatorSet custom resource
+### 2. Create OperandRequest custom resource
 
-MetaOperatorSet defines the individual common service state, such as an individual common service that should be present or absent.
+OperandRequest defines the individual common service state, such as an individual common service that should be present or absent.
 
-MetaOperatorSet can be created in the `MetaOperatorSet` tags
+OperandRequest can be created in the `OperandRequest` tags
 
-This is an example of the MetaOperatorSet custom resource:
+This is an example of the OperandRequest custom resource:
 
 ```yaml
 apiVersion: operator.ibm.com/v1alpha1
-Kind: MetaOperatorSet
+Kind: OperandRequest
 metadata:
   name: common-service
 spec:

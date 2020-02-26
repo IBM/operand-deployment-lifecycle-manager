@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-package metaoperatorset
+package operandrequest
 
 import (
 	"context"
@@ -22,7 +22,7 @@ import (
 	operatorv1alpha1 "github.com/IBM/meta-operator/pkg/apis/operator/v1alpha1"
 )
 
-func (r *ReconcileMetaOperatorSet) initServiceStatus(cr *operatorv1alpha1.MetaOperatorConfig) error {
+func (r *ReconcileOperandRequest) initServiceStatus(cr *operatorv1alpha1.MetaOperatorConfig) error {
 
 	if cr.Status.ServiceStatus == nil {
 		cr.Status.ServiceStatus = make(map[string]operatorv1alpha1.CrStatus)
@@ -52,7 +52,7 @@ func (r *ReconcileMetaOperatorSet) initServiceStatus(cr *operatorv1alpha1.MetaOp
 	return nil
 }
 
-func (r *ReconcileMetaOperatorSet) updateServiceStatus(cr *operatorv1alpha1.MetaOperatorConfig, operatorName, serviceName string, serviceStatus operatorv1alpha1.ServicePhase) error {
+func (r *ReconcileOperandRequest) updateServiceStatus(cr *operatorv1alpha1.MetaOperatorConfig, operatorName, serviceName string, serviceStatus operatorv1alpha1.ServicePhase) error {
 
 	cr.Status.ServiceStatus[operatorName].CrStatus[serviceName] = serviceStatus
 	if err := r.client.Status().Update(context.TODO(), cr); err != nil {

@@ -230,7 +230,7 @@ operators:
 ...
 ```
 
-- `name` is the name of the operator, which should be the same as the services name in the `MetaOperatorConfig` and `MetaOperatorSet`.
+- `name` is the name of the operator, which should be the same as the services name in the `MetaOperatorConfig` and `OperandRequest`.
 - `namespace` is the namespace the operator will be deployed in. For the common services, they need to be installed in the `ibm-common-services` namespace.
 - `channel` is the name of a tracked channel.
 - `packageName` is the name of the package in `CatalogSource` will be deployed.
@@ -313,14 +313,14 @@ spec:
 
 ```bash
 cd meta-operator
-vi deploy/crds/operator.ibm.com_v1alpha1_metaoperatorset_cr.yaml
+vi deploy/crds/operator.ibm.com_v1alpha1_operandrequest_cr.yaml
 ```
 
 Append the operator information under the `services` field.
 
 ```yaml
 apiVersion: operator.ibm.com/v1alpha1
-kind: MetaOperatorSet
+kind: OperandRequest
 metadata:
   name: common-service
 spec:
@@ -341,7 +341,7 @@ spec:
 
 ### Edit alm-example in the meta-operator CSV
 
-Add the changes for metaoperatorset operandregistry and metaoperatorconfig in the [alm-example](https://github.com/IBM/meta-operator/blob/master/deploy/olm-catalog/meta-operator/0.0.1/meta-operator.v0.0.1.clusterserviceversion.yaml#L5)
+Add the changes for operandrequest operandregistry and metaoperatorconfig in the [alm-example](https://github.com/IBM/meta-operator/blob/master/deploy/olm-catalog/meta-operator/0.0.1/meta-operator.v0.0.1.clusterserviceversion.yaml#L5)
 
 ## 3.Make a pull request to merge the changes
 
@@ -389,8 +389,8 @@ Open `Installed Operators` page to check the installed operators.
 ## 6. Create a MetaOperator Set
 
 ```bash
-vi deploy/crds/operator.ibm.com_v1alpha1_metaoperatorset_cr.yaml
-oc apply -f deploy/crds/operator.ibm.com_v1alpha1_metaoperatorset_cr.yaml -n ibm-common-services
+vi deploy/crds/operator.ibm.com_v1alpha1_operandrequest_cr.yaml
+oc apply -f deploy/crds/operator.ibm.com_v1alpha1_operandrequest_cr.yaml -n ibm-common-services
 ```
 
 - [Editing MetaOperator Set](#edit-a-metaoperator-set-custom-resource)

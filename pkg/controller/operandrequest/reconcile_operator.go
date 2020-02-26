@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-package metaoperatorset
+package operandrequest
 
 import (
 	"context"
@@ -29,7 +29,7 @@ import (
 	operatorv1alpha1 "github.com/IBM/meta-operator/pkg/apis/operator/v1alpha1"
 )
 
-func (r *ReconcileMetaOperatorSet) reconcileOperator(opts map[string]operatorv1alpha1.Operator, setInstance *operatorv1alpha1.MetaOperatorSet, moc *operatorv1alpha1.OperandRegistry) error {
+func (r *ReconcileOperandRequest) reconcileOperator(opts map[string]operatorv1alpha1.Operator, setInstance *operatorv1alpha1.OperandRequest, moc *operatorv1alpha1.OperandRegistry) error {
 	reqLogger := log.WithValues()
 	reqLogger.Info("Reconciling Operator")
 	for _, o := range opts {
@@ -77,7 +77,7 @@ func (r *ReconcileMetaOperatorSet) reconcileOperator(opts map[string]operatorv1a
 	return nil
 }
 
-func (r *ReconcileMetaOperatorSet) fetchOperators(moc *operatorv1alpha1.OperandRegistry, cr *operatorv1alpha1.MetaOperatorSet) (map[string]operatorv1alpha1.Operator, error) {
+func (r *ReconcileOperandRequest) fetchOperators(moc *operatorv1alpha1.OperandRegistry, cr *operatorv1alpha1.OperandRequest) (map[string]operatorv1alpha1.Operator, error) {
 
 	setMap, err := r.fetchSets(cr)
 	if err != nil {
@@ -99,7 +99,7 @@ func (r *ReconcileMetaOperatorSet) fetchOperators(moc *operatorv1alpha1.OperandR
 	return optMap, nil
 }
 
-func (r *ReconcileMetaOperatorSet) createSubscription(cr *operatorv1alpha1.MetaOperatorSet, opt operatorv1alpha1.Operator) error {
+func (r *ReconcileOperandRequest) createSubscription(cr *operatorv1alpha1.OperandRequest, opt operatorv1alpha1.Operator) error {
 	logger := log.WithValues("Subscription.Namespace", opt.Namespace, "Subscription.Name", opt.Name)
 	co := generateClusterObjects(opt)
 
@@ -139,7 +139,7 @@ func (r *ReconcileMetaOperatorSet) createSubscription(cr *operatorv1alpha1.MetaO
 	return nil
 }
 
-func (r *ReconcileMetaOperatorSet) updateSubscription(cr *operatorv1alpha1.MetaOperatorSet, sub *olmv1alpha1.Subscription) error {
+func (r *ReconcileOperandRequest) updateSubscription(cr *operatorv1alpha1.OperandRequest, sub *olmv1alpha1.Subscription) error {
 	logger := log.WithValues("Subscription.Namespace", sub.Namespace, "Subscription.Name", sub.Name)
 
 	logger.Info("Updating Subscription")
@@ -156,7 +156,7 @@ func (r *ReconcileMetaOperatorSet) updateSubscription(cr *operatorv1alpha1.MetaO
 	return nil
 }
 
-func (r *ReconcileMetaOperatorSet) deleteSubscription(cr *operatorv1alpha1.MetaOperatorSet, sub *olmv1alpha1.Subscription, moc *operatorv1alpha1.OperandRegistry) error {
+func (r *ReconcileOperandRequest) deleteSubscription(cr *operatorv1alpha1.OperandRequest, sub *olmv1alpha1.Subscription, moc *operatorv1alpha1.OperandRegistry) error {
 	logger := log.WithValues("Subscription.Namespace", sub.Namespace, "Subscription.Name", sub.Name)
 	installedCsv := sub.Status.InstalledCSV
 	logger.Info("Deleting a Subscription")

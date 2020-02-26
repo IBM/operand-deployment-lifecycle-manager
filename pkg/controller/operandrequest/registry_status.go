@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-package metaoperatorset
+package operandrequest
 
 import (
 	"context"
@@ -22,7 +22,7 @@ import (
 	operatorv1alpha1 "github.com/IBM/meta-operator/pkg/apis/operator/v1alpha1"
 )
 
-func (r *ReconcileMetaOperatorSet) initOperatorStatus(cr *operatorv1alpha1.OperandRegistry) error {
+func (r *ReconcileOperandRequest) initOperatorStatus(cr *operatorv1alpha1.OperandRegistry) error {
 
 	if cr.Status.OperatorsStatus == nil {
 		cr.Status.OperatorsStatus = make(map[string]operatorv1alpha1.OperatorPhase)
@@ -44,7 +44,7 @@ func (r *ReconcileMetaOperatorSet) initOperatorStatus(cr *operatorv1alpha1.Opera
 	return nil
 }
 
-func (r *ReconcileMetaOperatorSet) updateOperatorStatus(cr *operatorv1alpha1.OperandRegistry, operatorName string, operatorStatus operatorv1alpha1.OperatorPhase) error {
+func (r *ReconcileOperandRequest) updateOperatorStatus(cr *operatorv1alpha1.OperandRegistry, operatorName string, operatorStatus operatorv1alpha1.OperatorPhase) error {
 
 	if cr.Status.OperatorsStatus == nil {
 		cr.Status.OperatorsStatus = make(map[string]operatorv1alpha1.OperatorPhase)
@@ -58,7 +58,7 @@ func (r *ReconcileMetaOperatorSet) updateOperatorStatus(cr *operatorv1alpha1.Ope
 	return nil
 }
 
-func (r *ReconcileMetaOperatorSet) deleteOperatorStatus(cr *operatorv1alpha1.OperandRegistry, operatorName string) error {
+func (r *ReconcileOperandRequest) deleteOperatorStatus(cr *operatorv1alpha1.OperandRegistry, operatorName string) error {
 
 	if cr.Status.OperatorsStatus != nil {
 		delete(cr.Status.OperatorsStatus, operatorName)
