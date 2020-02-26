@@ -109,8 +109,8 @@ func MetaOperatorConfigUpdate(t *testing.T) {
 	}
 }
 
-// MetaOperatorCatalogUpdate is for testing the update of the MetaOperatorCatalog
-func MetaOperatorCatalogUpdate(t *testing.T) {
+// OperandRegistryUpdate is for testing the update of the OperandRegistry
+func OperandRegistryUpdate(t *testing.T) {
 
 	ctx := test.NewTestCtx(t)
 	defer ctx.Cleanup()

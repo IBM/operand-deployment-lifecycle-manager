@@ -28,120 +28,15 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		"./pkg/apis/operator/v1alpha1.MetaOperatorCatalog":       schema_pkg_apis_operator_v1alpha1_MetaOperatorCatalog(ref),
-		"./pkg/apis/operator/v1alpha1.MetaOperatorCatalogSpec":   schema_pkg_apis_operator_v1alpha1_MetaOperatorCatalogSpec(ref),
-		"./pkg/apis/operator/v1alpha1.MetaOperatorCatalogStatus": schema_pkg_apis_operator_v1alpha1_MetaOperatorCatalogStatus(ref),
-		"./pkg/apis/operator/v1alpha1.MetaOperatorConfig":        schema_pkg_apis_operator_v1alpha1_MetaOperatorConfig(ref),
-		"./pkg/apis/operator/v1alpha1.MetaOperatorConfigSpec":    schema_pkg_apis_operator_v1alpha1_MetaOperatorConfigSpec(ref),
-		"./pkg/apis/operator/v1alpha1.MetaOperatorConfigStatus":  schema_pkg_apis_operator_v1alpha1_MetaOperatorConfigStatus(ref),
-		"./pkg/apis/operator/v1alpha1.MetaOperatorSet":           schema_pkg_apis_operator_v1alpha1_MetaOperatorSet(ref),
-		"./pkg/apis/operator/v1alpha1.MetaOperatorSetSpec":       schema_pkg_apis_operator_v1alpha1_MetaOperatorSetSpec(ref),
-		"./pkg/apis/operator/v1alpha1.MetaOperatorSetStatus":     schema_pkg_apis_operator_v1alpha1_MetaOperatorSetStatus(ref),
-	}
-}
-
-func schema_pkg_apis_operator_v1alpha1_MetaOperatorCatalog(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "MetaOperatorCatalog is the Schema for the metaoperatorcatalogs API",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"kind": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"apiVersion": {
-						SchemaProps: spec.SchemaProps{
-							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"metadata": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
-						},
-					},
-					"spec": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("./pkg/apis/operator/v1alpha1.MetaOperatorCatalogSpec"),
-						},
-					},
-					"status": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("./pkg/apis/operator/v1alpha1.MetaOperatorCatalogStatus"),
-						},
-					},
-				},
-			},
-		},
-		Dependencies: []string{
-			"./pkg/apis/operator/v1alpha1.MetaOperatorCatalogSpec", "./pkg/apis/operator/v1alpha1.MetaOperatorCatalogStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
-	}
-}
-
-func schema_pkg_apis_operator_v1alpha1_MetaOperatorCatalogSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "MetaOperatorCatalogSpec defines the desired state of MetaOperatorCatalog",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"operators": {
-						VendorExtensible: spec.VendorExtensible{
-							Extensions: spec.Extensions{
-								"x-kubernetes-list-type": "set",
-							},
-						},
-						SchemaProps: spec.SchemaProps{
-							Description: "Operators is a list of operator definition",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("./pkg/apis/operator/v1alpha1.Operator"),
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-		Dependencies: []string{
-			"./pkg/apis/operator/v1alpha1.Operator"},
-	}
-}
-
-func schema_pkg_apis_operator_v1alpha1_MetaOperatorCatalogStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "MetaOperatorCatalogStatus defines the observed state of MetaOperatorCatalog",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"operatorsStatus": {
-						SchemaProps: spec.SchemaProps{
-							Description: "OperatorsStatus defines operator running state",
-							Type:        []string{"object"},
-							AdditionalProperties: &spec.SchemaOrBool{
-								Allows: true,
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Type:   []string{"string"},
-										Format: "",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
+		"./pkg/apis/operator/v1alpha1.MetaOperatorConfig":       schema_pkg_apis_operator_v1alpha1_MetaOperatorConfig(ref),
+		"./pkg/apis/operator/v1alpha1.MetaOperatorConfigSpec":   schema_pkg_apis_operator_v1alpha1_MetaOperatorConfigSpec(ref),
+		"./pkg/apis/operator/v1alpha1.MetaOperatorConfigStatus": schema_pkg_apis_operator_v1alpha1_MetaOperatorConfigStatus(ref),
+		"./pkg/apis/operator/v1alpha1.MetaOperatorSet":          schema_pkg_apis_operator_v1alpha1_MetaOperatorSet(ref),
+		"./pkg/apis/operator/v1alpha1.MetaOperatorSetSpec":      schema_pkg_apis_operator_v1alpha1_MetaOperatorSetSpec(ref),
+		"./pkg/apis/operator/v1alpha1.MetaOperatorSetStatus":    schema_pkg_apis_operator_v1alpha1_MetaOperatorSetStatus(ref),
+		"./pkg/apis/operator/v1alpha1.OperandRegistry":          schema_pkg_apis_operator_v1alpha1_OperandRegistry(ref),
+		"./pkg/apis/operator/v1alpha1.OperandRegistrySpec":      schema_pkg_apis_operator_v1alpha1_OperandRegistrySpec(ref),
+		"./pkg/apis/operator/v1alpha1.OperandRegistryStatus":    schema_pkg_apis_operator_v1alpha1_OperandRegistryStatus(ref),
 	}
 }
 
@@ -379,5 +274,110 @@ func schema_pkg_apis_operator_v1alpha1_MetaOperatorSetStatus(ref common.Referenc
 		},
 		Dependencies: []string{
 			"./pkg/apis/operator/v1alpha1.Condition", "./pkg/apis/operator/v1alpha1.MemberStatus"},
+	}
+}
+
+func schema_pkg_apis_operator_v1alpha1_OperandRegistry(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "OperandRegistry is the Schema for the operandregistries API",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("./pkg/apis/operator/v1alpha1.OperandRegistrySpec"),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("./pkg/apis/operator/v1alpha1.OperandRegistryStatus"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"./pkg/apis/operator/v1alpha1.OperandRegistrySpec", "./pkg/apis/operator/v1alpha1.OperandRegistryStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_pkg_apis_operator_v1alpha1_OperandRegistrySpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "OperandRegistrySpec defines the desired state of OperandRegistry",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"operators": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "set",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "Operators is a list of operator definition",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("./pkg/apis/operator/v1alpha1.Operator"),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"./pkg/apis/operator/v1alpha1.Operator"},
+	}
+}
+
+func schema_pkg_apis_operator_v1alpha1_OperandRegistryStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "OperandRegistryStatus defines the observed state of OperandRegistry",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"operatorsStatus": {
+						SchemaProps: spec.SchemaProps{
+							Description: "OperatorsStatus defines operator running state",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 }

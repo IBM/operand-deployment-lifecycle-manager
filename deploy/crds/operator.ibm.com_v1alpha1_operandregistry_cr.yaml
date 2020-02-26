@@ -1,5 +1,5 @@
 apiVersion: operator.ibm.com/v1alpha1
-kind: MetaOperatorCatalog
+kind: OperandRegistry
 metadata:
   name: common-service
 spec:

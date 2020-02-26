@@ -54,7 +54,7 @@ rules:
   - operators.coreos.com
   resources:
   - '*'
-  - metaoperatorcatalogs
+  - operandregistries
   - metaoperatorconfigs
   - metaoperatorsets
   verbs:

@@ -109,14 +109,14 @@ func TestDeleteSet(t *testing.T) {
 	assert.NoError(err)
 }
 
-// Return MetaOperatorCatalog obj
-func mog(name, namespace string) *v1alpha1.MetaOperatorCatalog {
-	return &v1alpha1.MetaOperatorCatalog{
+// Return OperandRegistry obj
+func mog(name, namespace string) *v1alpha1.OperandRegistry {
+	return &v1alpha1.OperandRegistry{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: v1alpha1.MetaOperatorCatalogSpec{
+		Spec: v1alpha1.OperandRegistrySpec{
 			Operators: []v1alpha1.Operator{
 				{
 					Name:            "etcd",

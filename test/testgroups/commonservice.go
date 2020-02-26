@@ -40,7 +40,7 @@ func MetaOperator(t *testing.T) {
 	t.Run("MetaOperatorSet Create", testsuits.MetaOperatorSetCreate)
 	t.Run("MetaOperatorSet Create Update", testsuits.MetaOperatorSetCreateUpdate)
 	t.Run("MetaOperatorConfig Update", testsuits.MetaOperatorConfigUpdate)
-	t.Run("MetaOperatorCatalog Create Update", testsuits.MetaOperatorCatalogUpdate)
+	t.Run("OperandRegistry Create Update", testsuits.OperandRegistryUpdate)
 	t.Run("MetaOperatorSet Create Delete", testsuits.MetaOperatorSetCreateDelete)
 
 }

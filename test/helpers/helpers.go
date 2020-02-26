@@ -198,16 +198,16 @@ func UpdateConfigTest(olmClient *olmclient.Clientset, f *framework.Framework, ct
 	return nil
 }
 
-// UpdateCatalogTest updates a MetaOperatorCatalog instance
+// UpdateCatalogTest updates a OperandRegistry instance
 func UpdateCatalogTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *framework.TestCtx) error {
 	namespace, err := ctx.GetNamespace()
 	if err != nil {
 		return err
 	}
-	metaOperatorInstance := &operator.MetaOperatorCatalog{}
+	metaOperatorInstance := &operator.OperandRegistry{}
 	fmt.Println("--- UPDATE: MetaOperator")
 
-	// Get MetaOperatorCatalog instance
+	// Get OperandRegistry instance
 	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.CatalogCrName, Namespace: namespace}, metaOperatorInstance)
 	if err != nil {
 		return err
@@ -234,7 +234,7 @@ func UpdateCatalogTest(olmClient *olmclient.Clientset, f *framework.Framework, c
 
 // GetOperators get a operator list waiting for being installed
 func GetOperators(f *framework.Framework, namespace string) (map[string]operator.Operator, error) {
-	moInstance := &operator.MetaOperatorCatalog{}
+	moInstance := &operator.OperandRegistry{}
 	lastReason := ""
 	waitErr := utilwait.PollImmediate(config.WaitForRetry, config.APITimeout, func() (done bool, err error) {
 		err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.CatalogCrName, Namespace: namespace}, moInstance)
@@ -391,13 +391,13 @@ func newMetaOperatorConfigCR(name, namespace string) *operator.MetaOperatorConfi
 }
 
 // MetaOperator instance
-func newMetaOperatorCR(name, namespace string) *operator.MetaOperatorCatalog {
-	return &operator.MetaOperatorCatalog{
+func newMetaOperatorCR(name, namespace string) *operator.OperandRegistry {
+	return &operator.OperandRegistry{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: operator.MetaOperatorCatalogSpec{
+		Spec: operator.OperandRegistrySpec{
 			Operators: []operator.Operator{
 				{
 					Name:            "etcd",

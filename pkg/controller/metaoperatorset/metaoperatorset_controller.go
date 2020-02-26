@@ -84,7 +84,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to primary resource MetaOperator
-	err = c.Watch(&source.Kind{Type: &operatorv1alpha1.MetaOperatorCatalog{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &operatorv1alpha1.OperandRegistry{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -167,7 +167,7 @@ func (r *ReconcileMetaOperatorSet) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// Fetch the MetaOperatorCatalog instance
+	// Fetch the OperandRegistry instance
 	moc, err := r.listCatalog(setInstance.Namespace)
 
 	if moc == nil {
@@ -178,7 +178,7 @@ func (r *ReconcileMetaOperatorSet) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
-	// Initialize MetaOperatorCatalog status
+	// Initialize OperandRegistry status
 	if err := r.initOperatorStatus(moc); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -267,7 +267,7 @@ func (r *ReconcileMetaOperatorSet) Reconcile(request reconcile.Request) (reconci
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileMetaOperatorSet) waitForInstallPlan(moc *operatorv1alpha1.MetaOperatorCatalog) error {
+func (r *ReconcileMetaOperatorSet) waitForInstallPlan(moc *operatorv1alpha1.OperandRegistry) error {
 	reqLogger := log.WithValues()
 	reqLogger.Info("Waiting for subscriptions to be ready ...")
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*2)
@@ -392,11 +392,11 @@ func (r *ReconcileMetaOperatorSet) listConfig(namespace string) (*operatorv1alph
 	return &cscList.Items[0], nil
 }
 
-func (r *ReconcileMetaOperatorSet) listCatalog(namespace string) (*operatorv1alpha1.MetaOperatorCatalog, error) {
+func (r *ReconcileMetaOperatorSet) listCatalog(namespace string) (*operatorv1alpha1.OperandRegistry, error) {
 	reqLogger := log.WithValues("Request.Namespace", namespace)
-	reqLogger.Info("Fetch MetaOperatorCatalog instance")
-	// Fetch the MetaOperatorCatalog instance
-	mocList := &operatorv1alpha1.MetaOperatorCatalogList{}
+	reqLogger.Info("Fetch OperandRegistry instance")
+	// Fetch the OperandRegistry instance
+	mocList := &operatorv1alpha1.OperandRegistryList{}
 	if err := r.client.List(context.TODO(), mocList, &client.ListOptions{Namespace: namespace}); err != nil {
 		return nil, err
 	}
@@ -406,8 +406,8 @@ func (r *ReconcileMetaOperatorSet) listCatalog(namespace string) (*operatorv1alp
 	}
 
 	if len(mocList.Items) > 1 {
-		reqLogger.Error(fmt.Errorf("multiple MetaOperatorCatalog in one namespace"),
-			"There are multiple MetaOperatorCatalog custom resource in "+
+		reqLogger.Error(fmt.Errorf("multiple OperandRegistry in one namespace"),
+			"There are multiple OperandRegistry custom resource in "+
 				namespace+
 				". Choose the first one "+
 				mocList.Items[0].Name+
