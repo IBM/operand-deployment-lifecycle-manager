@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-package metaoperatorcatalog
+package operandregistry
 
 import (
 	"context"
@@ -35,7 +35,7 @@ import (
 	"github.com/IBM/meta-operator/pkg/util"
 )
 
-var log = logf.Log.WithName("controller_metaoperatorcatalog")
+var log = logf.Log.WithName("controller_operandregistry")
 
 /**
 * USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
@@ -50,9 +50,9 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileMetaOperatorCatalog{
+	return &ReconcileOperandRegistry{
 		client:   mgr.GetClient(),
-		recorder: mgr.GetEventRecorderFor("metaoperatorcatalog"),
+		recorder: mgr.GetEventRecorderFor("operandregistry"),
 		scheme:   mgr.GetScheme()}
 }
 
@@ -65,25 +65,25 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to primary resource MetaOperator
-	err = c.Watch(&source.Kind{Type: &operatorv1alpha1.MetaOperatorCatalog{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &operatorv1alpha1.OperandRegistry{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
 
 	deployDirectory := os.Getenv("DEPLOY_DIR")
-	log.Info("initializing default metaoperatorcatalog")
-	if err = util.InitInstance(deployDirectory+"/operator.ibm.com_v1alpha1_metaoperatorcatalog_cr.yaml", mgr); err != nil {
+	log.Info("initializing default operandregistry")
+	if err = util.InitInstance(deployDirectory+"/operator.ibm.com_v1alpha1_operandregistry_cr.yaml", mgr); err != nil {
 		log.Error(err, "Error creating CR, please create it manually")
 	}
 
 	return nil
 }
 
-// blank assignment to verify that ReconcileMetaOperatorCatalog implements reconcile.Reconciler
-var _ reconcile.Reconciler = &ReconcileMetaOperatorCatalog{}
+// blank assignment to verify that ReconcileOperandRegistry implements reconcile.Reconciler
+var _ reconcile.Reconciler = &ReconcileOperandRegistry{}
 
-// ReconcileMetaOperatorCatalog reconciles a MetaOperator object
-type ReconcileMetaOperatorCatalog struct {
+// ReconcileOperandRegistry reconciles a MetaOperator object
+type ReconcileOperandRegistry struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
 	client   client.Client
@@ -98,12 +98,12 @@ type ReconcileMetaOperatorCatalog struct {
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *ReconcileMetaOperatorCatalog) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+func (r *ReconcileOperandRegistry) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
-	reqLogger.Info("Reconciling MetaOperatorCatalog")
+	reqLogger.Info("Reconciling OperandRegistry")
 
 	// Fetch the MetaOperator instance
-	instance := &operatorv1alpha1.MetaOperatorCatalog{}
+	instance := &operatorv1alpha1.OperandRegistry{}
 	if err := r.client.Get(context.TODO(), request.NamespacedName, instance); err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.

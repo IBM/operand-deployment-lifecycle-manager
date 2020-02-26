@@ -66,7 +66,7 @@ install: ## Install all resources (CR/CRD's, RBAC and Operator)
 	@echo ....... Creating namespace .......
 	- kubectl create namespace ${NAMESPACE}
 	@echo ....... Applying CRDs .......
-	- kubectl apply -f deploy/crds/operator.ibm.com_metaoperatorcatalogs_crd.yaml
+	- kubectl apply -f deploy/crds/operator.ibm.com_operandregistries_crd.yaml
 	- kubectl apply -f deploy/crds/operator.ibm.com_metaoperatorconfigs_crd.yaml
 	- kubectl apply -f deploy/crds/operator.ibm.com_metaoperatorsets_crd.yaml
 	@echo ....... Applying RBAC .......
@@ -87,7 +87,7 @@ uninstall: ## Uninstall all that all performed in the $ make install
 	@echo ....... Deleting CRDs.......
 	- kubectl delete -f deploy/crds/operator.ibm.com_metaoperatorconfigs_crd.yaml --ignore-not-found
 	- kubectl delete -f deploy/crds/operator.ibm.com_metaoperatorsets_crd.yaml --ignore-not-found
-	- kubectl delete -f deploy/crds/operator.ibm.com_metaoperatorcatalogs_crd.yaml --ignore-not-found
+	- kubectl delete -f deploy/crds/operator.ibm.com_operandregistries_crd.yaml --ignore-not-found
 	@echo ....... Deleting Rules and Service Account .......
 	- kubectl delete -f deploy/role_binding.yaml --ignore-not-found
 	- kubectl delete -f deploy/service_account.yaml -n ${NAMESPACE} --ignore-not-found

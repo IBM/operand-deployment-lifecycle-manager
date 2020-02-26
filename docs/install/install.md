@@ -125,9 +125,9 @@ oc -n meta-operator get csv
 
 ## Create and update custom resource
 
-### 1. Update MetaOperatorConfig and MetaOperatorCatalog custom resource
+### 1. Update MetaOperatorConfig and OperandRegistry custom resource
 
-Meta Operator defines three custom resource definitions MetaOperatorConfig, MetaOperatorSet and MetaOperatorCatalog and it creates two example custom resources for MetaOperatorConfig and MetaOperatorCatalog.
+Meta Operator defines three custom resource definitions MetaOperatorConfig, MetaOperatorSet and OperandRegistry and it creates two example custom resources for MetaOperatorConfig and OperandRegistry.
 
 In the `Operator Details` page, three generated custom resource definition are list in a line with the `Overview`. Check the custom resource definition name, then you can update the example custom resource.
 
@@ -178,12 +178,12 @@ spec:
     type: ClusterIP
 ```
 
-For the MetaOperatorCatalog,
-MetaOperatorCatalog defines the individual common service operator information:
+For the OperandRegistry,
+OperandRegistry defines the individual common service operator information:
 
 ```yaml
 apiVersion: operator.ibm.com/v1alpha1
-kind: MetaOperatorCatalog
+kind: OperandRegistry
 metadata:
   name: common-service
 spec:
@@ -243,8 +243,8 @@ spec:
 ```
 
 - `services` is a list defines the set for each service.
-- `name` is the service name, which should be the same as the services name in the `MetaOperatorConfig` and operator name in the `MetaOperatorCatalog`.
-- `channel` is an optional setting, it can overwrite the `channel` defined in the `MetaOperatorCatalog`.
+- `name` is the service name, which should be the same as the services name in the `MetaOperatorConfig` and operator name in the `OperandRegistry`.
+- `channel` is an optional setting, it can overwrite the `channel` defined in the `OperandRegistry`.
 - `state` defines if the service should be present or absent.
 - `description` is the description of the service.
 

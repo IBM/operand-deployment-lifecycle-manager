@@ -207,14 +207,14 @@ git clone git@github.com:IBM/meta-operator.git
 
 ```bash
 cd meta-operator
-vi deploy/crds/operator.ibm.com_v1alpha1_metaoperatorcatalog_cr.yaml
+vi deploy/crds/operator.ibm.com_v1alpha1_operandregistry_cr.yaml
 ```
 
 Append the operator package information under the `operators` field.
 
 ```yaml
 apiVersion: operator.ibm.com/v1alpha1
-kind: MetaOperatorCatalog
+kind: OperandRegistry
 metadata:
 name: common-service
 spec:
@@ -334,14 +334,14 @@ spec:
 ```
 
 - `services` is a list defines the set for each service.
-- `name` is the service name, which should be the same as the services name in the `MetaOperatorConfig` and operator name in the `MetaOperatorCatalog`.
-- `channel` is an optional setting, it can overwrite the `channel` defined in the `MetaOperatorCatalog`.
+- `name` is the service name, which should be the same as the services name in the `MetaOperatorConfig` and operator name in the `OperandRegistry`.
+- `channel` is an optional setting, it can overwrite the `channel` defined in the `OperandRegistry`.
 - `state` defines if the service should be present or absent.
 - `description` is the description of the service.
 
 ### Edit alm-example in the meta-operator CSV
 
-Add the changes for metaoperatorset metaoperatorcatalog and metaoperatorconfig in the [alm-example](https://github.com/IBM/meta-operator/blob/master/deploy/olm-catalog/meta-operator/0.0.1/meta-operator.v0.0.1.clusterserviceversion.yaml#L5)
+Add the changes for metaoperatorset operandregistry and metaoperatorconfig in the [alm-example](https://github.com/IBM/meta-operator/blob/master/deploy/olm-catalog/meta-operator/0.0.1/meta-operator.v0.0.1.clusterserviceversion.yaml#L5)
 
 ## 3.Make a pull request to merge the changes
 

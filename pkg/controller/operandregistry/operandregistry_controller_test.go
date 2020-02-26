@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-package metaoperatorcatalog
+package operandregistry
 
 import (
 	"testing"
@@ -28,8 +28,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-// TestCatalogController runs ReconcileMetaOperatorCatalog.Reconcile() against a
-// fake client that tracks a MetaOperatorCatalog object.
+// TestCatalogController runs ReconcileOperandRegistry.Reconcile() against a
+// fake client that tracks a OperandRegistry object.
 func TestCatalogController(t *testing.T) {
 
 	var (
@@ -45,13 +45,13 @@ func TestCatalogController(t *testing.T) {
 		},
 	}
 
-	// A metaoperatorcatalog resource with metadata and spec.
-	catalog := &v1alpha1.MetaOperatorCatalog{
+	// A operandregistry resource with metadata and spec.
+	catalog := &v1alpha1.OperandRegistry{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: v1alpha1.MetaOperatorCatalogSpec{
+		Spec: v1alpha1.OperandRegistrySpec{
 			Operators: []v1alpha1.Operator{
 				{
 					Name:            "etcd",
@@ -88,8 +88,8 @@ func TestCatalogController(t *testing.T) {
 	s.AddKnownTypes(v1alpha1.SchemeGroupVersion, catalog)
 	// Create a fake client to mock API calls.
 	cl := fake.NewFakeClient(objs...)
-	// Create a ReconcileMetaOperatorCatalog object with the scheme and fake client.
-	r := &ReconcileMetaOperatorCatalog{client: cl, scheme: s}
+	// Create a ReconcileOperandRegistry object with the scheme and fake client.
+	r := &ReconcileOperandRegistry{client: cl, scheme: s}
 
 	res, err := r.Reconcile(req)
 	if err != nil {
@@ -102,8 +102,8 @@ func TestCatalogController(t *testing.T) {
 
 	// Create a fake client to mock instance not found.
 	cl = fake.NewFakeClient()
-	// Create a ReconcileMetaOperatorCatalog object with the scheme and fake client.
-	r = &ReconcileMetaOperatorCatalog{client: cl, scheme: s}
+	// Create a ReconcileOperandRegistry object with the scheme and fake client.
+	r = &ReconcileOperandRegistry{client: cl, scheme: s}
 
 	res, err = r.Reconcile(req)
 	if err != nil {

@@ -29,7 +29,7 @@ import (
 	operatorv1alpha1 "github.com/IBM/meta-operator/pkg/apis/operator/v1alpha1"
 )
 
-func (r *ReconcileMetaOperatorSet) reconcileOperator(opts map[string]operatorv1alpha1.Operator, setInstance *operatorv1alpha1.MetaOperatorSet, moc *operatorv1alpha1.MetaOperatorCatalog) error {
+func (r *ReconcileMetaOperatorSet) reconcileOperator(opts map[string]operatorv1alpha1.Operator, setInstance *operatorv1alpha1.MetaOperatorSet, moc *operatorv1alpha1.OperandRegistry) error {
 	reqLogger := log.WithValues()
 	reqLogger.Info("Reconciling Operator")
 	for _, o := range opts {
@@ -77,7 +77,7 @@ func (r *ReconcileMetaOperatorSet) reconcileOperator(opts map[string]operatorv1a
 	return nil
 }
 
-func (r *ReconcileMetaOperatorSet) fetchOperators(moc *operatorv1alpha1.MetaOperatorCatalog, cr *operatorv1alpha1.MetaOperatorSet) (map[string]operatorv1alpha1.Operator, error) {
+func (r *ReconcileMetaOperatorSet) fetchOperators(moc *operatorv1alpha1.OperandRegistry, cr *operatorv1alpha1.MetaOperatorSet) (map[string]operatorv1alpha1.Operator, error) {
 
 	setMap, err := r.fetchSets(cr)
 	if err != nil {
@@ -156,7 +156,7 @@ func (r *ReconcileMetaOperatorSet) updateSubscription(cr *operatorv1alpha1.MetaO
 	return nil
 }
 
-func (r *ReconcileMetaOperatorSet) deleteSubscription(cr *operatorv1alpha1.MetaOperatorSet, sub *olmv1alpha1.Subscription, moc *operatorv1alpha1.MetaOperatorCatalog) error {
+func (r *ReconcileMetaOperatorSet) deleteSubscription(cr *operatorv1alpha1.MetaOperatorSet, sub *olmv1alpha1.Subscription, moc *operatorv1alpha1.OperandRegistry) error {
 	logger := log.WithValues("Subscription.Namespace", sub.Namespace, "Subscription.Name", sub.Name)
 	installedCsv := sub.Status.InstalledCSV
 	logger.Info("Deleting a Subscription")
