@@ -43,3 +43,7 @@ spec:
     spec:
       auditloggings: {}
       auditpolicies: {}
+  - name: ibm-catalog-operator
+    spec:
+      catalogUIService: {}
+      

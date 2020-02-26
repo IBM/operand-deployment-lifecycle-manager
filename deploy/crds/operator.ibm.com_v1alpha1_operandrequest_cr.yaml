@@ -24,3 +24,5 @@ spec:
     state: present
   - name: ibm-auditlogging-operator
     state: absent
+  - name: ibm-catalog-operator
+    state: absent

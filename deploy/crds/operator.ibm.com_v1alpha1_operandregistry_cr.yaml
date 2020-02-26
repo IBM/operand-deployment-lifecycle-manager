@@ -74,3 +74,10 @@ spec:
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
     description: Operator for managing deployment of auditlogging service.
+  - name: ibm-catalog-operator
+    namespace: ibm-common-services
+    channel: alpha
+    packageName: ibm-catalog-operator-app
+    sourceName: opencloud-operators
+    sourceNamespace: openshift-marketplace
+    description: Operator for managing deployment of catalog UI service.
