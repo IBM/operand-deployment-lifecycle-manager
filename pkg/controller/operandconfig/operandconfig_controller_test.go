@@ -13,12 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-package metaoperatorconfig
+package operandconfig
 
 import (
 	"testing"
 
-	v1alpha1 "github.com/IBM/meta-operator/pkg/apis/operator/v1alpha1"
+	v1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -29,7 +29,7 @@ import (
 )
 
 // TestConfigConfig runs ReconcileMetaOperatorConfig.Reconcile() against a
-// fake client that tracks a MetaOperatorConfig object.
+// fake client that tracks a OperandConfig object.
 func TestConfigController(t *testing.T) {
 
 	var (
@@ -46,12 +46,12 @@ func TestConfigController(t *testing.T) {
 	}
 
 	// A metaoperatorconfig resource with metadata and spec.
-	config := &v1alpha1.MetaOperatorConfig{
+	config := &v1alpha1.OperandConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: v1alpha1.MetaOperatorConfigSpec{
+		Spec: v1alpha1.OperandConfigSpec{
 			Services: []v1alpha1.ConfigService{
 				{
 					Name: "jenkins",

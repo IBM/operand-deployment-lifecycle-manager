@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	"github.com/IBM/meta-operator/pkg/apis/operator/v1alpha1"
+	"github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 )
 
 // TestSetController runs ReconcileOperandRequest.Reconcile() against a
@@ -131,14 +131,14 @@ func mog(name, namespace string) *v1alpha1.OperandRegistry {
 	}
 }
 
-// Return MetaOperatorConfig obj
-func moc(name, namespace string) *v1alpha1.MetaOperatorConfig {
-	return &v1alpha1.MetaOperatorConfig{
+// Return OperandConfig obj
+func moc(name, namespace string) *v1alpha1.OperandConfig {
+	return &v1alpha1.OperandConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: v1alpha1.MetaOperatorConfigSpec{
+		Spec: v1alpha1.OperandConfigSpec{
 			Services: []v1alpha1.ConfigService{
 				{
 					Name: "etcd",

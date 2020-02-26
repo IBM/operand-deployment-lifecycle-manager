@@ -17,7 +17,7 @@
 package controller
 
 import (
-	"github.com/IBM/meta-operator/pkg/controller/operandregistry"
+	"github.com/IBM/operand-deployment-lifecycle-manager/pkg/controller/operandregistry"
 )
 
 func init() {

@@ -18,7 +18,7 @@ package operandregistry
 import (
 	"testing"
 
-	v1alpha1 "github.com/IBM/meta-operator/pkg/apis/operator/v1alpha1"
+	v1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"

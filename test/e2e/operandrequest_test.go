@@ -20,9 +20,9 @@ import (
 
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
 
-	apis "github.com/IBM/meta-operator/pkg/apis"
-	operator "github.com/IBM/meta-operator/pkg/apis/operator/v1alpha1"
-	"github.com/IBM/meta-operator/test/testgroups"
+	apis "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis"
+	operator "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
+	"github.com/IBM/operand-deployment-lifecycle-manager/test/testgroups"
 )
 
 func TestOperandRequest(t *testing.T) {

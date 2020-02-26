@@ -125,18 +125,18 @@ oc -n meta-operator get csv
 
 ## Create and update custom resource
 
-### 1. Update MetaOperatorConfig and OperandRegistry custom resource
+### 1. Update OperandConfig and OperandRegistry custom resource
 
-Meta Operator defines three custom resource definitions MetaOperatorConfig, OperandRequest and OperandRegistry and it creates two example custom resources for MetaOperatorConfig and OperandRegistry.
+Meta Operator defines three custom resource definitions OperandConfig, OperandRequest and OperandRegistry and it creates two example custom resources for OperandConfig and OperandRegistry.
 
 In the `Operator Details` page, three generated custom resource definition are list in a line with the `Overview`. Check the custom resource definition name, then you can update the example custom resource.
 
-For the MetaOperatorConfig,
-MetaOperatorConfig defines the individual common service CR information:
+For the OperandConfig,
+OperandConfig defines the individual common service CR information:
 
 ```yaml
 apiVersion: operator.ibm.com/v1alpha1
-kind: MetaOperatorConfig
+kind: OperandConfig
 metadata:
   name: common-service
 spec:
@@ -208,7 +208,7 @@ spec:
 
 The `operators` list defines the operator lifecycle management information for each operator.
 Taking the jenkins as an example:
-- `name` is the name of the operator, which should be the same as the services name in the `MetaOperatorConfig` and `OperandRequest`.
+- `name` is the name of the operator, which should be the same as the services name in the `OperandConfig` and `OperandRequest`.
 - `namespace` is the namespace the operator will be deployed in.
 - `channel` is the name of a tracked channel.
 - `packageName` is the name of the package in `CatalogSource` will be deployed.
@@ -243,7 +243,7 @@ spec:
 ```
 
 - `services` is a list defines the set for each service.
-- `name` is the service name, which should be the same as the services name in the `MetaOperatorConfig` and operator name in the `OperandRegistry`.
+- `name` is the service name, which should be the same as the services name in the `OperandConfig` and operator name in the `OperandRegistry`.
 - `channel` is an optional setting, it can overwrite the `channel` defined in the `OperandRegistry`.
 - `state` defines if the service should be present or absent.
 - `description` is the description of the service.

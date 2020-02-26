@@ -230,7 +230,7 @@ operators:
 ...
 ```
 
-- `name` is the name of the operator, which should be the same as the services name in the `MetaOperatorConfig` and `OperandRequest`.
+- `name` is the name of the operator, which should be the same as the services name in the `OperandConfig` and `OperandRequest`.
 - `namespace` is the namespace the operator will be deployed in. For the common services, they need to be installed in the `ibm-common-services` namespace.
 - `channel` is the name of a tracked channel.
 - `packageName` is the name of the package in `CatalogSource` will be deployed.
@@ -249,7 +249,7 @@ Append the operator custom resource information under the `services` field.
 
 ```yaml
 apiVersion: operator.ibm.com/v1alpha1
-kind: MetaOperatorConfig
+kind: OperandConfig
 metadata:
   name: common-service
 spec:
@@ -297,7 +297,7 @@ For example:
 
 ```yaml
 apiVersion: operator.ibm.com/v1alpha1
-kind: MetaOperatorConfig
+kind: OperandConfig
 metadata:
   name: common-service
 spec:
@@ -334,7 +334,7 @@ spec:
 ```
 
 - `services` is a list defines the set for each service.
-- `name` is the service name, which should be the same as the services name in the `MetaOperatorConfig` and operator name in the `OperandRegistry`.
+- `name` is the service name, which should be the same as the services name in the `OperandConfig` and operator name in the `OperandRegistry`.
 - `channel` is an optional setting, it can overwrite the `channel` defined in the `OperandRegistry`.
 - `state` defines if the service should be present or absent.
 - `description` is the description of the service.

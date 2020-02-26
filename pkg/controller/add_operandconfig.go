@@ -17,10 +17,10 @@
 package controller
 
 import (
-	"github.com/IBM/meta-operator/pkg/controller/metaoperatorconfig"
+	"github.com/IBM/operand-deployment-lifecycle-manager/pkg/controller/operandconfig"
 )
 
 func init() {
 	// AddToManagerFuncs is a list of functions to create controllers and add them to a manager.
-	AddToManagerFuncs = append(AddToManagerFuncs, metaoperatorconfig.Add)
+	AddToManagerFuncs = append(AddToManagerFuncs, operandconfig.Add)
 }

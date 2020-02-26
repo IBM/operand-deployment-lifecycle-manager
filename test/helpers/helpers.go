@@ -30,8 +30,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 
-	operator "github.com/IBM/meta-operator/pkg/apis/operator/v1alpha1"
-	"github.com/IBM/meta-operator/test/config"
+	operator "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
+	"github.com/IBM/operand-deployment-lifecycle-manager/test/config"
 )
 
 // CreateTest creates a OperandRequest instance
@@ -41,7 +41,7 @@ func CreateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 		return fmt.Errorf("could not get namespace: %v", err)
 	}
 
-	// create.MetaOperatorConfig custom resource
+	// create.OperandConfig custom resource
 	fmt.Println("--- CREATE: MetaOperatorConfigConfig Instance")
 	configInstance := newMetaOperatorConfigCR(config.ConfigCrName, namespace)
 	err = f.Client.Create(goctx.TODO(), configInstance, &framework.CleanupOptions{TestContext: ctx, Timeout: config.CleanupTimeout, RetryInterval: config.CleanupRetry})
@@ -182,13 +182,13 @@ func DeleteTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 	return nil
 }
 
-// UpdateConfigTest updates a MetaOperatorConfig instance
+// UpdateConfigTest updates a OperandConfig instance
 func UpdateConfigTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *framework.TestCtx) error {
 	namespace, err := ctx.GetNamespace()
 	if err != nil {
 		return err
 	}
-	configInstance := &operator.MetaOperatorConfig{}
+	configInstance := &operator.OperandConfig{}
 	fmt.Println("--- UPDATE: custom resource")
 	// Get OperandRequest instance
 	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.ConfigCrName, Namespace: namespace}, configInstance)
@@ -344,7 +344,7 @@ func WaitForSubscriptionDelete(olmClient *olmclient.Clientset, opt metav1.Object
 // ValidateCustomeResource check the result of the meta operator config
 func ValidateCustomeResource(f *framework.Framework, namespace string) error {
 	fmt.Println("Validating custome resources are ready")
-	configInstance := &operator.MetaOperatorConfig{}
+	configInstance := &operator.OperandConfig{}
 	// Get OperandRequest instance
 	err := f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.ConfigCrName, Namespace: namespace}, configInstance)
 	if err != nil {
@@ -378,14 +378,14 @@ func AssertNoError(t *testing.T, err error) {
 	}
 }
 
-//MetaOperatorConfig instance
-func newMetaOperatorConfigCR(name, namespace string) *operator.MetaOperatorConfig {
-	return &operator.MetaOperatorConfig{
+//OperandConfig instance
+func newMetaOperatorConfigCR(name, namespace string) *operator.OperandConfig {
+	return &operator.OperandConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: operator.MetaOperatorConfigSpec{
+		Spec: operator.OperandConfigSpec{
 			Services: []operator.ConfigService{
 				{
 					Name: "etcd",

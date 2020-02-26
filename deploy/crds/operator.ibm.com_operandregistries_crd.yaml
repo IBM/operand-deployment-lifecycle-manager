@@ -9,7 +9,7 @@ spec:
     listKind: OperandRegistryList
     plural: operandregistries
     shortNames:
-    - mocat
+    - or
     singular: operandregistry
   scope: Namespaced
   subresources:

@@ -37,7 +37,7 @@ func MergeCR(defaultCR, changedCR []byte) map[string]interface{} {
 	var changedCRDecoded map[string]interface{}
 	changedCRUnmarshalErr := json.Unmarshal(changedCR, &changedCRDecoded)
 	if changedCRUnmarshalErr != nil {
-		logger.Error(changedCRUnmarshalErr, "Error unmarshalling MetaOperatorConfig service spec")
+		logger.Error(changedCRUnmarshalErr, "Error unmarshalling OperandConfig service spec")
 	}
 	for key := range defaultCRDecoded {
 		checkKeyBeforeMerging(key, defaultCRDecoded[key], changedCRDecoded[key], changedCRDecoded)

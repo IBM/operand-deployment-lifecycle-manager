@@ -28,9 +28,9 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/rest"
 
-	"github.com/IBM/meta-operator/pkg/apis"
-	"github.com/IBM/meta-operator/pkg/controller"
-	"github.com/IBM/meta-operator/version"
+	"github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis"
+	"github.com/IBM/operand-deployment-lifecycle-manager/pkg/controller"
+	"github.com/IBM/operand-deployment-lifecycle-manager/version"
 
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	kubemetrics "github.com/operator-framework/operator-sdk/pkg/kube-metrics"
