@@ -237,7 +237,7 @@ func generateOperatorGroup(namespace string, targetNamespaces []string) *olmv1.O
 	// Operator Group Object
 	og := &olmv1.OperatorGroup{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "meta-operator-operatorgroup",
+			Name:      "operand-deployment-lifecycle-manager-operatorgroup",
 			Namespace: namespace,
 			Labels:    labels,
 		},

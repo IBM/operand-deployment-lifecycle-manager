@@ -33,7 +33,7 @@ import (
 func TestCatalogController(t *testing.T) {
 
 	var (
-		name      = "meta-operator-catalog"
+		name      = "operand-deployment-lifecycle-manager-catalog"
 		namespace = "common-service"
 	)
 	// Mock request to simulate Reconcile() being called on an event for a

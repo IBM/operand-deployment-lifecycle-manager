@@ -2,8 +2,8 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
-- [Install the meta operator on vanila Kubernetes](#install-the-meta-operator-on-vanila-kubernetes)
-  - [Deploy meta operator](#deploy-meta-operator)
+- [Install the meta operator on vanila Kubernetes](#install-the-operand-deployment-lifecycle-manager-on-vanila-kubernetes)
+  - [Deploy meta operator](#deploy-operand-deployment-lifecycle-manager)
     - [1. Deploy a Kubernetes cluster](#1-deploy-a-kubernetes-cluster)
     - [2. Install OLM](#2-install-olm)
     - [3. Create CatalogSource](#3-create-catalogsource)
@@ -78,11 +78,11 @@ spec:
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
-  name: meta-operator
+  name: operand-deployment-lifecycle-manager
   namespace: ibm-common-services
 spec:
   channel: alpha
-  name: meta-operator-app
+  name: operand-deployment-lifecycle-manager-app
   source: opencloud-operators
   sourceNamespace: olm
 END
@@ -91,7 +91,7 @@ END
 ### 5. Check Operator CSV
 
 ```bash
-kubectl -n meta-operator get csv
+kubectl -n operand-deployment-lifecycle-manager get csv
 ```
 
 <!--

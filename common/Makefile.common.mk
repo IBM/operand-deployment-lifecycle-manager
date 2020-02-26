@@ -69,7 +69,7 @@ code-gen:
 	@echo Updating the deep copy files with the changes in the API
 	operator-sdk generate k8s
 	# Workaround for relative/absolute path issue
-	# see https://github.com/IBM/meta-operator/pull/32
+	# see https://github.com/IBM/operand-deployment-lifecycle-manager/pull/32
 	@echo Updating the CRD files with the OpenAPI validations
 	# Build the latest openapi-gen from source
 	operator-sdk generate crds

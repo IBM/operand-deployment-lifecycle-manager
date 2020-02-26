@@ -32,7 +32,7 @@ func TestOperandRequest(t *testing.T) {
 		t.Fatalf("failed to add custom resource scheme to framework: %v", err)
 	}
 	// run subtests
-	t.Run("meta-operator", func(t *testing.T) {
+	t.Run("operand-deployment-lifecycle-manager", func(t *testing.T) {
 		t.Run("Operator", testgroups.MetaOperator)
 	})
 }

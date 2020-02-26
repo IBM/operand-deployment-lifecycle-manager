@@ -241,7 +241,7 @@ func ip(name, namespace string) *olmv1alpha1.InstallPlan {
 func getRequest() reconcile.Request {
 	var (
 		name      = "common-service"
-		namespace = "meta-operator"
+		namespace = "operand-deployment-lifecycle-manager"
 	)
 	// Mock request to simulate Reconcile() being called on an event for a
 	// watched resource
@@ -256,7 +256,7 @@ func getRequest() reconcile.Request {
 func getReconcilerWithoutMOS() ReconcileOperandRequest {
 	var (
 		name      = "common-service"
-		namespace = "meta-operator"
+		namespace = "operand-deployment-lifecycle-manager"
 	)
 	metaObjs := []runtime.Object{
 		mog(name, namespace),
@@ -271,7 +271,7 @@ func getReconcilerWithoutMOS() ReconcileOperandRequest {
 func getReconcilerWithMOS() ReconcileOperandRequest {
 	var (
 		name      = "common-service"
-		namespace = "meta-operator"
+		namespace = "operand-deployment-lifecycle-manager"
 	)
 	metaObjs := []runtime.Object{
 		mog(name, namespace),
