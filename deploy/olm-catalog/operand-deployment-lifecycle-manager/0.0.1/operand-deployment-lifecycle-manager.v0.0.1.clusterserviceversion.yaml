@@ -77,8 +77,7 @@ metadata:
               {
                 "name": "ibm-auditlogging-operator",
                 "spec": {
-                  "auditloggings": {},
-                  "auditpolicies": {}
+                  "auditLogging": {}
                 }
               },
               {
@@ -298,7 +297,7 @@ spec:
         displayName: Services
         path: services
       statusDescriptors:
-      - description: Conditions represents the current state of the Set Service
+      - description: Conditions represents the current state of the Request Service
         displayName: Conditions
         path: conditions
         x-descriptors:
