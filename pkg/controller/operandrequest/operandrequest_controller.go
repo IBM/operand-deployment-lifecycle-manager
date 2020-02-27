@@ -259,9 +259,12 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 	}
 
 	// Check if all csv deploy successed
+	if setInstance.Status.Phase == operatorv1alpha1.ClusterPhaseFailed {
+		return reconcile.Result{}, fmt.Errorf("there is one or more operators installation failed")
+	}
 	if setInstance.Status.Phase != operatorv1alpha1.ClusterPhaseRunning {
-		reqLogger.Info("Waiting for all the operands deploy successed")
-		return reconcile.Result{RequeueAfter: 5}, nil
+		reqLogger.Info("Waiting for all the operands deploy successed...")
+		return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
 	return reconcile.Result{}, nil

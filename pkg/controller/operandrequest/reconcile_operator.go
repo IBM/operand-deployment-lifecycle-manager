@@ -114,7 +114,7 @@ func (r *ReconcileOperandRequest) createSubscription(cr *operatorv1alpha1.Operan
 	if err != nil {
 		return err
 	}
-	if existOG.Items == nil {
+	if len(existOG.Items) == 0 {
 		og := co.operatorGroup
 		_, err := r.olmClient.OperatorsV1().OperatorGroups(og.Namespace).Create(og)
 		if err != nil && !errors.IsAlreadyExists(err) {
