@@ -42,7 +42,7 @@ type OperandConfigSpec struct {
 type ConfigService struct {
 	// Name is the subscription name
 	Name string `json:"name"`
-	// Spec is the map of configuration of custome service
+	// Spec is the map of configuration of custom service
 	Spec map[string]runtime.RawExtension `json:"spec"`
 	// State is a flag to enable or disable service
 	State string `json:"state,omitempty"`
@@ -61,7 +61,7 @@ type OperandConfigStatus struct {
 
 // CrStatus defines the status of the custom resource
 type CrStatus struct {
-	CrStatus map[string]ServicePhase `json:"customeResourceStatus,omitempty"`
+	CrStatus map[string]ServicePhase `json:"customResourceStatus,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
