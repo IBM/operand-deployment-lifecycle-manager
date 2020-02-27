@@ -60,11 +60,13 @@ func InitInstance(yamlPath string, mgr manager.Manager) error {
 
 	err = kubeClient.Create(context.TODO(), obj)
 
-	if err != nil && !errors.IsAlreadyExists(err) {
+	if errors.IsAlreadyExists(err) {
+		logger.Info("CR exists in the cluster")
+	} else if err != nil {
 		return fmt.Errorf("could not Create resource: %v", err)
+	} else {
+		logger.Info("CR was created successfully")
 	}
-
-	logger.Info("CR was created successfully")
 
 	return nil
 }
