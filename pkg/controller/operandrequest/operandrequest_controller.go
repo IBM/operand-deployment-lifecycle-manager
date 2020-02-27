@@ -161,7 +161,7 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 	reqLogger.Info("Reconciling OperandRequest")
 
 	// Fetch the OperandRegistry instance
-	moc, err := r.listCatalog(request.NamespacedName)
+	moc, err := r.listCatalog(request.Namespace)
 
 	if moc == nil {
 		return reconcile.Result{}, nil
@@ -177,7 +177,7 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 	}
 
 	// Fetch the OperandConfig instance
-	csc, err := r.listConfig(request.NamespacedName)
+	csc, err := r.listConfig(request.Namespace)
 
 	if csc == nil {
 		return reconcile.Result{}, nil
