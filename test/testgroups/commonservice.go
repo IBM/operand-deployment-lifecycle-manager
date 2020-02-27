@@ -28,8 +28,8 @@ import (
 	"github.com/IBM/operand-deployment-lifecycle-manager/test/testsuits"
 )
 
-// MetaOperator is the test group for testing Operand Deployment Lifecycle Manager
-func MetaOperator(t *testing.T) {
+// ODLM is the test group for testing Operand Deployment Lifecycle Manager
+func ODLM(t *testing.T) {
 	t.Parallel()
 	ctx := framework.NewTestCtx(t)
 	defer ctx.Cleanup()
@@ -39,7 +39,7 @@ func MetaOperator(t *testing.T) {
 
 	t.Run("OperandRequest Create", testsuits.OperandRequestCreate)
 	t.Run("OperandRequest Create Update", testsuits.OperandRequestCreateUpdate)
-	t.Run("OperandConfig Update", testsuits.MetaOperatorConfigUpdate)
+	t.Run("OperandConfig Update", testsuits.OperandConfigUpdate)
 	t.Run("OperandRegistry Create Update", testsuits.OperandRegistryUpdate)
 	t.Run("OperandRequest Create Delete", testsuits.OperandRequestCreateDelete)
 

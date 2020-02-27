@@ -63,7 +63,7 @@ curl -sL https://github.com/operator-framework/operator-lifecycle-manager/releas
 
 ### 1. Build Operator Registry image
 
-> You need to remove the last `type: object` in all CRDs to avoid the following error: The CustomResourceDefinition "metaoperatorconfigs.operator.ibm.com" is invalid: spec.validation.openAPIV3Schema: Invalid value: apiextensions.JSONSchemaProps ..... must only have "properties", "required" or "description" at the root if the status subresource is enabled
+> You need to remove the last `type: object` in all CRDs to avoid the following error: The CustomResourceDefinition "operandconfigs.operator.ibm.com" is invalid: spec.validation.openAPIV3Schema: Invalid value: apiextensions.JSONSchemaProps ..... must only have "properties", "required" or "description" at the root if the status subresource is enabled
 
 ```bash
 cd deploy
