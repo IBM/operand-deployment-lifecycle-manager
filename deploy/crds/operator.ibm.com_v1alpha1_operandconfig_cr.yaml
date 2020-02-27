@@ -41,8 +41,7 @@ spec:
       nginxIngress: {}
   - name: ibm-auditlogging-operator
     spec:
-      auditloggings: {}
-      auditpolicies: {}
+      auditLogging: {}
   - name: ibm-catalog-operator
     spec:
       icpCatalogChart: {}
