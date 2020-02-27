@@ -28,7 +28,7 @@ import (
 	"github.com/IBM/operand-deployment-lifecycle-manager/test/testsuits"
 )
 
-// MetaOperator is the test group for testing Meta Operator
+// MetaOperator is the test group for testing Operand Deployment Lifecycle Manager
 func MetaOperator(t *testing.T) {
 	t.Parallel()
 	ctx := framework.NewTestCtx(t)

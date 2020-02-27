@@ -2,13 +2,13 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
-- [Install the meta operator](#install-the-operand-deployment-lifecycle-manager)
-  - [Install the meta operator On OCP 4.x](#install-the-operand-deployment-lifecycle-manager-on-ocp-4x)
+- [Install the operand deployment lifecycle manager](#install-the-operand-deployment-lifecycle-manager)
+  - [Install the operand deployment lifecycle manager On OCP 4.x](#install-the-operand-deployment-lifecycle-manager-on-ocp-4x)
     - [1. Create OperatorSource](#1-create-operatorsource)
     - [2. Create a Namespace `ibm-common-services`](#2-create-a-namespace-ibm-common-services)
-    - [3. Install meta Operator](#3-install-operand-deployment-lifecycle-manager)
+    - [3. Install operand deployment lifecycle manager](#3-install-operand-deployment-lifecycle-manager)
     - [4. Check the installed operators](#4-check-the-installed-operators)
-  - [Install the meta operator On OCP 3.11](#install-the-operand-deployment-lifecycle-manager-on-ocp-311)
+  - [Install the operand deployment lifecycle manager On OCP 3.11](#install-the-operand-deployment-lifecycle-manager-on-ocp-311)
     - [0. Install OLM](#0-install-olm)
     - [1. Build Operator Registry image](#1-build-operator-registry-image)
     - [2. Create CatalogSource](#2-create-catalogsource)
@@ -18,9 +18,9 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-# Install the meta operator
+# Install the operand deployment lifecycle manager
 
-## Install the meta operator On OCP 4.x
+## Install the operand deployment lifecycle manager On OCP 4.x
 
 ### 1. Create OperatorSource
 
@@ -45,7 +45,7 @@ spec:
 
 Open the `OperatorHub` page in OCP console left menu, then `Create Project`, e.g., create a project named `ibm-common-services`.
 
-### 3. Install meta Operator
+### 3. Install operand deployment lifecycle manager
 
 Open `OperatorHub` and search `operand-deployment-lifecycle-manager` to find the operator, and install it.
 
@@ -53,7 +53,7 @@ Open `OperatorHub` and search `operand-deployment-lifecycle-manager` to find the
 
 Open `Installed Operators` page to check the installed operators.
 
-## Install the meta operator On OCP 3.11
+## Install the operand deployment lifecycle manager On OCP 3.11
 
 ### 0. Install OLM
 
@@ -127,7 +127,7 @@ oc -n operand-deployment-lifecycle-manager get csv
 
 ### 1. Update OperandConfig and OperandRegistry custom resource
 
-Meta Operator defines three custom resource definitions OperandConfig, OperandRequest and OperandRegistry and it creates two example custom resources for OperandConfig and OperandRegistry.
+Operand Deployment Lifecycle Manager defines three custom resource definitions OperandConfig, OperandRequest and OperandRegistry and it creates two example custom resources for OperandConfig and OperandRegistry.
 
 In the `Operator Details` page, three generated custom resource definition are list in a line with the `Overview`. Check the custom resource definition name, then you can update the example custom resource.
 
@@ -252,4 +252,4 @@ spec:
 
 ## Post-installation
 
-The meta operators and their custom resource would be deployed in the cluster.
+The operators and their custom resource would be deployed in the cluster, and thus the installation of operands will also triggered by the CR.

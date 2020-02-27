@@ -2,8 +2,8 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
-- [Install the meta operator on vanila Kubernetes](#install-the-operand-deployment-lifecycle-manager-on-vanila-kubernetes)
-  - [Deploy meta operator](#deploy-operand-deployment-lifecycle-manager)
+- [Install the operand deployment lifecycle manager on vanila Kubernetes](#install-the-operand-deployment-lifecycle-manager-on-vanila-kubernetes)
+  - [Deploy operand deployment lifecycle manager](#deploy-operand-deployment-lifecycle-manager)
     - [1. Deploy a Kubernetes cluster](#1-deploy-a-kubernetes-cluster)
     - [2. Install OLM](#2-install-olm)
     - [3. Create CatalogSource](#3-create-catalogsource)
@@ -12,11 +12,11 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-# Install the meta operator on vanila Kubernetes
+# Install the operand deployment lifecycle manager on vanila Kubernetes
 
-In this document, we will show you how to deploy and use the meta operator on the vanila Kubernetes.
+In this document, we will show you how to deploy and use the operand deployment lifecycle manager on the vanila Kubernetes.
 
-## Deploy meta operator
+## Deploy operand deployment lifecycle manager
 
 ### 1. Deploy a Kubernetes cluster
 
@@ -100,7 +100,7 @@ kubectl -n operand-deployment-lifecycle-manager get csv
 
 ### 1. Update OperandConfig and OperandRegistry custom resource
 
-Meta Operator defines three custom resource definitions `OperandConfig`, `OperandRequest` and `OperandRegistry` and it creates two example custom resources for `OperandConfig` and `OperandRegistry`.
+Operand Deployment Lifecycle Manager defines three custom resource definitions `OperandConfig`, `OperandRequest` and `OperandRegistry` and it creates two example custom resources for `OperandConfig` and `OperandRegistry`.
 
 For the `OperandConfig`,
 `OperandConfig` defines the individual common service CR info:

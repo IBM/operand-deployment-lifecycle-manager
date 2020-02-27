@@ -341,7 +341,7 @@ func WaitForSubscriptionDelete(olmClient *olmclient.Clientset, opt metav1.Object
 	return nil
 }
 
-// ValidateCustomeResource check the result of the meta operator config
+// ValidateCustomeResource check the result of the OperandConfig
 func ValidateCustomeResource(f *framework.Framework, namespace string) error {
 	fmt.Println("Validating custome resources are ready")
 	configInstance := &operator.OperandConfig{}
