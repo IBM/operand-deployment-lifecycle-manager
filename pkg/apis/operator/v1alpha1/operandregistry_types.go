@@ -54,9 +54,10 @@ type OperandRegistrySpec struct {
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
 
-	// Operators is a list of operator definition
+	// Operators is a list of operator OLM definition
 	// +optional
 	// +listType=set
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
 	Operators []Operator `json:"operators,omitempty"`
 }
 

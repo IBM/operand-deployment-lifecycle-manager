@@ -22,7 +22,7 @@ The ODLM will have Three CRDs:
 
 * OperandRegistry, defines the individual operand deployment info
 * OperandConfigs, defines the individual operand deployment config
-* OperandRequests, defines which operator/operand want to be installed int the cluster
+* OperandRequests, defines which operator/operand want to be installed in the cluster
 
 ## Goal
 

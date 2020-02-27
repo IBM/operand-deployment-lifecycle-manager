@@ -275,17 +275,34 @@ spec:
       displayName: OperandConfig
       kind: OperandConfig
       name: operandconfigs.operator.ibm.com
+      specDescriptors:
+      - description: Services is a list of configuration of service
+        displayName: Services
+        path: services
       version: v1alpha1
     - description: OperandRegistry is the Schema for the operandregistries API
       displayName: OperandRegistry
       kind: OperandRegistry
       name: operandregistries.operator.ibm.com
+      specDescriptors:
+      - description: Operators is a list of operator OLM definition
+        displayName: Operators
+        path: operators
       version: v1alpha1
     - description: OperandRequest is the Schema for the operandrequests API
       displayName: OperandRequest
       kind: OperandRequest
       name: operandrequests.operator.ibm.com
+      specDescriptors:
+      - description: Services defines a list of operator installation states
+        displayName: Services
+        path: services
       statusDescriptors:
+      - description: Conditions represents the current state of the Set Service
+        displayName: Conditions
+        path: conditions
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes.conditions
       - description: Phase is the cluster running phase
         displayName: Phase
         path: phase

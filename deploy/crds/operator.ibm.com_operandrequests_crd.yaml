@@ -34,10 +34,7 @@ spec:
           description: OperandRequestSpec defines the desired state of OperandRequest
           properties:
             services:
-              description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-                Important: Run "operator-sdk generate k8s" to regenerate code after
-                modifying this file Add custom validation using kubebuilder tags:
-                https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html'
+              description: Services defines a list of operator installation states
               items:
                 description: SetService is the service configuration for a common
                   service
@@ -60,11 +57,7 @@ spec:
           description: OperandRequestStatus defines the observed state of OperandRequest
           properties:
             conditions:
-              description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
-                of cluster Important: Run "operator-sdk generate k8s" to regenerate
-                code after modifying this file Add custom validation using kubebuilder
-                tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
-                Conditions represents the current state of the Set Service'
+              description: Conditions represents the current state of the Set Service
               items:
                 description: Condition defines the current state of operator deploy
                 properties:

@@ -30,7 +30,10 @@ type OperandRequestSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
+
+	// Services defines a list of operator installation states
 	// +listType=set
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
 	Services []SetService `json:"services"`
 }
 
@@ -78,9 +81,11 @@ type OperandRequestStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
+
 	// Conditions represents the current state of the Set Service
 	// +optional
 	// +listType=set
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
 	Conditions []Condition `json:"conditions,omitempty"`
 	// Members represnets the current operand status of the set
 	// +optional
