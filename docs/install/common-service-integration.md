@@ -18,7 +18,7 @@
   - [Add required CRD into CSV](#add-required-crd-into-csv)
     - [Required CRDs](#required-crds)
 - [Common Service Onboarding](#common-service-onboarding)
-  - [1. Clone the git repository of meta operator](#1-clone-the-git-repository-of-operand-deployment-lifecycle-manager)
+  - [1. Clone the git repository of operand deployment lifecycle manager](#1-clone-the-git-repository-of-operand-deployment-lifecycle-manager)
   - [2. Edit default value of custom resource](#2-edit-default-value-of-custom-resource)
     - [Edit the MetaOperator Catalog custom resource](#edit-the-metaoperator-catalog-custom-resource)
     - [Edit the MetaOperator Config custom resource](#edit-the-metaoperator-config-custom-resource)
@@ -28,7 +28,7 @@
 - [End to end test](#end-to-end-test)
   - [1. Create an OperatorSource in the Openshift cluster](#1-create-an-operatorsource-in-the-openshift-cluster)
   - [2. Create a Namespace `ibm-common-services`](#2-create-a-namespace-ibm-common-services)
-  - [3. Install meta Operator](#3-install-operand-deployment-lifecycle-manager)
+  - [3. Install operand deployment lifecycle manager](#3-install-operand-deployment-lifecycle-manager)
   - [4. Check the installed operators](#4-check-the-installed-operators)
   - [5. Edit the MetaOperator Config custom resource and the MetaOperator Catalog custom resource](#5-edit-the-metaoperator-config-custom-resource-and-the-metaoperator-catalog-custom-resource)
   - [6. Create a MetaOperator Set](#6-create-a-metaoperator-set)
@@ -195,7 +195,7 @@ The Lifecycle Manager will ensure all required CSVs have an APIService that is a
 
 # Common Service Onboarding
 
-## 1. Clone the git repository of meta operator
+## 1. Clone the git repository of operand deployment lifecycle manager
 
 ```bash
 git clone git@github.com:IBM/operand-deployment-lifecycle-manager.git
@@ -373,7 +373,7 @@ spec:
 
 Open `OperatorHub` page in OCP console left menu, then `Create Project`, e.g., create a project named `ibm-common-services`.
 
-## 3. Install meta Operator
+## 3. Install operand deployment lifecycle manager
 
 Open `OperatorHub` and search `operand-deployment-lifecycle-manager` to find the operator, and install it.
 

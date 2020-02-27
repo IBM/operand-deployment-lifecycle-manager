@@ -2,7 +2,7 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
-- [Operand Deployment Lifecycle Manager](#operand-deployment-lifecycle-manager)
+- [Operand Deployment Lifecycle Manager (ODLM)](#operand-deployment-lifecycle-manager-odlm)
   - [Overview](#overview)
   - [Prerequisites](#prerequisites)
   - [Common Service Onboarding](#common-service-onboarding)
@@ -17,11 +17,11 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-# Operand Deployment Lifecycle Manager
+# Operand Deployment Lifecycle Manager (ODLM)
 
 ## Overview
 
-This is a meta operator for install the common service operator and instance.
+Operand Deployment Lifecycle Manager is used to manage the lifecycle of a group of operands.
 
 ## Prerequisites
 
@@ -48,7 +48,7 @@ Checkout this Operand Deployment Lifecycle Manager repository
 
 ### Building the operator
 
-Build the meta operator image and push it to a public registry, such as quay.io:
+Build the odlm image and push it to a public registry, such as quay.io:
 
 ```bash
 # make images
