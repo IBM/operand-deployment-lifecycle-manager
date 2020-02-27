@@ -388,7 +388,7 @@ func (r *ReconcileOperandRequest) listConfig(namespace string) (*operatorv1alpha
 				cscList.Items[0].Name+
 				". You need to leave one and delete the others")
 	}
-	reqLogger.Info("Found OperandConfig instance: "+ cscList.Items[0].Name)
+	reqLogger.Info("Found OperandConfig instance: " + cscList.Items[0].Name)
 	return &cscList.Items[0], nil
 }
 
@@ -412,6 +412,6 @@ func (r *ReconcileOperandRequest) listCatalog(namespace string) (*operatorv1alph
 				mocList.Items[0].Name+
 				". You need to leave one and delete the others")
 	}
-	reqLogger.Info("Found OperandRegistry instance: "+ mocList.Items[0].Name)
+	reqLogger.Info("Found OperandRegistry instance: " + mocList.Items[0].Name)
 	return &mocList.Items[0], nil
 }

@@ -42,7 +42,7 @@ type OperandConfigSpec struct {
 type ConfigService struct {
 	// Name is the subscription name
 	Name string `json:"name"`
-	// Spec is the map of configuration of custom service
+	// Spec is the configuration map of custom resource
 	Spec map[string]runtime.RawExtension `json:"spec"`
 	// State is a flag to enable or disable service
 	State string `json:"state,omitempty"`

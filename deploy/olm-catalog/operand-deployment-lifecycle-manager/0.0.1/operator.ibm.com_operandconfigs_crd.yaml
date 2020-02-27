@@ -34,11 +34,7 @@ spec:
           description: OperandConfigSpec defines the desired state of OperandConfig
           properties:
             services:
-              description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-                Important: Run "operator-sdk generate k8s" to regenerate code after
-                modifying this file Add custom validation using kubebuilder tags:
-                https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
-                Services is a list of configuration of service'
+              description: Services is a list of configuration of service
               items:
                 description: ConfigService defines the configuration of the service
                 properties:
@@ -48,7 +44,7 @@ spec:
                   spec:
                     additionalProperties:
                       type: object
-                    description: Spec is the map of configuration of custome service
+                    description: Spec is the configuration map of custom resource
                     type: object
                   state:
                     description: State is a flag to enable or disable service
@@ -66,7 +62,7 @@ spec:
               additionalProperties:
                 description: CrStatus defines the status of the custom resource
                 properties:
-                  customeResourceStatus:
+                  customResourceStatus:
                     additionalProperties:
                       description: ServicePhase defines the service status
                       type: string

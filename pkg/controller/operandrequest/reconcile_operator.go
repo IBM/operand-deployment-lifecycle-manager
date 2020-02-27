@@ -105,20 +105,20 @@ func (r *ReconcileOperandRequest) createSubscription(cr *operatorv1alpha1.Operan
 
 	// Create required namespace
 	ns := co.namespace
-	logger.Info("Creating the Namespace for Subscription: "+opt.Name)
+	logger.Info("Creating the Namespace for Subscription: " + opt.Name)
 	if err := r.client.Create(context.TODO(), ns); err != nil && !errors.IsAlreadyExists(err) {
 		return err
 	}
 
 	// Create required operatorgroup
 	existOG, err := r.olmClient.OperatorsV1().OperatorGroups(co.operatorGroup.Namespace).List(metav1.ListOptions{})
-	
+
 	if err != nil {
 		return err
 	}
 	if existOG.Items == nil {
 		og := co.operatorGroup
-		logger.Info("Creating the OperatorGroup for Subscription: "+opt.Name)
+		logger.Info("Creating the OperatorGroup for Subscription: " + opt.Name)
 		_, err := r.olmClient.OperatorsV1().OperatorGroups(og.Namespace).Create(og)
 		if err != nil && !errors.IsAlreadyExists(err) {
 			return err
@@ -126,7 +126,7 @@ func (r *ReconcileOperandRequest) createSubscription(cr *operatorv1alpha1.Operan
 	}
 
 	// Create subscription
-	logger.Info("Creating the Subscription: "+opt.Name)
+	logger.Info("Creating the Subscription: " + opt.Name)
 	sub := co.subscription
 	_, err = r.olmClient.OperatorsV1alpha1().Subscriptions(sub.Namespace).Create(sub)
 	if err != nil && !errors.IsAlreadyExists(err) {
