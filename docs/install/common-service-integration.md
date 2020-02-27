@@ -20,9 +20,9 @@
 - [Common Service Onboarding](#common-service-onboarding)
   - [1. Clone the git repository of operand deployment lifecycle manager](#1-clone-the-git-repository-of-operand-deployment-lifecycle-manager)
   - [2. Edit default value of custom resource](#2-edit-default-value-of-custom-resource)
-    - [Edit the MetaOperator Catalog custom resource](#edit-the-metaoperator-catalog-custom-resource)
-    - [Edit the MetaOperator Config custom resource](#edit-the-metaoperator-config-custom-resource)
-    - [Edit a MetaOperator Set custom resource](#edit-a-metaoperator-set-custom-resource)
+    - [Edit the OperandRegistry custom resource](#edit-the-operandregistry-custom-resource)
+    - [Edit the OperandConfig custom resource](#edit-the-operandconfig-custom-resource)
+    - [Edit a OperandRequest custom resource](#edit-a-operandrequest-custom-resource)
     - [Edit alm-example in the operand-deployment-lifecycle-manager CSV](#edit-alm-example-in-the-operand-deployment-lifecycle-manager-csv)
   - [3.Make a pull request to merge the changes](#3make-a-pull-request-to-merge-the-changes)
 - [End to end test](#end-to-end-test)
@@ -30,8 +30,8 @@
   - [2. Create a Namespace `ibm-common-services`](#2-create-a-namespace-ibm-common-services)
   - [3. Install operand deployment lifecycle manager](#3-install-operand-deployment-lifecycle-manager)
   - [4. Check the installed operators](#4-check-the-installed-operators)
-  - [5. Edit the MetaOperator Config custom resource and the MetaOperator Catalog custom resource](#5-edit-the-metaoperator-config-custom-resource-and-the-metaoperator-catalog-custom-resource)
-  - [6. Create a MetaOperator Set](#6-create-a-metaoperator-set)
+  - [5. Edit the OperandConfig custom resource and the OperandRegistry custom resource](#5-edit-the-operandconfig-custom-resource-and-the-operandregistry-custom-resource)
+  - [6. Create a OperandRequest](#6-create-a-operandrequest)
   - [7. Check the installed operators and their custom resource](#7-check-the-installed-operators-and-their-custom-resource)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -203,7 +203,7 @@ git clone git@github.com:IBM/operand-deployment-lifecycle-manager.git
 
 ## 2. Edit default value of custom resource
 
-### Edit the MetaOperator Catalog custom resource
+### Edit the OperandRegistry custom resource
 
 ```bash
 cd operand-deployment-lifecycle-manager
@@ -238,11 +238,11 @@ operators:
 - `sourceNamespace` is the namespaces of the `CatalogSource`.
 - `description` is used to add a detailed description for service including clarifying the dependency.
 
-### Edit the MetaOperator Config custom resource
+### Edit the OperandConfig custom resource
 
 ```bash
 cd operand-deployment-lifecycle-manager
-vi deploy/crds/operator.ibm.com_v1alpha1_metaoperatorconfig_cr.yaml
+vi deploy/crds/operator.ibm.com_v1alpha1_operandconfig_cr.yaml
 ```
 
 Append the operator custom resource information under the `services` field.
@@ -309,7 +309,7 @@ spec:
   ...
 ```
 
-### Edit a MetaOperator Set custom resource
+### Edit a OperandRequest custom resource
 
 ```bash
 cd operand-deployment-lifecycle-manager
@@ -341,7 +341,7 @@ spec:
 
 ### Edit alm-example in the operand-deployment-lifecycle-manager CSV
 
-Add the changes for operandrequest operandregistry and metaoperatorconfig in the [alm-example](https://github.com/IBM/operand-deployment-lifecycle-manager/blob/master/deploy/olm-catalog/operand-deployment-lifecycle-manager/0.0.1/operand-deployment-lifecycle-manager.v0.0.1.clusterserviceversion.yaml#L5)
+Add the changes for operandrequest operandregistry and operandconfig in the [alm-example](https://github.com/IBM/operand-deployment-lifecycle-manager/blob/master/deploy/olm-catalog/operand-deployment-lifecycle-manager/0.0.1/operand-deployment-lifecycle-manager.v0.0.1.clusterserviceversion.yaml#L5)
 
 ## 3.Make a pull request to merge the changes
 
@@ -381,18 +381,18 @@ Open `OperatorHub` and search `operand-deployment-lifecycle-manager` to find the
 
 Open `Installed Operators` page to check the installed operators.
 
-## 5. Edit the MetaOperator Config custom resource and the MetaOperator Catalog custom resource
+## 5. Edit the OperandConfig custom resource and the OperandRegistry custom resource
 
-- [Editing MetaOperator Config](#edit-the-metaoperator-config-custom-resource)
-- [Editing MetaOperator Catalog](#edit-the-metaoperator-catalog-custom-resource)
+- [Editing OperandConfig](#edit-the-operandconfig-custom-resource)
+- [Editing OperandRegistry](#edit-the-operandregistry-custom-resource)
 
-## 6. Create a MetaOperator Set
+## 6. Create a OperandRequest
 
 ```bash
 vi deploy/crds/operator.ibm.com_v1alpha1_operandrequest_cr.yaml
 oc apply -f deploy/crds/operator.ibm.com_v1alpha1_operandrequest_cr.yaml -n ibm-common-services
 ```
 
-- [Editing MetaOperator Set](#edit-a-metaoperator-set-custom-resource)
+- [Editing OperandRequest](#edit-a-operandrequest-custom-resource)
 
 ## 7. Check the installed operators and their custom resource

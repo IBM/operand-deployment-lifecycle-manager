@@ -33,6 +33,6 @@ func TestOperandRequest(t *testing.T) {
 	}
 	// run subtests
 	t.Run("operand-deployment-lifecycle-manager", func(t *testing.T) {
-		t.Run("Operator", testgroups.MetaOperator)
+		t.Run("Operator", testgroups.ODLM)
 	})
 }

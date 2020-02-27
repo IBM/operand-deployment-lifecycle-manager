@@ -42,17 +42,17 @@ func CreateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 	}
 
 	// create.OperandConfig custom resource
-	fmt.Println("--- CREATE: MetaOperatorConfigConfig Instance")
-	configInstance := newMetaOperatorConfigCR(config.ConfigCrName, namespace)
+	fmt.Println("--- CREATE: OperandConfigCR Instance")
+	configInstance := newOperandConfigCR(config.OperandConfigCrName, namespace)
 	err = f.Client.Create(goctx.TODO(), configInstance, &framework.CleanupOptions{TestContext: ctx, Timeout: config.CleanupTimeout, RetryInterval: config.CleanupRetry})
 	if err != nil {
 		return err
 	}
 
-	// create MetaOperator custom resource
-	fmt.Println("--- CREATE: MetaOperator Instance")
-	metaOperatorInstance := newMetaOperatorCR(config.ConfigCrName, namespace)
-	err = f.Client.Create(goctx.TODO(), metaOperatorInstance, &framework.CleanupOptions{TestContext: ctx, Timeout: config.CleanupTimeout, RetryInterval: config.CleanupRetry})
+	// create OperandRegistry custom resource
+	fmt.Println("--- CREATE: OperandRegistry Instance")
+	operandRegistryInstance := newOperandRegistryCR(config.OperandRegistryCrName, namespace)
+	err = f.Client.Create(goctx.TODO(), operandRegistryInstance, &framework.CleanupOptions{TestContext: ctx, Timeout: config.CleanupTimeout, RetryInterval: config.CleanupRetry})
 	if err != nil {
 		return err
 	}
@@ -71,7 +71,7 @@ func CreateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 
 	setInstance := &operator.OperandRequest{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      config.SetCrName,
+			Name:      config.OperandRequestCrName,
 			Namespace: namespace,
 		},
 		Spec: operator.OperandRequestSpec{
@@ -125,7 +125,7 @@ func UpdateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 	setInstance := &operator.OperandRequest{}
 	fmt.Println("--- UPDATE: subscription")
 	// Get OperandRequest instance
-	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.SetCrName, Namespace: namespace}, setInstance)
+	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandRequestCrName, Namespace: namespace}, setInstance)
 	if err != nil {
 		return err
 	}
@@ -158,7 +158,7 @@ func DeleteTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 	setInstance := &operator.OperandRequest{}
 	fmt.Println("--- DELETE: subscription")
 	// Get OperandRequest instance
-	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.SetCrName, Namespace: namespace}, setInstance)
+	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandRequestCrName, Namespace: namespace}, setInstance)
 	if err != nil {
 		return err
 	}
@@ -191,7 +191,7 @@ func UpdateConfigTest(olmClient *olmclient.Clientset, f *framework.Framework, ct
 	configInstance := &operator.OperandConfig{}
 	fmt.Println("--- UPDATE: custom resource")
 	// Get OperandRequest instance
-	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.ConfigCrName, Namespace: namespace}, configInstance)
+	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandConfigCrName, Namespace: namespace}, configInstance)
 	if err != nil {
 		return err
 	}
@@ -212,23 +212,23 @@ func UpdateConfigTest(olmClient *olmclient.Clientset, f *framework.Framework, ct
 	return nil
 }
 
-// UpdateCatalogTest updates a OperandRegistry instance
-func UpdateCatalogTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *framework.TestCtx) error {
+// UpdateOperandRegistryTest updates a OperandRegistry instance
+func UpdateOperandRegistryTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *framework.TestCtx) error {
 	namespace, err := ctx.GetNamespace()
 	if err != nil {
 		return err
 	}
-	metaOperatorInstance := &operator.OperandRegistry{}
-	fmt.Println("--- UPDATE: MetaOperator")
+	operandRegistryInstance := &operator.OperandRegistry{}
+	fmt.Println("--- UPDATE: operandRegistry Instance")
 
 	// Get OperandRegistry instance
-	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.CatalogCrName, Namespace: namespace}, metaOperatorInstance)
+	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandRegistryCrName, Namespace: namespace}, operandRegistryInstance)
 	if err != nil {
 		return err
 	}
 
-	metaOperatorInstance.Spec.Operators[0].Channel = "clusterwide-alpha"
-	err = f.Client.Update(goctx.TODO(), metaOperatorInstance)
+	operandRegistryInstance.Spec.Operators[0].Channel = "clusterwide-alpha"
+	err = f.Client.Update(goctx.TODO(), operandRegistryInstance)
 	if err != nil {
 		return err
 	}
@@ -238,7 +238,7 @@ func UpdateCatalogTest(olmClient *olmclient.Clientset, f *framework.Framework, c
 	if err != nil {
 		return err
 	}
-	opt := optMap[metaOperatorInstance.Spec.Operators[0].Name]
+	opt := optMap[operandRegistryInstance.Spec.Operators[0].Name]
 	err = WaitForSubCsvReady(olmClient, metav1.ObjectMeta{Name: opt.Name, Namespace: opt.Namespace})
 	if err != nil {
 		return err
@@ -251,10 +251,10 @@ func GetOperators(f *framework.Framework, namespace string) (map[string]operator
 	moInstance := &operator.OperandRegistry{}
 	lastReason := ""
 	waitErr := utilwait.PollImmediate(config.WaitForRetry, config.APITimeout, func() (done bool, err error) {
-		err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.CatalogCrName, Namespace: namespace}, moInstance)
+		err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandRegistryCrName, Namespace: namespace}, moInstance)
 		if err != nil {
 			if errors.IsNotFound(err) {
-				lastReason = fmt.Sprintf("Waiting on MetaOperator instance to be created [operand-deployment-lifecycle-manager]")
+				lastReason = fmt.Sprintf("Waiting on odlm instance to be created [operand-deployment-lifecycle-manager]")
 				return false, nil
 			}
 			return false, err
@@ -346,7 +346,7 @@ func ValidateCustomeResource(f *framework.Framework, namespace string) error {
 	fmt.Println("Validating custome resources are ready")
 	configInstance := &operator.OperandConfig{}
 	// Get OperandRequest instance
-	err := f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.ConfigCrName, Namespace: namespace}, configInstance)
+	err := f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandConfigCrName, Namespace: namespace}, configInstance)
 	if err != nil {
 		return err
 	}
@@ -379,7 +379,7 @@ func AssertNoError(t *testing.T, err error) {
 }
 
 //OperandConfig instance
-func newMetaOperatorConfigCR(name, namespace string) *operator.OperandConfig {
+func newOperandConfigCR(name, namespace string) *operator.OperandConfig {
 	return &operator.OperandConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -404,8 +404,8 @@ func newMetaOperatorConfigCR(name, namespace string) *operator.OperandConfig {
 	}
 }
 
-// MetaOperator instance
-func newMetaOperatorCR(name, namespace string) *operator.OperandRegistry {
+// OperandRegistry instance
+func newOperandRegistryCR(name, namespace string) *operator.OperandRegistry {
 	return &operator.OperandRegistry{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,

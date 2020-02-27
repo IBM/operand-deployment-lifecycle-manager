@@ -87,8 +87,8 @@ func OperandRequestCreateDelete(t *testing.T) {
 	}
 }
 
-// MetaOperatorConfigUpdate is for testing the update of the OperandConfig
-func MetaOperatorConfigUpdate(t *testing.T) {
+// OperandConfigUpdate is for testing the update of the OperandConfig
+func OperandConfigUpdate(t *testing.T) {
 
 	ctx := test.NewTestCtx(t)
 	defer ctx.Cleanup()
@@ -126,7 +126,7 @@ func OperandRegistryUpdate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err = helpers.UpdateCatalogTest(olmClient, f, ctx); err != nil {
+	if err = helpers.UpdateOperandRegistryTest(olmClient, f, ctx); err != nil {
 		t.Fatal(err)
 	}
 }
