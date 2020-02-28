@@ -21,12 +21,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	olmv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 	util "github.com/IBM/operand-deployment-lifecycle-manager/pkg/util"
@@ -236,6 +238,7 @@ func (r *ReconcileOperandRequest) createUpdateCr(service operatorv1alpha1.Config
 func (r *ReconcileOperandRequest) deleteCr(service operatorv1alpha1.ConfigService, csv *olmv1alpha1.ClusterServiceVersion, csc *operatorv1alpha1.OperandConfig) error {
 	almExamples := csv.ObjectMeta.Annotations["alm-examples"]
 	logger := log.WithValues("Subscription", service.Name)
+	namespace := csv.ObjectMeta.Namespace
 
 	// Create a slice for crTemplates
 	var crTemplates []interface{}
@@ -255,6 +258,7 @@ func (r *ReconcileOperandRequest) deleteCr(service operatorv1alpha1.ConfigServic
 		// Get CR from the alm-example
 		var unstruct unstructured.Unstructured
 		unstruct.Object = crTemplate.(map[string]interface{})
+		unstruct.Object["metadata"].(map[string]interface{})["namespace"] = namespace
 
 		// Get the kind of CR
 		name := unstruct.Object["kind"]
@@ -271,12 +275,18 @@ func (r *ReconcileOperandRequest) deleteCr(service operatorv1alpha1.ConfigServic
 		// if stateUpdateErr != nil {
 		// 	merr.Add(stateUpdateErr)
 		// }
+		var unstructList unstructured.UnstructuredList
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute*10)
 		defer cancel()
-		subs := make(map[string]string)
 		err := wait.PollImmediateUntil(time.Second*20, func() (bool, error) {
-			r.client.List()
+			r.client.List(context.TODO(), &unstructList)
+			return true, nil
 		}, ctx.Done())
+		if err != nil{
+			merr.Add(err)
+
+		}
+
 
 	}
 
