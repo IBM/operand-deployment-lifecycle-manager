@@ -115,5 +115,10 @@ func (r *ReconcileOperandRegistry) Reconcile(request reconcile.Request) (reconci
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
 	}
+	instance.Spec.SetDefaults()
+	err := r.client.Update(context.TODO(), instance)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
 	return reconcile.Result{}, nil
 }
