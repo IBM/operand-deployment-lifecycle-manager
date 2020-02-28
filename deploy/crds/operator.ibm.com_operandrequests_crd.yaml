@@ -60,24 +60,35 @@ spec:
               description: Conditions represents the current state of the Request
                 Service
               items:
-                description: Condition defines the current state of operator deploy
+                description: Conditions represents the current state of the Request
+                  Service A condition might not show up if it is not happening.
                 properties:
+                  lastTransitionTime:
+                    description: Last time the condition transitioned from one status
+                      to another.
+                    type: string
                   lastUpdateTime:
+                    description: The last time this condition was updated.
                     type: string
                   message:
-                    type: string
-                  name:
+                    description: A human readable message indicating details about
+                      the transition.
                     type: string
                   reason:
+                    description: The reason for the condition's last transition.
                     type: string
                   status:
+                    description: Status of the condition, one of True, False, Unknown.
                     type: string
                   type:
-                    description: ConditionType is the condition of a service
+                    description: Type of condition.
                     type: string
+                required:
+                - status
+                - type
                 type: object
               type: array
-            member:
+            members:
               description: Members represnets the current operand status of the set
               items:
                 description: MemberStatus show if the Operator is ready

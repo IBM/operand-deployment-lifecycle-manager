@@ -49,7 +49,7 @@ func (r *ReconcileOperandRequest) reconcileOperator(opts map[string]operatorv1al
 		}
 
 		// Subscription existing and managed by Request controller
-		if _, ok := found.Labels["operator.ibm.com/mos-control"]; ok {
+		if _, ok := found.Labels["operator.ibm.com/opreq-control"]; ok {
 			// Check subscription if present
 			if o.State == Present {
 				// Subscription is present and channel changed, update it.
@@ -128,15 +128,12 @@ func (r *ReconcileOperandRequest) createSubscription(cr *operatorv1alpha1.Operan
 	// Create subscription
 	logger.Info("Creating the Subscription: " + opt.Name)
 	sub := co.subscription
-	_, err = r.olmClient.OperatorsV1alpha1().Subscriptions(sub.Namespace).Create(sub)
-	if err != nil && !errors.IsAlreadyExists(err) {
-		if updateErr := r.updateConditionStatus(cr, sub.Name, InstallFailed); updateErr != nil {
-			return updateErr
-		}
+	cr.Status.SetCreatingCondition(sub.Name, operatorv1alpha1.ResourceTypeSub)
+	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
 		return err
 	}
-
-	if err = r.updateConditionStatus(cr, sub.Name, InstallSuccessed); err != nil {
+	_, err = r.olmClient.OperatorsV1alpha1().Subscriptions(sub.Namespace).Create(sub)
+	if err != nil && !errors.IsAlreadyExists(err) {
 		return err
 	}
 	return nil
@@ -146,14 +143,11 @@ func (r *ReconcileOperandRequest) updateSubscription(cr *operatorv1alpha1.Operan
 	logger := log.WithValues("Subscription.Namespace", sub.Namespace, "Subscription.Name", sub.Name)
 
 	logger.Info("Updating Subscription")
-	if _, err := r.olmClient.OperatorsV1alpha1().Subscriptions(sub.Namespace).Update(sub); err != nil {
-		if updateErr := r.updateConditionStatus(cr, sub.Name, UpdateFailed); updateErr != nil {
-			return updateErr
-		}
+	cr.Status.SetUpdatingCondition(sub.Name, operatorv1alpha1.ResourceTypeSub)
+	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
 		return err
 	}
-
-	if err := r.updateConditionStatus(cr, sub.Name, UpdateSuccessed); err != nil {
+	if _, err := r.olmClient.OperatorsV1alpha1().Subscriptions(sub.Namespace).Update(sub); err != nil {
 		return err
 	}
 	return nil
@@ -163,20 +157,19 @@ func (r *ReconcileOperandRequest) deleteSubscription(cr *operatorv1alpha1.Operan
 	logger := log.WithValues("Subscription.Namespace", sub.Namespace, "Subscription.Name", sub.Name)
 	installedCsv := sub.Status.InstalledCSV
 	logger.Info("Deleting the Subscription")
+	cr.Status.SetDeletingCondition(sub.Name, operatorv1alpha1.ResourceTypeSub)
+	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
+		return err
+	}
 	if err := r.olmClient.OperatorsV1alpha1().Subscriptions(sub.Namespace).Delete(sub.Name, &metav1.DeleteOptions{}); err != nil {
-		if updateErr := r.updateConditionStatus(cr, sub.Name, DeleteFailed); updateErr != nil {
-			return updateErr
-		}
 		return err
 	}
 	logger.Info("Deleting the ClusterServiceVersion")
-	if err := r.olmClient.OperatorsV1alpha1().ClusterServiceVersions(sub.Namespace).Delete(installedCsv, &metav1.DeleteOptions{}); err != nil {
-		if updateErr := r.updateConditionStatus(cr, sub.Name, DeleteFailed); updateErr != nil {
-			return updateErr
-		}
+	cr.Status.SetDeletingCondition(installedCsv, operatorv1alpha1.ResourceTypeCsv)
+	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
 		return err
 	}
-	if err := r.updateConditionStatus(cr, sub.Name, DeleteSuccessed); err != nil {
+	if err := r.olmClient.OperatorsV1alpha1().ClusterServiceVersions(sub.Namespace).Delete(installedCsv, &metav1.DeleteOptions{}); err != nil {
 		return err
 	}
 	if err := r.deleteOperatorStatus(moc, sub.Name); err != nil {
@@ -188,7 +181,7 @@ func (r *ReconcileOperandRequest) deleteSubscription(cr *operatorv1alpha1.Operan
 func generateClusterObjects(o operatorv1alpha1.Operator) *clusterObjects {
 	co := &clusterObjects{}
 	labels := map[string]string{
-		"operator.ibm.com/mos-control": "true",
+		"operator.ibm.com/opreq-control": "true",
 	}
 	// Namespace Object
 	co.namespace = &corev1.Namespace{
@@ -232,7 +225,7 @@ func generateClusterObjects(o operatorv1alpha1.Operator) *clusterObjects {
 
 func generateOperatorGroup(namespace string, targetNamespaces []string) *olmv1.OperatorGroup {
 	labels := map[string]string{
-		"operator.ibm.com/mos-control": "true",
+		"operator.ibm.com/opreq-control": "true",
 	}
 	if targetNamespaces == nil {
 		targetNamespaces = append(targetNamespaces, namespace)
