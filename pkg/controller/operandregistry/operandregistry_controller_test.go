@@ -33,7 +33,7 @@ import (
 func TestCatalogController(t *testing.T) {
 
 	var (
-		name      = "operand-deployment-lifecycle-manager-catalog"
+		name      = "operand-deployment-lifecycle-manager-registry"
 		namespace = "common-service"
 	)
 	// Mock request to simulate Reconcile() being called on an event for a
@@ -46,7 +46,7 @@ func TestCatalogController(t *testing.T) {
 	}
 
 	// A operandregistry resource with metadata and spec.
-	catalog := &v1alpha1.OperandRegistry{
+	registry := &v1alpha1.OperandRegistry{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
@@ -80,12 +80,12 @@ func TestCatalogController(t *testing.T) {
 	}
 	// Objects to track in the fake client.
 	objs := []runtime.Object{
-		catalog,
+		registry,
 	}
 
 	// Register operator types with the runtime scheme.
 	s := scheme.Scheme
-	s.AddKnownTypes(v1alpha1.SchemeGroupVersion, catalog)
+	s.AddKnownTypes(v1alpha1.SchemeGroupVersion, registry)
 	// Create a fake client to mock API calls.
 	cl := fake.NewFakeClient(objs...)
 	// Create a ReconcileOperandRegistry object with the scheme and fake client.

@@ -314,7 +314,7 @@ func schema_pkg_apis_operator_v1alpha1_OperandRequestSpec(ref common.ReferenceCa
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("./pkg/apis/operator/v1alpha1.SetService"),
+										Ref: ref("./pkg/apis/operator/v1alpha1.RequestService"),
 									},
 								},
 							},
@@ -325,7 +325,7 @@ func schema_pkg_apis_operator_v1alpha1_OperandRequestSpec(ref common.ReferenceCa
 			},
 		},
 		Dependencies: []string{
-			"./pkg/apis/operator/v1alpha1.SetService"},
+			"./pkg/apis/operator/v1alpha1.RequestService"},
 	}
 }
 
@@ -343,7 +343,7 @@ func schema_pkg_apis_operator_v1alpha1_OperandRequestStatus(ref common.Reference
 							},
 						},
 						SchemaProps: spec.SchemaProps{
-							Description: "Conditions represents the current state of the Set Service",
+							Description: "Conditions represents the current state of the Request Service",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{

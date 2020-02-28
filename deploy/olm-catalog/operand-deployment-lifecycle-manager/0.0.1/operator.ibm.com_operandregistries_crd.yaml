@@ -34,7 +34,7 @@ spec:
           description: OperandRegistrySpec defines the desired state of OperandRegistry
           properties:
             operators:
-              description: Operators is a list of operator definition
+              description: Operators is a list of operator OLM definition
               items:
                 description: Operator defines the desired state of Operators
                 properties:
