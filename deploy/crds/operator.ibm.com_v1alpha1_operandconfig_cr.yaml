@@ -48,4 +48,12 @@ spec:
   - name: ibm-platform-api-operator
     spec:
       platformApi: {}
-      
+  - name: ibm-helm-api-operator
+    spec:
+      helmApi: {}
+  - name: ibm-helm-repo-operator
+    spec:
+      helmRepo: {}
+  - name: ibm-management-repo-operator
+    spec:
+      mgmtRepo: {}

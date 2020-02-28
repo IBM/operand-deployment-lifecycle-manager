@@ -91,6 +91,24 @@ metadata:
                 "spec": {
                   "platformApi": {}
                 }
+              },
+              {
+                "name": "ibm-helm-api-operator",
+                "spec": {
+                  "helmApi": {}
+                }
+              },
+              {
+                "name": "ibm-helm-repo-operator",
+                "spec": {
+                  "helmRepo": {}
+                }
+              },
+              {
+                "name": "ibm-management-repo-operator",
+                "spec": {
+                  "mgmtRepo": {}
+                }
               }
             ]
           }
@@ -210,6 +228,33 @@ metadata:
                 "packageName": "ibm-platform-api-operator-app",
                 "sourceName": "opencloud-operators",
                 "sourceNamespace": "openshift-marketplace"
+              },
+              {
+                "channel": "alpha",
+                "description": "Operator for managing deployment of helm API service.",
+                "name": "ibm-helm-api-operator",
+                "namespace": "ibm-common-services",
+                "packageName": "ibm-helm-api-operator",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace"
+              },
+              {
+                "channel": "alpha",
+                "description": "Operator for managing deployment of helm repo service.",
+                "name": "ibm-helm-repo-operator",
+                "namespace": "ibm-common-services",
+                "packageName": "ibm-helm-repo-operator",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace"
+              },
+              {
+                "channel": "alpha",
+                "description": "Operator for managing deployment of management repo service.",
+                "name": "ibm-management-repo-operator",
+                "namespace": "ibm-common-services",
+                "packageName": "ibm-management-repo-operatorp",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace"
               }
             ]
           }
@@ -268,6 +313,18 @@ metadata:
               },
               {
                 "name": "ibm-platform-api-operator",
+                "state": "absent"
+              },
+              {
+                "name": "ibm-helm-api-operator",
+                "state": "absent"
+              },
+              {
+                "name": "ibm-helm-repo-operator",
+                "state": "absent"
+              },
+              {
+                "name": "ibm-management-repo-operator",
                 "state": "absent"
               }
             ]
