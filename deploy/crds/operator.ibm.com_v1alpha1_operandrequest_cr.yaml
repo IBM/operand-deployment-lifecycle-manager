@@ -26,3 +26,5 @@ spec:
     state: absent
   - name: ibm-catalog-operator
     state: absent
+  - name: ibm-platform-api-operator
+    state: absent

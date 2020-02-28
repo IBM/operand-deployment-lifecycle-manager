@@ -80,7 +80,7 @@ func TestUpdateRequestState(t *testing.T) {
 	assert.NoError(err)
 
 	found, err := r.olmClient.OperatorsV1alpha1().Subscriptions(req.Name).List(metav1.ListOptions{
-		LabelSelector: "operator.ibm.com/mos-control",
+		LabelSelector: "operator.ibm.com/opreq-control",
 	})
 	assert.NoError(err)
 	assert.Nil(found.Items, "The subscription list should be empty.")
@@ -179,7 +179,7 @@ func mos(name, namespace, state, channel string) *v1alpha1.OperandRequest {
 // Return Subscription obj
 func sub(name, namespace, csvVersion string) *olmv1alpha1.Subscription {
 	labels := map[string]string{
-		"operator.ibm.com/mos-control": "true",
+		"operator.ibm.com/opreq-control": "true",
 	}
 	return &olmv1alpha1.Subscription{
 		ObjectMeta: metav1.ObjectMeta{

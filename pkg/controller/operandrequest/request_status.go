@@ -19,8 +19,6 @@ package operandrequest
 import (
 	"context"
 
-	"time"
-
 	olmv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -33,103 +31,6 @@ const (
 	Absent  = "absent"
 	Present = "present"
 )
-
-type deployState struct {
-	Type    operatorv1alpha1.ConditionType
-	Status  string
-	Reason  string
-	Message string
-}
-
-// InstallSuccessed defines the desired state of install subscription successful
-var InstallSuccessed = &deployState{
-	Type:    "Install",
-	Status:  "Successed",
-	Reason:  "Install subscription successful",
-	Message: "Install subscription successful",
-}
-
-// InstallFailed defines the desired state of install subscription failed
-var InstallFailed = &deployState{
-	Type:    "Install",
-	Status:  "Failed",
-	Reason:  "Install subscription Failed",
-	Message: "Install subscription Failed",
-}
-
-// UpdateSuccessed defines the desired state of update subscription successful
-var UpdateSuccessed = &deployState{
-	Type:    "Update",
-	Status:  "Successed",
-	Reason:  "Update subscription successful",
-	Message: "Update subscription successful",
-}
-
-// UpdateFailed defines the desired state of update subscription failed
-var UpdateFailed = &deployState{
-	Type:    "Update",
-	Status:  "Failed",
-	Reason:  "Update subscription Failed",
-	Message: "Update subscription Failed",
-}
-
-// DeleteSuccessed defines the desired state of delete subscription successful
-var DeleteSuccessed = &deployState{
-	Type:    "Delete",
-	Status:  "Successed",
-	Reason:  "Delete subscription successful",
-	Message: "Delete subscription successful",
-}
-
-// DeleteFailed defines the desired state of delete subscription failed
-var DeleteFailed = &deployState{
-	Type:    "Delete",
-	Status:  "Failed",
-	Reason:  "Delete subscription Failed",
-	Message: "Delete subscription Failed",
-}
-
-func newCondition(name string, ds *deployState) operatorv1alpha1.Condition {
-	now := time.Now().Format(time.RFC3339)
-	return operatorv1alpha1.Condition{
-		Name:           name,
-		Type:           ds.Type,
-		Status:         ds.Status,
-		LastUpdateTime: now,
-		Reason:         ds.Reason,
-		Message:        ds.Message,
-	}
-}
-
-func getCondition(cr *operatorv1alpha1.OperandRequest, name string, t operatorv1alpha1.ConditionType) (int, *operatorv1alpha1.Condition) {
-	for i, c := range cr.Status.Conditions {
-		if name == c.Name && t == c.Type {
-			return i, &c
-		}
-	}
-	return -1, nil
-}
-
-func setCondition(cr *operatorv1alpha1.OperandRequest, c operatorv1alpha1.Condition) {
-	pos, cp := getCondition(cr, c.Name, c.Type)
-	if cp != nil {
-		if cp.Status == c.Status && cp.Reason == c.Reason && cp.Message == c.Message {
-			return
-		}
-		cr.Status.Conditions[pos] = c
-	} else {
-		cr.Status.Conditions = append(cr.Status.Conditions, c)
-	}
-}
-
-func (r *ReconcileOperandRequest) updateConditionStatus(cr *operatorv1alpha1.OperandRequest, name string, ds *deployState) error {
-	c := newCondition(name, ds)
-	setCondition(cr, c)
-	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
-		return err
-	}
-	return nil
-}
 
 func newMember(name string, operatorPhase olmv1alpha1.ClusterServiceVersionPhase, operandPhase operatorv1alpha1.ServicePhase) operatorv1alpha1.MemberStatus {
 	return operatorv1alpha1.MemberStatus{
@@ -164,7 +65,7 @@ func setMember(cr *operatorv1alpha1.OperandRequest, newM operatorv1alpha1.Member
 
 func (r *ReconcileOperandRequest) updateMemberStatus(cr *operatorv1alpha1.OperandRequest) error {
 	subs, err := r.olmClient.OperatorsV1alpha1().Subscriptions("").List(metav1.ListOptions{
-		LabelSelector: "operator.ibm.com/mos-control",
+		LabelSelector: "operator.ibm.com/opreq-control",
 	})
 	if err != nil {
 		return err

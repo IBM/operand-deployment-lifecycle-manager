@@ -81,3 +81,10 @@ spec:
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
     description: Operator for managing deployment of catalog UI service.
+  - name: ibm-platform-api-operator
+    namespace: ibm-common-services
+    channel: alpha
+    packageName: ibm-platform-api-operator-app
+    sourceName: opencloud-operators
+    sourceNamespace: openshift-marketplace
+    description: Operator for managing deployment of Platform API service.

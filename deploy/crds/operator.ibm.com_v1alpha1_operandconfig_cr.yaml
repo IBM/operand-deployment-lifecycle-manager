@@ -45,4 +45,7 @@ spec:
   - name: ibm-catalog-operator
     spec:
       icpCatalogChart: {}
+  - name: ibm-platform-api-operator
+    spec:
+      platformApi: {}
       

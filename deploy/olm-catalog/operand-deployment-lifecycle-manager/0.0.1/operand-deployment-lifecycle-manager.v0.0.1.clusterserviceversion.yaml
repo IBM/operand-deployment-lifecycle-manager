@@ -85,6 +85,12 @@ metadata:
                 "spec": {
                   "icpCatalogChart": {}
                 }
+              },
+              {
+                "name": "ibm-platform-api-operator",
+                "spec": {
+                  "platformApi": {}
+                }
               }
             ]
           }
@@ -195,6 +201,15 @@ metadata:
                 "packageName": "ibm-catalog-operator-app",
                 "sourceName": "opencloud-operators",
                 "sourceNamespace": "openshift-marketplace"
+              },
+              {
+                "channel": "alpha",
+                "description": "Operator for managing deployment of Platform API service.",
+                "name": "ibm-platform-api-operator",
+                "namespace": "ibm-common-services",
+                "packageName": "ibm-platform-api-operator-app",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace"
               }
             ]
           }
@@ -249,6 +264,10 @@ metadata:
               },
               {
                 "name": "ibm-catalog-operator",
+                "state": "absent"
+              },
+              {
+                "name": "ibm-platform-api-operator",
                 "state": "absent"
               }
             ]

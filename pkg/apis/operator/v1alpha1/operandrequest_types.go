@@ -17,7 +17,10 @@
 package v1alpha1
 
 import (
+	"time"
+
 	olmv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -50,11 +53,14 @@ type ConditionType string
 // ClusterPhase is the phase of the installation
 type ClusterPhase string
 
+// ResourceType is the type of condition use
+type ResourceType string
+
 // Constants are used for state
 const (
-	ConditionInstall ConditionType = "Install"
-	ConditionUpdate  ConditionType = "Update"
-	ConditionDelete  ConditionType = "Delete"
+	ConditionCreating ConditionType = "Creating"
+	ConditionUpdating ConditionType = "Updating"
+	ConditionDeleting ConditionType = "Deleting"
 
 	ClusterPhaseNone     ClusterPhase = ""
 	ClusterPhasePending  ClusterPhase = "Pending"
@@ -63,16 +69,27 @@ const (
 	ClusterPhaseDeleting ClusterPhase = "Deleting"
 	ClusterPhaseRunning  ClusterPhase = "Running"
 	ClusterPhaseFailed   ClusterPhase = "Failed"
+
+	ResourceTypeSub     ResourceType = "subscription"
+	ResourceTypeCsv     ResourceType = "csv"
+	ResourceTypeOperand ResourceType = "operand"
 )
 
-// Condition defines the current state of operator deploy
+// Conditions represents the current state of the Request Service
+// A condition might not show up if it is not happening.
 type Condition struct {
-	Name           string        `json:"name,omitempty"`
-	Type           ConditionType `json:"type,omitempty"`
-	Status         string        `json:"status,omitempty"`
-	LastUpdateTime string        `json:"lastUpdateTime,omitempty"`
-	Reason         string        `json:"reason,omitempty"`
-	Message        string        `json:"message,omitempty"`
+	// Type of condition.
+	Type ConditionType `json:"type"`
+	// Status of the condition, one of True, False, Unknown.
+	Status corev1.ConditionStatus `json:"status"`
+	// The last time this condition was updated.
+	LastUpdateTime string `json:"lastUpdateTime,omitempty"`
+	// Last time the condition transitioned from one status to another.
+	LastTransitionTime string `json:"lastTransitionTime,omitempty"`
+	// The reason for the condition's last transition.
+	Reason string `json:"reason,omitempty"`
+	// A human readable message indicating details about the transition.
+	Message string `json:"message,omitempty"`
 }
 
 // OperandRequestStatus defines the observed state of OperandRequest
@@ -89,7 +106,8 @@ type OperandRequestStatus struct {
 	Conditions []Condition `json:"conditions,omitempty"`
 	// Members represnets the current operand status of the set
 	// +optional
-	Members []MemberStatus `json:"member,omitempty"`
+	// +listType=set
+	Members []MemberStatus `json:"members,omitempty"`
 	// Phase is the cluster running phase
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
 	// +optional
@@ -132,6 +150,51 @@ type OperandRequestList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []OperandRequest `json:"items"`
+}
+
+func (ss *OperandRequestStatus) SetCreatingCondition(name string, rt ResourceType) {
+	c := newCondition(ConditionCreating, corev1.ConditionTrue, "Creating "+string(rt), "Creating "+string(rt)+" "+name)
+	ss.setCondition(*c)
+}
+
+func (ss *OperandRequestStatus) SetUpdatingCondition(name string, rt ResourceType) {
+	c := newCondition(ConditionUpdating, corev1.ConditionTrue, "Updating "+string(rt), "Updating "+string(rt)+" "+name)
+	ss.setCondition(*c)
+}
+
+func (ss *OperandRequestStatus) SetDeletingCondition(name string, rt ResourceType) {
+	c := newCondition(ConditionDeleting, corev1.ConditionTrue, "Deleting "+string(rt), "Deleting "+string(rt)+" "+name)
+	ss.setCondition(*c)
+}
+
+func (ss *OperandRequestStatus) setCondition(c Condition) {
+	pos, cp := getCondition(ss, c.Type, c.Message)
+	if cp != nil {
+		ss.Conditions[pos] = c
+	} else {
+		ss.Conditions = append(ss.Conditions, c)
+	}
+}
+
+func getCondition(status *OperandRequestStatus, t ConditionType, msg string) (int, *Condition) {
+	for i, c := range status.Conditions {
+		if t == c.Type && msg == c.Message {
+			return i, &c
+		}
+	}
+	return -1, nil
+}
+
+func newCondition(condType ConditionType, status corev1.ConditionStatus, reason, message string) *Condition {
+	now := time.Now().Format(time.RFC3339)
+	return &Condition{
+		Type:               condType,
+		Status:             status,
+		LastUpdateTime:     now,
+		LastTransitionTime: now,
+		Reason:             reason,
+		Message:            message,
+	}
 }
 
 func init() {
