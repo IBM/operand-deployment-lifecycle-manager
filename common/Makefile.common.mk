@@ -68,17 +68,9 @@ code-tidy:
 code-gen:
 	@echo Updating the deep copy files with the changes in the API
 	operator-sdk generate k8s
-	# Workaround for relative/absolute path issue
-	# see https://github.com/IBM/operand-deployment-lifecycle-manager/pull/32
 	@echo Updating the CRD files with the OpenAPI validations
-	# Build the latest openapi-gen from source
 	operator-sdk generate crds
-	which ./build/_generate/bin/openapi-gen > /dev/null || go build -o ./build/_generate/bin/openapi-gen k8s.io/kube-openapi/cmd/openapi-gen
-	# Run openapi-gen for each of your API group/version packages
-	GOPATH=/tmp ./build/_generate/bin/openapi-gen --logtostderr=true -o "" -i ./pkg/apis/operator/v1alpha1 -O zz_generated.openapi -p ./pkg/apis/operator/v1alpha1/ -h ./hack/boilerplate.go.txt -r "-"
-
-csv-gen:
-	@echo Updating the CSV files with the changes in the CRD
+	@echo Updating/Generating a ClusterServiceVersion YAML manifest for the operator
 	operator-sdk generate csv --csv-version ${CSV_VERSION} --update-crds
 
 
