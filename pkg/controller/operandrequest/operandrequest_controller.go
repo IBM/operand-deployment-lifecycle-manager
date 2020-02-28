@@ -275,7 +275,7 @@ func (r *ReconcileOperandRequest) waitForInstallPlan(moc *operatorv1alpha1.Opera
 	subs := make(map[string]string)
 	err := wait.PollImmediateUntil(time.Second*20, func() (bool, error) {
 		foundSub, err := r.olmClient.OperatorsV1alpha1().Subscriptions("").List(metav1.ListOptions{
-			LabelSelector: "operator.ibm.com/mos-control",
+			LabelSelector: "operator.ibm.com/opreq-control",
 		})
 		if err != nil {
 			if errors.IsNotFound(err) {

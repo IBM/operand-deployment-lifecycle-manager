@@ -107,7 +107,7 @@ func (r *ReconcileOperandRequest) getClusterServiceVersion(subName string) (*olm
 	logger := log.WithValues("Subscription Name", subName)
 	logger.Info("Looking for the Cluster Service Version")
 	subs, listSubErr := r.olmClient.OperatorsV1alpha1().Subscriptions("").List(metav1.ListOptions{
-		LabelSelector: "operator.ibm.com/mos-control",
+		LabelSelector: "operator.ibm.com/opreq-control",
 	})
 	if listSubErr != nil {
 		logger.Error(listSubErr, "Fail to list subscriptions")
