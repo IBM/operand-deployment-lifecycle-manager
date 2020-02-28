@@ -48,7 +48,7 @@ func (r *ReconcileOperandRequest) reconcileOperator(opts map[string]operatorv1al
 			return err
 		}
 
-		// Subscription existing and managed by Set controller
+		// Subscription existing and managed by Request controller
 		if _, ok := found.Labels["operator.ibm.com/mos-control"]; ok {
 			// Check subscription if present
 			if o.State == Present {
@@ -79,7 +79,7 @@ func (r *ReconcileOperandRequest) reconcileOperator(opts map[string]operatorv1al
 
 func (r *ReconcileOperandRequest) fetchOperators(moc *operatorv1alpha1.OperandRegistry, cr *operatorv1alpha1.OperandRequest) (map[string]operatorv1alpha1.Operator, error) {
 
-	setMap, err := r.fetchSets(cr)
+	setMap, err := r.fetchRequests(cr)
 	if err != nil {
 		return nil, err
 	}

@@ -64,7 +64,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	}
 	return &ReconcileOperandRequest{
 		client:    mgr.GetClient(),
-		recorder:  mgr.GetEventRecorderFor("serviceset"),
+		recorder:  mgr.GetEventRecorderFor("OperandRequest"),
 		scheme:    mgr.GetScheme(),
 		olmClient: olmClientset}
 }
@@ -72,7 +72,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
-	c, err := controller.New("serviceset-controller", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New("OperandRequest-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}
@@ -161,7 +161,7 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 	reqLogger.Info("Reconciling OperandRequest")
 
 	// Fetch the OperandRegistry instance
-	moc, err := r.listCatalog(request.Namespace)
+	moc, err := r.listRegistry(request.Namespace)
 
 	if moc == nil {
 		return reconcile.Result{}, nil
@@ -193,21 +193,21 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 	}
 
 	// Fetch the OperandRequest instance
-	setInstance := &operatorv1alpha1.OperandRequest{}
-	if err := r.client.Get(context.TODO(), request.NamespacedName, setInstance); err != nil {
+	operandRequestInstance := &operatorv1alpha1.OperandRequest{}
+	if err := r.client.Get(context.TODO(), request.NamespacedName, operandRequestInstance); err != nil {
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
 
 	// Add finalizer
-	if setInstance.GetFinalizers() == nil {
-		if err := r.addFinalizer(setInstance); err != nil {
+	if operandRequestInstance.GetFinalizers() == nil {
+		if err := r.addFinalizer(operandRequestInstance); err != nil {
 			return reconcile.Result{}, err
 		}
 	}
 
 	// Fetch all subscription definition
-	opts, err := r.fetchOperators(moc, setInstance)
+	opts, err := r.fetchOperators(moc, operandRequestInstance)
 	if opts == nil {
 		if err != nil {
 			return reconcile.Result{}, err
@@ -215,12 +215,12 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, nil
 	}
 
-	if err = r.reconcileOperator(opts, setInstance, moc); err != nil {
+	if err = r.reconcileOperator(opts, operandRequestInstance, moc); err != nil {
 		return reconcile.Result{}, err
 	}
 
 	// Fetch OperandConfig instance
-	serviceConfigs, err := r.fetchConfigs(request, setInstance)
+	serviceConfigs, err := r.fetchConfigs(request, operandRequestInstance)
 	if serviceConfigs == nil {
 		if err != nil {
 			return reconcile.Result{}, err
@@ -244,22 +244,22 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, merr
 	}
 
-	if err := r.updateMemberStatus(setInstance); err != nil {
+	if err := r.updateMemberStatus(operandRequestInstance); err != nil {
 		return reconcile.Result{}, err
 	}
 
 	// Remove finalizer
-	if !setInstance.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !operandRequestInstance.ObjectMeta.DeletionTimestamp.IsZero() {
 		// Update finalizer to allow delete CR
-		setInstance.SetFinalizers(nil)
-		err := r.client.Update(context.TODO(), setInstance)
+		operandRequestInstance.SetFinalizers(nil)
+		err := r.client.Update(context.TODO(), operandRequestInstance)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
 	}
 
 	// Check if all csv deploy successed
-	if setInstance.Status.Phase != operatorv1alpha1.ClusterPhaseRunning {
+	if operandRequestInstance.Status.Phase != operatorv1alpha1.ClusterPhaseRunning {
 		reqLogger.Info("Waiting for all the operands deploy successed")
 		return reconcile.Result{RequeueAfter: 5}, nil
 	}
@@ -322,7 +322,7 @@ func (r *ReconcileOperandRequest) waitForInstallPlan(moc *operatorv1alpha1.Opera
 	return nil
 }
 
-func (r *ReconcileOperandRequest) fetchSets(currentCr *operatorv1alpha1.OperandRequest) (map[string]operatorv1alpha1.SetService, error) {
+func (r *ReconcileOperandRequest) fetchRequests(currentCr *operatorv1alpha1.OperandRequest) (map[string]operatorv1alpha1.RequestService, error) {
 	crs := &operatorv1alpha1.OperandRequestList{}
 	if err := r.client.List(context.TODO(), crs); err != nil {
 		if errors.IsNotFound(err) {
@@ -332,32 +332,32 @@ func (r *ReconcileOperandRequest) fetchSets(currentCr *operatorv1alpha1.OperandR
 	}
 	// If current CR is deleted, mark all the operators as absent state
 	isCurrentCrToBeDeleted := currentCr.GetDeletionTimestamp() != nil
-	sets := make(map[string]operatorv1alpha1.SetService)
+	requests := make(map[string]operatorv1alpha1.RequestService)
 	for _, cr := range crs.Items {
 		for _, s := range cr.Spec.Services {
 			if isCurrentCrToBeDeleted && cr.GetUID() == currentCr.GetUID() {
 				s.State = Absent
 			}
-			sets = addSet(sets, s)
+			requests = addRequest(requests, s)
 		}
 	}
-	return sets, nil
+	return requests, nil
 }
 
-func addSet(sets map[string]operatorv1alpha1.SetService, set operatorv1alpha1.SetService) map[string]operatorv1alpha1.SetService {
-	if _, ok := sets[set.Name]; ok {
-		if set.State == Present {
-			sets[set.Name] = set
+func addRequest(requests map[string]operatorv1alpha1.RequestService, request operatorv1alpha1.RequestService) map[string]operatorv1alpha1.RequestService {
+	if _, ok := requests[request.Name]; ok {
+		if request.State == Present {
+			requests[request.Name] = request
 		}
-		return sets
+		return requests
 	}
-	sets[set.Name] = set
-	return sets
+	requests[request.Name] = request
+	return requests
 }
 
 func (r *ReconcileOperandRequest) addFinalizer(cr *operatorv1alpha1.OperandRequest) error {
 	if len(cr.GetFinalizers()) < 1 && cr.GetDeletionTimestamp() == nil {
-		cr.SetFinalizers([]string{"finalizer.set.ibm.com"})
+		cr.SetFinalizers([]string{"finalizer.request.ibm.com"})
 		// Update CR
 		err := r.client.Update(context.TODO(), cr)
 		if err != nil {
@@ -392,7 +392,7 @@ func (r *ReconcileOperandRequest) listConfig(namespace string) (*operatorv1alpha
 	return &cscList.Items[0], nil
 }
 
-func (r *ReconcileOperandRequest) listCatalog(namespace string) (*operatorv1alpha1.OperandRegistry, error) {
+func (r *ReconcileOperandRequest) listRegistry(namespace string) (*operatorv1alpha1.OperandRegistry, error) {
 	reqLogger := log.WithValues("Request.Namespace", namespace)
 	// Fetch the OperandRegistry instance
 	mocList := &operatorv1alpha1.OperandRegistryList{}
