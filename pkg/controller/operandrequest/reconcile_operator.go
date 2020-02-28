@@ -29,7 +29,7 @@ import (
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 )
 
-func (r *ReconcileOperandRequest) reconcileOperator(opts map[string]operatorv1alpha1.Operator, setInstance *operatorv1alpha1.OperandRequest, moc *operatorv1alpha1.OperandRegistry, serviceConfigs map[string]operatorv1alpha1.ConfigService, csc *operatorv1alpha1.OperandConfig) error {
+func (r *ReconcileOperandRequest) reconcileOperator(opts map[string]operatorv1alpha1.Operator, requestInstance *operatorv1alpha1.OperandRequest, moc *operatorv1alpha1.OperandRegistry, serviceConfigs map[string]operatorv1alpha1.ConfigService, csc *operatorv1alpha1.OperandConfig) error {
 	reqLogger := log.WithValues()
 	reqLogger.Info("Reconciling Operator")
 	for _, o := range opts {
@@ -39,7 +39,7 @@ func (r *ReconcileOperandRequest) reconcileOperator(opts map[string]operatorv1al
 			if errors.IsNotFound(err) {
 				// Subscription does not exist and state is present, create a new one
 				if o.State == Present {
-					if err = r.createSubscription(setInstance, o); err != nil {
+					if err = r.createSubscription(requestInstance, o); err != nil {
 						return err
 					}
 				}
@@ -57,12 +57,12 @@ func (r *ReconcileOperandRequest) reconcileOperator(opts map[string]operatorv1al
 					found.Spec.Channel = o.Channel
 					found.Spec.CatalogSource = o.SourceName
 					found.Spec.CatalogSourceNamespace = o.SourceNamespace
-					if err = r.updateSubscription(setInstance, found); err != nil {
+					if err = r.updateSubscription(requestInstance, found); err != nil {
 						return err
 					}
 				}
 				// Subscription is absent, delete it.
-			} else if err := r.deleteSubscription(setInstance, found, moc, serviceConfigs, csc); err != nil {
+			} else if err := r.deleteSubscription(requestInstance, found, moc, serviceConfigs, csc); err != nil {
 				return err
 			}
 		} else {
@@ -70,7 +70,7 @@ func (r *ReconcileOperandRequest) reconcileOperator(opts map[string]operatorv1al
 			reqLogger.WithValues("Subscription.Namespace", found.Namespace, "Subscription.Name", found.Name).Info("Subscription has created by other user, ignore update/delete it.")
 		}
 
-		if err := r.updateMemberStatus(setInstance); err != nil {
+		if err := r.updateMemberStatus(requestInstance); err != nil {
 			return err
 		}
 	}

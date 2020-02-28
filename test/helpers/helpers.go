@@ -68,7 +68,7 @@ func CreateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 		State:   "present",
 	})
 
-	setInstance := &operator.OperandRequest{
+	requestInstance := &operator.OperandRequest{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      config.OperandRequestCrName,
 			Namespace: namespace,
@@ -80,7 +80,7 @@ func CreateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 
 	fmt.Println("--- CREATE: OperandRequest Instance")
 	// use TestCtx's create helper to create the object and add a cleanup function for the new object
-	err = f.Client.Create(goctx.TODO(), setInstance, &framework.CleanupOptions{TestContext: ctx, Timeout: config.CleanupTimeout, RetryInterval: config.CleanupRetry})
+	err = f.Client.Create(goctx.TODO(), requestInstance, &framework.CleanupOptions{TestContext: ctx, Timeout: config.CleanupTimeout, RetryInterval: config.CleanupRetry})
 	if err != nil {
 		return err
 	}
@@ -111,16 +111,16 @@ func UpdateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 	if err != nil {
 		return err
 	}
-	setInstance := &operator.OperandRequest{}
+	requestInstance := &operator.OperandRequest{}
 	fmt.Println("--- UPDATE: subscription")
 	// Get OperandRequest instance
-	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandRequestCrName, Namespace: namespace}, setInstance)
+	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandRequestCrName, Namespace: namespace}, requestInstance)
 	if err != nil {
 		return err
 	}
 
-	setInstance.Spec.Services[0].Channel = "clusterwide-alpha"
-	err = f.Client.Update(goctx.TODO(), setInstance)
+	requestInstance.Spec.Services[0].Channel = "clusterwide-alpha"
+	err = f.Client.Update(goctx.TODO(), requestInstance)
 	if err != nil {
 		return err
 	}
@@ -130,7 +130,7 @@ func UpdateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 	if err != nil {
 		return err
 	}
-	opt := optMap[setInstance.Spec.Services[0].Name]
+	opt := optMap[requestInstance.Spec.Services[0].Name]
 	err = WaitForSubCsvReady(olmClient, metav1.ObjectMeta{Name: opt.Name, Namespace: opt.Namespace})
 	if err != nil {
 		return err
@@ -144,16 +144,16 @@ func DeleteTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 	if err != nil {
 		return fmt.Errorf("could not get namespace: %v", err)
 	}
-	setInstance := &operator.OperandRequest{}
+	requestInstance := &operator.OperandRequest{}
 	fmt.Println("--- DELETE: subscription")
 	// Get OperandRequest instance
-	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandRequestCrName, Namespace: namespace}, setInstance)
+	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandRequestCrName, Namespace: namespace}, requestInstance)
 	if err != nil {
 		return err
 	}
 	// Mark first operator state as absent
-	setInstance.Spec.Services[0].State = "absent"
-	err = f.Client.Update(goctx.TODO(), setInstance)
+	requestInstance.Spec.Services[0].State = "absent"
+	err = f.Client.Update(goctx.TODO(), requestInstance)
 	if err != nil {
 		return err
 	}
@@ -162,7 +162,7 @@ func DeleteTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 	if err != nil {
 		return err
 	}
-	opt := optMap[setInstance.Spec.Services[0].Name]
+	opt := optMap[requestInstance.Spec.Services[0].Name]
 	// Waiting for subscription deleted
 	err = WaitForSubscriptionDelete(olmClient, metav1.ObjectMeta{Name: opt.Name, Namespace: opt.Namespace})
 	if err != nil {
