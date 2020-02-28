@@ -25,9 +25,15 @@ import (
 
 // Operator defines the desired state of Operators
 type Operator struct {
-	// Name is the subscription name
+	// A unique name for the operator whose operand may be deployed
 	Name string `json:"name"`
-	// Namespace is the subscription namespace
+	// A scope indicator, either public or private
+	// Valid values are:
+	// - "private" (default): deployment only request from the containing names;
+	// - "public": deployment can be requested from other namespaces;
+	// +optional
+	Scope scope `json:"scope,omitempty"`
+	// The namespace in which operator's operand should be deployed
 	Namespace string `json:"namespace,omitempty"`
 	// Name of a CatalogSource that defines where and how to find the channel
 	SourceName string `json:"sourceName"`
@@ -46,6 +52,14 @@ type Operator struct {
 	// State is a flag to enable or disable service
 	State string `json:"state,omitempty"`
 }
+
+// +kubebuilder:validation:Enum=public;private
+type scope string
+
+const (
+	ScopePrivate scope = "private"
+	ScopePublic  scope = "public"
+)
 
 // OperandRegistrySpec defines the desired state of OperandRegistry
 // +k8s:openapi-gen=true

@@ -48,13 +48,24 @@ spec:
                     description: Approval mode for emitted InstallPlans
                     type: string
                   name:
-                    description: Name is the subscription name
+                    description: A unique name for the operator whose operand may
+                      be deployed
                     type: string
                   namespace:
-                    description: Namespace is the subscription namespace
+                    description: The namespace in which operator's operand should
+                      be deployed
                     type: string
                   packageName:
                     description: Name of the package that defines the application
+                    type: string
+                  scope:
+                    description: 'A scope indicator, either public or private Valid
+                      values are: - "private" (default): deployment only request from
+                      the containing names; - "public": deployment can be requested
+                      from other namespaces;'
+                    enum:
+                    - public
+                    - private
                     type: string
                   sourceName:
                     description: Name of a CatalogSource that defines where and how
