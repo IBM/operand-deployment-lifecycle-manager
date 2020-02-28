@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"testing"
 
-	olmv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1"
 	olmv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
 	olmclient "github.com/operator-framework/operator-lifecycle-manager/pkg/api/client/clientset/versioned"
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
@@ -89,16 +88,6 @@ func CreateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 	optMap, err := GetOperators(f, namespace)
 	if err != nil {
 		return err
-	}
-
-	// create OperatorGroup for CSV
-	groups := []string{"etcd-operator", "jenkins-operator"}
-	for _, g := range groups {
-		operatorGroupInstance := newOperatorGroup(g, g, groups)
-		err = f.Client.Create(goctx.TODO(), operatorGroupInstance, &framework.CleanupOptions{TestContext: ctx, Timeout: config.CleanupTimeout, RetryInterval: config.CleanupRetry})
-		if err != nil {
-			return err
-		}
 	}
 
 	for _, s := range sets {
@@ -436,22 +425,6 @@ func newOperandRegistryCR(name, namespace string) *operator.OperandRegistry {
 					},
 				},
 			},
-		},
-	}
-}
-
-// New OperatorGroup for CSV
-func newOperatorGroup(namespace, name string, targetNamespaces []string) *olmv1.OperatorGroup {
-	if targetNamespaces == nil {
-		targetNamespaces = append(targetNamespaces, namespace)
-	}
-	return &olmv1.OperatorGroup{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      name,
-		},
-		Spec: olmv1.OperatorGroupSpec{
-			TargetNamespaces: targetNamespaces,
 		},
 	}
 }
