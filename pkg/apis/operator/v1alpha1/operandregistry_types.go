@@ -121,6 +121,15 @@ type OperandRegistryList struct {
 	Items           []OperandRegistry `json:"items"`
 }
 
+// Set the default value for Registry spec
+func (r *OperandRegistrySpec) SetDefaults() {
+	for i, o := range r.Operators {
+		if o.Scope == "" {
+			r.Operators[i].Scope = ScopePrivate
+		}
+	}
+}
+
 func init() {
 	SchemeBuilder.Register(&OperandRegistry{}, &OperandRegistryList{})
 }
