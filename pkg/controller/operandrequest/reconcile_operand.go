@@ -38,7 +38,7 @@ func (r *ReconcileOperandRequest) reconcileOperand(serviceConfigs map[string]ope
 	merr := &multiErr{}
 	for _, service := range serviceConfigs {
 		if service.State == Present {
-			reqLogger.Info(fmt.Sprintf("Reconciling custome resource %s", service.Name))
+			reqLogger.Info(fmt.Sprintf("Reconciling custom resource %s", service.Name))
 			// Looking for the CSV
 			csv, err := r.getClusterServiceVersion(service.Name)
 
@@ -52,7 +52,7 @@ func (r *ReconcileOperandRequest) reconcileOperand(serviceConfigs map[string]ope
 				continue
 			}
 
-			reqLogger.Info(fmt.Sprintf("Generating custome resource based on CSV %s", csv.ObjectMeta.Name))
+			reqLogger.Info(fmt.Sprintf("Generating custom resource base on Cluster Service Version %s", csv.ObjectMeta.Name))
 
 			// Merge and Generate CR
 			err = r.createUpdateCr(service, csv, csc)
@@ -69,15 +69,15 @@ func (r *ReconcileOperandRequest) reconcileOperand(serviceConfigs map[string]ope
 
 func (r *ReconcileOperandRequest) fetchConfigs(csc *operatorv1alpha1.OperandConfig, cr *operatorv1alpha1.OperandRequest) (map[string]operatorv1alpha1.ConfigService, error) {
 
-	setMap, err := r.fetchSets(cr)
+	requestMap, err := r.fetchRequests(cr)
 	if err != nil {
 		return nil, err
 	}
 
 	cscMap := make(map[string]operatorv1alpha1.ConfigService)
 	for k, v := range csc.Spec.Services {
-		if _, ok := setMap[v.Name]; ok {
-			csc.Spec.Services[k].State = setMap[v.Name].State
+		if _, ok := requestMap[v.Name]; ok {
+			csc.Spec.Services[k].State = requestMap[v.Name].State
 		} else {
 			csc.Spec.Services[k].State = Absent
 		}
@@ -95,7 +95,7 @@ func (r *ReconcileOperandRequest) fetchConfigs(csc *operatorv1alpha1.OperandConf
 // getCSV retrieves the Cluster Service Version
 func (r *ReconcileOperandRequest) getClusterServiceVersion(subName string) (*olmv1alpha1.ClusterServiceVersion, error) {
 	logger := log.WithValues("Subscription Name", subName)
-	logger.Info(fmt.Sprintf("Looking for the Cluster Service Version"))
+	logger.Info("Looking for the Cluster Service Version")
 	subs, listSubErr := r.olmClient.OperatorsV1alpha1().Subscriptions("").List(metav1.ListOptions{
 		LabelSelector: "operator.ibm.com/mos-control",
 	})
@@ -145,7 +145,7 @@ func (r *ReconcileOperandRequest) createUpdateCr(service operatorv1alpha1.Config
 	// Merge OperandConfig and Cluster Service Version alm-examples
 	for _, crTemplate := range crTemplates {
 
-		// Create an unstruct object for CR and set its value to CR template
+		// Create an unstruct object for CR and request its value to CR template
 		var unstruct unstructured.Unstructured
 		unstruct.Object = crTemplate.(map[string]interface{})
 
@@ -156,7 +156,7 @@ func (r *ReconcileOperandRequest) createUpdateCr(service operatorv1alpha1.Config
 
 			// Compare the name of OperandConfig and CRD name
 			if strings.EqualFold(name.(string), crdName) {
-				logger.Info(fmt.Sprintf("Found OperandConfig for %s", name))
+				logger.Info(fmt.Sprintf("Found OperandConfig spec for custom resource %s", name))
 				//Convert CR template spec to string
 				specJSONString, _ := json.Marshal(unstruct.Object["spec"])
 
@@ -173,7 +173,7 @@ func (r *ReconcileOperandRequest) createUpdateCr(service operatorv1alpha1.Config
 					if stateUpdateErr != nil {
 						merr.Add(stateUpdateErr)
 					}
-					logger.Error(crCreateErr, "Fail to Create the CR "+crdName)
+					logger.Error(crCreateErr, "Fail to Create the Custom Resource "+crdName)
 					merr.Add(crCreateErr)
 
 				} else if errors.IsAlreadyExists(crCreateErr) {
@@ -194,7 +194,7 @@ func (r *ReconcileOperandRequest) createUpdateCr(service operatorv1alpha1.Config
 						if stateUpdateErr != nil {
 							merr.Add(stateUpdateErr)
 						}
-						logger.Error(crGetErr, "Fail to Get the CR "+crdName)
+						logger.Error(crGetErr, "Fail to Get the Custom Resource "+crdName)
 						merr.Add(crGetErr)
 						continue
 					}
@@ -204,18 +204,18 @@ func (r *ReconcileOperandRequest) createUpdateCr(service operatorv1alpha1.Config
 						if stateUpdateErr != nil {
 							merr.Add(stateUpdateErr)
 						}
-						logger.Error(crUpdateErr, "Fail to Update the CR "+crdName)
+						logger.Error(crUpdateErr, "Fail to Update the Custom Resource "+crdName)
 						merr.Add(crUpdateErr)
 						continue
 					}
-					logger.Info("Updated the CR " + crdName)
+					logger.Info("Finish updating the Custom Resource: " + crdName)
 					stateUpdateErr := r.updateServiceStatus(csc, service.Name, crdName, operatorv1alpha1.ServiceRunning)
 					if stateUpdateErr != nil {
 						merr.Add(stateUpdateErr)
 					}
 
 				} else {
-					logger.Info("Created the CR " + crdName)
+					logger.Info("Finish creating the Custom Resource " + crdName)
 					stateUpdateErr := r.updateServiceStatus(csc, service.Name, crdName, operatorv1alpha1.ServiceRunning)
 					if stateUpdateErr != nil {
 						merr.Add(stateUpdateErr)

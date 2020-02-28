@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"testing"
 
-	olmv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1"
 	olmv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
 	olmclient "github.com/operator-framework/operator-lifecycle-manager/pkg/api/client/clientset/versioned"
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
@@ -58,12 +57,12 @@ func CreateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 	}
 
 	// create OperandRequest custom resource
-	sets := []operator.SetService{}
-	sets = append(sets, operator.SetService{
+	sets := []operator.RequestService{}
+	sets = append(sets, operator.RequestService{
 		Name:    "etcd",
 		Channel: "singlenamespace-alpha",
 		State:   "present",
-	}, operator.SetService{
+	}, operator.RequestService{
 		Name:    "jenkins",
 		Channel: "alpha",
 		State:   "present",
@@ -91,16 +90,6 @@ func CreateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 		return err
 	}
 
-	// create OperatorGroup for CSV
-	groups := []string{"etcd-operator", "jenkins-operator"}
-	for _, g := range groups {
-		operatorGroupInstance := newOperatorGroup(g, g, groups)
-		err = f.Client.Create(goctx.TODO(), operatorGroupInstance, &framework.CleanupOptions{TestContext: ctx, Timeout: config.CleanupTimeout, RetryInterval: config.CleanupRetry})
-		if err != nil {
-			return err
-		}
-	}
-
 	for _, s := range sets {
 		opt := optMap[s.Name]
 		err = WaitForSubCsvReady(olmClient, metav1.ObjectMeta{Name: opt.Name, Namespace: opt.Namespace})
@@ -109,7 +98,7 @@ func CreateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 		}
 	}
 
-	err = ValidateCustomeResource(f, namespace)
+	err = ValidatecustomResource(f, namespace)
 	if err != nil {
 		return err
 	}
@@ -204,7 +193,7 @@ func UpdateConfigTest(olmClient *olmclient.Clientset, f *framework.Framework, ct
 		return err
 	}
 
-	err = ValidateCustomeResource(f, namespace)
+	err = ValidatecustomResource(f, namespace)
 	if err != nil {
 		return err
 	}
@@ -341,9 +330,9 @@ func WaitForSubscriptionDelete(olmClient *olmclient.Clientset, opt metav1.Object
 	return nil
 }
 
-// ValidateCustomeResource check the result of the OperandConfig
-func ValidateCustomeResource(f *framework.Framework, namespace string) error {
-	fmt.Println("Validating custome resources are ready")
+// ValidatecustomResource check the result of the OperandConfig
+func ValidatecustomResource(f *framework.Framework, namespace string) error {
+	fmt.Println("Validating custom resources are ready")
 	configInstance := &operator.OperandConfig{}
 	// Get OperandRequest instance
 	err := f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandConfigCrName, Namespace: namespace}, configInstance)
@@ -357,7 +346,7 @@ func ValidateCustomeResource(f *framework.Framework, namespace string) error {
 				if crState == operator.ServiceRunning {
 					continue
 				} else {
-					lastReason = fmt.Sprintf("Waiting on custome resource to be ready" + ", custome resource name: " + crName + " Operator name: " + operatorName)
+					lastReason = fmt.Sprintf("Waiting on custom resource to be ready" + ", custom resource name: " + crName + " Operator name: " + operatorName)
 					return false, nil
 				}
 			}
@@ -436,22 +425,6 @@ func newOperandRegistryCR(name, namespace string) *operator.OperandRegistry {
 					},
 				},
 			},
-		},
-	}
-}
-
-// New OperatorGroup for CSV
-func newOperatorGroup(namespace, name string, targetNamespaces []string) *olmv1.OperatorGroup {
-	if targetNamespaces == nil {
-		targetNamespaces = append(targetNamespaces, namespace)
-	}
-	return &olmv1.OperatorGroup{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      name,
-		},
-		Spec: olmv1.OperatorGroupSpec{
-			TargetNamespaces: targetNamespaces,
 		},
 	}
 }

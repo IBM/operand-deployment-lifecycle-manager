@@ -23,12 +23,11 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-var log = logf.Log.WithName("Merging custome resource")
+var log = logf.Log.WithName("Generating custom resource spec")
 
-// MergeCR deep merge two custome resource spec
+// MergeCR deep merge two custom resource spec
 func MergeCR(defaultCR, changedCR []byte) map[string]interface{} {
 	logger := log.WithValues()
-	logger.Info("Merging custome resource specs")
 	var defaultCRDecoded map[string]interface{}
 	defaultCRUnmarshalErr := json.Unmarshal(defaultCR, &defaultCRDecoded)
 	if defaultCRUnmarshalErr != nil {

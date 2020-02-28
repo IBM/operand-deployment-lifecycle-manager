@@ -44,7 +44,7 @@ spec:
                   spec:
                     additionalProperties:
                       type: object
-                    description: Spec is the map of configuration of custome service
+                    description: Spec is the configuration map of custom resource
                     type: object
                   state:
                     description: State is a flag to enable or disable service
@@ -62,7 +62,7 @@ spec:
               additionalProperties:
                 description: CrStatus defines the status of the custom resource
                 properties:
-                  customeResourceStatus:
+                  customResourceStatus:
                     additionalProperties:
                       description: ServicePhase defines the service status
                       type: string

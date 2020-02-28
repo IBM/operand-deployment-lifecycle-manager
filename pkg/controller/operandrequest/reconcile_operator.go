@@ -48,7 +48,7 @@ func (r *ReconcileOperandRequest) reconcileOperator(opts map[string]operatorv1al
 			return err
 		}
 
-		// Subscription existing and managed by Set controller
+		// Subscription existing and managed by Request controller
 		if _, ok := found.Labels["operator.ibm.com/mos-control"]; ok {
 			// Check subscription if present
 			if o.State == Present {
@@ -67,7 +67,7 @@ func (r *ReconcileOperandRequest) reconcileOperator(opts map[string]operatorv1al
 			}
 		} else {
 			// Subscription existing and not managed by Set controller
-			reqLogger.WithValues("Subscription.Namespace", found.Namespace, "Subscription.Name", found.Name).Info("Subscription has created by other user, ignore create it.")
+			reqLogger.WithValues("Subscription.Namespace", found.Namespace, "Subscription.Name", found.Name).Info("Subscription has created by other user, ignore update/delete it.")
 		}
 
 		if err := r.updateMemberStatus(setInstance); err != nil {
@@ -79,7 +79,7 @@ func (r *ReconcileOperandRequest) reconcileOperator(opts map[string]operatorv1al
 
 func (r *ReconcileOperandRequest) fetchOperators(moc *operatorv1alpha1.OperandRegistry, cr *operatorv1alpha1.OperandRequest) (map[string]operatorv1alpha1.Operator, error) {
 
-	setMap, err := r.fetchSets(cr)
+	setMap, err := r.fetchRequests(cr)
 	if err != nil {
 		return nil, err
 	}
@@ -100,22 +100,25 @@ func (r *ReconcileOperandRequest) fetchOperators(moc *operatorv1alpha1.OperandRe
 }
 
 func (r *ReconcileOperandRequest) createSubscription(cr *operatorv1alpha1.OperandRequest, opt operatorv1alpha1.Operator) error {
-	logger := log.WithValues("Subscription.Namespace", opt.Namespace, "Subscription.Name", opt.Name)
+	logger := log.WithValues("Subscription.Namespace", opt.Namespace)
 	co := generateClusterObjects(opt)
 
 	// Create required namespace
 	ns := co.namespace
+	logger.Info("Creating the Namespace for Subscription: " + opt.Name)
 	if err := r.client.Create(context.TODO(), ns); err != nil && !errors.IsAlreadyExists(err) {
 		return err
 	}
 
 	// Create required operatorgroup
 	existOG, err := r.olmClient.OperatorsV1().OperatorGroups(co.operatorGroup.Namespace).List(metav1.ListOptions{})
+
 	if err != nil {
 		return err
 	}
-	if existOG.Items == nil {
+	if len(existOG.Items) == 0 {
 		og := co.operatorGroup
+		logger.Info("Creating the OperatorGroup for Subscription: " + opt.Name)
 		_, err := r.olmClient.OperatorsV1().OperatorGroups(og.Namespace).Create(og)
 		if err != nil && !errors.IsAlreadyExists(err) {
 			return err
@@ -123,7 +126,7 @@ func (r *ReconcileOperandRequest) createSubscription(cr *operatorv1alpha1.Operan
 	}
 
 	// Create subscription
-	logger.Info("Creating a new Subscription")
+	logger.Info("Creating the Subscription: " + opt.Name)
 	sub := co.subscription
 	_, err = r.olmClient.OperatorsV1alpha1().Subscriptions(sub.Namespace).Create(sub)
 	if err != nil && !errors.IsAlreadyExists(err) {
@@ -178,14 +181,15 @@ func (r *ReconcileOperandRequest) deleteSubscription(cr *operatorv1alpha1.Operan
 		}
 	}
 	
-	logger.Info("Deleting a Subscription")
+
+	logger.Info("Deleting the Subscription")
 	if err := r.olmClient.OperatorsV1alpha1().Subscriptions(sub.Namespace).Delete(sub.Name, &metav1.DeleteOptions{}); err != nil {
 		if updateErr := r.updateConditionStatus(cr, sub.Name, DeleteFailed); updateErr != nil {
 			return updateErr
 		}
 		return err
 	}
-	logger.Info("Deleting CSV related with Subscription")
+	logger.Info("Deleting the ClusterServiceVersion")
 	if err := r.olmClient.OperatorsV1alpha1().ClusterServiceVersions(sub.Namespace).Delete(installedCsv, &metav1.DeleteOptions{}); err != nil {
 		if updateErr := r.updateConditionStatus(cr, sub.Name, DeleteFailed); updateErr != nil {
 			return updateErr
