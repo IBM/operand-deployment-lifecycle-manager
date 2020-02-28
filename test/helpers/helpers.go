@@ -109,7 +109,7 @@ func CreateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 		}
 	}
 
-	err = ValidateCustomeResource(f, namespace)
+	err = ValidatecustomResource(f, namespace)
 	if err != nil {
 		return err
 	}
@@ -204,7 +204,7 @@ func UpdateConfigTest(olmClient *olmclient.Clientset, f *framework.Framework, ct
 		return err
 	}
 
-	err = ValidateCustomeResource(f, namespace)
+	err = ValidatecustomResource(f, namespace)
 	if err != nil {
 		return err
 	}
@@ -341,9 +341,9 @@ func WaitForSubscriptionDelete(olmClient *olmclient.Clientset, opt metav1.Object
 	return nil
 }
 
-// ValidateCustomeResource check the result of the OperandConfig
-func ValidateCustomeResource(f *framework.Framework, namespace string) error {
-	fmt.Println("Validating custome resources are ready")
+// ValidatecustomResource check the result of the OperandConfig
+func ValidatecustomResource(f *framework.Framework, namespace string) error {
+	fmt.Println("Validating custom resources are ready")
 	configInstance := &operator.OperandConfig{}
 	// Get OperandRequest instance
 	err := f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandConfigCrName, Namespace: namespace}, configInstance)
@@ -357,7 +357,7 @@ func ValidateCustomeResource(f *framework.Framework, namespace string) error {
 				if crState == operator.ServiceRunning {
 					continue
 				} else {
-					lastReason = fmt.Sprintf("Waiting on custome resource to be ready" + ", custome resource name: " + crName + " Operator name: " + operatorName)
+					lastReason = fmt.Sprintf("Waiting on custom resource to be ready" + ", custom resource name: " + crName + " Operator name: " + operatorName)
 					return false, nil
 				}
 			}

@@ -44,12 +44,12 @@ const (
 	// TestOperatorName specifies the name of the operator being tested
 	TestOperatorName = "openshift-pipelines-operator"
 
-	// OperandRequestCrName specifies the name of the custome resource of the OperandRequest
+	// OperandRequestCrName specifies the name of the custom resource of the OperandRequest
 	OperandRequestCrName = "common-service"
 
-	// OperandRegistryCrName specifies the name of the custome resource of the OperandRegistry
+	// OperandRegistryCrName specifies the name of the custom resource of the OperandRegistry
 	OperandRegistryCrName = "common-service"
 
-	// OperandConfigCrName specifies the name of the custome resource of the OperandConfig
+	// OperandConfigCrName specifies the name of the custom resource of the OperandConfig
 	OperandConfigCrName = "common-service"
 )

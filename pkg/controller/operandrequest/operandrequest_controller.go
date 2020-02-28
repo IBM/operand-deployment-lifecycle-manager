@@ -313,10 +313,10 @@ func (r *ReconcileOperandRequest) waitForInstallPlan(moc *operatorv1alpha1.Opera
 
 		return ready, nil
 	}, ctx.Done())
+	for sub, state := range subs {
+		reqLogger.Info("Subscription " + sub + " state: " + state)
+	}
 	if err != nil {
-		for sub, state := range subs {
-			reqLogger.Info("Subscription " + sub + " state: " + state)
-		}
 		return err
 	}
 	return nil
@@ -369,7 +369,6 @@ func (r *ReconcileOperandRequest) addFinalizer(cr *operatorv1alpha1.OperandReque
 
 func (r *ReconcileOperandRequest) listConfig(namespace string) (*operatorv1alpha1.OperandConfig, error) {
 	reqLogger := log.WithValues("Request.Namespace", namespace)
-	reqLogger.Info("Fetch OperandConfig instance")
 
 	// Fetch the OperandConfig instance
 	cscList := &operatorv1alpha1.OperandConfigList{}
@@ -389,12 +388,12 @@ func (r *ReconcileOperandRequest) listConfig(namespace string) (*operatorv1alpha
 				cscList.Items[0].Name+
 				". You need to leave one and delete the others")
 	}
+	reqLogger.Info("Found OperandConfig instance: " + cscList.Items[0].Name)
 	return &cscList.Items[0], nil
 }
 
 func (r *ReconcileOperandRequest) listRegistry(namespace string) (*operatorv1alpha1.OperandRegistry, error) {
 	reqLogger := log.WithValues("Request.Namespace", namespace)
-	reqLogger.Info("Fetch OperandRegistry instance")
 	// Fetch the OperandRegistry instance
 	mocList := &operatorv1alpha1.OperandRegistryList{}
 	if err := r.client.List(context.TODO(), mocList, &client.ListOptions{Namespace: namespace}); err != nil {
@@ -413,5 +412,6 @@ func (r *ReconcileOperandRequest) listRegistry(namespace string) (*operatorv1alp
 				mocList.Items[0].Name+
 				". You need to leave one and delete the others")
 	}
+	reqLogger.Info("Found OperandRegistry instance: " + mocList.Items[0].Name)
 	return &mocList.Items[0], nil
 }
