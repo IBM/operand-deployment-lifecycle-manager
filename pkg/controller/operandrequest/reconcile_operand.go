@@ -79,15 +79,15 @@ func (r *ReconcileOperandRequest) fetchConfigs(req reconcile.Request, cr *operat
 		return nil, err
 	}
 
-	setMap, err := r.fetchSets(cr)
+	requestMap, err := r.fetchRequests(cr)
 	if err != nil {
 		return nil, err
 	}
 
 	cscMap := make(map[string]operatorv1alpha1.ConfigService)
 	for k, v := range csc.Spec.Services {
-		if _, ok := setMap[v.Name]; ok {
-			csc.Spec.Services[k].State = setMap[v.Name].State
+		if _, ok := requestMap[v.Name]; ok {
+			csc.Spec.Services[k].State = requestMap[v.Name].State
 		} else {
 			csc.Spec.Services[k].State = Absent
 		}
@@ -155,7 +155,7 @@ func (r *ReconcileOperandRequest) generateCr(service operatorv1alpha1.ConfigServ
 	// Merge OperandConfig and Cluster Service Version alm-examples
 	for _, crTemplate := range crTemplates {
 
-		// Create an unstruct object for CR and set its value to CR template
+		// Create an unstruct object for CR and request its value to CR template
 		var unstruct unstructured.Unstructured
 		unstruct.Object = crTemplate.(map[string]interface{})
 

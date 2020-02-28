@@ -57,12 +57,12 @@ func CreateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 	}
 
 	// create OperandRequest custom resource
-	sets := []operator.SetService{}
-	sets = append(sets, operator.SetService{
+	sets := []operator.RequestService{}
+	sets = append(sets, operator.RequestService{
 		Name:    "etcd",
 		Channel: "singlenamespace-alpha",
 		State:   "present",
-	}, operator.SetService{
+	}, operator.RequestService{
 		Name:    "jenkins",
 		Channel: "alpha",
 		State:   "present",

@@ -35,9 +35,9 @@ import (
 	"github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 )
 
-// TestSetController runs ReconcileOperandRequest.Reconcile() against a
+// TestRequestController runs ReconcileOperandRequest.Reconcile() against a
 // fake client that tracks a OperandRequest object.
-func TestInitSet(t *testing.T) {
+func TestInitRequest(t *testing.T) {
 
 	req := getRequest()
 	r := getReconcilerWithoutMOS()
@@ -52,7 +52,7 @@ func TestInitSet(t *testing.T) {
 	}
 }
 
-func TestUpdateSetChannel(t *testing.T) {
+func TestUpdateRequestChannel(t *testing.T) {
 	req := getRequest()
 	r := getReconcilerWithMOS()
 	assert := assert.New(t)
@@ -66,7 +66,7 @@ func TestUpdateSetChannel(t *testing.T) {
 	assert.NoError(err)
 }
 
-func TestUpdateSetState(t *testing.T) {
+func TestUpdateRequestState(t *testing.T) {
 	req := getRequest()
 	r := getReconcilerWithMOS()
 	assert := assert.New(t)
@@ -86,7 +86,7 @@ func TestUpdateSetState(t *testing.T) {
 	assert.Nil(found.Items, "The subscription list should be empty.")
 }
 
-func TestDeleteSet(t *testing.T) {
+func TestDeleteRequest(t *testing.T) {
 	req := getRequest()
 	r := getReconcilerWithMOS()
 	assert := assert.New(t)
@@ -165,7 +165,7 @@ func mos(name, namespace, state, channel string) *v1alpha1.OperandRequest {
 			Namespace: namespace,
 		},
 		Spec: v1alpha1.OperandRequestSpec{
-			Services: []v1alpha1.SetService{
+			Services: []v1alpha1.RequestService{
 				{
 					Name:    "etcd",
 					Channel: channel,
