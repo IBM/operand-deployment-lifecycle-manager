@@ -3,7 +3,7 @@
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
 - [Pre-Requisites](#pre-requisites)
-  - [Check your operator bundle](#check-your-operator-bundle)
+  - [Test your operator bundle](#test-your-operator-bundle)
   - [Push the operator to quay.io](#push-the-operator-to-quayio)
   - [Verify your operator on the Openshift console](#verify-your-operator-on-the-openshift-console)
     - [1. Create OperatorSource](#1-create-operatorsource)
