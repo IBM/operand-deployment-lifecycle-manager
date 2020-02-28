@@ -27,8 +27,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 	util "github.com/IBM/operand-deployment-lifecycle-manager/pkg/util"
@@ -57,7 +55,7 @@ func (r *ReconcileOperandRequest) reconcileOperand(serviceConfigs map[string]ope
 			reqLogger.Info(fmt.Sprintf("Generating custome resource based on CSV %s", csv.ObjectMeta.Name))
 
 			// Merge and Generate CR
-			err = r.generateCr(service, csv, csc)
+			err = r.createUpdateCr(service, csv, csc)
 			if err != nil {
 				merr.Add(err)
 			}
@@ -69,15 +67,7 @@ func (r *ReconcileOperandRequest) reconcileOperand(serviceConfigs map[string]ope
 	return &multiErr{}
 }
 
-func (r *ReconcileOperandRequest) fetchConfigs(req reconcile.Request, cr *operatorv1alpha1.OperandRequest) (map[string]operatorv1alpha1.ConfigService, error) {
-	// Fetch the OperandConfig instance
-	csc := &operatorv1alpha1.OperandConfig{}
-	if err := r.client.Get(context.TODO(), types.NamespacedName{Namespace: req.Namespace, Name: "common-service"}, csc); err != nil {
-		if errors.IsNotFound(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
+func (r *ReconcileOperandRequest) fetchConfigs(csc *operatorv1alpha1.OperandConfig, cr *operatorv1alpha1.OperandRequest) (map[string]operatorv1alpha1.ConfigService, error) {
 
 	setMap, err := r.fetchSets(cr)
 	if err != nil {
@@ -134,8 +124,8 @@ func (r *ReconcileOperandRequest) getClusterServiceVersion(subName string) (*olm
 	return nil, nil
 }
 
-// generateCr merge and create custome resource base on OperandConfig and CSV alm-examples
-func (r *ReconcileOperandRequest) generateCr(service operatorv1alpha1.ConfigService, csv *olmv1alpha1.ClusterServiceVersion, csc *operatorv1alpha1.OperandConfig) error {
+// createUpdateCr merge and create custome resource base on OperandConfig and CSV alm-examples
+func (r *ReconcileOperandRequest) createUpdateCr(service operatorv1alpha1.ConfigService, csv *olmv1alpha1.ClusterServiceVersion, csc *operatorv1alpha1.OperandConfig) error {
 	almExamples := csv.ObjectMeta.Annotations["alm-examples"]
 	namespace := csv.ObjectMeta.Namespace
 	logger := log.WithValues("Subscription", service.Name)
@@ -176,17 +166,6 @@ func (r *ReconcileOperandRequest) generateCr(service operatorv1alpha1.ConfigServ
 				unstruct.Object["spec"] = mergedCR
 				unstruct.Object["metadata"].(map[string]interface{})["namespace"] = namespace
 
-				setControllerErr := controllerutil.SetControllerReference(csv, &unstruct, r.scheme)
-
-				if setControllerErr != nil {
-					stateUpdateErr := r.updateServiceStatus(csc, service.Name, crdName, operatorv1alpha1.ServiceFailed)
-					if stateUpdateErr != nil {
-						merr.Add(stateUpdateErr)
-					}
-					logger.Error(setControllerErr, "Fail to set owner for "+crdName+".")
-					merr.Add(setControllerErr)
-					continue
-				}
 				// Creat or Update the CR
 				crCreateErr := r.client.Create(context.TODO(), &unstruct)
 				if crCreateErr != nil && !errors.IsAlreadyExists(crCreateErr) {
@@ -244,6 +223,61 @@ func (r *ReconcileOperandRequest) generateCr(service operatorv1alpha1.ConfigServ
 				}
 			}
 		}
+	}
+
+	if len(merr.errors) != 0 {
+		return merr
+	}
+
+	return nil
+}
+
+// deleteCr remove custome resource base on OperandConfig and CSV alm-examples
+func (r *ReconcileOperandRequest) deleteCr(service operatorv1alpha1.ConfigService, csv *olmv1alpha1.ClusterServiceVersion, csc *operatorv1alpha1.OperandConfig) error {
+	almExamples := csv.ObjectMeta.Annotations["alm-examples"]
+	logger := log.WithValues("Subscription", service.Name)
+
+	// Create a slice for crTemplates
+	var crTemplates []interface{}
+
+	// Convert CR template string to slice
+	crTemplatesErr := json.Unmarshal([]byte(almExamples), &crTemplates)
+	if crTemplatesErr != nil {
+		logger.Error(crTemplatesErr, "Fail to convert alm-examples to slice")
+		return crTemplatesErr
+	}
+
+	merr := &multiErr{}
+
+	// Merge OperandConfig and Cluster Service Version alm-examples
+	for _, crTemplate := range crTemplates {
+
+		// Get CR from the alm-example
+		var unstruct unstructured.Unstructured
+		unstruct.Object = crTemplate.(map[string]interface{})
+
+		// Get the kind of CR
+		name := unstruct.Object["kind"]
+		// Delete the CR
+		crDeleteErr := r.client.DeleteAllOf(context.TODO(), &unstruct)
+		if crDeleteErr != nil {
+			merr.Add(crDeleteErr)
+			continue
+		}
+
+
+		logger.Info("Deleted the CR: " + name.(string))
+		// stateUpdateErr := r.updateServiceStatus(csc, service.Name, crdName, operatorv1alpha1.ServiceRunning)
+		// if stateUpdateErr != nil {
+		// 	merr.Add(stateUpdateErr)
+		// }
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute*10)
+		defer cancel()
+		subs := make(map[string]string)
+		err := wait.PollImmediateUntil(time.Second*20, func() (bool, error) {
+			r.client.List()
+		}, ctx.Done())
+
 	}
 
 	if len(merr.errors) != 0 {

@@ -215,12 +215,8 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, nil
 	}
 
-	if err = r.reconcileOperator(opts, setInstance, moc); err != nil {
-		return reconcile.Result{}, err
-	}
-
 	// Fetch OperandConfig instance
-	serviceConfigs, err := r.fetchConfigs(request, setInstance)
+	serviceConfigs, err := r.fetchConfigs(csc, setInstance)
 	if serviceConfigs == nil {
 		if err != nil {
 			return reconcile.Result{}, err
@@ -228,6 +224,10 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, nil
 	}
 
+	if err = r.reconcileOperator(opts, setInstance, moc, serviceConfigs, csc); err != nil {
+		return reconcile.Result{}, err
+	}
+	
 	// Fetch Subscriptions and check the status of install plan
 	err = r.waitForInstallPlan(moc)
 	if err != nil {

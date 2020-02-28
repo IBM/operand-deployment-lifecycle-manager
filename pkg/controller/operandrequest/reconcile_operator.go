@@ -29,7 +29,7 @@ import (
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 )
 
-func (r *ReconcileOperandRequest) reconcileOperator(opts map[string]operatorv1alpha1.Operator, setInstance *operatorv1alpha1.OperandRequest, moc *operatorv1alpha1.OperandRegistry) error {
+func (r *ReconcileOperandRequest) reconcileOperator(opts map[string]operatorv1alpha1.Operator, setInstance *operatorv1alpha1.OperandRequest, moc *operatorv1alpha1.OperandRegistry, serviceConfigs map[string]operatorv1alpha1.ConfigService, csc *operatorv1alpha1.OperandConfig) error {
 	reqLogger := log.WithValues()
 	reqLogger.Info("Reconciling Operator")
 	for _, o := range opts {
@@ -62,7 +62,7 @@ func (r *ReconcileOperandRequest) reconcileOperator(opts map[string]operatorv1al
 					}
 				}
 				// Subscription is absent, delete it.
-			} else if err := r.deleteSubscription(setInstance, found, moc); err != nil {
+			} else if err := r.deleteSubscription(setInstance, found, moc, serviceConfigs, csc); err != nil {
 				return err
 			}
 		} else {
@@ -156,9 +156,28 @@ func (r *ReconcileOperandRequest) updateSubscription(cr *operatorv1alpha1.Operan
 	return nil
 }
 
-func (r *ReconcileOperandRequest) deleteSubscription(cr *operatorv1alpha1.OperandRequest, sub *olmv1alpha1.Subscription, moc *operatorv1alpha1.OperandRegistry) error {
+func (r *ReconcileOperandRequest) deleteSubscription(cr *operatorv1alpha1.OperandRequest, sub *olmv1alpha1.Subscription, moc *operatorv1alpha1.OperandRegistry, serviceConfigs map[string]operatorv1alpha1.ConfigService, csc *operatorv1alpha1.OperandConfig) error {
 	logger := log.WithValues("Subscription.Namespace", sub.Namespace, "Subscription.Name", sub.Name)
 	installedCsv := sub.Status.InstalledCSV
+	logger.Info("Deleting a Custom Resource")
+	csv, err := r.getClusterServiceVersion(sub.Name)
+	// If can't get CSV, requeue the request
+	if err != nil {
+		if updateErr := r.updateConditionStatus(cr, sub.Name, DeleteFailed); updateErr != nil {
+			return updateErr
+		}
+		return err
+	}
+
+	if csv != nil {
+		if err := r.deleteCr(serviceConfigs[sub.Name], csv, csc); err != nil {
+			if updateErr := r.updateConditionStatus(cr, sub.Name, DeleteFailed); updateErr != nil {
+				return updateErr
+			}
+			return err
+		}
+	}
+	
 	logger.Info("Deleting a Subscription")
 	if err := r.olmClient.OperatorsV1alpha1().Subscriptions(sub.Namespace).Delete(sub.Name, &metav1.DeleteOptions{}); err != nil {
 		if updateErr := r.updateConditionStatus(cr, sub.Name, DeleteFailed); updateErr != nil {
