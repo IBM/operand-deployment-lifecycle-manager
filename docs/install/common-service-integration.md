@@ -5,7 +5,7 @@
 - [Pre-Requisites](#pre-requisites)
   - [Test your operator bundle](#test-your-operator-bundle)
   - [Push the operator to quay.io](#push-the-operator-to-quayio)
-  - [Verify your operator on the Openshift console](#verify-your-operator-on-the-openshift-console)
+  - [Test your operator standalone on the Openshift console](#test-your-operator-standalone-on-the-openshift-console)
     - [1. Create OperatorSource](#1-create-operatorsource)
     - [2. Create a Namespace for your operator](#2-create-a-namespace-for-your-operator)
     - [3. Install Operator](#3-install-operator)
@@ -59,7 +59,7 @@ All common services OLMs and operator images should be published in public org i
 
 more information see the [push olm to quay.io](https://github.com/operator-framework/community-operators/blob/master/docs/testing-operators.md#push-to-quayio).
 
-## Verify your operator on the Openshift console
+## Test your operator standalone on the Openshift console
 
 ### 1. Create OperatorSource
 
