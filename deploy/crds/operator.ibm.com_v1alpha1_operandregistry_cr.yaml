@@ -91,21 +91,21 @@ spec:
   - name: ibm-helm-api-operator
     namespace: ibm-common-services
     channel: alpha
-    packageName: ibm-helm-api-app
+    packageName: ibm-helm-api-operator-app
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
     description: Operator for managing deployment of helm api service.
- - name: ibm-helm-repo-operator
+  - name: ibm-helm-repo-operator
     namespace: ibm-common-services
     channel: alpha
-    packageName: ibm-helm-repo
+    packageName: ibm-helm-repo-operator-app
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
     description: Operator for managing deployment of helm repo service.
- - name: ibm-management-repo-operator
+  - name: ibm-management-repo-operator
     namespace: ibm-common-services
     channel: alpha
-    packageName: ibm-management-repo-operator
+    packageName: ibm-management-repo-operator-app
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
     description: Operator for managing deployment of management repo service.
