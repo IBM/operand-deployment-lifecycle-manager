@@ -141,7 +141,7 @@ type multiErr struct {
 }
 
 func (mer *multiErr) Error() string {
-	return "Commn services installation errors : " + strings.Join(mer.errors, ":")
+	return "Operand Deleployment Lifecycle Manager reconcile errors : " + strings.Join(mer.errors, ":")
 }
 
 func (mer *multiErr) Add(err error) {
@@ -215,17 +215,17 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, nil
 	}
 
-	if err = r.reconcileOperator(opts, operandRequestInstance, moc); err != nil {
-		return reconcile.Result{}, err
-	}
-
 	// Fetch OperandConfig instance
-	serviceConfigs, err := r.fetchConfigs(request, operandRequestInstance)
+	serviceConfigs, err := r.fetchConfigs(csc, operandRequestInstance)
 	if serviceConfigs == nil {
 		if err != nil {
 			return reconcile.Result{}, err
 		}
 		return reconcile.Result{}, nil
+	}
+
+	if err = r.reconcileOperator(opts, operandRequestInstance, moc, serviceConfigs, csc); err != nil {
+		return reconcile.Result{}, err
 	}
 
 	// Fetch Subscriptions and check the status of install plan
@@ -270,10 +270,8 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 func (r *ReconcileOperandRequest) waitForInstallPlan(moc *operatorv1alpha1.OperandRegistry) error {
 	reqLogger := log.WithValues()
 	reqLogger.Info("Waiting for subscriptions to be ready ...")
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*2)
-	defer cancel()
 	subs := make(map[string]string)
-	err := wait.PollImmediateUntil(time.Second*20, func() (bool, error) {
+	err := wait.PollImmediate(time.Second*20, time.Minute*10, func() (bool, error) {
 		foundSub, err := r.olmClient.OperatorsV1alpha1().Subscriptions("").List(metav1.ListOptions{
 			LabelSelector: "operator.ibm.com/opreq-control",
 		})
@@ -312,7 +310,7 @@ func (r *ReconcileOperandRequest) waitForInstallPlan(moc *operatorv1alpha1.Opera
 		}
 
 		return ready, nil
-	}, ctx.Done())
+	})
 	for sub, state := range subs {
 		reqLogger.Info("Subscription " + sub + " state: " + state)
 	}

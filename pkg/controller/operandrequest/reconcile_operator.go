@@ -29,7 +29,7 @@ import (
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 )
 
-func (r *ReconcileOperandRequest) reconcileOperator(opts map[string]operatorv1alpha1.Operator, setInstance *operatorv1alpha1.OperandRequest, moc *operatorv1alpha1.OperandRegistry) error {
+func (r *ReconcileOperandRequest) reconcileOperator(opts map[string]operatorv1alpha1.Operator, requestInstance *operatorv1alpha1.OperandRequest, moc *operatorv1alpha1.OperandRegistry, serviceConfigs map[string]operatorv1alpha1.ConfigService, csc *operatorv1alpha1.OperandConfig) error {
 	reqLogger := log.WithValues()
 	reqLogger.Info("Reconciling Operator")
 	for _, o := range opts {
@@ -39,7 +39,7 @@ func (r *ReconcileOperandRequest) reconcileOperator(opts map[string]operatorv1al
 			if errors.IsNotFound(err) {
 				// Subscription does not exist and state is present, create a new one
 				if o.State == Present {
-					if err = r.createSubscription(setInstance, o); err != nil {
+					if err = r.createSubscription(requestInstance, o); err != nil {
 						return err
 					}
 				}
@@ -57,12 +57,12 @@ func (r *ReconcileOperandRequest) reconcileOperator(opts map[string]operatorv1al
 					found.Spec.Channel = o.Channel
 					found.Spec.CatalogSource = o.SourceName
 					found.Spec.CatalogSourceNamespace = o.SourceNamespace
-					if err = r.updateSubscription(setInstance, found); err != nil {
+					if err = r.updateSubscription(requestInstance, found); err != nil {
 						return err
 					}
 				}
 				// Subscription is absent, delete it.
-			} else if err := r.deleteSubscription(setInstance, found, moc); err != nil {
+			} else if err := r.deleteSubscription(requestInstance, found, moc, serviceConfigs, csc); err != nil {
 				return err
 			}
 		} else {
@@ -70,7 +70,7 @@ func (r *ReconcileOperandRequest) reconcileOperator(opts map[string]operatorv1al
 			reqLogger.WithValues("Subscription.Namespace", found.Namespace, "Subscription.Name", found.Name).Info("Subscription has created by other user, ignore update/delete it.")
 		}
 
-		if err := r.updateMemberStatus(setInstance); err != nil {
+		if err := r.updateMemberStatus(requestInstance); err != nil {
 			return err
 		}
 	}
@@ -153,9 +153,22 @@ func (r *ReconcileOperandRequest) updateSubscription(cr *operatorv1alpha1.Operan
 	return nil
 }
 
-func (r *ReconcileOperandRequest) deleteSubscription(cr *operatorv1alpha1.OperandRequest, sub *olmv1alpha1.Subscription, moc *operatorv1alpha1.OperandRegistry) error {
+func (r *ReconcileOperandRequest) deleteSubscription(cr *operatorv1alpha1.OperandRequest, sub *olmv1alpha1.Subscription, moc *operatorv1alpha1.OperandRegistry, serviceConfigs map[string]operatorv1alpha1.ConfigService, csc *operatorv1alpha1.OperandConfig) error {
 	logger := log.WithValues("Subscription.Namespace", sub.Namespace, "Subscription.Name", sub.Name)
 	installedCsv := sub.Status.InstalledCSV
+	logger.Info("Deleting a Custom Resource")
+	csv, err := r.getClusterServiceVersion(sub.Name)
+	// If can't get CSV, requeue the request
+	if err != nil {
+		return err
+	}
+
+	if csv != nil {
+		if err := r.deleteCr(serviceConfigs[sub.Name], csv, csc); err != nil {
+			return err
+		}
+	}
+
 	logger.Info("Deleting the Subscription")
 	cr.Status.SetDeletingCondition(sub.Name, operatorv1alpha1.ResourceTypeSub)
 	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
