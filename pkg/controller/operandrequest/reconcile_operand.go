@@ -156,13 +156,13 @@ func (r *ReconcileOperandRequest) createUpdateCr(service operatorv1alpha1.Config
 		unstruct.Object = crTemplate.(map[string]interface{})
 
 		// Get the kind of CR
-		name := unstruct.Object["kind"]
+		kind := unstruct.Object["kind"].(string)
 
 		for crdName, crConfig := range service.Spec {
 
 			// Compare the name of OperandConfig and CRD name
-			if strings.EqualFold(name.(string), crdName) {
-				logger.Info(fmt.Sprintf("Found OperandConfig spec for custom resource %s", name))
+			if strings.EqualFold(kind, crdName) {
+				logger.Info("Found OperandConfig spec for custom resource " + kind)
 				//Convert CR template spec to string
 				specJSONString, _ := json.Marshal(unstruct.Object["spec"])
 
