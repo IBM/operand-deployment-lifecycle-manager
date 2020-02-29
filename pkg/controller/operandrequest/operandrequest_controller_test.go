@@ -20,6 +20,7 @@ import (
 	"testing"
 	"time"
 
+	v1beta2 "github.com/coreos/etcd-operator/pkg/apis/etcd/v1beta2"
 	olmv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1"
 	olmv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
 	fakeolmclient "github.com/operator-framework/operator-lifecycle-manager/pkg/api/client/clientset/versioned/fake"
@@ -214,11 +215,14 @@ func sub(name, namespace, csvVersion string) *olmv1alpha1.Subscription {
 }
 
 // Return CSV obj
-func csv(name, namespace string) *olmv1alpha1.ClusterServiceVersion {
+func csv(name, namespace, example string) *olmv1alpha1.ClusterServiceVersion {
 	return &olmv1alpha1.ClusterServiceVersion{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
+			Annotations: map[string]string{
+				"alm-examples": example,
+			},
 		},
 		Spec: olmv1alpha1.ClusterServiceVersionSpec{},
 	}
@@ -263,7 +267,7 @@ func getReconcilerWithoutMOS() ReconcileOperandRequest {
 		moc(name, namespace)}
 	olmObjs := []runtime.Object{
 		sub("etcd", "etcd-operator", "0.0.1"),
-		csv("etcd-csv.v0.0.1", "etcd-operator"),
+		csv("etcd-csv.v0.0.1", "etcd-operator", etcdExample),
 		ip("etcd-install-plan", "etcd-operator")}
 	return getReconciler(metaObjs, olmObjs)
 }
@@ -279,7 +283,7 @@ func getReconcilerWithMOS() ReconcileOperandRequest {
 		moc(name, namespace)}
 	olmObjs := []runtime.Object{
 		sub("etcd", "etcd-operator", "0.0.1"),
-		csv("etcd-csv.v0.0.1", "etcd-operator"),
+		csv("etcd-csv.v0.0.1", "etcd-operator", etcdExample),
 		ip("etcd-install-plan", "etcd-operator")}
 	return getReconciler(metaObjs, olmObjs)
 }
@@ -289,6 +293,7 @@ func getReconciler(metaObjs, olmObjs []runtime.Object) ReconcileOperandRequest {
 	v1alpha1.SchemeBuilder.AddToScheme(s)
 	olmv1.SchemeBuilder.AddToScheme(s)
 	olmv1alpha1.SchemeBuilder.AddToScheme(s)
+	v1beta2.SchemeBuilder.AddToScheme(s)
 
 	// Create a fake client to mock API calls.
 	client := fake.NewFakeClient(metaObjs...)
@@ -303,3 +308,19 @@ func getReconciler(metaObjs, olmObjs []runtime.Object) ReconcileOperandRequest {
 		olmClient: olmClient,
 	}
 }
+
+const etcdExample string = `
+[
+	{
+	  "apiVersion": "etcd.database.coreos.com/v1beta2",
+	  "kind": "EtcdCluster",
+	  "metadata": {
+		"name": "example"
+	  },
+	  "spec": {
+		"size": 3,
+		"version": "3.2.13"
+	  }
+	}
+]
+`

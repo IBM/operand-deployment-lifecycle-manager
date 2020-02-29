@@ -160,21 +160,14 @@ func (r *ReconcileOperandRequest) deleteSubscription(cr *operatorv1alpha1.Operan
 	csv, err := r.getClusterServiceVersion(sub.Name)
 	// If can't get CSV, requeue the request
 	if err != nil {
-		if updateErr := r.updateConditionStatus(cr, sub.Name, DeleteFailed); updateErr != nil {
-			return updateErr
-		}
 		return err
 	}
 
 	if csv != nil {
 		if err := r.deleteCr(serviceConfigs[sub.Name], csv, csc); err != nil {
-			if updateErr := r.updateConditionStatus(cr, sub.Name, DeleteFailed); updateErr != nil {
-				return updateErr
-			}
 			return err
 		}
 	}
-	
 
 	logger.Info("Deleting the Subscription")
 	cr.Status.SetDeletingCondition(sub.Name, operatorv1alpha1.ResourceTypeSub)

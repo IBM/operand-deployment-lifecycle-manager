@@ -108,6 +108,10 @@ func (r *ReconcileOperandRequest) getClusterServiceVersion(subName string) (*olm
 	var csvName, csvNamespace string
 	for _, s := range subs.Items {
 		if s.Name == subName {
+			if s.Status.CurrentCSV == "" {
+				logger.Info(fmt.Sprintf("There is no Cluster Service Version for %s", subName))
+				return nil, nil
+			}
 			csvName = s.Status.CurrentCSV
 			csvNamespace = s.Namespace
 			csv, getCSVErr := r.olmClient.OperatorsV1alpha1().ClusterServiceVersions(csvNamespace).Get(csvName, metav1.GetOptions{})
@@ -259,37 +263,48 @@ func (r *ReconcileOperandRequest) deleteCr(service operatorv1alpha1.ConfigServic
 		var unstruct unstructured.Unstructured
 		unstruct.Object = crTemplate.(map[string]interface{})
 		unstruct.Object["metadata"].(map[string]interface{})["namespace"] = namespace
-
+		name := unstruct.Object["metadata"].(map[string]interface{})["name"].(string)
 		// Get the kind of CR
-		name := unstruct.Object["kind"]
+		kind := unstruct.Object["kind"].(string)
 		// Delete the CR
-		crDeleteErr := r.client.DeleteAllOf(context.TODO(), &unstruct)
-		if crDeleteErr != nil {
-			merr.Add(crDeleteErr)
-			continue
+		for crdName := range service.Spec {
+
+			// Compare the name of OperandConfig and CRD name
+			if strings.EqualFold(kind, crdName) {
+				crDeleteErr := r.client.DeleteAllOf(context.TODO(), &unstruct)
+				if crDeleteErr != nil {
+					merr.Add(crDeleteErr)
+					continue
+				}
+
+				logger.Info("Waiting for CR: " + kind + " is deleted")
+				stateDeleteErr := r.deleteServiceStatus(csc, service.Name, crdName)
+				if stateDeleteErr != nil {
+					merr.Add(stateDeleteErr)
+				}
+				err := wait.PollImmediate(time.Second*20, time.Minute*10, func() (bool, error) {
+					logger.Info("Checking for CR: " + kind + " is deleted")
+					err := r.client.Get(context.TODO(), types.NamespacedName{
+						Name:      name,
+						Namespace: namespace,
+					},
+						&unstruct)
+					if errors.IsNotFound(err) {
+						return true, nil
+					}
+					if err != nil {
+						return false, err
+					}
+					return false, nil
+				})
+				if err != nil {
+					merr.Add(err)
+				}
+				logger.Info("Deleted the CR: " + kind)
+			}
+
 		}
-
-
-		logger.Info("Deleted the CR: " + name.(string))
-		// stateUpdateErr := r.updateServiceStatus(csc, service.Name, crdName, operatorv1alpha1.ServiceRunning)
-		// if stateUpdateErr != nil {
-		// 	merr.Add(stateUpdateErr)
-		// }
-		var unstructList unstructured.UnstructuredList
-		ctx, cancel := context.WithTimeout(context.Background(), time.Minute*10)
-		defer cancel()
-		err := wait.PollImmediateUntil(time.Second*20, func() (bool, error) {
-			r.client.List(context.TODO(), &unstructList)
-			return true, nil
-		}, ctx.Done())
-		if err != nil{
-			merr.Add(err)
-
-		}
-
-
 	}
-
 	if len(merr.errors) != 0 {
 		return merr
 	}

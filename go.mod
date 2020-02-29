@@ -3,6 +3,7 @@ module github.com/IBM/operand-deployment-lifecycle-manager
 go 1.13
 
 require (
+	github.com/coreos/etcd-operator v0.9.4
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/google/gofuzz v1.1.0 // indirect
 	github.com/operator-framework/operator-lifecycle-manager v0.0.0-20191115003340-16619cd27fa5
