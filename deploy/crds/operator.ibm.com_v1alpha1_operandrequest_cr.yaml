@@ -28,3 +28,9 @@ spec:
     state: absent
   - name: ibm-platform-api-operator
     state: absent
+  - name: ibm-helm-api-operator
+    state: absent
+  - name: ibm-helm-repo-operator
+    state: absent
+  - name: ibm-management-repo-operator
+    state: absent

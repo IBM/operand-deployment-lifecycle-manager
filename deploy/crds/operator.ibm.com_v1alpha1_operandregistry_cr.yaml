@@ -60,7 +60,7 @@ spec:
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
     description: Operator for managing deployment of management ingress service.
-  - name: ibm-ingress-nginx-operator 
+  - name: ibm-ingress-nginx-operator
     namespace: ibm-common-services
     channel: alpha
     packageName: ibm-ingress-nginx-operator-app
@@ -88,3 +88,24 @@ spec:
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
     description: Operator for managing deployment of Platform API service.
+  - name: ibm-helm-api-operator
+    namespace: ibm-common-services
+    channel: alpha
+    packageName: ibm-helm-api-operator-app
+    sourceName: opencloud-operators
+    sourceNamespace: openshift-marketplace
+    description: Operator for managing deployment of helm api service.
+  - name: ibm-helm-repo-operator
+    namespace: ibm-common-services
+    channel: alpha
+    packageName: ibm-helm-repo-operator-app
+    sourceName: opencloud-operators
+    sourceNamespace: openshift-marketplace
+    description: Operator for managing deployment of helm repo service.
+  - name: ibm-management-repo-operator
+    namespace: ibm-common-services
+    channel: alpha
+    packageName: ibm-management-repo-operator-app
+    sourceName: opencloud-operators
+    sourceNamespace: openshift-marketplace
+    description: Operator for managing deployment of management repo service.
