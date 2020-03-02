@@ -15,8 +15,6 @@
     - [As an information provider](#as-an-information-provider)
     - [As a information requester/adopter](#as-a-information-requesteradopter)
     - [One more thing](#one-more-thing)
-  - [Add required CRD into CSV](#add-required-crd-into-csv)
-    - [Required CRDs](#required-crds)
 - [Common Service Onboarding](#common-service-onboarding)
   - [1. Clone the git repository of operand deployment lifecycle manager](#1-clone-the-git-repository-of-operand-deployment-lifecycle-manager)
   - [2. Edit default value of custom resource](#2-edit-default-value-of-custom-resource)
@@ -100,6 +98,10 @@ In Q1, all the common services will be installed into the same namespace.
 
 The namespace is something like: `ibm-common-services`.
 
+In the Q1 release, there is no dependency management from ODLM, all the required operators need to be added into `OperandRequest` instance.
+
+In the Q2 release, operators will use `OperandRequest` to manage their own dependencies.
+
 ### As an information provider
 
 Take MongoDB as an example:
@@ -171,29 +173,6 @@ Metering needs to mount these configmap/secret to metering deployment/daemonset.
 As we can see from above, the operators should appoint the service account name and the secret/configmap name to share info.
 
 In the future releases, we will use Bindings and Requests to elegantly handle the information between operators.
-
-## Add required CRD into CSV
-
-This topic is for the services which depend on other services.
-
-### Required CRDs
-
-In the fields `spec.customresourcedefinitions`, There are two types of CRDs that your Operator may use, ones that are `owned` by it and ones that it depends on, which are `required`.
-
-An example of this is service `Metering` depends on service `MongoDB`.
-
-For the `Metering` CSV, `MongoDB` CRD needs to be added into the `spec.customresourcedefinitions.required` field.
-
-```yaml
-  required:
-  - description: MongoDB is the Schema for the mongodbs API
-    displayName: MongoDB
-    kind: MongoDB
-    version: v1alpha1
-    name: mongodbs.operator.ibm.com
-```
-
-The Lifecycle Manager will ensure all required CSVs have an APIService that is available and all expected group-version-kinds are discoverable before attempting installation. This allows a CSV to rely on specific kinds provided by APIServices it does not own.
 
 # Common Service Onboarding
 
