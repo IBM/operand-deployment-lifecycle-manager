@@ -231,7 +231,7 @@ metadata:
               },
               {
                 "channel": "alpha",
-                "description": "Operator for managing deployment of helm API service.",
+                "description": "Operator for managing deployment of helm api service.",
                 "name": "ibm-helm-api-operator",
                 "namespace": "ibm-common-services",
                 "packageName": "ibm-helm-api-operator-app",

@@ -69,10 +69,12 @@ func (r *ReconcileOperandRequest) reconcileOperator(opts map[string]operatorv1al
 			// Subscription existing and not managed by Set controller
 			reqLogger.WithValues("Subscription.Namespace", found.Namespace, "Subscription.Name", found.Name).Info("Subscription has created by other user, ignore update/delete it.")
 		}
-
-		if err := r.updateMemberStatus(requestInstance); err != nil {
-			return err
-		}
+	}
+	if err := r.updateMemberStatus(requestInstance); err != nil {
+		return err
+	}
+	if err := r.updateClusterPhase(requestInstance); err != nil {
+		return err
 	}
 	return nil
 }
@@ -183,6 +185,10 @@ func (r *ReconcileOperandRequest) deleteSubscription(cr *operatorv1alpha1.Operan
 		return err
 	}
 	if err := r.olmClient.OperatorsV1alpha1().ClusterServiceVersions(sub.Namespace).Delete(installedCsv, &metav1.DeleteOptions{}); err != nil {
+		return err
+	}
+	cr.Status.CleanMemberStatus(sub.Name)
+	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
 		return err
 	}
 	if err := r.deleteOperatorStatus(moc, sub.Name); err != nil {
