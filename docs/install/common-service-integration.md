@@ -98,6 +98,10 @@ In Q1, all the common services will be installed into the same namespace.
 
 The namespace is something like: `ibm-common-services`.
 
+In the Q1 release, there is no dependency management from ODLM, all the required operators need to be added into `OperandRequest` instance.
+
+In the Q2 release, operators will use `OperandRequest` to manage their own dependencies.
+
 ### As an information provider
 
 Take MongoDB as an example:
