@@ -57,6 +57,7 @@ rules:
   - operandregistries
   - operandconfigs
   - operandrequests
+  - operandbindinfos
   verbs:
   - '*'
 - apiGroups:

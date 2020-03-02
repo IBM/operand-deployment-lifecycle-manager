@@ -6,6 +6,25 @@ metadata:
       [
         {
           "apiVersion": "operator.ibm.com/v1alpha1",
+          "kind": "OperandBindInfo",
+          "metadata": {
+            "name": "example-operandbindinfo"
+          },
+          "spec": {
+            "bindings": [
+              {
+                "configmap": "iamconfigmap",
+                "scope": "public",
+                "secret": "iambindsecret"
+              }
+            ],
+            "description": "Binding information that should be accessible to IAM adopters",
+            "operand": "iam",
+            "registry": "common-services"
+          }
+        },
+        {
+          "apiVersion": "operator.ibm.com/v1alpha1",
           "kind": "OperandConfig",
           "metadata": {
             "name": "common-service"
@@ -231,7 +250,7 @@ metadata:
               },
               {
                 "channel": "alpha",
-                "description": "Operator for managing deployment of helm API service.",
+                "description": "Operator for managing deployment of helm api service.",
                 "name": "ibm-helm-api-operator",
                 "namespace": "ibm-common-services",
                 "packageName": "ibm-helm-api-operator-app",
@@ -346,6 +365,11 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
+    - description: OperandBindInfo is the Schema for the operandbindinfos API
+      displayName: OperandBindInfo
+      kind: OperandBindInfo
+      name: operandbindinfos.operator.ibm.com
+      version: v1alpha1
     - description: OperandConfig is the Schema for the operandconfigs API
       displayName: OperandConfig
       kind: OperandConfig
@@ -447,6 +471,7 @@ spec:
           - operandregistries
           - operandconfigs
           - operandrequests
+          - operandbindinfos
           verbs:
           - '*'
         - apiGroups:

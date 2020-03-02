@@ -1,0 +1,13 @@
+apiVersion: operator.ibm.com/v1alpha1
+kind: OperandBindInfo
+metadata:
+  name: example-operandbindinfo
+spec:
+  operand: iam
+  registry: common-services
+  description: "Binding information that should be accessible to IAM adopters"
+  bindings:
+  - scope: public
+    secret: iambindsecret
+    configmap: iamconfigmap
+
