@@ -17,6 +17,9 @@ spec:
   - name: ibm-cert-manager-operator
     spec:
       certManager: {}
+      issuer: {}
+      certificate: {}
+      clusterIssuer: {}
   - name: ibm-iam-operator
     spec:
       authentication: {}
