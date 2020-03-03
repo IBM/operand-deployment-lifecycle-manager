@@ -62,7 +62,7 @@ include common/Makefile.common.mk
 install: ## Install all resources (CR/CRD's, RBAC and Operator)
 	@echo ....... Set environment variables ......
 	- export DEPLOY_DIR=deploy/crds
-	- export WATCH_NAMESPACE=${NAMESPACE}
+	- export WATCH_NAMESPACE=
 	@echo ....... Creating namespace .......
 	- kubectl create namespace ${NAMESPACE}
 	@echo ....... Applying CRDs .......
@@ -111,7 +111,7 @@ code-dev: ## Run the default dev commands which are the go tidy, fmt, vet then e
 	- make build
 
 run: ## Run against the configured Kubernetes cluster in ~/.kube/config
-	go run ./cmd/manager/main.go
+	WATCH_NAMESPACE= go run ./cmd/manager/main.go
 
 ifeq ($(BUILD_LOCALLY),0)
     export CONFIG_DOCKER_TARGET = config-docker

@@ -20,7 +20,6 @@ import (
 	"context"
 
 	olmv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
-	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -41,8 +40,7 @@ func (r *ReconcileOperandRequest) updateMemberStatus(cr *operatorv1alpha1.Operan
 		return err
 	}
 
-	opns, _ := k8sutil.GetOperatorNamespace()
-	config, err := r.listConfig(opns)
+	config, err := r.listConfig(operatorv1alpha1.OperandConfigNamespace)
 	if err != nil {
 		return err
 	}

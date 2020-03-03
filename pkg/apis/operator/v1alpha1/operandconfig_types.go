@@ -98,6 +98,8 @@ const (
 	ServiceFailed  ServicePhase = "Failed"
 )
 
+const OperandConfigNamespace = "ibm-common-services"
+
 func init() {
 	SchemeBuilder.Register(&OperandConfig{}, &OperandConfigList{})
 }
