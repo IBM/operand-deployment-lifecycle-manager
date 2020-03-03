@@ -117,7 +117,8 @@ metadata:
           "apiVersion": "operator.ibm.com/v1alpha1",
           "kind": "OperandRegistry",
           "metadata": {
-            "name": "common-service"
+            "name": "common-service",
+            "namespace": "ibm-common-services"
           },
           "spec": {
             "operators": [
@@ -263,7 +264,8 @@ metadata:
           "apiVersion": "operator.ibm.com/v1alpha1",
           "kind": "OperandRequest",
           "metadata": {
-            "name": "common-service"
+            "name": "common-service",
+            "namespace": "ibm-common-services"
           },
           "spec": {
             "services": [
