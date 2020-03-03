@@ -11,6 +11,8 @@ spec:
     state: present
   - name: ibm-iam-operator
     state: present
+  - name: ibm-monitoring-exporters-operator
+    state: present
   - name: ibm-management-ingress-operator
     state: absent
   - name: ibm-ingress-nginx-operator

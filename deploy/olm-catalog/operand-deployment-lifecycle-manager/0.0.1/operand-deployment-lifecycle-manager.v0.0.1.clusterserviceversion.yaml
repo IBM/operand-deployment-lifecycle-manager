@@ -109,6 +109,12 @@ metadata:
                 "spec": {
                   "mgmtRepo": {}
                 }
+              },
+              {
+                "name": "ibm-monitoring-exporters-operator",
+                "spec": {
+                   "exporter": {}
+                }
               }
             ]
           }
@@ -256,6 +262,15 @@ metadata:
                 "packageName": "ibm-management-repo-operator-app",
                 "sourceName": "opencloud-operators",
                 "sourceNamespace": "openshift-marketplace"
+              },
+              {
+                "name": "ibm-monitoring-exporters-operator",
+                "namespace": "ibm-common-services",
+                "channel": "alpha",
+                "packageName": "ibm-monitoring-exporters-operator-app",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace",
+                "description": "Operator to provision node-exporter, kube-state-metrics and collectd exporter with tls enabled."
               }
             ]
           }
@@ -280,6 +295,11 @@ metadata:
               {
                 "name": "ibm-iam-operator",
                 "state": "present"
+              },
+              {
+                 "name": "ibm-monitoring-exporters-operator",
+                 "state": "present"
+
               },
               {
                 "name": "ibm-management-ingress-operator",
