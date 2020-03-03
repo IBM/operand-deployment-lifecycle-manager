@@ -130,6 +130,8 @@ func (r *OperandRegistrySpec) SetDefaults() {
 	}
 }
 
+const OperandRegistryNamespace = "ibm-common-services"
+
 func init() {
 	SchemeBuilder.Register(&OperandRegistry{}, &OperandRegistryList{})
 }
