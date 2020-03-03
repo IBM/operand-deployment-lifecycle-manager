@@ -20,8 +20,9 @@ import (
 	"context"
 
 	olmv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
+	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 )
@@ -32,37 +33,6 @@ const (
 	Present = "present"
 )
 
-func newMember(name string, operatorPhase olmv1alpha1.ClusterServiceVersionPhase, operandPhase operatorv1alpha1.ServicePhase) operatorv1alpha1.MemberStatus {
-	return operatorv1alpha1.MemberStatus{
-		Name: name,
-		Phase: operatorv1alpha1.MemberPhase{
-			OperatorPhase: operatorPhase,
-			OperandPhase:  operandPhase,
-		},
-	}
-}
-
-func getMember(cr *operatorv1alpha1.OperandRequest, name string) (int, *operatorv1alpha1.MemberStatus) {
-	for i, m := range cr.Status.Members {
-		if name == m.Name {
-			return i, &m
-		}
-	}
-	return -1, nil
-}
-
-func setMember(cr *operatorv1alpha1.OperandRequest, newM operatorv1alpha1.MemberStatus) {
-	pos, oldM := getMember(cr, newM.Name)
-	if oldM != nil {
-		if oldM.Phase == newM.Phase {
-			return
-		}
-		cr.Status.Members[pos] = newM
-	} else {
-		cr.Status.Members = append(cr.Status.Members, newM)
-	}
-}
-
 func (r *ReconcileOperandRequest) updateMemberStatus(cr *operatorv1alpha1.OperandRequest) error {
 	subs, err := r.olmClient.OperatorsV1alpha1().Subscriptions("").List(metav1.ListOptions{
 		LabelSelector: "operator.ibm.com/opreq-control",
@@ -71,39 +41,122 @@ func (r *ReconcileOperandRequest) updateMemberStatus(cr *operatorv1alpha1.Operan
 		return err
 	}
 
-	for _, s := range subs.Items {
-		csvName := s.Status.InstalledCSV
-		if csvName != "" {
-			csv, err := r.olmClient.OperatorsV1alpha1().ClusterServiceVersions(s.Namespace).Get(csvName, metav1.GetOptions{})
-			if err != nil {
-				return client.IgnoreNotFound(err)
-			}
-			member := newMember(s.Name, csv.Status.Phase, "")
-			setMember(cr, member)
-		}
+	opns, _ := k8sutil.GetOperatorNamespace()
+	config, err := r.listConfig(opns)
+	if err != nil {
+		return err
 	}
 
-	phase := operatorv1alpha1.ClusterPhaseRunning
+	for _, s := range subs.Items {
+		// Get operator phase
+		operatorPhase, err := r.getOperatorPhase(s)
+		if err != nil {
+			return err
+		}
+		// Get operand phase
+		operandPhase := getOperandPhase(config.Status.ServiceStatus[s.Name].CrStatus)
+
+		cr.Status.SetMemberStatus(s.Name, operatorPhase, operandPhase)
+	}
+	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *ReconcileOperandRequest) getOperatorPhase(s olmv1alpha1.Subscription) (olmv1alpha1.ClusterServiceVersionPhase, error) {
+	var operatorPhase olmv1alpha1.ClusterServiceVersionPhase
+	csvName := s.Status.InstalledCSV
+	if csvName != "" {
+		csv, err := r.olmClient.OperatorsV1alpha1().ClusterServiceVersions(s.Namespace).Get(csvName, metav1.GetOptions{})
+		if err != nil && !errors.IsNotFound(err) {
+			return operatorPhase, err
+		}
+		operatorPhase = csv.Status.Phase
+	}
+	return operatorPhase, nil
+}
+
+func getOperandPhase(sp map[string]operatorv1alpha1.ServicePhase) operatorv1alpha1.ServicePhase {
+	operandStatusStat := struct {
+		readyNum   int
+		runningNum int
+		failedNum  int
+	}{
+		readyNum:   0,
+		runningNum: 0,
+		failedNum:  0,
+	}
+	for _, v := range sp {
+		switch v {
+		case operatorv1alpha1.ServiceReady:
+			operandStatusStat.readyNum++
+		case operatorv1alpha1.ServiceRunning:
+			operandStatusStat.runningNum++
+		case operatorv1alpha1.ServiceFailed:
+			operandStatusStat.failedNum++
+		default:
+		}
+	}
+	operandPhase := operatorv1alpha1.ServiceReady
+	if operandStatusStat.failedNum > 0 {
+		operandPhase = operatorv1alpha1.ServiceFailed
+	} else if operandStatusStat.readyNum > 0 {
+		operandPhase = operatorv1alpha1.ServiceReady
+	} else if operandStatusStat.runningNum > 0 {
+		operandPhase = operatorv1alpha1.ServiceRunning
+
+	}
+	return operandPhase
+}
+
+func (r *ReconcileOperandRequest) updateClusterPhase(cr *operatorv1alpha1.OperandRequest) error {
+	clusterStatusStat := struct {
+		creatingNum int
+		runningNum  int
+		failedNum   int
+	}{
+		creatingNum: 0,
+		runningNum:  0,
+		failedNum:   0,
+	}
+
 	for _, m := range cr.Status.Members {
 		switch m.Phase.OperatorPhase {
-		case olmv1alpha1.CSVPhasePending:
-			phase = operatorv1alpha1.ClusterPhasePending
+		case olmv1alpha1.CSVPhasePending, olmv1alpha1.CSVPhaseInstalling,
+			olmv1alpha1.CSVPhaseInstallReady, olmv1alpha1.CSVPhaseReplacing,
+			olmv1alpha1.CSVPhaseDeleting:
+			clusterStatusStat.creatingNum++
 		case olmv1alpha1.CSVPhaseFailed, olmv1alpha1.CSVPhaseUnknown:
-			phase = operatorv1alpha1.ClusterPhaseFailed
-		case olmv1alpha1.CSVPhaseReplacing:
-			phase = operatorv1alpha1.ClusterPhaseUpdating
-		case olmv1alpha1.CSVPhaseDeleting:
-			phase = operatorv1alpha1.ClusterPhaseDeleting
-		case olmv1alpha1.CSVPhaseInstalling, olmv1alpha1.CSVPhaseInstallReady:
-			phase = operatorv1alpha1.ClusterPhaseCreating
-		case olmv1alpha1.CSVPhaseNone:
-			phase = operatorv1alpha1.ClusterPhaseNone
+			clusterStatusStat.failedNum++
+		case olmv1alpha1.CSVPhaseSucceeded:
+			clusterStatusStat.runningNum++
 		default:
-
 		}
-		// TBD, add instance status
+
+		switch m.Phase.OperandPhase {
+		case operatorv1alpha1.ServiceReady:
+			clusterStatusStat.creatingNum++
+		case operatorv1alpha1.ServiceRunning:
+			clusterStatusStat.runningNum++
+		case operatorv1alpha1.ServiceFailed:
+			clusterStatusStat.failedNum++
+		default:
+		}
 	}
-	cr.Status.Phase = phase
+
+	var clusterPhase operatorv1alpha1.ClusterPhase
+	if clusterStatusStat.failedNum > 0 {
+		clusterPhase = operatorv1alpha1.ClusterPhaseFailed
+	} else if clusterStatusStat.creatingNum > 0 {
+		clusterPhase = operatorv1alpha1.ClusterPhaseCreating
+	} else if clusterStatusStat.runningNum > 0 {
+		clusterPhase = operatorv1alpha1.ClusterPhaseRunning
+	} else {
+		clusterPhase = operatorv1alpha1.ClusterPhaseNone
+	}
+	cr.Status.SetClusterPhase(clusterPhase)
+
 	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
 		return err
 	}

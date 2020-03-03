@@ -63,10 +63,7 @@ const (
 	ConditionDeleting ConditionType = "Deleting"
 
 	ClusterPhaseNone     ClusterPhase = ""
-	ClusterPhasePending  ClusterPhase = "Pending"
 	ClusterPhaseCreating ClusterPhase = "Creating"
-	ClusterPhaseUpdating ClusterPhase = "Updating"
-	ClusterPhaseDeleting ClusterPhase = "Deleting"
 	ClusterPhaseRunning  ClusterPhase = "Running"
 	ClusterPhaseFailed   ClusterPhase = "Failed"
 
@@ -152,27 +149,27 @@ type OperandRequestList struct {
 	Items           []OperandRequest `json:"items"`
 }
 
-func (ss *OperandRequestStatus) SetCreatingCondition(name string, rt ResourceType) {
+func (rs *OperandRequestStatus) SetCreatingCondition(name string, rt ResourceType) {
 	c := newCondition(ConditionCreating, corev1.ConditionTrue, "Creating "+string(rt), "Creating "+string(rt)+" "+name)
-	ss.setCondition(*c)
+	rs.setCondition(*c)
 }
 
-func (ss *OperandRequestStatus) SetUpdatingCondition(name string, rt ResourceType) {
+func (rs *OperandRequestStatus) SetUpdatingCondition(name string, rt ResourceType) {
 	c := newCondition(ConditionUpdating, corev1.ConditionTrue, "Updating "+string(rt), "Updating "+string(rt)+" "+name)
-	ss.setCondition(*c)
+	rs.setCondition(*c)
 }
 
-func (ss *OperandRequestStatus) SetDeletingCondition(name string, rt ResourceType) {
+func (rs *OperandRequestStatus) SetDeletingCondition(name string, rt ResourceType) {
 	c := newCondition(ConditionDeleting, corev1.ConditionTrue, "Deleting "+string(rt), "Deleting "+string(rt)+" "+name)
-	ss.setCondition(*c)
+	rs.setCondition(*c)
 }
 
-func (ss *OperandRequestStatus) setCondition(c Condition) {
-	pos, cp := getCondition(ss, c.Type, c.Message)
+func (rs *OperandRequestStatus) setCondition(c Condition) {
+	pos, cp := getCondition(rs, c.Type, c.Message)
 	if cp != nil {
-		ss.Conditions[pos] = c
+		rs.Conditions[pos] = c
 	} else {
-		ss.Conditions = append(ss.Conditions, c)
+		rs.Conditions = append(rs.Conditions, c)
 	}
 }
 
@@ -195,6 +192,51 @@ func newCondition(condType ConditionType, status corev1.ConditionStatus, reason,
 		Reason:             reason,
 		Message:            message,
 	}
+}
+
+func (rs *OperandRequestStatus) SetMemberStatus(name string, operatorPhase olmv1alpha1.ClusterServiceVersionPhase, operandPhase ServicePhase) {
+	m := newMemberStatus(name, operatorPhase, operandPhase)
+	pos, mp := getMemberStatus(rs, name)
+	if mp != nil {
+		if m.Phase.OperatorPhase != mp.Phase.OperatorPhase {
+			rs.Members[pos].Phase.OperatorPhase = m.Phase.OperatorPhase
+		}
+		if m.Phase.OperandPhase != mp.Phase.OperandPhase {
+			rs.Members[pos].Phase.OperandPhase = m.Phase.OperandPhase
+		}
+	} else {
+		rs.Members = append(rs.Members, m)
+	}
+}
+
+func (rs *OperandRequestStatus) CleanMemberStatus(name string) {
+	pos, _ := getMemberStatus(rs, name)
+	if pos != -1 {
+		rs.Members = append(rs.Members[:pos], rs.Members[pos+1:]...)
+	}
+}
+
+func getMemberStatus(status *OperandRequestStatus, name string) (int, *MemberStatus) {
+	for i, m := range status.Members {
+		if name == m.Name {
+			return i, &m
+		}
+	}
+	return -1, nil
+}
+
+func newMemberStatus(name string, operatorPhase olmv1alpha1.ClusterServiceVersionPhase, operandPhase ServicePhase) MemberStatus {
+	return MemberStatus{
+		Name: name,
+		Phase: MemberPhase{
+			OperatorPhase: operatorPhase,
+			OperandPhase:  operandPhase,
+		},
+	}
+}
+
+func (rs *OperandRequestStatus) SetClusterPhase(p ClusterPhase) {
+	rs.Phase = p
 }
 
 func init() {

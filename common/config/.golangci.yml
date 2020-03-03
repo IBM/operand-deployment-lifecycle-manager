@@ -44,7 +44,6 @@ linters:
     - misspell
     - staticcheck
     - structcheck
-    - stylecheck
     - typecheck
     - unconvert
     - unparam
@@ -65,6 +64,7 @@ linters:
   # - prealloc
   # - scopelint
   # - whitespace
+  # - stylecheck
 
 linters-settings:
   errcheck:
