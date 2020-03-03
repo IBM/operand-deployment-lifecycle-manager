@@ -57,3 +57,6 @@ spec:
   - name: ibm-management-repo-operator
     spec:
       mgmtRepo: {}
+  - name: ibm-monitoring-exporters-operator
+    spec:
+      exporter: {}
