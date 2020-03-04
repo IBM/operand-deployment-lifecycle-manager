@@ -4,36 +4,20 @@ metadata:
   name: common-service
   namespace: ibm-common-services
 spec:
-  services:
-  - name: ibm-cert-manager-operator
-    state: present
-  - name: ibm-mongodb-operator
-    state: present
-  - name: ibm-iam-operator
-    state: present
-  - name: ibm-monitoring-exporters-operator
-    state: present
-  - name: ibm-management-ingress-operator
-    state: absent
-  - name: ibm-ingress-nginx-operator
-    state: absent
-  - name: ibm-metering-operator
-    state: absent
-  - name: ibm-licensing-operator
-    state: absent
-  - name: ibm-commonui-operator
-    state: absent
-  - name: ibm-healthcheck-operator
-    state: present
-  - name: ibm-auditlogging-operator
-    state: absent
-  - name: ibm-catalog-operator
-    state: absent
-  - name: ibm-platform-api-operator
-    state: absent
-  - name: ibm-helm-api-operator
-    state: absent
-  - name: ibm-helm-repo-operator
-    state: absent
-  - name: ibm-management-repo-operator
-    state: absent
+  requests:
+  - operand: ibm-cert-manager-operator
+  - operand: ibm-mongodb-operator
+  - operand: ibm-iam-operator
+  - operand: ibm-monitoring-exporters-operator
+  - operand: ibm-healthcheck-operator
+  # - operand: ibm-management-ingress-operator
+  # - operand: ibm-ingress-nginx-operator
+  # - operand: ibm-metering-operator
+  # - operand: ibm-licensing-operator
+  # - operand: ibm-commonui-operator
+  # - operand: ibm-auditlogging-operator
+  # - operand: ibm-catalog-operator
+  # - operand: ibm-platform-api-operator
+  # - operand: ibm-helm-api-operator
+  # - operand: ibm-helm-repo-operator
+  # - operand: ibm-management-repo-operator

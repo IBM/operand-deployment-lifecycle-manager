@@ -34,15 +34,23 @@ import (
 	util "github.com/IBM/operand-deployment-lifecycle-manager/pkg/util"
 )
 
-func (r *ReconcileOperandRequest) reconcileOperand(serviceConfigs map[string]operatorv1alpha1.ConfigService, csc *operatorv1alpha1.OperandConfig) *multiErr {
+func (r *ReconcileOperandRequest) reconcileOperand(requestInstance *operatorv1alpha1.OperandRequest) *multiErr {
 	reqLogger := log.WithValues()
 	reqLogger.Info("Reconciling Operand")
 	merr := &multiErr{}
-	for _, service := range serviceConfigs {
-		if service.State == Present {
-			reqLogger.Info(fmt.Sprintf("Reconciling custom resource %s", service.Name))
+
+	for _, req := range requestInstance.Spec.Requests {
+		configInstance, err := r.getConfigInstance(req)
+		if err != nil {
+			merr.Add(err)
+			continue
+		}
+		// Check the requested Service Config if exist in specific OperandConfig
+		svc := r.getServiceFromConfigInstance(req, configInstance)
+		if svc != nil {
+			reqLogger.Info(fmt.Sprintf("Reconciling custom resource %s", svc.Name))
 			// Looking for the CSV
-			csv, err := r.getClusterServiceVersion(service.Name)
+			csv, err := r.getClusterServiceVersion(svc.Name)
 
 			// If can't get CSV, requeue the request
 			if err != nil {
@@ -57,7 +65,7 @@ func (r *ReconcileOperandRequest) reconcileOperand(serviceConfigs map[string]ope
 			reqLogger.Info(fmt.Sprintf("Generating custom resource base on Cluster Service Version %s", csv.ObjectMeta.Name))
 
 			// Merge and Generate CR
-			err = r.createUpdateCr(service, csv, csc)
+			err = r.createUpdateCr(svc, csv, configInstance)
 			if err != nil {
 				merr.Add(err)
 			}
@@ -67,31 +75,6 @@ func (r *ReconcileOperandRequest) reconcileOperand(serviceConfigs map[string]ope
 		return merr
 	}
 	return &multiErr{}
-}
-
-func (r *ReconcileOperandRequest) fetchConfigs(csc *operatorv1alpha1.OperandConfig, cr *operatorv1alpha1.OperandRequest) (map[string]operatorv1alpha1.ConfigService, error) {
-
-	requestMap, err := r.fetchRequests(cr)
-	if err != nil {
-		return nil, err
-	}
-
-	cscMap := make(map[string]operatorv1alpha1.ConfigService)
-	for k, v := range csc.Spec.Services {
-		if _, ok := requestMap[v.Name]; ok {
-			csc.Spec.Services[k].State = requestMap[v.Name].State
-		} else {
-			csc.Spec.Services[k].State = Absent
-		}
-		cscMap[v.Name] = v
-	}
-	if err := r.client.Update(context.TODO(), csc); err != nil {
-		if errors.IsNotFound(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return cscMap, nil
 }
 
 // getCSV retrieves the Cluster Service Version
@@ -131,7 +114,7 @@ func (r *ReconcileOperandRequest) getClusterServiceVersion(subName string) (*olm
 }
 
 // createUpdateCr merge and create custome resource base on OperandConfig and CSV alm-examples
-func (r *ReconcileOperandRequest) createUpdateCr(service operatorv1alpha1.ConfigService, csv *olmv1alpha1.ClusterServiceVersion, csc *operatorv1alpha1.OperandConfig) error {
+func (r *ReconcileOperandRequest) createUpdateCr(service *operatorv1alpha1.ConfigService, csv *olmv1alpha1.ClusterServiceVersion, csc *operatorv1alpha1.OperandConfig) error {
 	almExamples := csv.ObjectMeta.Annotations["alm-examples"]
 	namespace := csv.ObjectMeta.Namespace
 	logger := log.WithValues("Subscription", service.Name)
@@ -239,7 +222,7 @@ func (r *ReconcileOperandRequest) createUpdateCr(service operatorv1alpha1.Config
 }
 
 // deleteCr remove custome resource base on OperandConfig and CSV alm-examples
-func (r *ReconcileOperandRequest) deleteCr(service operatorv1alpha1.ConfigService, csv *olmv1alpha1.ClusterServiceVersion, csc *operatorv1alpha1.OperandConfig) error {
+func (r *ReconcileOperandRequest) deleteCr(service *operatorv1alpha1.ConfigService, csv *olmv1alpha1.ClusterServiceVersion, csc *operatorv1alpha1.OperandConfig) error {
 	almExamples := csv.ObjectMeta.Annotations["alm-examples"]
 	logger := log.WithValues("Subscription", service.Name)
 	namespace := csv.ObjectMeta.Namespace
@@ -309,5 +292,23 @@ func (r *ReconcileOperandRequest) deleteCr(service operatorv1alpha1.ConfigServic
 		return merr
 	}
 
+	return nil
+}
+
+// Get the OperandConfig instance with the name and namespace
+func (r *ReconcileOperandRequest) getConfigInstance(req operatorv1alpha1.Request) (*operatorv1alpha1.OperandConfig, error) {
+	config := &operatorv1alpha1.OperandConfig{}
+	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: req.Registry, Namespace: req.RegistryNamespace}, config); err != nil {
+		return nil, err
+	}
+	return config, nil
+}
+
+func (r *ReconcileOperandRequest) getServiceFromConfigInstance(req operatorv1alpha1.Request, configInstance *operatorv1alpha1.OperandConfig) *operatorv1alpha1.ConfigService {
+	for _, s := range configInstance.Spec.Services {
+		if s.Name == req.Operand {
+			return &s
+		}
+	}
 	return nil
 }

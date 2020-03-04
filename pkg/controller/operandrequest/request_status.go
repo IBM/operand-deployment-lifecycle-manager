@@ -54,7 +54,7 @@ func (r *ReconcileOperandRequest) updateMemberStatus(cr *operatorv1alpha1.Operan
 		// Get operand phase
 		operandPhase := getOperandPhase(config.Status.ServiceStatus[s.Name].CrStatus)
 
-		cr.Status.SetMemberStatus(s.Name, operatorPhase, operandPhase)
+		cr.SetMemberStatus(s.Name, operatorPhase, operandPhase)
 	}
 	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
 		return err
@@ -153,7 +153,7 @@ func (r *ReconcileOperandRequest) updateClusterPhase(cr *operatorv1alpha1.Operan
 	} else {
 		clusterPhase = operatorv1alpha1.ClusterPhaseNone
 	}
-	cr.Status.SetClusterPhase(clusterPhase)
+	cr.SetClusterPhase(clusterPhase)
 
 	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
 		return err

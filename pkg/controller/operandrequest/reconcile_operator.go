@@ -25,51 +25,54 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 )
 
-func (r *ReconcileOperandRequest) reconcileOperator(opts map[string]operatorv1alpha1.Operator, requestInstance *operatorv1alpha1.OperandRequest, moc *operatorv1alpha1.OperandRegistry, serviceConfigs map[string]operatorv1alpha1.ConfigService, csc *operatorv1alpha1.OperandConfig) error {
+func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1alpha1.OperandRequest) error {
 	reqLogger := log.WithValues()
 	reqLogger.Info("Reconciling Operator")
-	for _, o := range opts {
-		// Check subscription if exist
-		found, err := r.olmClient.OperatorsV1alpha1().Subscriptions(o.Namespace).Get(o.Name, metav1.GetOptions{})
+	for _, req := range requestInstance.Spec.Requests {
+		registryInstance, err := r.getRegistryInstance(req)
 		if err != nil {
-			if errors.IsNotFound(err) {
-				// Subscription does not exist and state is present, create a new one
-				if o.State == Present {
-					if err = r.createSubscription(requestInstance, o); err != nil {
-						return err
-					}
-				}
-				continue
-			}
 			return err
 		}
-
-		// Subscription existing and managed by Request controller
-		if _, ok := found.Labels["operator.ibm.com/opreq-control"]; ok {
-			// Check subscription if present
-			if o.State == Present {
-				// Subscription is present and channel changed, update it.
-				if found.Spec.Channel != o.Channel || found.Spec.CatalogSource != o.SourceName || found.Spec.CatalogSourceNamespace != o.SourceNamespace {
-					found.Spec.Channel = o.Channel
-					found.Spec.CatalogSource = o.SourceName
-					found.Spec.CatalogSourceNamespace = o.SourceNamespace
+		// Check the requested Operand if exist in specific OperandRegistry
+		opt := r.getOperatorFromRegistryInstance(req, registryInstance)
+		if opt != nil {
+			// Check subscription if exist
+			found, err := r.olmClient.OperatorsV1alpha1().Subscriptions(opt.Namespace).Get(opt.Name, metav1.GetOptions{})
+			if err != nil {
+				if errors.IsNotFound(err) {
+					// Subscription does not exist, create a new one
+					if err = r.createSubscription(requestInstance, opt); err != nil {
+						return err
+					}
+					continue
+				}
+				return err
+			}
+			// Subscription existing and managed by OperandRequest controller
+			if _, ok := found.Labels["operator.ibm.com/opreq-control"]; ok {
+				// Subscription channel changed, update it.
+				if found.Spec.Channel != opt.Channel {
+					found.Spec.Channel = opt.Channel
 					if err = r.updateSubscription(requestInstance, found); err != nil {
 						return err
 					}
 				}
-				// Subscription is absent, delete it.
-			} else if err := r.deleteSubscription(requestInstance, found, moc, serviceConfigs, csc); err != nil {
-				return err
+			} else {
+				// Subscription existing and not managed by OperandRequest controller
+				reqLogger.WithValues("Subscription.Namespace", found.Namespace, "Subscription.Name", found.Name).Info("Subscription has created by other user, ignore update/delete it.")
 			}
-		} else {
-			// Subscription existing and not managed by Set controller
-			reqLogger.WithValues("Subscription.Namespace", found.Namespace, "Subscription.Name", found.Name).Info("Subscription has created by other user, ignore update/delete it.")
 		}
+		// SetCondition for notfind registry
 	}
+
+	// TBD for delete specific operator
+
 	if err := r.updateMemberStatus(requestInstance); err != nil {
 		return err
 	}
@@ -79,29 +82,7 @@ func (r *ReconcileOperandRequest) reconcileOperator(opts map[string]operatorv1al
 	return nil
 }
 
-func (r *ReconcileOperandRequest) fetchOperators(moc *operatorv1alpha1.OperandRegistry, cr *operatorv1alpha1.OperandRequest) (map[string]operatorv1alpha1.Operator, error) {
-
-	setMap, err := r.fetchRequests(cr)
-	if err != nil {
-		return nil, err
-	}
-
-	optMap := make(map[string]operatorv1alpha1.Operator)
-	for _, v := range moc.Spec.Operators {
-		if _, ok := setMap[v.Name]; ok {
-			if setMap[v.Name].Channel != "" && setMap[v.Name].Channel != v.Channel {
-				v.Channel = setMap[v.Name].Channel
-			}
-			v.State = setMap[v.Name].State
-		} else {
-			v.State = Absent
-		}
-		optMap[v.Name] = v
-	}
-	return optMap, nil
-}
-
-func (r *ReconcileOperandRequest) createSubscription(cr *operatorv1alpha1.OperandRequest, opt operatorv1alpha1.Operator) error {
+func (r *ReconcileOperandRequest) createSubscription(cr *operatorv1alpha1.OperandRequest, opt *operatorv1alpha1.Operator) error {
 	logger := log.WithValues("Subscription.Namespace", opt.Namespace)
 	co := generateClusterObjects(opt)
 
@@ -130,7 +111,7 @@ func (r *ReconcileOperandRequest) createSubscription(cr *operatorv1alpha1.Operan
 	// Create subscription
 	logger.Info("Creating the Subscription: " + opt.Name)
 	sub := co.subscription
-	cr.Status.SetCreatingCondition(sub.Name, operatorv1alpha1.ResourceTypeSub)
+	cr.SetCreatingCondition(sub.Name, operatorv1alpha1.ResourceTypeSub)
 	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
 		return err
 	}
@@ -145,7 +126,7 @@ func (r *ReconcileOperandRequest) updateSubscription(cr *operatorv1alpha1.Operan
 	logger := log.WithValues("Subscription.Namespace", sub.Namespace, "Subscription.Name", sub.Name)
 
 	logger.Info("Updating Subscription")
-	cr.Status.SetUpdatingCondition(sub.Name, operatorv1alpha1.ResourceTypeSub)
+	cr.SetUpdatingCondition(sub.Name, operatorv1alpha1.ResourceTypeSub)
 	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
 		return err
 	}
@@ -155,49 +136,63 @@ func (r *ReconcileOperandRequest) updateSubscription(cr *operatorv1alpha1.Operan
 	return nil
 }
 
-func (r *ReconcileOperandRequest) deleteSubscription(cr *operatorv1alpha1.OperandRequest, sub *olmv1alpha1.Subscription, moc *operatorv1alpha1.OperandRegistry, serviceConfigs map[string]operatorv1alpha1.ConfigService, csc *operatorv1alpha1.OperandConfig) error {
-	logger := log.WithValues("Subscription.Namespace", sub.Namespace, "Subscription.Name", sub.Name)
-	installedCsv := sub.Status.InstalledCSV
-	logger.Info("Deleting a Custom Resource")
-	csv, err := r.getClusterServiceVersion(sub.Name)
+func (r *ReconcileOperandRequest) deleteSubscription(cr *operatorv1alpha1.OperandRequest, req operatorv1alpha1.Request) error {
+	logger := log.WithValues("Subscription.Name", req.Operand)
+
+	registryInstance, err := r.getRegistryInstance(req)
+	if err != nil {
+		return err
+	}
+	configInstance, err := r.getConfigInstance(req)
+	if err != nil {
+		return err
+	}
+	config := r.getServiceFromConfigInstance(req, configInstance)
+	opt := r.getOperatorFromRegistryInstance(req, registryInstance)
+
+	csv, err := r.getClusterServiceVersion(req.Operand)
 	// If can't get CSV, requeue the request
 	if err != nil {
 		return err
 	}
 
 	if csv != nil {
-		if err := r.deleteCr(serviceConfigs[sub.Name], csv, csc); err != nil {
+		logger.Info("Deleting a Custom Resource")
+		if err := r.deleteCr(config, csv, configInstance); err != nil {
+			return err
+		}
+		logger.Info("Deleting the ClusterServiceVersion")
+		cr.SetDeletingCondition(csv.Name, operatorv1alpha1.ResourceTypeCsv)
+		if err := r.client.Status().Update(context.TODO(), cr); err != nil {
+			return err
+		}
+		if err := r.olmClient.OperatorsV1alpha1().ClusterServiceVersions(csv.Namespace).Delete(csv.Name, &metav1.DeleteOptions{}); err != nil {
 			return err
 		}
 	}
 
-	logger.Info("Deleting the Subscription")
-	cr.Status.SetDeletingCondition(sub.Name, operatorv1alpha1.ResourceTypeSub)
-	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
-		return err
-	}
-	if err := r.olmClient.OperatorsV1alpha1().Subscriptions(sub.Namespace).Delete(sub.Name, &metav1.DeleteOptions{}); err != nil {
-		return err
-	}
-	logger.Info("Deleting the ClusterServiceVersion")
-	cr.Status.SetDeletingCondition(installedCsv, operatorv1alpha1.ResourceTypeCsv)
-	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
-		return err
-	}
-	if err := r.olmClient.OperatorsV1alpha1().ClusterServiceVersions(sub.Namespace).Delete(installedCsv, &metav1.DeleteOptions{}); err != nil {
-		return err
-	}
-	cr.Status.CleanMemberStatus(sub.Name)
-	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
-		return err
-	}
-	if err := r.deleteOperatorStatus(moc, sub.Name); err != nil {
-		return err
+	if opt != nil {
+		logger.Info("Deleting the Subscription")
+		cr.SetDeletingCondition(opt.Name, operatorv1alpha1.ResourceTypeSub)
+		if err := r.client.Status().Update(context.TODO(), cr); err != nil {
+			return err
+		}
+		if err := r.olmClient.OperatorsV1alpha1().Subscriptions(opt.Namespace).Delete(opt.Name, &metav1.DeleteOptions{}); err != nil {
+			return client.IgnoreNotFound(err)
+		}
+
+		cr.CleanMemberStatus(opt.Name)
+		if err := r.client.Status().Update(context.TODO(), cr); err != nil {
+			return err
+		}
+		if err := r.deleteOperatorStatus(registryInstance, opt.Name); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-func generateClusterObjects(o operatorv1alpha1.Operator) *clusterObjects {
+func generateClusterObjects(o *operatorv1alpha1.Operator) *clusterObjects {
 	co := &clusterObjects{}
 	labels := map[string]string{
 		"operator.ibm.com/opreq-control": "true",
@@ -263,4 +258,22 @@ func generateOperatorGroup(namespace string, targetNamespaces []string) *olmv1.O
 	og.SetGroupVersionKind(schema.GroupVersionKind{Group: olmv1.SchemeGroupVersion.Group, Kind: "OperatorGroup", Version: olmv1.SchemeGroupVersion.Version})
 
 	return og
+}
+
+// Get the OperandRegistry instance with the name and namespace
+func (r *ReconcileOperandRequest) getRegistryInstance(req operatorv1alpha1.Request) (*operatorv1alpha1.OperandRegistry, error) {
+	reg := &operatorv1alpha1.OperandRegistry{}
+	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: req.Registry, Namespace: req.RegistryNamespace}, reg); err != nil {
+		return nil, err
+	}
+	return reg, nil
+}
+
+func (r *ReconcileOperandRequest) getOperatorFromRegistryInstance(req operatorv1alpha1.Request, registryInstance *operatorv1alpha1.OperandRegistry) *operatorv1alpha1.Operator {
+	for _, o := range registryInstance.Spec.Operators {
+		if o.Name == req.Operand {
+			return &o
+		}
+	}
+	return nil
 }

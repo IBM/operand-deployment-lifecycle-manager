@@ -199,6 +199,12 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
 
+	// Set default registry and registryNamespace for request cr
+	operandRequestInstance.SetDefaults()
+	if err := r.client.Update(context.TODO(), operandRequestInstance); err != nil {
+		return reconcile.Result{}, err
+	}
+
 	// Add finalizer
 	if operandRequestInstance.GetFinalizers() == nil {
 		if err := r.addFinalizer(operandRequestInstance); err != nil {
@@ -206,25 +212,24 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 		}
 	}
 
-	// Fetch all subscription definition
-	opts, err := r.fetchOperators(moc, operandRequestInstance)
-	if opts == nil {
+	// Remove finalizer when DeletionTimestamp none zero
+	if !operandRequestInstance.ObjectMeta.DeletionTimestamp.IsZero() {
+		// Delete all the subscriptions that created by current request
+		for _, req := range operandRequestInstance.Spec.Requests {
+			if err := r.deleteSubscription(operandRequestInstance, req); err != nil {
+				return reconcile.Result{}, err
+			}
+		}
+		// Update finalizer to allow delete CR
+		operandRequestInstance.SetFinalizers(nil)
+		err := r.client.Update(context.TODO(), operandRequestInstance)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
 		return reconcile.Result{}, nil
 	}
 
-	// Fetch OperandConfig instance
-	serviceConfigs, err := r.fetchConfigs(csc, operandRequestInstance)
-	if serviceConfigs == nil {
-		if err != nil {
-			return reconcile.Result{}, err
-		}
-		return reconcile.Result{}, nil
-	}
-
-	if err = r.reconcileOperator(opts, operandRequestInstance, moc, serviceConfigs, csc); err != nil {
+	if err := r.reconcileOperator(operandRequestInstance); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -238,7 +243,7 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 	}
 
 	// Reconcile the Operand
-	merr := r.reconcileOperand(serviceConfigs, csc)
+	merr := r.reconcileOperand(operandRequestInstance)
 
 	if len(merr.errors) != 0 {
 		return reconcile.Result{}, merr
@@ -246,16 +251,6 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 
 	if err := r.updateMemberStatus(operandRequestInstance); err != nil {
 		return reconcile.Result{}, err
-	}
-
-	// Remove finalizer
-	if !operandRequestInstance.ObjectMeta.DeletionTimestamp.IsZero() {
-		// Update finalizer to allow delete CR
-		operandRequestInstance.SetFinalizers(nil)
-		err := r.client.Update(context.TODO(), operandRequestInstance)
-		if err != nil {
-			return reconcile.Result{}, err
-		}
 	}
 
 	// Check if all csv deploy successed
@@ -318,39 +313,6 @@ func (r *ReconcileOperandRequest) waitForInstallPlan(moc *operatorv1alpha1.Opera
 		return err
 	}
 	return nil
-}
-
-func (r *ReconcileOperandRequest) fetchRequests(currentCr *operatorv1alpha1.OperandRequest) (map[string]operatorv1alpha1.RequestService, error) {
-	crs := &operatorv1alpha1.OperandRequestList{}
-	if err := r.client.List(context.TODO(), crs); err != nil {
-		if errors.IsNotFound(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	// If current CR is deleted, mark all the operators as absent state
-	isCurrentCrToBeDeleted := currentCr.GetDeletionTimestamp() != nil
-	requests := make(map[string]operatorv1alpha1.RequestService)
-	for _, cr := range crs.Items {
-		for _, s := range cr.Spec.Services {
-			if isCurrentCrToBeDeleted && cr.GetUID() == currentCr.GetUID() {
-				s.State = Absent
-			}
-			requests = addRequest(requests, s)
-		}
-	}
-	return requests, nil
-}
-
-func addRequest(requests map[string]operatorv1alpha1.RequestService, request operatorv1alpha1.RequestService) map[string]operatorv1alpha1.RequestService {
-	if _, ok := requests[request.Name]; ok {
-		if request.State == Present {
-			requests[request.Name] = request
-		}
-		return requests
-	}
-	requests[request.Name] = request
-	return requests
 }
 
 func (r *ReconcileOperandRequest) addFinalizer(cr *operatorv1alpha1.OperandRequest) error {
