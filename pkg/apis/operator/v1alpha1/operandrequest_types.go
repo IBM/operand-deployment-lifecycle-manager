@@ -24,27 +24,34 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
-// OperandRequestSpec defines the desired state of OperandRequest
+// The OperandRequestSpec identifies one or more specific operands (from a specific Registry) that should actually be installed
 // +k8s:openapi-gen=true
 type OperandRequestSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
 
-	// Services defines a list of operator installation states
+	// Requests defines a list of operand installation
 	// +listType=set
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
-	Services []RequestService `json:"services"`
+	Requests []Request `json:"requests"`
 }
 
-// RequestService is the service configuration for a common service
-type RequestService struct {
-	Name    string `json:"name"`
-	Channel string `json:"channel,omitempty"`
-	State   string `json:"state"`
+// Request identifies a operand detail
+type Request struct {
+	// Names the OperandRegistry entry for the operand to be deployed
+	Operand           string    `json:"operand"`
+	Registry          string    `json:"registry,omitempty"`
+	RegistryNamespace string    `json:"registryNamespace,omitempty"`
+	Description       string    `json:"description,omitempty"`
+	Bindings          []Binding `json:"bindings,omitempty"`
+}
+
+type Binding struct {
+	Scope          scope  `json:"scope,omitempty"`
+	Secret         string `json:"secret,omitempty"`
+	ConfigMap      string `json:"configMap,omitempty"`
+	ServiceAccount string `json:"serviceAccount,omitempty"`
 }
 
 // ConditionType is the condition of a service
@@ -149,27 +156,27 @@ type OperandRequestList struct {
 	Items           []OperandRequest `json:"items"`
 }
 
-func (rs *OperandRequestStatus) SetCreatingCondition(name string, rt ResourceType) {
+func (r *OperandRequest) SetCreatingCondition(name string, rt ResourceType) {
 	c := newCondition(ConditionCreating, corev1.ConditionTrue, "Creating "+string(rt), "Creating "+string(rt)+" "+name)
-	rs.setCondition(*c)
+	r.setCondition(*c)
 }
 
-func (rs *OperandRequestStatus) SetUpdatingCondition(name string, rt ResourceType) {
+func (r *OperandRequest) SetUpdatingCondition(name string, rt ResourceType) {
 	c := newCondition(ConditionUpdating, corev1.ConditionTrue, "Updating "+string(rt), "Updating "+string(rt)+" "+name)
-	rs.setCondition(*c)
+	r.setCondition(*c)
 }
 
-func (rs *OperandRequestStatus) SetDeletingCondition(name string, rt ResourceType) {
+func (r *OperandRequest) SetDeletingCondition(name string, rt ResourceType) {
 	c := newCondition(ConditionDeleting, corev1.ConditionTrue, "Deleting "+string(rt), "Deleting "+string(rt)+" "+name)
-	rs.setCondition(*c)
+	r.setCondition(*c)
 }
 
-func (rs *OperandRequestStatus) setCondition(c Condition) {
-	pos, cp := getCondition(rs, c.Type, c.Message)
+func (r *OperandRequest) setCondition(c Condition) {
+	pos, cp := getCondition(&r.Status, c.Type, c.Message)
 	if cp != nil {
-		rs.Conditions[pos] = c
+		r.Status.Conditions[pos] = c
 	} else {
-		rs.Conditions = append(rs.Conditions, c)
+		r.Status.Conditions = append(r.Status.Conditions, c)
 	}
 }
 
@@ -194,25 +201,25 @@ func newCondition(condType ConditionType, status corev1.ConditionStatus, reason,
 	}
 }
 
-func (rs *OperandRequestStatus) SetMemberStatus(name string, operatorPhase olmv1alpha1.ClusterServiceVersionPhase, operandPhase ServicePhase) {
+func (r *OperandRequest) SetMemberStatus(name string, operatorPhase olmv1alpha1.ClusterServiceVersionPhase, operandPhase ServicePhase) {
 	m := newMemberStatus(name, operatorPhase, operandPhase)
-	pos, mp := getMemberStatus(rs, name)
+	pos, mp := getMemberStatus(&r.Status, name)
 	if mp != nil {
 		if m.Phase.OperatorPhase != mp.Phase.OperatorPhase {
-			rs.Members[pos].Phase.OperatorPhase = m.Phase.OperatorPhase
+			r.Status.Members[pos].Phase.OperatorPhase = m.Phase.OperatorPhase
 		}
 		if m.Phase.OperandPhase != mp.Phase.OperandPhase {
-			rs.Members[pos].Phase.OperandPhase = m.Phase.OperandPhase
+			r.Status.Members[pos].Phase.OperandPhase = m.Phase.OperandPhase
 		}
 	} else {
-		rs.Members = append(rs.Members, m)
+		r.Status.Members = append(r.Status.Members, m)
 	}
 }
 
-func (rs *OperandRequestStatus) CleanMemberStatus(name string) {
-	pos, _ := getMemberStatus(rs, name)
+func (r *OperandRequest) CleanMemberStatus(name string) {
+	pos, _ := getMemberStatus(&r.Status, name)
 	if pos != -1 {
-		rs.Members = append(rs.Members[:pos], rs.Members[pos+1:]...)
+		r.Status.Members = append(r.Status.Members[:pos], r.Status.Members[pos+1:]...)
 	}
 }
 
@@ -235,8 +242,20 @@ func newMemberStatus(name string, operatorPhase olmv1alpha1.ClusterServiceVersio
 	}
 }
 
-func (rs *OperandRequestStatus) SetClusterPhase(p ClusterPhase) {
-	rs.Phase = p
+func (r *OperandRequest) SetClusterPhase(p ClusterPhase) {
+	r.Status.Phase = p
+}
+
+// Set the default value for Requests spec
+func (r *OperandRequest) SetDefaults() {
+	for i, req := range r.Spec.Requests {
+		if req.Registry == "" {
+			r.Spec.Requests[i].Registry = "common-service"
+		}
+		if req.RegistryNamespace == "" {
+			r.Spec.Requests[i].RegistryNamespace = "ibm-common-services"
+		}
+	}
 }
 
 func init() {

@@ -59,10 +59,6 @@ func OperandRequestCreateUpdate(t *testing.T) {
 	if err = helpers.CreateTest(olmClient, f, ctx); err != nil {
 		t.Fatal(err)
 	}
-
-	if err = helpers.UpdateTest(olmClient, f, ctx); err != nil {
-		t.Fatal(err)
-	}
 }
 
 // OperandRequestCreateDelete is for testing the create and delete of the OperandRequest

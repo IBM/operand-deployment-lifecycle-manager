@@ -57,15 +57,16 @@ func CreateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 	}
 
 	// create OperandRequest custom resource
-	sets := []operator.RequestService{}
-	sets = append(sets, operator.RequestService{
-		Name:    "etcd",
-		Channel: "singlenamespace-alpha",
-		State:   "present",
-	}, operator.RequestService{
-		Name:    "jenkins",
-		Channel: "alpha",
-		State:   "present",
+	requests := []operator.Request{}
+	requests = append(requests, operator.Request{
+		Operand:           "etcd",
+		Registry:          "common-service",
+		RegistryNamespace: "ibm-common-services",
+	}, operator.Request{
+
+		Operand:           "jenkins",
+		Registry:          "common-service",
+		RegistryNamespace: "ibm-common-services",
 	})
 
 	requestInstance := &operator.OperandRequest{
@@ -74,7 +75,7 @@ func CreateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 			Namespace: namespace,
 		},
 		Spec: operator.OperandRequestSpec{
-			Services: sets,
+			Requests: requests,
 		},
 	}
 
@@ -90,8 +91,8 @@ func CreateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 		return err
 	}
 
-	for _, s := range sets {
-		opt := optMap[s.Name]
+	for _, r := range requests {
+		opt := optMap[r.Operand]
 		err = WaitForSubCsvReady(olmClient, metav1.ObjectMeta{Name: opt.Name, Namespace: opt.Namespace})
 		if err != nil {
 			return err
@@ -106,37 +107,37 @@ func CreateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 }
 
 // UpdateTest updates a OperandRequest instance
-func UpdateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *framework.TestCtx) error {
-	namespace, err := ctx.GetNamespace()
-	if err != nil {
-		return err
-	}
-	requestInstance := &operator.OperandRequest{}
-	fmt.Println("--- UPDATE: subscription")
-	// Get OperandRequest instance
-	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandRequestCrName, Namespace: namespace}, requestInstance)
-	if err != nil {
-		return err
-	}
+// func UpdateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *framework.TestCtx) error {
+// 	namespace, err := ctx.GetNamespace()
+// 	if err != nil {
+// 		return err
+// 	}
+// 	requestInstance := &operator.OperandRequest{}
+// 	fmt.Println("--- UPDATE: subscription")
+// 	// Get OperandRequest instance
+// 	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandRequestCrName, Namespace: namespace}, requestInstance)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	requestInstance.Spec.Services[0].Channel = "clusterwide-alpha"
-	err = f.Client.Update(goctx.TODO(), requestInstance)
-	if err != nil {
-		return err
-	}
+// 	requestInstance.Spec.Requests[0].Channel = "clusterwide-alpha"
+// 	err = f.Client.Update(goctx.TODO(), requestInstance)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	// wait for updated csv ready
-	optMap, err := GetOperators(f, namespace)
-	if err != nil {
-		return err
-	}
-	opt := optMap[requestInstance.Spec.Services[0].Name]
-	err = WaitForSubCsvReady(olmClient, metav1.ObjectMeta{Name: opt.Name, Namespace: opt.Namespace})
-	if err != nil {
-		return err
-	}
-	return nil
-}
+// 	// wait for updated csv ready
+// 	optMap, err := GetOperators(f, namespace)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	opt := optMap[requestInstance.Spec.Services[0].Name]
+// 	err = WaitForSubCsvReady(olmClient, metav1.ObjectMeta{Name: opt.Name, Namespace: opt.Namespace})
+// 	if err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
 
 //DeleteTest delete a OperandRequest instance
 func DeleteTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *framework.TestCtx) error {
@@ -152,7 +153,8 @@ func DeleteTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 		return err
 	}
 	// Mark first operator state as absent
-	requestInstance.Spec.Services[0].State = "absent"
+	operandName := requestInstance.Spec.Requests[0].Operand
+	requestInstance.Spec.Requests = requestInstance.Spec.Requests[1:]
 	err = f.Client.Update(goctx.TODO(), requestInstance)
 	if err != nil {
 		return err
@@ -162,7 +164,7 @@ func DeleteTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 	if err != nil {
 		return err
 	}
-	opt := optMap[requestInstance.Spec.Services[0].Name]
+	opt := optMap[operandName]
 	// Waiting for subscription deleted
 	err = WaitForSubscriptionDelete(olmClient, metav1.ObjectMeta{Name: opt.Name, Namespace: opt.Namespace})
 	if err != nil {
@@ -237,10 +239,10 @@ func UpdateOperandRegistryTest(olmClient *olmclient.Clientset, f *framework.Fram
 
 // GetOperators get a operator list waiting for being installed
 func GetOperators(f *framework.Framework, namespace string) (map[string]operator.Operator, error) {
-	moInstance := &operator.OperandRegistry{}
+	registryInstance := &operator.OperandRegistry{}
 	lastReason := ""
 	waitErr := utilwait.PollImmediate(config.WaitForRetry, config.APITimeout, func() (done bool, err error) {
-		err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandRegistryCrName, Namespace: namespace}, moInstance)
+		err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandRegistryCrName, Namespace: namespace}, registryInstance)
 		if err != nil {
 			if errors.IsNotFound(err) {
 				lastReason = fmt.Sprintf("Waiting on odlm instance to be created [operand-deployment-lifecycle-manager]")
@@ -254,7 +256,7 @@ func GetOperators(f *framework.Framework, namespace string) (map[string]operator
 		return nil, fmt.Errorf("%v: %s", waitErr, lastReason)
 	}
 	optMap := make(map[string]operator.Operator)
-	for _, v := range moInstance.Spec.Operators {
+	for _, v := range registryInstance.Spec.Operators {
 		optMap[v.Name] = v
 	}
 	return optMap, nil

@@ -31,27 +31,46 @@ spec:
         metadata:
           type: object
         spec:
-          description: OperandRequestSpec defines the desired state of OperandRequest
+          description: The OperandRequestSpec identifies one or more specific operands
+            (from a specific Registry) that should actually be installed
           properties:
-            services:
-              description: Services defines a list of operator installation states
+            requests:
+              description: Requests defines a list of operand installation
               items:
-                description: RequestService is the service configuration for a common
-                  service
+                description: Request identifies a operand detail
                 properties:
-                  channel:
+                  bindings:
+                    items:
+                      properties:
+                        configMap:
+                          type: string
+                        scope:
+                          enum:
+                          - public
+                          - private
+                          type: string
+                        secret:
+                          type: string
+                        serviceAccount:
+                          type: string
+                      type: object
+                    type: array
+                  description:
                     type: string
-                  name:
+                  operand:
+                    description: Names the OperandRegistry entry for the operand to
+                      be deployed
                     type: string
-                  state:
+                  registry:
+                    type: string
+                  registryNamespace:
                     type: string
                 required:
-                - name
-                - state
+                - operand
                 type: object
               type: array
           required:
-          - services
+          - requests
           type: object
         status:
           description: OperandRequestStatus defines the observed state of OperandRequest
