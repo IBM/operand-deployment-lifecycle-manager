@@ -193,43 +193,47 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 	}
 
 	// Fetch the OperandRequest instance
-	operandRequestInstance := &operatorv1alpha1.OperandRequest{}
-	if err := r.client.Get(context.TODO(), request.NamespacedName, operandRequestInstance); err != nil {
+	requestInstance := &operatorv1alpha1.OperandRequest{}
+	if err := r.client.Get(context.TODO(), request.NamespacedName, requestInstance); err != nil {
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// Set default registry and registryNamespace for request cr
-	operandRequestInstance.SetDefaults()
-	if err := r.client.Update(context.TODO(), operandRequestInstance); err != nil {
-		return reconcile.Result{}, err
-	}
-
 	// Add finalizer
-	if operandRequestInstance.GetFinalizers() == nil {
-		if err := r.addFinalizer(operandRequestInstance); err != nil {
+	if requestInstance.GetFinalizers() == nil {
+		if err := r.addFinalizer(requestInstance); err != nil {
 			return reconcile.Result{}, err
 		}
 	}
 
 	// Remove finalizer when DeletionTimestamp none zero
-	if !operandRequestInstance.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !requestInstance.ObjectMeta.DeletionTimestamp.IsZero() {
 		// Delete all the subscriptions that created by current request
-		for _, req := range operandRequestInstance.Spec.Requests {
-			if err := r.deleteSubscription(operandRequestInstance, req); err != nil {
+		for _, req := range requestInstance.Spec.Requests {
+			registryInstance, err := r.getRegistryInstance(req.Registry, req.RegistryNamespace)
+			if err != nil {
 				return reconcile.Result{}, err
+			}
+			configInstance, err := r.getConfigInstance(req.Registry, req.RegistryNamespace)
+			if err != nil {
+				return reconcile.Result{}, err
+			}
+			for _, operand := range req.Operands {
+				if err := r.deleteSubscription(requestInstance, registryInstance, configInstance, operand); err != nil {
+					return reconcile.Result{}, err
+				}
 			}
 		}
 		// Update finalizer to allow delete CR
-		operandRequestInstance.SetFinalizers(nil)
-		err := r.client.Update(context.TODO(), operandRequestInstance)
+		requestInstance.SetFinalizers(nil)
+		err := r.client.Update(context.TODO(), requestInstance)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
 		return reconcile.Result{}, nil
 	}
 
-	if err := r.reconcileOperator(operandRequestInstance); err != nil {
+	if err := r.reconcileOperator(requestInstance); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -243,18 +247,18 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 	}
 
 	// Reconcile the Operand
-	merr := r.reconcileOperand(operandRequestInstance)
+	merr := r.reconcileOperand(requestInstance)
 
 	if len(merr.errors) != 0 {
 		return reconcile.Result{}, merr
 	}
 
-	if err := r.updateMemberStatus(operandRequestInstance); err != nil {
+	if err := r.updateMemberStatus(requestInstance); err != nil {
 		return reconcile.Result{}, err
 	}
 
 	// Check if all csv deploy successed
-	if operandRequestInstance.Status.Phase != operatorv1alpha1.ClusterPhaseRunning {
+	if requestInstance.Status.Phase != operatorv1alpha1.ClusterPhaseRunning {
 		reqLogger.Info("Waiting for all the operands deploy successed")
 		return reconcile.Result{RequeueAfter: 5}, nil
 	}

@@ -35,37 +35,39 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1a
 	reqLogger := log.WithValues()
 	reqLogger.Info("Reconciling Operator")
 	for _, req := range requestInstance.Spec.Requests {
-		registryInstance, err := r.getRegistryInstance(req)
-		if err != nil {
-			return err
-		}
-		// Check the requested Operand if exist in specific OperandRegistry
-		opt := r.getOperatorFromRegistryInstance(req, registryInstance)
-		if opt != nil {
-			// Check subscription if exist
-			found, err := r.olmClient.OperatorsV1alpha1().Subscriptions(opt.Namespace).Get(opt.Name, metav1.GetOptions{})
+		for _, operand := range req.Operands {
+			registryInstance, err := r.getRegistryInstance(req.Registry, req.RegistryNamespace)
 			if err != nil {
-				if errors.IsNotFound(err) {
-					// Subscription does not exist, create a new one
-					if err = r.createSubscription(requestInstance, opt); err != nil {
-						return err
-					}
-					continue
-				}
 				return err
 			}
-			// Subscription existing and managed by OperandRequest controller
-			if _, ok := found.Labels["operator.ibm.com/opreq-control"]; ok {
-				// Subscription channel changed, update it.
-				if found.Spec.Channel != opt.Channel {
-					found.Spec.Channel = opt.Channel
-					if err = r.updateSubscription(requestInstance, found); err != nil {
-						return err
+			// Check the requested Operand if exist in specific OperandRegistry
+			opt := r.getOperatorFromRegistryInstance(operand, registryInstance)
+			if opt != nil {
+				// Check subscription if exist
+				found, err := r.olmClient.OperatorsV1alpha1().Subscriptions(opt.Namespace).Get(opt.Name, metav1.GetOptions{})
+				if err != nil {
+					if errors.IsNotFound(err) {
+						// Subscription does not exist, create a new one
+						if err = r.createSubscription(requestInstance, opt); err != nil {
+							return err
+						}
+						continue
 					}
+					return err
 				}
-			} else {
-				// Subscription existing and not managed by OperandRequest controller
-				reqLogger.WithValues("Subscription.Namespace", found.Namespace, "Subscription.Name", found.Name).Info("Subscription has created by other user, ignore update/delete it.")
+				// Subscription existing and managed by OperandRequest controller
+				if _, ok := found.Labels["operator.ibm.com/opreq-control"]; ok {
+					// Subscription channel changed, update it.
+					if found.Spec.Channel != opt.Channel {
+						found.Spec.Channel = opt.Channel
+						if err = r.updateSubscription(requestInstance, found); err != nil {
+							return err
+						}
+					}
+				} else {
+					// Subscription existing and not managed by OperandRequest controller
+					reqLogger.WithValues("Subscription.Namespace", found.Namespace, "Subscription.Name", found.Name).Info("Subscription has created by other user, ignore update/delete it.")
+				}
 			}
 		}
 		// SetCondition for notfind registry
@@ -136,21 +138,12 @@ func (r *ReconcileOperandRequest) updateSubscription(cr *operatorv1alpha1.Operan
 	return nil
 }
 
-func (r *ReconcileOperandRequest) deleteSubscription(cr *operatorv1alpha1.OperandRequest, req operatorv1alpha1.Request) error {
-	logger := log.WithValues("Subscription.Name", req.Operand)
+func (r *ReconcileOperandRequest) deleteSubscription(requestInstance *operatorv1alpha1.OperandRequest, registryInstance *operatorv1alpha1.OperandRegistry, configInstance *operatorv1alpha1.OperandConfig, operand operatorv1alpha1.Operand) error {
+	logger := log.WithValues("Subscription.Name", operand.Name)
+	config := r.getServiceFromConfigInstance(operand, configInstance)
+	opt := r.getOperatorFromRegistryInstance(operand, registryInstance)
 
-	registryInstance, err := r.getRegistryInstance(req)
-	if err != nil {
-		return err
-	}
-	configInstance, err := r.getConfigInstance(req)
-	if err != nil {
-		return err
-	}
-	config := r.getServiceFromConfigInstance(req, configInstance)
-	opt := r.getOperatorFromRegistryInstance(req, registryInstance)
-
-	csv, err := r.getClusterServiceVersion(req.Operand)
+	csv, err := r.getClusterServiceVersion(operand.Name)
 	// If can't get CSV, requeue the request
 	if err != nil {
 		return err
@@ -162,8 +155,8 @@ func (r *ReconcileOperandRequest) deleteSubscription(cr *operatorv1alpha1.Operan
 			return err
 		}
 		logger.Info("Deleting the ClusterServiceVersion")
-		cr.SetDeletingCondition(csv.Name, operatorv1alpha1.ResourceTypeCsv)
-		if err := r.client.Status().Update(context.TODO(), cr); err != nil {
+		requestInstance.SetDeletingCondition(csv.Name, operatorv1alpha1.ResourceTypeCsv)
+		if err := r.client.Status().Update(context.TODO(), requestInstance); err != nil {
 			return err
 		}
 		if err := r.olmClient.OperatorsV1alpha1().ClusterServiceVersions(csv.Namespace).Delete(csv.Name, &metav1.DeleteOptions{}); err != nil {
@@ -173,16 +166,16 @@ func (r *ReconcileOperandRequest) deleteSubscription(cr *operatorv1alpha1.Operan
 
 	if opt != nil {
 		logger.Info("Deleting the Subscription")
-		cr.SetDeletingCondition(opt.Name, operatorv1alpha1.ResourceTypeSub)
-		if err := r.client.Status().Update(context.TODO(), cr); err != nil {
+		requestInstance.SetDeletingCondition(opt.Name, operatorv1alpha1.ResourceTypeSub)
+		if err := r.client.Status().Update(context.TODO(), requestInstance); err != nil {
 			return err
 		}
 		if err := r.olmClient.OperatorsV1alpha1().Subscriptions(opt.Namespace).Delete(opt.Name, &metav1.DeleteOptions{}); err != nil {
 			return client.IgnoreNotFound(err)
 		}
 
-		cr.CleanMemberStatus(opt.Name)
-		if err := r.client.Status().Update(context.TODO(), cr); err != nil {
+		requestInstance.CleanMemberStatus(opt.Name)
+		if err := r.client.Status().Update(context.TODO(), requestInstance); err != nil {
 			return err
 		}
 		if err := r.deleteOperatorStatus(registryInstance, opt.Name); err != nil {
@@ -261,17 +254,17 @@ func generateOperatorGroup(namespace string, targetNamespaces []string) *olmv1.O
 }
 
 // Get the OperandRegistry instance with the name and namespace
-func (r *ReconcileOperandRequest) getRegistryInstance(req operatorv1alpha1.Request) (*operatorv1alpha1.OperandRegistry, error) {
+func (r *ReconcileOperandRequest) getRegistryInstance(name, namespace string) (*operatorv1alpha1.OperandRegistry, error) {
 	reg := &operatorv1alpha1.OperandRegistry{}
-	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: req.Registry, Namespace: req.RegistryNamespace}, reg); err != nil {
+	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, reg); err != nil {
 		return nil, err
 	}
 	return reg, nil
 }
 
-func (r *ReconcileOperandRequest) getOperatorFromRegistryInstance(req operatorv1alpha1.Request, registryInstance *operatorv1alpha1.OperandRegistry) *operatorv1alpha1.Operator {
+func (r *ReconcileOperandRequest) getOperatorFromRegistryInstance(operand operatorv1alpha1.Operand, registryInstance *operatorv1alpha1.OperandRegistry) *operatorv1alpha1.Operator {
 	for _, o := range registryInstance.Spec.Operators {
-		if o.Name == req.Operand {
+		if o.Name == operand.Name {
 			return &o
 		}
 	}

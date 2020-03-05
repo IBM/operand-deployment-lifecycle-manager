@@ -162,9 +162,13 @@ func mos(name, namespace string) *v1alpha1.OperandRequest {
 		Spec: v1alpha1.OperandRequestSpec{
 			Requests: []v1alpha1.Request{
 				{
-					Operand:           "etcd",
 					Registry:          "common-service",
 					RegistryNamespace: "ibm-common-services",
+					Operands: []v1alpha1.Operand{
+						{
+							Name: "etcd",
+						},
+					},
 				},
 			},
 		},

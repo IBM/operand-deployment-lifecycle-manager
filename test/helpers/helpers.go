@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 
+	"github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 	operator "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 	"github.com/IBM/operand-deployment-lifecycle-manager/test/config"
 )
@@ -57,25 +58,26 @@ func CreateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 	}
 
 	// create OperandRequest custom resource
-	requests := []operator.Request{}
-	requests = append(requests, operator.Request{
-		Operand:           "etcd",
-		Registry:          "common-service",
-		RegistryNamespace: "ibm-common-services",
-	}, operator.Request{
-
-		Operand:           "jenkins",
-		Registry:          "common-service",
-		RegistryNamespace: "ibm-common-services",
-	})
-
 	requestInstance := &operator.OperandRequest{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      config.OperandRequestCrName,
 			Namespace: namespace,
 		},
-		Spec: operator.OperandRequestSpec{
-			Requests: requests,
+		Spec: v1alpha1.OperandRequestSpec{
+			Requests: []v1alpha1.Request{
+				{
+					Registry:          "common-service",
+					RegistryNamespace: "ibm-common-services",
+					Operands: []v1alpha1.Operand{
+						{
+							Name: "etcd",
+						},
+						{
+							Name: "jenkins",
+						},
+					},
+				},
+			},
 		},
 	}
 
@@ -91,11 +93,13 @@ func CreateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 		return err
 	}
 
-	for _, r := range requests {
-		opt := optMap[r.Operand]
-		err = WaitForSubCsvReady(olmClient, metav1.ObjectMeta{Name: opt.Name, Namespace: opt.Namespace})
-		if err != nil {
-			return err
+	for _, req := range requestInstance.Spec.Requests {
+		for _, operand := range req.Operands {
+			opt := optMap[operand.Name]
+			err = WaitForSubCsvReady(olmClient, metav1.ObjectMeta{Name: opt.Name, Namespace: opt.Namespace})
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -152,9 +156,9 @@ func DeleteTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 	if err != nil {
 		return err
 	}
-	// Mark first operator state as absent
-	operandName := requestInstance.Spec.Requests[0].Operand
-	requestInstance.Spec.Requests = requestInstance.Spec.Requests[1:]
+	// Delete first operator
+	operandName := requestInstance.Spec.Requests[0].Operands[0].Name
+	requestInstance.Spec.Requests[0].Operands = requestInstance.Spec.Requests[0].Operands[1:]
 	err = f.Client.Update(goctx.TODO(), requestInstance)
 	if err != nil {
 		return err
