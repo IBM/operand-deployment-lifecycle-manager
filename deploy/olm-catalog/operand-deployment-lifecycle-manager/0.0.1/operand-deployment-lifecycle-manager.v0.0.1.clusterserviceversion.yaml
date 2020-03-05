@@ -279,13 +279,13 @@ metadata:
                 "sourceNamespace": "openshift-marketplace"
               },
               {
+                "channel": "alpha",
+                "description": "Operator to deploy Prometheus and Alertmanager instances with RBAC enabled. It will also enable Multicloud monitoring.",
                 "name": "ibm-monitoring-prometheusext-operator",
                 "namespace": "ibm-common-services",
-                "channel": "alpha",
                 "packageName": "ibm-monitoring-prometheusext-operator-app",
                 "sourceName": "opencloud-operators",
-                "sourceNamespace": "openshift-marketplace",
-                "description": "Operator to deploy Prometheus and Alertmanager instances with RBAC enabled. It will also enable Multicloud monitoring."
+                "sourceNamespace": "openshift-marketplace"
               }
             ]
           }
@@ -300,22 +300,28 @@ metadata:
           "spec": {
             "requests": [
               {
-                "operand": "ibm-cert-manager-operator"
-              },
-              {
-                "operand": "ibm-mongodb-operator"
-              },
-              {
-                "operand": "ibm-iam-operator"
-              },
-              {
-                "operand": "ibm-monitoring-exporters-operator"
-              },
-              {
-                "operand": "ibm-healthcheck-operator"
-              },
-              {
-                "operand": "ibm-monitoring-prometheusext-operator"
+                "operands": [
+                  {
+                    "name": "ibm-cert-manager-operator"
+                  },
+                  {
+                    "name": "ibm-mongodb-operator"
+                  },
+                  {
+                    "name": "ibm-iam-operator"
+                  },
+                  {
+                    "name": "ibm-monitoring-exporters-operator"
+                  },
+                  {
+                    "name": "ibm-monitoring-prometheusext-operator"
+                  },
+                  {
+                    "name": "ibm-healthcheck-operator"
+                  }
+                ],
+                "registry": "common-service",
+                "registryNamespace": "ibm-common-services"
               }
             ]
           }

@@ -39,34 +39,43 @@ spec:
               items:
                 description: Request identifies a operand detail
                 properties:
-                  bindings:
-                    items:
-                      properties:
-                        configMap:
-                          type: string
-                        scope:
-                          enum:
-                          - public
-                          - private
-                          type: string
-                        secret:
-                          type: string
-                        serviceAccount:
-                          type: string
-                      type: object
-                    type: array
                   description:
                     type: string
-                  operand:
+                  operands:
                     description: Names the OperandRegistry entry for the operand to
                       be deployed
-                    type: string
+                    items:
+                      properties:
+                        bindings:
+                          items:
+                            properties:
+                              configMap:
+                                type: string
+                              scope:
+                                enum:
+                                - public
+                                - private
+                                type: string
+                              secret:
+                                type: string
+                              serviceAccount:
+                                type: string
+                            type: object
+                          type: array
+                        name:
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    type: array
                   registry:
                     type: string
                   registryNamespace:
                     type: string
                 required:
-                - operand
+                - operands
+                - registry
+                - registryNamespace
                 type: object
               type: array
           required:
