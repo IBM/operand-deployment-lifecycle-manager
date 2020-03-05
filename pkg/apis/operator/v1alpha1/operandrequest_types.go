@@ -40,11 +40,15 @@ type OperandRequestSpec struct {
 // Request identifies a operand detail
 type Request struct {
 	// Names the OperandRegistry entry for the operand to be deployed
-	Operand           string    `json:"operand"`
-	Registry          string    `json:"registry,omitempty"`
-	RegistryNamespace string    `json:"registryNamespace,omitempty"`
+	Operands          []Operand `json:"operands"`
+	Registry          string    `json:"registry"`
+	RegistryNamespace string    `json:"registryNamespace"`
 	Description       string    `json:"description,omitempty"`
-	Bindings          []Binding `json:"bindings,omitempty"`
+}
+
+type Operand struct {
+	Name     string    `json:"name"`
+	Bindings []Binding `json:"bindings,omitempty"`
 }
 
 type Binding struct {
@@ -244,18 +248,6 @@ func newMemberStatus(name string, operatorPhase olmv1alpha1.ClusterServiceVersio
 
 func (r *OperandRequest) SetClusterPhase(p ClusterPhase) {
 	r.Status.Phase = p
-}
-
-// Set the default value for Requests spec
-func (r *OperandRequest) SetDefaults() {
-	for i, req := range r.Spec.Requests {
-		if req.Registry == "" {
-			r.Spec.Requests[i].Registry = "common-service"
-		}
-		if req.RegistryNamespace == "" {
-			r.Spec.Requests[i].RegistryNamespace = "ibm-common-services"
-		}
-	}
 }
 
 func init() {
