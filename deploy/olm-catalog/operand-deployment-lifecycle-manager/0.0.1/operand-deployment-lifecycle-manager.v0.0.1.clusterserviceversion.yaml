@@ -115,6 +115,12 @@ metadata:
                 "spec": {
                   "exporter": {}
                 }
+              },
+              {
+                "name": "ibm-monitoring-prometheusext-operator",
+                "spec": {
+                  "prometheusExt": {}
+                }
               }
             ]
           }
@@ -271,6 +277,15 @@ metadata:
                 "packageName": "ibm-monitoring-exporters-operator-app",
                 "sourceName": "opencloud-operators",
                 "sourceNamespace": "openshift-marketplace"
+              },
+              {
+                "name": "ibm-monitoring-prometheusext-operator",
+                "namespace": "ibm-common-services",
+                "channel": "alpha",
+                "packageName": "ibm-monitoring-prometheusext-operator-app",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace",
+                "description": "Operator to deploy Prometheus and Alertmanager instances with RBAC enabled. It will also enable Multicloud monitoring."
               }
             ]
           }
@@ -298,6 +313,9 @@ metadata:
               },
               {
                 "operand": "ibm-healthcheck-operator"
+              },
+              {
+                "operand": "ibm-monitoring-prometheusext-operator"
               }
             ]
           }

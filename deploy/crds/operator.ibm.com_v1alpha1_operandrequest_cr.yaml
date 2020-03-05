@@ -9,6 +9,7 @@ spec:
   - operand: ibm-mongodb-operator
   - operand: ibm-iam-operator
   - operand: ibm-monitoring-exporters-operator
+  - operand: ibm-monitoring-prometheusext-operator
   - operand: ibm-healthcheck-operator
   # - operand: ibm-management-ingress-operator
   # - operand: ibm-ingress-nginx-operator

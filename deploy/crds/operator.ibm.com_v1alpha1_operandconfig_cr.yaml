@@ -60,3 +60,6 @@ spec:
   - name: ibm-monitoring-exporters-operator
     spec:
       exporter: {}
+  - name: ibm-monitoring-prometheusext-operator
+    spec:
+      prometheusExt: {}

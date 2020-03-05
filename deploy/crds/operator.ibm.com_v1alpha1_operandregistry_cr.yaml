@@ -117,3 +117,10 @@ spec:
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
     description: Operator to provision node-exporter, kube-state-metrics and collectd exporter with tls enabled.
+  - name: ibm-monitoring-prometheusext-operator
+    namespace: ibm-common-services
+    channel: alpha
+    packageName: ibm-monitoring-prometheusext-operator-app
+    sourceName: opencloud-operators
+    sourceNamespace: openshift-marketplace
+    description: Operator to deploy Prometheus and Alertmanager instances with RBAC enabled. It will also enable Multicloud monitoring.
