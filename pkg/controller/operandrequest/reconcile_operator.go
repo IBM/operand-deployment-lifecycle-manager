@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 )
@@ -138,7 +139,7 @@ func (r *ReconcileOperandRequest) updateSubscription(cr *operatorv1alpha1.Operan
 	return nil
 }
 
-func (r *ReconcileOperandRequest) deleteSubscription(requestInstance *operatorv1alpha1.OperandRequest, registryInstance *operatorv1alpha1.OperandRegistry, configInstance *operatorv1alpha1.OperandConfig, operand operatorv1alpha1.Operand) error {
+func (r *ReconcileOperandRequest) deleteSubscription(requestInstance *operatorv1alpha1.OperandRequest, registryInstance *operatorv1alpha1.OperandRegistry, configInstance *operatorv1alpha1.OperandConfig, operand operatorv1alpha1.Operand, reconcileReq reconcile.Request) error {
 	logger := log.WithValues("Subscription.Name", operand.Name)
 	config := r.getServiceFromConfigInstance(operand, configInstance)
 	opt := r.getOperatorFromRegistryInstance(operand, registryInstance)
@@ -178,7 +179,7 @@ func (r *ReconcileOperandRequest) deleteSubscription(requestInstance *operatorv1
 		if err := r.client.Status().Update(context.TODO(), requestInstance); err != nil {
 			return err
 		}
-		if err := r.deleteOperatorStatus(registryInstance, opt.Name); err != nil {
+		if err := r.deleteRegistryStatus(registryInstance, reconcileReq, opt.Name); err != nil {
 			return err
 		}
 	}

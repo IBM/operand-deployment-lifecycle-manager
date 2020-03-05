@@ -96,8 +96,23 @@ spec:
           properties:
             operatorsStatus:
               additionalProperties:
-                description: OperatorPhase defines the operator status
-                type: string
+                properties:
+                  phase:
+                    description: OperatorPhase defines the operator status
+                    type: string
+                  reconcileRequests:
+                    items:
+                      properties:
+                        name:
+                          type: string
+                        namespace:
+                          type: string
+                      required:
+                      - name
+                      - namespace
+                      type: object
+                    type: array
+                type: object
               description: OperatorsStatus defines operator running state
               type: object
           type: object

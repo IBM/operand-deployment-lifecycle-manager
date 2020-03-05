@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -84,7 +85,17 @@ type OperandRegistryStatus struct {
 
 	// OperatorsStatus defines operator running state
 	// +optional
-	OperatorsStatus map[string]OperatorPhase `json:"operatorsStatus,omitempty"`
+	OperatorsStatus map[string]OperatorStatus `json:"operatorsStatus,omitempty"`
+}
+
+type OperatorStatus struct {
+	Phase             OperatorPhase      `json:"phase,omitempty"`
+	ReconcileRequests []ReconcileRequest `json:"reconcileRequests,omitempty"`
+}
+
+type ReconcileRequest struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -122,12 +133,57 @@ type OperandRegistryList struct {
 }
 
 // Set the default value for Registry spec
-func (r *OperandRegistrySpec) SetDefaults() {
-	for i, o := range r.Operators {
+func (r *OperandRegistry) SetDefaults() {
+	for i, o := range r.Spec.Operators {
 		if o.Scope == "" {
-			r.Operators[i].Scope = ScopePrivate
+			r.Spec.Operators[i].Scope = ScopePrivate
 		}
 	}
+}
+
+// Init OperandRegistry status
+func (r *OperandRegistry) InitStatus() {
+	if r.Status.OperatorsStatus == nil {
+		r.Status.OperatorsStatus = make(map[string]OperatorStatus)
+		for _, opt := range r.Spec.Operators {
+			opratorStatus := OperatorStatus{
+				Phase: OperatorReady,
+			}
+			r.Status.OperatorsStatus[opt.Name] = opratorStatus
+		}
+	}
+}
+
+func getReconcileRequest(reconcileRequests []ReconcileRequest, reconcileRequest reconcile.Request) int {
+	for pos, r := range reconcileRequests {
+		if r.Name == reconcileRequest.Name && r.Namespace == reconcileRequest.Namespace {
+			return pos
+		}
+	}
+	return -1
+}
+
+func (r *OperandRegistry) SetOperatorStatus(name string, phase OperatorPhase, request reconcile.Request) {
+	s := r.Status.OperatorsStatus[name]
+	if s.Phase != phase {
+		s.Phase = phase
+	}
+
+	if pos := getReconcileRequest(s.ReconcileRequests, request); pos == -1 {
+		s.ReconcileRequests = append(s.ReconcileRequests, ReconcileRequest{Name: request.Name, Namespace: request.Namespace})
+	}
+	r.Status.OperatorsStatus[name] = s
+}
+
+func (r *OperandRegistry) CleanOperatorStatus(name string, request reconcile.Request) {
+	s := r.Status.OperatorsStatus[name]
+	if pos := getReconcileRequest(s.ReconcileRequests, request); pos != -1 {
+		s.ReconcileRequests = append(s.ReconcileRequests[:pos], s.ReconcileRequests[pos+1:]...)
+	}
+	if len(s.ReconcileRequests) == 0 {
+		s.Phase = OperatorReady
+	}
+	r.Status.OperatorsStatus[name] = s
 }
 
 const OperandRegistryNamespace = "ibm-common-services"
