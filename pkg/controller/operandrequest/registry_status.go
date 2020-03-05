@@ -19,38 +19,13 @@ package operandrequest
 import (
 	"context"
 
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 )
 
-func (r *ReconcileOperandRequest) initOperatorStatus(cr *operatorv1alpha1.OperandRegistry) error {
-
-	if cr.Status.OperatorsStatus == nil {
-		cr.Status.OperatorsStatus = make(map[string]operatorv1alpha1.OperatorPhase)
-	}
-	change := false
-	for _, operator := range cr.Spec.Operators {
-		if _, ok := cr.Status.OperatorsStatus[operator.Name]; !ok {
-			cr.Status.OperatorsStatus[operator.Name] = operatorv1alpha1.OperatorReady
-			change = true
-		}
-	}
-
-	if change {
-		if err := r.client.Status().Update(context.TODO(), cr); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (r *ReconcileOperandRequest) updateOperatorStatus(cr *operatorv1alpha1.OperandRegistry, operatorName string, operatorStatus operatorv1alpha1.OperatorPhase) error {
-
-	if cr.Status.OperatorsStatus == nil {
-		cr.Status.OperatorsStatus = make(map[string]operatorv1alpha1.OperatorPhase)
-	}
-
-	cr.Status.OperatorsStatus[operatorName] = operatorStatus
+func (r *ReconcileOperandRequest) updateRegistryStatus(cr *operatorv1alpha1.OperandRegistry, reconcileReq reconcile.Request, optName string, optPhase operatorv1alpha1.OperatorPhase) error {
+	cr.SetOperatorStatus(optName, optPhase, reconcileReq)
 
 	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
 		return err
@@ -58,15 +33,10 @@ func (r *ReconcileOperandRequest) updateOperatorStatus(cr *operatorv1alpha1.Oper
 	return nil
 }
 
-func (r *ReconcileOperandRequest) deleteOperatorStatus(cr *operatorv1alpha1.OperandRegistry, operatorName string) error {
-
-	if cr.Status.OperatorsStatus != nil {
-		delete(cr.Status.OperatorsStatus, operatorName)
-	}
-
+func (r *ReconcileOperandRequest) deleteRegistryStatus(cr *operatorv1alpha1.OperandRegistry, reconcileReq reconcile.Request, optName string) error {
+	cr.CleanOperatorStatus(optName, reconcileReq)
 	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
 		return err
 	}
-
 	return nil
 }

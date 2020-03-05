@@ -20,7 +20,6 @@ import (
 	"context"
 	"os"
 
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -100,24 +99,20 @@ type ReconcileOperandRegistry struct {
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileOperandRegistry) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// Commented out unused logging
-	// reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
-	// reqLogger.Info("Reconciling OperandRegistry")
+	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
+	reqLogger.Info("Reconciling OperandRegistry")
 
 	// Fetch the OperandRegistry instance
 	instance := &operatorv1alpha1.OperandRegistry{}
 	if err := r.client.Get(context.TODO(), request.NamespacedName, instance); err != nil {
-		if errors.IsNotFound(err) {
-			// Request object not found, could have been deleted after reconcile request.
-			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
-			// Return and don't requeue
-			return reconcile.Result{}, nil
-		}
-		// Error reading the object - requeue the request.
+		return reconcile.Result{}, client.IgnoreNotFound(err)
+	}
+	instance.SetDefaults()
+	if err := r.client.Update(context.TODO(), instance); err != nil {
 		return reconcile.Result{}, err
 	}
-	instance.Spec.SetDefaults()
-	err := r.client.Update(context.TODO(), instance)
-	if err != nil {
+	instance.InitStatus()
+	if err := r.client.Status().Update(context.TODO(), instance); err != nil {
 		return reconcile.Result{}, err
 	}
 	return reconcile.Result{}, nil
