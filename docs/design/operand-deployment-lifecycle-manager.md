@@ -11,6 +11,7 @@
   - [OperandRequests Spec](#operandrequests-spec)
     - [Data Sharing Between Different Operands](#data-sharing-between-different-operands)
   - [E2E Use Case](#e2e-use-case)
+  - [Operator/Operand Upgrade](#operatoroperand-upgrade)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -282,3 +283,8 @@ roleRef:
 4. The rest works will be done by OLM and ODLM
 
     And finally user will get what they want.
+
+## Operator/Operand Upgrade
+
+- For operator/operand upgrade, you only need to publish your operator OLM to your operator channel, and OLM will handle the upgrade automatically.
+- If there are major version, then you may want to update `channel` in `OperandRegistry` to trgger upgrade.
