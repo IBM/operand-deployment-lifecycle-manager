@@ -47,7 +47,7 @@ func (r *ReconcileOperandRequest) reconcileOperand(requestInstance *operatorv1al
 				continue
 			}
 			// Check the requested Service Config if exist in specific OperandConfig
-			svc := r.getServiceFromConfigInstance(operand, configInstance)
+			svc := r.getServiceFromConfigInstance(operand.Name, configInstance)
 			if svc != nil {
 				reqLogger.Info(fmt.Sprintf("Reconciling custom resource %s", svc.Name))
 				// Looking for the CSV
@@ -306,9 +306,9 @@ func (r *ReconcileOperandRequest) getConfigInstance(name, namespace string) (*op
 	return config, nil
 }
 
-func (r *ReconcileOperandRequest) getServiceFromConfigInstance(operand operatorv1alpha1.Operand, configInstance *operatorv1alpha1.OperandConfig) *operatorv1alpha1.ConfigService {
+func (r *ReconcileOperandRequest) getServiceFromConfigInstance(operandName string, configInstance *operatorv1alpha1.OperandConfig) *operatorv1alpha1.ConfigService {
 	for _, s := range configInstance.Spec.Services {
-		if s.Name == operand.Name {
+		if s.Name == operandName {
 			return &s
 		}
 	}

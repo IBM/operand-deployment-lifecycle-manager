@@ -212,7 +212,7 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 				return reconcile.Result{}, err
 			}
 			for _, operand := range req.Operands {
-				if err := r.deleteSubscription(requestInstance, registryInstance, configInstance, operand, request); err != nil {
+				if err := r.deleteSubscription(operand.Name, requestInstance, registryInstance, configInstance, request); err != nil {
 					return reconcile.Result{}, err
 				}
 			}
@@ -226,7 +226,7 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, nil
 	}
 
-	if err := r.reconcileOperator(requestInstance); err != nil {
+	if err := r.reconcileOperator(requestInstance, request); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -267,13 +267,13 @@ func (r *ReconcileOperandRequest) waitForInstallPlan(requestInstance *operatorv1
 	err := wait.PollImmediate(time.Second*20, time.Minute*10, func() (bool, error) {
 		ready := true
 		for _, req := range requestInstance.Spec.Requests {
+			registryInstance, err := r.getRegistryInstance(req.Registry, req.RegistryNamespace)
+			if err != nil {
+				return false, err
+			}
 			for _, operand := range req.Operands {
-				registryInstance, err := r.getRegistryInstance(req.Registry, req.RegistryNamespace)
-				if err != nil {
-					return false, err
-				}
 				// Check the requested Operand if exist in specific OperandRegistry
-				opt := r.getOperatorFromRegistryInstance(operand, registryInstance)
+				opt := r.getOperatorFromRegistryInstance(operand.Name, registryInstance)
 				if opt != nil {
 					// Check subscription if exist
 					found, err := r.olmClient.OperatorsV1alpha1().Subscriptions(opt.Namespace).Get(opt.Name, metav1.GetOptions{})

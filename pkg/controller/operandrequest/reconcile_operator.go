@@ -18,7 +18,9 @@ package operandrequest
 
 import (
 	"context"
+	"fmt"
 
+	gset "github.com/deckarep/golang-set"
 	olmv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1"
 	olmv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -32,17 +34,17 @@ import (
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 )
 
-func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1alpha1.OperandRequest) error {
+func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1alpha1.OperandRequest, reconcileReq reconcile.Request) error {
 	reqLogger := log.WithValues()
 	reqLogger.Info("Reconciling Operator")
 	for _, req := range requestInstance.Spec.Requests {
+		registryInstance, err := r.getRegistryInstance(req.Registry, req.RegistryNamespace)
+		if err != nil {
+			return err
+		}
 		for _, operand := range req.Operands {
-			registryInstance, err := r.getRegistryInstance(req.Registry, req.RegistryNamespace)
-			if err != nil {
-				return err
-			}
 			// Check the requested Operand if exist in specific OperandRegistry
-			opt := r.getOperatorFromRegistryInstance(operand, registryInstance)
+			opt := r.getOperatorFromRegistryInstance(operand.Name, registryInstance)
 			if opt != nil {
 				// Check subscription if exist
 				found, err := r.olmClient.OperatorsV1alpha1().Subscriptions(opt.Namespace).Get(opt.Name, metav1.GetOptions{})
@@ -74,7 +76,28 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1a
 		// SetCondition for notfind registry
 	}
 
-	// TBD for delete specific operator
+	// Delete specific operators
+	needDeletedOperands, err := r.getNeedDeletedOperands(requestInstance, reconcileReq)
+	if err != nil {
+		return err
+	}
+	for _, req := range requestInstance.Spec.Requests {
+		registryInstance, err := r.getRegistryInstance(req.Registry, req.RegistryNamespace)
+		if err != nil {
+			return err
+		}
+		configInstance, err := r.getConfigInstance(req.Registry, req.RegistryNamespace)
+		if err != nil {
+			return err
+		}
+		for o := range needDeletedOperands.Iter() {
+			operandN := fmt.Sprintf("%v", o)
+			fmt.Println(operandN)
+			if err := r.deleteSubscription(fmt.Sprintf("%v", o), requestInstance, registryInstance, configInstance, reconcileReq); err != nil {
+				return err
+			}
+		}
+	}
 
 	if err := r.updateMemberStatus(requestInstance); err != nil {
 		return err
@@ -139,12 +162,12 @@ func (r *ReconcileOperandRequest) updateSubscription(cr *operatorv1alpha1.Operan
 	return nil
 }
 
-func (r *ReconcileOperandRequest) deleteSubscription(requestInstance *operatorv1alpha1.OperandRequest, registryInstance *operatorv1alpha1.OperandRegistry, configInstance *operatorv1alpha1.OperandConfig, operand operatorv1alpha1.Operand, reconcileReq reconcile.Request) error {
-	logger := log.WithValues("Subscription.Name", operand.Name)
-	config := r.getServiceFromConfigInstance(operand, configInstance)
-	opt := r.getOperatorFromRegistryInstance(operand, registryInstance)
+func (r *ReconcileOperandRequest) deleteSubscription(operandName string, requestInstance *operatorv1alpha1.OperandRequest, registryInstance *operatorv1alpha1.OperandRegistry, configInstance *operatorv1alpha1.OperandConfig, reconcileReq reconcile.Request) error {
+	logger := log.WithValues("Subscription.Name", operandName)
+	config := r.getServiceFromConfigInstance(operandName, configInstance)
+	opt := r.getOperatorFromRegistryInstance(operandName, registryInstance)
 
-	csv, err := r.getClusterServiceVersion(operand.Name)
+	csv, err := r.getClusterServiceVersion(operandName)
 	// If can't get CSV, requeue the request
 	if err != nil {
 		return err
@@ -184,6 +207,42 @@ func (r *ReconcileOperandRequest) deleteSubscription(requestInstance *operatorv1
 		}
 	}
 	return nil
+}
+
+func (r *ReconcileOperandRequest) getNeedDeletedOperands(requestInstance *operatorv1alpha1.OperandRequest, reconcileReq reconcile.Request) (gset.Set, error) {
+	requestOperands := gset.NewSet()
+	for _, req := range requestInstance.Spec.Requests {
+		for _, o := range req.Operands {
+			requestOperands.Add(o.Name)
+		}
+	}
+
+	deployedOperands, err := r.getDeployedOperands(requestInstance, reconcileReq)
+	if err != nil {
+		return nil, err
+	}
+	needDeleteOperands := deployedOperands.Difference(requestOperands)
+	return needDeleteOperands, nil
+}
+
+func (r *ReconcileOperandRequest) getDeployedOperands(requestInstance *operatorv1alpha1.OperandRequest, reconcileReq reconcile.Request) (gset.Set, error) {
+	deployedOperands := gset.NewSet()
+	for _, req := range requestInstance.Spec.Requests {
+		registryInstance, err := r.getRegistryInstance(req.Registry, req.RegistryNamespace)
+		if err != nil {
+			return nil, err
+		}
+
+		for name, status := range registryInstance.Status.OperatorsStatus {
+			if status.Phase != operatorv1alpha1.OperatorReady {
+				if pos := registryInstance.GetReconcileRequest(name, reconcileReq); pos != -1 {
+					deployedOperands.Add(name)
+				}
+			}
+		}
+	}
+
+	return deployedOperands, nil
 }
 
 func generateClusterObjects(o *operatorv1alpha1.Operator) *clusterObjects {
@@ -263,9 +322,9 @@ func (r *ReconcileOperandRequest) getRegistryInstance(name, namespace string) (*
 	return reg, nil
 }
 
-func (r *ReconcileOperandRequest) getOperatorFromRegistryInstance(operand operatorv1alpha1.Operand, registryInstance *operatorv1alpha1.OperandRegistry) *operatorv1alpha1.Operator {
+func (r *ReconcileOperandRequest) getOperatorFromRegistryInstance(operandName string, registryInstance *operatorv1alpha1.OperandRegistry) *operatorv1alpha1.Operator {
 	for _, o := range registryInstance.Spec.Operators {
-		if o.Name == operand.Name {
+		if o.Name == operandName {
 			return &o
 		}
 	}
