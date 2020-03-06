@@ -58,17 +58,17 @@ type Operator struct {
 type scope string
 
 const (
+	//ScopePrivate means the operand resource can only
+	//be used within the namespace.
 	ScopePrivate scope = "private"
-	ScopePublic  scope = "public"
+	//ScopePublic means the operand resource can only
+	//be used in the cluster.
+	ScopePublic scope = "public"
 )
 
 // OperandRegistrySpec defines the desired state of OperandRegistry
 // +k8s:openapi-gen=true
 type OperandRegistrySpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
-	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
-
 	// Operators is a list of operator OLM definition
 	// +optional
 	// +listType=set
@@ -79,20 +79,18 @@ type OperandRegistrySpec struct {
 // OperandRegistryStatus defines the observed state of OperandRegistry
 // +k8s:openapi-gen=true
 type OperandRegistryStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
-	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
-
 	// OperatorsStatus defines operator running state
 	// +optional
 	OperatorsStatus map[string]OperatorStatus `json:"operatorsStatus,omitempty"`
 }
 
+// OperatorStatus defines operator running state
 type OperatorStatus struct {
 	Phase             OperatorPhase      `json:"phase,omitempty"`
 	ReconcileRequests []ReconcileRequest `json:"reconcileRequests,omitempty"`
 }
 
+// ReconcileRequest records the information of the operandRequest
 type ReconcileRequest struct {
 	Name      string `json:"name"`
 	Namespace string `json:"namespace"`
@@ -132,8 +130,8 @@ type OperandRegistryList struct {
 	Items           []OperandRegistry `json:"items"`
 }
 
-// Set the default value for Registry spec
-func (r *OperandRegistry) SetDefaults() {
+// SetDefaultsRegistry Set the default value for Registry spec
+func (r *OperandRegistry) SetDefaultsRegistry() {
 	for i, o := range r.Spec.Operators {
 		if o.Scope == "" {
 			r.Spec.Operators[i].Scope = ScopePrivate
@@ -141,8 +139,8 @@ func (r *OperandRegistry) SetDefaults() {
 	}
 }
 
-// Init OperandRegistry status
-func (r *OperandRegistry) InitStatus() {
+// InitRegistryStatus Init OperandRegistry status
+func (r *OperandRegistry) InitRegistryStatus() {
 	if r.Status.OperatorsStatus == nil {
 		r.Status.OperatorsStatus = make(map[string]OperatorStatus)
 		for _, opt := range r.Spec.Operators {
@@ -154,6 +152,7 @@ func (r *OperandRegistry) InitStatus() {
 	}
 }
 
+// GetReconcileRequest gets the position of request from OperandRegistry status
 func (r *OperandRegistry) GetReconcileRequest(name string, reconcileRequest reconcile.Request) int {
 	s := r.Status.OperatorsStatus[name]
 	for pos, r := range s.ReconcileRequests {
@@ -164,6 +163,7 @@ func (r *OperandRegistry) GetReconcileRequest(name string, reconcileRequest reco
 	return -1
 }
 
+// SetOperatorStatus sets the operator status in the operandRegistry
 func (r *OperandRegistry) SetOperatorStatus(name string, phase OperatorPhase, request reconcile.Request) {
 	s := r.Status.OperatorsStatus[name]
 	if s.Phase != phase {
@@ -176,6 +176,7 @@ func (r *OperandRegistry) SetOperatorStatus(name string, phase OperatorPhase, re
 	r.Status.OperatorsStatus[name] = s
 }
 
+// CleanOperatorStatus remove the operator status in the operandRegistry
 func (r *OperandRegistry) CleanOperatorStatus(name string, request reconcile.Request) {
 	s := r.Status.OperatorsStatus[name]
 	if pos := r.GetReconcileRequest(name, request); pos != -1 {
@@ -186,8 +187,6 @@ func (r *OperandRegistry) CleanOperatorStatus(name string, request reconcile.Req
 	}
 	r.Status.OperatorsStatus[name] = s
 }
-
-const OperandRegistryNamespace = "ibm-common-services"
 
 func init() {
 	SchemeBuilder.Register(&OperandRegistry{}, &OperandRegistryList{})
