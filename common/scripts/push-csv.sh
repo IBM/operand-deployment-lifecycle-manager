@@ -47,13 +47,26 @@ else
 fi
 
 # Push application to repository
-echo "Push package ${QUAY_REPOSITORY} into namespace ${QUAY_NAMESPACE}"
-curl -H "Content-Type: application/json" \
-     -H "Authorization: ${AUTH_TOKEN}" \
-     -XPOST https://quay.io/cnr/api/v1/packages/"${QUAY_NAMESPACE}"/"${QUAY_REPOSITORY}" -d '
-{
-    "blob": "'"${BLOB}"'",
-    "release": "'"${RELEASE}"'",
-    "media_type": "helm"
-}'
+function push_csv() {
+  echo "Push package ${QUAY_REPOSITORY} into namespace ${QUAY_NAMESPACE}"
+  curl -H "Content-Type: application/json" \
+      -H "Authorization: ${AUTH_TOKEN}" \
+      -XPOST https://quay.io/cnr/api/v1/packages/"${QUAY_NAMESPACE}"/"${QUAY_REPOSITORY}" -d '
+  {
+      "blob": "'"${BLOB}"'",
+      "release": "'"${RELEASE}"'",
+      "media_type": "helm"
+  }'
+}
 
+# Delete application release in repository
+function delete_csv() {
+  echo "Delete release ${RELEASE} of package ${QUAY_REPOSITORY} from namespace ${QUAY_NAMESPACE}"
+  curl -H "Content-Type: application/json" \
+      -H "Authorization: ${AUTH_TOKEN}" \
+      -XDELETE https://quay.io/cnr/api/v1/packages/"${QUAY_NAMESPACE}"/"${QUAY_REPOSITORY}"/"${RELEASE}"/helm
+}
+
+#-------------------------------------- Main --------------------------------------#
+delete_csv
+push_csv
