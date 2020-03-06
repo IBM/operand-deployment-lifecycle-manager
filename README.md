@@ -21,7 +21,7 @@
 
 ## Overview
 
-Operand Deployment Lifecycle Manager is used to manage the lifecycle of a group of operands.
+Operand Deployment Lifecycle Manager is used to manage the lifecycle of a group of operands. Checkout design document at [here](./docs/design/operand-deployment-lifecycle-manager.md).
 
 ## Prerequisites
 
@@ -41,7 +41,7 @@ Operand Deployment Lifecycle Manager is used to manage the lifecycle of a group 
 
 Checkout this Operand Deployment Lifecycle Manager repository
 
-```bash
+```console
 # git clone https://github.com/IBM/operand-deployment-lifecycle-manager.git
 # cd operand-deployment-lifecycle-manager
 ```
@@ -50,7 +50,7 @@ Checkout this Operand Deployment Lifecycle Manager repository
 
 Build the odlm image and push it to a public registry, such as quay.io:
 
-```bash
+```console
 # make images
 ```
 
@@ -60,7 +60,7 @@ Run `make install` to install the operator. Check that the operator is running i
 
 Following the expected result.
 
-```bash
+```console
 # kubectl get all -n ibm-common-services
 NAME                                           READY   STATUS    RESTARTS   AGE
 pod/operand-deployment-lifecycle-manager-786d699956-z7k4n   1/1     Running   0          21s
@@ -80,7 +80,7 @@ To uninstall all that was performed in the above step run `make uninstall`.
 
 Use the following command to check the operator logs.
 
-```bash
+```console
 # kubectl logs deployment.apps/operand-deployment-lifecycle-manager -n ibm-common-services
 ```
 
