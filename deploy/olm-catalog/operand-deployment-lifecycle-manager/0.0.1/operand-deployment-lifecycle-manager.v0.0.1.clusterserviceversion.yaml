@@ -34,7 +34,10 @@ metadata:
               {
                 "name": "ibm-cert-manager-operator",
                 "spec": {
-                  "certManager": {}
+                  "certManager": {},
+                  "certificate": {},
+                  "clusterIssuer": {},
+                  "issuer": {}
                 }
               },
               {

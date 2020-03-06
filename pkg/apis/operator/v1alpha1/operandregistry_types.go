@@ -154,8 +154,9 @@ func (r *OperandRegistry) InitStatus() {
 	}
 }
 
-func getReconcileRequest(reconcileRequests []ReconcileRequest, reconcileRequest reconcile.Request) int {
-	for pos, r := range reconcileRequests {
+func (r *OperandRegistry) GetReconcileRequest(name string, reconcileRequest reconcile.Request) int {
+	s := r.Status.OperatorsStatus[name]
+	for pos, r := range s.ReconcileRequests {
 		if r.Name == reconcileRequest.Name && r.Namespace == reconcileRequest.Namespace {
 			return pos
 		}
@@ -169,7 +170,7 @@ func (r *OperandRegistry) SetOperatorStatus(name string, phase OperatorPhase, re
 		s.Phase = phase
 	}
 
-	if pos := getReconcileRequest(s.ReconcileRequests, request); pos == -1 {
+	if pos := r.GetReconcileRequest(name, request); pos == -1 {
 		s.ReconcileRequests = append(s.ReconcileRequests, ReconcileRequest{Name: request.Name, Namespace: request.Namespace})
 	}
 	r.Status.OperatorsStatus[name] = s
@@ -177,7 +178,7 @@ func (r *OperandRegistry) SetOperatorStatus(name string, phase OperatorPhase, re
 
 func (r *OperandRegistry) CleanOperatorStatus(name string, request reconcile.Request) {
 	s := r.Status.OperatorsStatus[name]
-	if pos := getReconcileRequest(s.ReconcileRequests, request); pos != -1 {
+	if pos := r.GetReconcileRequest(name, request); pos != -1 {
 		s.ReconcileRequests = append(s.ReconcileRequests[:pos], s.ReconcileRequests[pos+1:]...)
 	}
 	if len(s.ReconcileRequests) == 0 {
