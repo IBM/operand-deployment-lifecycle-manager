@@ -27,10 +27,6 @@ import (
 // The OperandRequestSpec identifies one or more specific operands (from a specific Registry) that should actually be installed
 // +k8s:openapi-gen=true
 type OperandRequestSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
-	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
-
 	// Requests defines a list of operand installation
 	// +listType=set
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
@@ -46,11 +42,13 @@ type Request struct {
 	Description       string    `json:"description,omitempty"`
 }
 
+// Operand defines the name and binding information for one operator
 type Operand struct {
 	Name     string    `json:"name"`
 	Bindings []Binding `json:"bindings,omitempty"`
 }
 
+// Binding defines the scope of the operand, and the resources, like Secret, ConfigMap and ServiceAccount
 type Binding struct {
 	Scope          scope  `json:"scope,omitempty"`
 	Secret         string `json:"secret,omitempty"`
@@ -83,30 +81,26 @@ const (
 	ResourceTypeOperand ResourceType = "operand"
 )
 
-// Conditions represents the current state of the Request Service
-// A condition might not show up if it is not happening.
+// Condition represents the current state of the Request Service
+// A condition might not show up if it is not happening
 type Condition struct {
 	// Type of condition.
 	Type ConditionType `json:"type"`
-	// Status of the condition, one of True, False, Unknown.
+	// Status of the condition, one of True, False, Unknown
 	Status corev1.ConditionStatus `json:"status"`
-	// The last time this condition was updated.
+	// The last time this condition was updated
 	LastUpdateTime string `json:"lastUpdateTime,omitempty"`
-	// Last time the condition transitioned from one status to another.
+	// Last time the condition transitioned from one status to another
 	LastTransitionTime string `json:"lastTransitionTime,omitempty"`
-	// The reason for the condition's last transition.
+	// The reason for the condition's last transition
 	Reason string `json:"reason,omitempty"`
-	// A human readable message indicating details about the transition.
+	// A human readable message indicating details about the transition
 	Message string `json:"message,omitempty"`
 }
 
 // OperandRequestStatus defines the observed state of OperandRequest
 // +k8s:openapi-gen=true
 type OperandRequestStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
-	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
-
 	// Conditions represents the current state of the Request Service
 	// +optional
 	// +listType=set
@@ -160,16 +154,19 @@ type OperandRequestList struct {
 	Items           []OperandRequest `json:"items"`
 }
 
+// SetCreatingCondition creates a new condition status
 func (r *OperandRequest) SetCreatingCondition(name string, rt ResourceType) {
 	c := newCondition(ConditionCreating, corev1.ConditionTrue, "Creating "+string(rt), "Creating "+string(rt)+" "+name)
 	r.setCondition(*c)
 }
 
+// SetUpdatingCondition updates a condition status
 func (r *OperandRequest) SetUpdatingCondition(name string, rt ResourceType) {
 	c := newCondition(ConditionUpdating, corev1.ConditionTrue, "Updating "+string(rt), "Updating "+string(rt)+" "+name)
 	r.setCondition(*c)
 }
 
+// SetDeletingCondition delete a condition status
 func (r *OperandRequest) SetDeletingCondition(name string, rt ResourceType) {
 	c := newCondition(ConditionDeleting, corev1.ConditionTrue, "Deleting "+string(rt), "Deleting "+string(rt)+" "+name)
 	r.setCondition(*c)
@@ -205,6 +202,7 @@ func newCondition(condType ConditionType, status corev1.ConditionStatus, reason,
 	}
 }
 
+// SetMemberStatus appends a Member status in the Member status list
 func (r *OperandRequest) SetMemberStatus(name string, operatorPhase olmv1alpha1.ClusterServiceVersionPhase, operandPhase ServicePhase) {
 	m := newMemberStatus(name, operatorPhase, operandPhase)
 	pos, mp := getMemberStatus(&r.Status, name)
@@ -220,6 +218,7 @@ func (r *OperandRequest) SetMemberStatus(name string, operatorPhase olmv1alpha1.
 	}
 }
 
+// CleanMemberStatus deletes a Member status from the Member status list
 func (r *OperandRequest) CleanMemberStatus(name string) {
 	pos, _ := getMemberStatus(&r.Status, name)
 	if pos != -1 {
@@ -246,6 +245,7 @@ func newMemberStatus(name string, operatorPhase olmv1alpha1.ClusterServiceVersio
 	}
 }
 
+// SetClusterPhase sets the current Phase status
 func (r *OperandRequest) SetClusterPhase(p ClusterPhase) {
 	r.Status.Phase = p
 }

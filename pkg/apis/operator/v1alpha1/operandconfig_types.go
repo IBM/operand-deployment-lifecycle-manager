@@ -27,10 +27,6 @@ import (
 // OperandConfigSpec defines the desired state of OperandConfig
 // +k8s:openapi-gen=true
 type OperandConfigSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
-	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
-
 	// Services is a list of configuration of service
 	// +optional
 	// +listType=set
@@ -51,9 +47,6 @@ type ConfigService struct {
 // OperandConfigStatus defines the observed state of OperandConfig
 // +k8s:openapi-gen=true
 type OperandConfigStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
-	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
 	// ServiceStatus defines all the status of a operator
 	// +optional
 	ServiceStatus map[string]CrStatus `json:"serviceStatus,omitempty"`

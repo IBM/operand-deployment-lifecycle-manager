@@ -158,16 +158,6 @@ func (mer *multiErr) Add(err error) {
 func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reqLogger := log.WithValues("Request.Namespace", request.NamespacedName, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling OperandRequest")
-	// Fetch the OperandRegistry instance
-	moc, err := r.listRegistry(operatorv1alpha1.OperandRegistryNamespace)
-
-	if moc == nil {
-		return reconcile.Result{}, nil
-	}
-
-	if err != nil {
-		return reconcile.Result{}, err
-	}
 
 	// Fetch the OperandConfig instance
 	csc, err := r.listConfig(operatorv1alpha1.OperandConfigNamespace)
@@ -358,28 +348,4 @@ func (r *ReconcileOperandRequest) listConfig(namespace string) (*operatorv1alpha
 	}
 	reqLogger.Info("Found OperandConfig instance: " + cscList.Items[0].Name)
 	return &cscList.Items[0], nil
-}
-
-func (r *ReconcileOperandRequest) listRegistry(namespace string) (*operatorv1alpha1.OperandRegistry, error) {
-	reqLogger := log.WithValues("Request.Namespace", namespace)
-	// Fetch the OperandRegistry instance
-	mocList := &operatorv1alpha1.OperandRegistryList{}
-	if err := r.client.List(context.TODO(), mocList, &client.ListOptions{Namespace: namespace}); err != nil {
-		return nil, err
-	}
-
-	if len(mocList.Items) == 0 {
-		return nil, nil
-	}
-
-	if len(mocList.Items) > 1 {
-		reqLogger.Error(fmt.Errorf("multiple OperandRegistry in one namespace"),
-			"There are multiple OperandRegistry custom resource in "+
-				namespace+
-				". Choose the first one "+
-				mocList.Items[0].Name+
-				". You need to leave one and delete the others")
-	}
-	reqLogger.Info("Found OperandRegistry instance: " + mocList.Items[0].Name)
-	return &mocList.Items[0], nil
 }

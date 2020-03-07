@@ -107,11 +107,11 @@ func (r *ReconcileOperandRegistry) Reconcile(request reconcile.Request) (reconci
 	if err := r.client.Get(context.TODO(), request.NamespacedName, instance); err != nil {
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
-	instance.SetDefaults()
+	instance.SetDefaultsRegistry()
 	if err := r.client.Update(context.TODO(), instance); err != nil {
 		return reconcile.Result{}, err
 	}
-	instance.InitStatus()
+	instance.InitRegistryStatus()
 	if err := r.client.Status().Update(context.TODO(), instance); err != nil {
 		return reconcile.Result{}, err
 	}
