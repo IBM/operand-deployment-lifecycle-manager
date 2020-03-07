@@ -473,7 +473,9 @@ spec:
                 name: operand-deployment-lifecycle-manager
             spec:
               containers:
-              - command:
+              - args:
+                - --zap-level=3
+                command:
                 - odlm
                 env:
                 - name: WATCH_NAMESPACE

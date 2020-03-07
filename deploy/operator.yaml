@@ -20,7 +20,7 @@ spec:
           command:
           - odlm
           args:
-           - "--zap-level=3"
+          - "--zap-level=3"
           imagePullPolicy: Always
           env:
             - name: WATCH_NAMESPACE
