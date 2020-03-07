@@ -48,7 +48,7 @@ func (r *ReconcileOperandRequest) reconcileOperand(requestInstance *operatorv1al
 			// Check the requested Service Config if exist in specific OperandConfig
 			svc := r.getServiceFromConfigInstance(operand.Name, configInstance)
 			if svc != nil {
-				klog.V(4).Info("Reconciling custom resource %s", svc.Name)
+				klog.V(4).Info("Reconciling custom resource", svc.Name)
 				// Looking for the CSV
 				csv, err := r.getClusterServiceVersion(svc.Name)
 
@@ -62,7 +62,7 @@ func (r *ReconcileOperandRequest) reconcileOperand(requestInstance *operatorv1al
 					continue
 				}
 
-				klog.V(4).Info("Generating custom resource base on Cluster Service Version %s", csv.ObjectMeta.Name)
+				klog.V(4).Info("Generating custom resource base on Cluster Service Version", csv.ObjectMeta.Name)
 
 				// Merge and Generate CR
 				err = r.createUpdateCr(svc, csv, configInstance)
@@ -92,7 +92,7 @@ func (r *ReconcileOperandRequest) getClusterServiceVersion(subName string) (*olm
 	for _, s := range subs.Items {
 		if s.Name == subName {
 			if s.Status.CurrentCSV == "" {
-				klog.V(4).Info("There is no Cluster Service Version for %s", subName)
+				klog.V(4).Info("There is no Cluster Service Version for the Subscription", subName)
 				return nil, nil
 			}
 			csvName = s.Status.CurrentCSV
