@@ -157,22 +157,6 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 
 	klog.V(1).Info("Reconciling OperandRequest", request)
 
-	// Fetch the OperandConfig instance
-	csc, err := r.listConfig(operatorv1alpha1.OperandConfigNamespace)
-
-	if csc == nil {
-		return reconcile.Result{}, nil
-	}
-
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	// Initialize OperandConfig status
-	if err := r.initServiceStatus(csc); err != nil {
-		return reconcile.Result{}, err
-	}
-
 	// Fetch the OperandRequest instance
 	requestInstance := &operatorv1alpha1.OperandRequest{}
 	if err := r.client.Get(context.TODO(), request.NamespacedName, requestInstance); err != nil {
@@ -219,7 +203,7 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 	}
 
 	// Fetch Subscriptions and check the status of install plan
-	err = r.waitForInstallPlan(requestInstance, request)
+	err := r.waitForInstallPlan(requestInstance, request)
 	if err != nil {
 		if err.Error() == "timed out waiting for the condition" {
 			return reconcile.Result{Requeue: true}, nil

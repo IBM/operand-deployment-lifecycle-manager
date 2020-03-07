@@ -253,7 +253,7 @@ func (r *ReconcileOperandRequest) deleteCr(service *operatorv1alpha1.ConfigServi
 
 			// Compare the name of OperandConfig and CRD name
 			if strings.EqualFold(kind, crdName) {
-				crDeleteErr := r.client.DeleteAllOf(context.TODO(), &unstruct)
+				crDeleteErr := r.client.Delete(context.TODO(), &unstruct)
 				if crDeleteErr != nil {
 					klog.Error(crDeleteErr, "Failed to delete the custom resource")
 					merr.Add(crDeleteErr)

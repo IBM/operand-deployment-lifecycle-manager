@@ -40,11 +40,6 @@ func (r *ReconcileOperandRequest) updateMemberStatus(cr *operatorv1alpha1.Operan
 		return err
 	}
 
-	config, err := r.listConfig(operatorv1alpha1.OperandConfigNamespace)
-	if err != nil {
-		return err
-	}
-
 	for _, s := range subs.Items {
 		// Get operator phase
 		operatorPhase, err := r.getOperatorPhase(s)
@@ -52,10 +47,17 @@ func (r *ReconcileOperandRequest) updateMemberStatus(cr *operatorv1alpha1.Operan
 			return err
 		}
 		// Get operand phase
-		operandPhase := getOperandPhase(config.Status.ServiceStatus[s.Name].CrStatus)
+		for _, req := range cr.Spec.Requests {
+			configInstance, err := r.getConfigInstance(req.Registry, req.RegistryNamespace)
+			if err != nil {
+				return err
+			}
+			operandPhase := getOperandPhase(configInstance.Status.ServiceStatus[s.Name].CrStatus)
 
-		cr.SetMemberStatus(s.Name, operatorPhase, operandPhase)
+			cr.SetMemberStatus(s.Name, operatorPhase, operandPhase)
+		}
 	}
+
 	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
 		return err
 	}
