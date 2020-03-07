@@ -57,16 +57,16 @@ func InitInstance(yamlPath string, mgr manager.Manager) error {
 		obj.SetNamespace(namespace)
 	}
 
-	klog.V(2).Info("Namespace", namespace, "Name", name)
+	klog.V(4).Info("Generating", name, "in namespace", namespace)
 
 	err = kubeClient.Create(context.TODO(), obj)
 
 	if errors.IsAlreadyExists(err) {
-		klog.V(3).Info("CR exists in the cluster")
+		klog.V(2).Info("CR exists in the cluster")
 	} else if err != nil {
 		return fmt.Errorf("could not Create resource: %v", err)
 	} else {
-		klog.V(3).Info("CR was created successfully")
+		klog.V(2).Info("CR was created successfully")
 	}
 
 	return nil

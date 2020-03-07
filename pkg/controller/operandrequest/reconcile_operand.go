@@ -19,7 +19,6 @@ package operandrequest
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"strings"
 	"time"
 
@@ -49,7 +48,7 @@ func (r *ReconcileOperandRequest) reconcileOperand(requestInstance *operatorv1al
 			// Check the requested Service Config if exist in specific OperandConfig
 			svc := r.getServiceFromConfigInstance(operand.Name, configInstance)
 			if svc != nil {
-				klog.V(2).Info(fmt.Sprintf("Reconciling custom resource %s", svc.Name))
+				klog.V(4).Info("Reconciling custom resource %s", svc.Name)
 				// Looking for the CSV
 				csv, err := r.getClusterServiceVersion(svc.Name)
 
@@ -63,7 +62,7 @@ func (r *ReconcileOperandRequest) reconcileOperand(requestInstance *operatorv1al
 					continue
 				}
 
-				klog.V(2).Info(fmt.Sprintf("Generating custom resource base on Cluster Service Version %s", csv.ObjectMeta.Name))
+				klog.V(4).Info("Generating custom resource base on Cluster Service Version %s", csv.ObjectMeta.Name)
 
 				// Merge and Generate CR
 				err = r.createUpdateCr(svc, csv, configInstance)
@@ -81,7 +80,7 @@ func (r *ReconcileOperandRequest) reconcileOperand(requestInstance *operatorv1al
 
 // getCSV retrieves the Cluster Service Version
 func (r *ReconcileOperandRequest) getClusterServiceVersion(subName string) (*olmv1alpha1.ClusterServiceVersion, error) {
-	klog.V(3).Info("Looking for the Cluster Service Version", "Subscription Name", subName)
+	klog.V(2).Info("Looking for the Cluster Service Version", "Subscription Name", subName)
 	subs, listSubErr := r.olmClient.OperatorsV1alpha1().Subscriptions("").List(metav1.ListOptions{
 		LabelSelector: "operator.ibm.com/opreq-control",
 	})
@@ -93,7 +92,7 @@ func (r *ReconcileOperandRequest) getClusterServiceVersion(subName string) (*olm
 	for _, s := range subs.Items {
 		if s.Name == subName {
 			if s.Status.CurrentCSV == "" {
-				klog.V(3).Info(fmt.Sprintf("There is no Cluster Service Version for %s", subName))
+				klog.V(4).Info("There is no Cluster Service Version for %s", subName)
 				return nil, nil
 			}
 			csvName = s.Status.CurrentCSV
@@ -106,11 +105,11 @@ func (r *ReconcileOperandRequest) getClusterServiceVersion(subName string) (*olm
 				klog.Error(getCSVErr, "Fail to get Cluster Service Version")
 				return nil, getCSVErr
 			}
-			klog.V(3).Info(fmt.Sprintf("Get Cluster Service Version %s in namespace %s", csvName, csvNamespace))
+			klog.V(2).Info("Get Cluster Service Version", csvName, "in namespace", csvNamespace)
 			return csv, nil
 		}
 	}
-	klog.V(3).Info(fmt.Sprintf("There is no Cluster Service Version for %s", subName))
+	klog.V(2).Info("There is no Cluster Service Version for", subName)
 	return nil, nil
 }
 
@@ -145,7 +144,7 @@ func (r *ReconcileOperandRequest) createUpdateCr(service *operatorv1alpha1.Confi
 
 			// Compare the name of OperandConfig and CRD name
 			if strings.EqualFold(kind, crdName) {
-				klog.V(3).Info("Found OperandConfig spec for custom resource " + kind)
+				klog.V(4).Info("Found OperandConfig spec for custom resource " + kind)
 				//Convert CR template spec to string
 				specJSONString, _ := json.Marshal(unstruct.Object["spec"])
 
@@ -162,7 +161,7 @@ func (r *ReconcileOperandRequest) createUpdateCr(service *operatorv1alpha1.Confi
 					if stateUpdateErr != nil {
 						merr.Add(stateUpdateErr)
 					}
-					klog.Error(crCreateErr, "Fail to Create the Custom Resource "+crdName)
+					klog.Error(crCreateErr, "Fail to Create the Custom Resource", crdName)
 					merr.Add(crCreateErr)
 
 				} else if errors.IsAlreadyExists(crCreateErr) {
@@ -183,7 +182,7 @@ func (r *ReconcileOperandRequest) createUpdateCr(service *operatorv1alpha1.Confi
 						if stateUpdateErr != nil {
 							merr.Add(stateUpdateErr)
 						}
-						klog.Error(crGetErr, "Fail to Get the Custom Resource "+crdName)
+						klog.Error(crGetErr, "Fail to Get the Custom Resource", crdName)
 						merr.Add(crGetErr)
 						continue
 					}
@@ -193,18 +192,18 @@ func (r *ReconcileOperandRequest) createUpdateCr(service *operatorv1alpha1.Confi
 						if stateUpdateErr != nil {
 							merr.Add(stateUpdateErr)
 						}
-						klog.Error(crUpdateErr, "Fail to Update the Custom Resource "+crdName)
+						klog.Error(crUpdateErr, "Fail to Update the Custom Resource", crdName)
 						merr.Add(crUpdateErr)
 						continue
 					}
-					klog.V(2).Info("Finish updating the Custom Resource: " + crdName)
+					klog.V(2).Info("Finish updating the Custom Resource", crdName)
 					stateUpdateErr := r.updateServiceStatus(csc, service.Name, crdName, operatorv1alpha1.ServiceRunning)
 					if stateUpdateErr != nil {
 						merr.Add(stateUpdateErr)
 					}
 
 				} else {
-					klog.V(2).Info("Finish creating the Custom Resource " + crdName)
+					klog.V(2).Info("Finish creating the Custom Resource", crdName)
 					stateUpdateErr := r.updateServiceStatus(csc, service.Name, crdName, operatorv1alpha1.ServiceRunning)
 					if stateUpdateErr != nil {
 						merr.Add(stateUpdateErr)
@@ -224,7 +223,7 @@ func (r *ReconcileOperandRequest) createUpdateCr(service *operatorv1alpha1.Confi
 // deleteCr remove custome resource base on OperandConfig and CSV alm-examples
 func (r *ReconcileOperandRequest) deleteCr(service *operatorv1alpha1.ConfigService, csv *olmv1alpha1.ClusterServiceVersion, csc *operatorv1alpha1.OperandConfig) error {
 	almExamples := csv.ObjectMeta.Annotations["alm-examples"]
-	klog.V(3).Info("Subscription", service.Name)
+	klog.V(2).Info("Delete all the custom resource from Subscription", service.Name)
 	namespace := csv.ObjectMeta.Namespace
 
 	// Create a slice for crTemplates
@@ -256,17 +255,19 @@ func (r *ReconcileOperandRequest) deleteCr(service *operatorv1alpha1.ConfigServi
 			if strings.EqualFold(kind, crdName) {
 				crDeleteErr := r.client.DeleteAllOf(context.TODO(), &unstruct)
 				if crDeleteErr != nil {
+					klog.Error(crDeleteErr, "Failed to delete the custom resource")
 					merr.Add(crDeleteErr)
 					continue
 				}
 
-				klog.V(3).Info("Waiting for CR: " + kind + " is deleted")
+				klog.V(4).Info("Waiting for CR: " + kind + " is deleted")
 				stateDeleteErr := r.deleteServiceStatus(csc, service.Name, crdName)
 				if stateDeleteErr != nil {
+					klog.Error(stateDeleteErr, "Failed to clean up the deleted service status in the operand config")
 					merr.Add(stateDeleteErr)
 				}
 				err := wait.PollImmediate(time.Second*20, time.Minute*10, func() (bool, error) {
-					klog.V(3).Info("Checking for CR: " + kind + " is deleted")
+					klog.V(4).Info("Checking for CR: " + kind + " is deleted")
 					err := r.client.Get(context.TODO(), types.NamespacedName{
 						Name:      name,
 						Namespace: namespace,
@@ -276,14 +277,16 @@ func (r *ReconcileOperandRequest) deleteCr(service *operatorv1alpha1.ConfigServi
 						return true, nil
 					}
 					if err != nil {
+						klog.Error(err, "Failed to get the custom resource")
 						return false, err
 					}
 					return false, nil
 				})
 				if err != nil {
+					klog.Error(err)
 					merr.Add(err)
 				}
-				klog.V(3).Info("Deleted the CR: " + kind)
+				klog.V(4).Info("Deleted the CR: " + kind)
 			}
 
 		}
@@ -297,6 +300,7 @@ func (r *ReconcileOperandRequest) deleteCr(service *operatorv1alpha1.ConfigServi
 
 // Get the OperandConfig instance with the name and namespace
 func (r *ReconcileOperandRequest) getConfigInstance(name, namespace string) (*operatorv1alpha1.OperandConfig, error) {
+	klog.V(4).Info("Get the OperandConfig instance from the name", name, "namespace", namespace)
 	config := &operatorv1alpha1.OperandConfig{}
 	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, config); err != nil {
 		return nil, err
@@ -305,6 +309,7 @@ func (r *ReconcileOperandRequest) getConfigInstance(name, namespace string) (*op
 }
 
 func (r *ReconcileOperandRequest) getServiceFromConfigInstance(operandName string, configInstance *operatorv1alpha1.OperandConfig) *operatorv1alpha1.ConfigService {
+	klog.V(4).Info("Get ConfigService from the OperandConfig instance", configInstance.ObjectMeta.Name, "and operand name", operandName)
 	for _, s := range configInstance.Spec.Services {
 		if s.Name == operandName {
 			return &s

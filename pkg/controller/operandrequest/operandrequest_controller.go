@@ -240,7 +240,7 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 
 	// Check if all csv deploy successed
 	if requestInstance.Status.Phase != operatorv1alpha1.ClusterPhaseRunning {
-		klog.V(3).Info("Waiting for all the operands deploy successed")
+		klog.V(4).Info("Waiting for all the operands deploy successed")
 		return reconcile.Result{RequeueAfter: 5}, nil
 	}
 
@@ -248,7 +248,7 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 }
 
 func (r *ReconcileOperandRequest) waitForInstallPlan(requestInstance *operatorv1alpha1.OperandRequest, reconcileReq reconcile.Request) error {
-	klog.V(2).Info("Waiting for subscriptions to be ready ...")
+	klog.V(4).Info("Waiting for subscriptions to be ready ...")
 
 	subs := make(map[string]string)
 	err := wait.PollImmediate(time.Second*20, time.Minute*10, func() (bool, error) {
@@ -294,7 +294,7 @@ func (r *ReconcileOperandRequest) waitForInstallPlan(requestInstance *operatorv1
 						subs[found.ObjectMeta.Name] = "Ready"
 					} else {
 						// Subscription existing and not managed by OperandRequest controller
-						klog.V(3).Info("Subscription has created by other user, ignore update/delete it.", "Subscription.Namespace", found.Namespace, "Subscription.Name", found.Name)
+						klog.V(4).Info("Subscription has created by other user, ignore update/delete it.", "Subscription.Namespace", found.Namespace, "Subscription.Name", found.Name)
 					}
 				}
 			}
@@ -342,6 +342,6 @@ func (r *ReconcileOperandRequest) listConfig(namespace string) (*operatorv1alpha
 				cscList.Items[0].Name+
 				". You need to leave one and delete the others")
 	}
-	klog.V(1).Info("Found OperandConfig instance: " + cscList.Items[0].Name)
+	klog.V(2).Info("Found OperandConfig instance: " + cscList.Items[0].Name)
 	return &cscList.Items[0], nil
 }

@@ -68,7 +68,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	deployDirectory := os.Getenv("DEPLOY_DIR")
-	klog.V(2).Info("initializing default operandregistry")
+	klog.V(2).Info("Initializing default operandregistry instance")
 	if err = util.InitInstance(deployDirectory+"/operator.ibm.com_v1alpha1_operandregistry_cr.yaml", mgr); err != nil {
 		klog.Error(err, "Error creating CR, please create it manually")
 	}
@@ -96,8 +96,7 @@ type ReconcileOperandRegistry struct {
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileOperandRegistry) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	// Commented out unused logging
-	klog.V(1).Info("Reconciling OperandRegistry", request)
+	klog.V(2).Info("Initializing OperandRegistry instance status", request)
 
 	// Fetch the OperandRegistry instance
 	instance := &operatorv1alpha1.OperandRegistry{}
