@@ -97,7 +97,6 @@ func init() {
 	SchemeBuilder.Register(&OperandConfig{}, &OperandConfigList{})
 }
 
-
 //InitConfigStatus OperandConfig status
 func (r *OperandConfig) InitConfigStatus() {
 
