@@ -124,7 +124,7 @@ func (r *ReconcileOperandRequest) createUpdateCr(service *operatorv1alpha1.Confi
 	// Convert CR template string to slice
 	crTemplatesErr := json.Unmarshal([]byte(almExamples), &crTemplates)
 	if crTemplatesErr != nil {
-		klog.Error("Fail to convert alm-examples to slice: ", crTemplatesErr,  " Subscription: ", service.Name)
+		klog.Error("Fail to convert alm-examples to slice: ", crTemplatesErr, " Subscription: ", service.Name)
 		return crTemplatesErr
 	}
 
@@ -161,7 +161,7 @@ func (r *ReconcileOperandRequest) createUpdateCr(service *operatorv1alpha1.Confi
 					if stateUpdateErr != nil {
 						merr.Add(stateUpdateErr)
 					}
-					klog.Error("Fail to Create the Custom Resource: ", crdName,". Error message: ", crCreateErr)
+					klog.Error("Fail to Create the Custom Resource: ", crdName, ". Error message: ", crCreateErr)
 					merr.Add(crCreateErr)
 
 				} else if errors.IsAlreadyExists(crCreateErr) {
@@ -192,7 +192,7 @@ func (r *ReconcileOperandRequest) createUpdateCr(service *operatorv1alpha1.Confi
 						if stateUpdateErr != nil {
 							merr.Add(stateUpdateErr)
 						}
-						klog.Error("Fail to Update the Custom Resource ", crdName, ". Error message: ",crUpdateErr)
+						klog.Error("Fail to Update the Custom Resource ", crdName, ". Error message: ", crUpdateErr)
 						merr.Add(crUpdateErr)
 						continue
 					}
@@ -232,7 +232,7 @@ func (r *ReconcileOperandRequest) deleteCr(service *operatorv1alpha1.ConfigServi
 	// Convert CR template string to slice
 	crTemplatesErr := json.Unmarshal([]byte(almExamples), &crTemplates)
 	if crTemplatesErr != nil {
-		klog.Error("Fail to convert alm-examples to slice: ",crTemplatesErr)
+		klog.Error("Fail to convert alm-examples to slice: ", crTemplatesErr)
 		return crTemplatesErr
 	}
 
@@ -255,7 +255,7 @@ func (r *ReconcileOperandRequest) deleteCr(service *operatorv1alpha1.ConfigServi
 			if strings.EqualFold(kind, crdName) {
 				crDeleteErr := r.client.Delete(context.TODO(), &unstruct)
 				if crDeleteErr != nil {
-					klog.Error("Failed to delete the custom resource: ",crDeleteErr)
+					klog.Error("Failed to delete the custom resource: ", crDeleteErr)
 					merr.Add(crDeleteErr)
 					continue
 				}
@@ -263,7 +263,7 @@ func (r *ReconcileOperandRequest) deleteCr(service *operatorv1alpha1.ConfigServi
 				klog.V(4).Info("Waiting for CR: " + kind + " is deleted")
 				stateDeleteErr := r.deleteServiceStatus(csc, service.Name, crdName)
 				if stateDeleteErr != nil {
-					klog.Error("Failed to clean up the deleted service status in the operand config: ",stateDeleteErr)
+					klog.Error("Failed to clean up the deleted service status in the operand config: ", stateDeleteErr)
 					merr.Add(stateDeleteErr)
 					continue
 				}
