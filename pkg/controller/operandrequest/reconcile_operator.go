@@ -24,11 +24,11 @@ import (
 	olmv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1"
 	olmv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/klog"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -69,7 +69,7 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1a
 					}
 				} else {
 					// Subscription existing and not managed by OperandRequest controller
-					klog.V(3).Info("Subscription has created by other user, ignore update/delete it.","Subscription.Namespace", found.Namespace, "Subscription.Name", found.Name)
+					klog.V(3).Info("Subscription has created by other user, ignore update/delete it.", "Subscription.Namespace", found.Namespace, "Subscription.Name", found.Name)
 				}
 			}
 		}

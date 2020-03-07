@@ -81,7 +81,7 @@ func (r *ReconcileOperandRequest) reconcileOperand(requestInstance *operatorv1al
 
 // getCSV retrieves the Cluster Service Version
 func (r *ReconcileOperandRequest) getClusterServiceVersion(subName string) (*olmv1alpha1.ClusterServiceVersion, error) {
-	klog.V(3).Info("Looking for the Cluster Service Version","Subscription Name", subName)
+	klog.V(3).Info("Looking for the Cluster Service Version", "Subscription Name", subName)
 	subs, listSubErr := r.olmClient.OperatorsV1alpha1().Subscriptions("").List(metav1.ListOptions{
 		LabelSelector: "operator.ibm.com/opreq-control",
 	})

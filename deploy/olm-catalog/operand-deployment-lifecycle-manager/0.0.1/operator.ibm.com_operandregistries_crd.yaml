@@ -96,12 +96,15 @@ spec:
           properties:
             operatorsStatus:
               additionalProperties:
+                description: OperatorStatus defines operator running state
                 properties:
                   phase:
                     description: OperatorPhase defines the operator status
                     type: string
                   reconcileRequests:
                     items:
+                      description: ReconcileRequest records the information of the
+                        operandRequest
                       properties:
                         name:
                           type: string

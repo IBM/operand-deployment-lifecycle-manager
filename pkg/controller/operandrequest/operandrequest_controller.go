@@ -30,10 +30,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -294,7 +294,7 @@ func (r *ReconcileOperandRequest) waitForInstallPlan(requestInstance *operatorv1
 						subs[found.ObjectMeta.Name] = "Ready"
 					} else {
 						// Subscription existing and not managed by OperandRequest controller
-						klog.V(3).Info("Subscription has created by other user, ignore update/delete it.","Subscription.Namespace", found.Namespace, "Subscription.Name", found.Name)
+						klog.V(3).Info("Subscription has created by other user, ignore update/delete it.", "Subscription.Namespace", found.Namespace, "Subscription.Name", found.Name)
 					}
 				}
 			}
