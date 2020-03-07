@@ -154,10 +154,7 @@ func (mer *multiErr) Add(err error) {
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-<<<<<<< HEAD
 
-=======
->>>>>>> 7dbab49f0532b02bdd68b358a060119593a2eebf
 	klog.V(1).Info("Reconciling OperandRequest", request)
 
 	// Fetch the OperandConfig instance
