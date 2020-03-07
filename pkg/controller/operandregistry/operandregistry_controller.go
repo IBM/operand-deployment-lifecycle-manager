@@ -25,7 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -33,8 +33,6 @@ import (
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 	"github.com/IBM/operand-deployment-lifecycle-manager/pkg/util"
 )
-
-var log = logf.Log.WithName("controller_operandregistry")
 
 /**
 * USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
@@ -70,9 +68,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	deployDirectory := os.Getenv("DEPLOY_DIR")
-	log.Info("initializing default operandregistry")
+	klog.V(2).Info("initializing default operandregistry")
 	if err = util.InitInstance(deployDirectory+"/operator.ibm.com_v1alpha1_operandregistry_cr.yaml", mgr); err != nil {
-		log.Error(err, "Error creating CR, please create it manually")
+		klog.Error(err, "Error creating CR, please create it manually")
 	}
 
 	return nil
@@ -99,8 +97,7 @@ type ReconcileOperandRegistry struct {
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileOperandRegistry) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// Commented out unused logging
-	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
-	reqLogger.Info("Reconciling OperandRegistry")
+	klog.V(1).Info("Reconciling OperandRegistry", request)
 
 	// Fetch the OperandRegistry instance
 	instance := &operatorv1alpha1.OperandRegistry{}

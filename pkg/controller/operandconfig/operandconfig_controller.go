@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -34,8 +34,6 @@ import (
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 	"github.com/IBM/operand-deployment-lifecycle-manager/pkg/util"
 )
-
-var log = logf.Log.WithName("controller_operandconfig")
 
 /**
 * USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
@@ -52,7 +50,7 @@ func Add(mgr manager.Manager) error {
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	olmClientset, err := olmclient.NewForConfig(mgr.GetConfig())
 	if err != nil {
-		log.Error(err, "Initialize the OLM client failed.")
+		klog.Error(err, "Initialize the OLM client failed.")
 		return nil
 	}
 	return &ReconcileOperandConfig{client: mgr.GetClient(), scheme: mgr.GetScheme(), olmClient: olmClientset}
@@ -74,9 +72,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	// Create an example OperandConfig CR
 	deployDirectory := os.Getenv("DEPLOY_DIR")
-	log.Info("initializing default operandconfig")
+	klog.V(2).Info("initializing default operandconfig")
 	if err = util.InitInstance(deployDirectory+"/operator.ibm.com_v1alpha1_operandconfig_cr.yaml", mgr); err != nil {
-		log.Error(err, "Error creating CR, please create it manually")
+		klog.Error(err, "Error creating CR, please create it manually")
 	}
 
 	return nil

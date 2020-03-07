@@ -24,6 +24,7 @@ import (
 	olmv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1"
 	olmv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/klog"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -35,8 +36,7 @@ import (
 )
 
 func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1alpha1.OperandRequest, reconcileReq reconcile.Request) error {
-	reqLogger := log.WithValues()
-	reqLogger.Info("Reconciling Operator")
+	klog.V(1).Info("Reconciling Operator")
 	for _, req := range requestInstance.Spec.Requests {
 		registryInstance, err := r.getRegistryInstance(req.Registry, req.RegistryNamespace)
 		if err != nil {
@@ -69,7 +69,7 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1a
 					}
 				} else {
 					// Subscription existing and not managed by OperandRequest controller
-					reqLogger.WithValues("Subscription.Namespace", found.Namespace, "Subscription.Name", found.Name).Info("Subscription has created by other user, ignore update/delete it.")
+					klog.V(3).Info("Subscription has created by other user, ignore update/delete it.","Subscription.Namespace", found.Namespace, "Subscription.Name", found.Name)
 				}
 			}
 		}
@@ -109,12 +109,12 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1a
 }
 
 func (r *ReconcileOperandRequest) createSubscription(cr *operatorv1alpha1.OperandRequest, opt *operatorv1alpha1.Operator) error {
-	logger := log.WithValues("Subscription.Namespace", opt.Namespace)
+	klog.V(2).Info("Subscription.Namespace", opt.Namespace)
 	co := generateClusterObjects(opt)
 
 	// Create required namespace
 	ns := co.namespace
-	logger.Info("Creating the Namespace for Subscription: " + opt.Name)
+	klog.V(3).Info("Creating the Namespace for Subscription: " + opt.Name)
 	if err := r.client.Create(context.TODO(), ns); err != nil && !errors.IsAlreadyExists(err) {
 		return err
 	}
@@ -127,7 +127,7 @@ func (r *ReconcileOperandRequest) createSubscription(cr *operatorv1alpha1.Operan
 	}
 	if len(existOG.Items) == 0 {
 		og := co.operatorGroup
-		logger.Info("Creating the OperatorGroup for Subscription: " + opt.Name)
+		klog.V(3).Info("Creating the OperatorGroup for Subscription: " + opt.Name)
 		_, err := r.olmClient.OperatorsV1().OperatorGroups(og.Namespace).Create(og)
 		if err != nil && !errors.IsAlreadyExists(err) {
 			return err
@@ -135,7 +135,7 @@ func (r *ReconcileOperandRequest) createSubscription(cr *operatorv1alpha1.Operan
 	}
 
 	// Create subscription
-	logger.Info("Creating the Subscription: " + opt.Name)
+	klog.V(3).Info("Creating the Subscription: " + opt.Name)
 	sub := co.subscription
 	cr.SetCreatingCondition(sub.Name, operatorv1alpha1.ResourceTypeSub)
 	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
@@ -149,9 +149,8 @@ func (r *ReconcileOperandRequest) createSubscription(cr *operatorv1alpha1.Operan
 }
 
 func (r *ReconcileOperandRequest) updateSubscription(cr *operatorv1alpha1.OperandRequest, sub *olmv1alpha1.Subscription) error {
-	logger := log.WithValues("Subscription.Namespace", sub.Namespace, "Subscription.Name", sub.Name)
 
-	logger.Info("Updating Subscription")
+	klog.Info("Updating Subscription", "Subscription.Namespace", sub.Namespace, "Subscription.Name", sub.Name)
 	cr.SetUpdatingCondition(sub.Name, operatorv1alpha1.ResourceTypeSub)
 	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
 		return err
@@ -163,7 +162,7 @@ func (r *ReconcileOperandRequest) updateSubscription(cr *operatorv1alpha1.Operan
 }
 
 func (r *ReconcileOperandRequest) deleteSubscription(operandName string, requestInstance *operatorv1alpha1.OperandRequest, registryInstance *operatorv1alpha1.OperandRegistry, configInstance *operatorv1alpha1.OperandConfig, reconcileReq reconcile.Request) error {
-	logger := log.WithValues("Subscription.Name", operandName)
+	klog.V(2).Info("Subscription.Name", operandName)
 	config := r.getServiceFromConfigInstance(operandName, configInstance)
 	opt := r.getOperatorFromRegistryInstance(operandName, registryInstance)
 
@@ -174,11 +173,11 @@ func (r *ReconcileOperandRequest) deleteSubscription(operandName string, request
 	}
 
 	if csv != nil {
-		logger.Info("Deleting a Custom Resource")
+		klog.V(3).Info("Deleting a Custom Resource")
 		if err := r.deleteCr(config, csv, configInstance); err != nil {
 			return err
 		}
-		logger.Info("Deleting the ClusterServiceVersion")
+		klog.V(3).Info("Deleting the ClusterServiceVersion")
 		requestInstance.SetDeletingCondition(csv.Name, operatorv1alpha1.ResourceTypeCsv)
 		if err := r.client.Status().Update(context.TODO(), requestInstance); err != nil {
 			return err
@@ -189,7 +188,7 @@ func (r *ReconcileOperandRequest) deleteSubscription(operandName string, request
 	}
 
 	if opt != nil {
-		logger.Info("Deleting the Subscription")
+		klog.V(3).Info("Deleting the Subscription")
 		requestInstance.SetDeletingCondition(opt.Name, operatorv1alpha1.ResourceTypeSub)
 		if err := r.client.Status().Update(context.TODO(), requestInstance); err != nil {
 			return err

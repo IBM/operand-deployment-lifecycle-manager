@@ -20,23 +20,20 @@ import (
 	"encoding/json"
 	"reflect"
 
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"k8s.io/klog"
 )
-
-var log = logf.Log.WithName("Generating custom resource spec")
 
 // MergeCR deep merge two custom resource spec
 func MergeCR(defaultCR, changedCR []byte) map[string]interface{} {
-	logger := log.WithValues()
 	var defaultCRDecoded map[string]interface{}
 	defaultCRUnmarshalErr := json.Unmarshal(defaultCR, &defaultCRDecoded)
 	if defaultCRUnmarshalErr != nil {
-		logger.Error(defaultCRUnmarshalErr, "Error unmarshalling CR Template")
+		klog.Error(defaultCRUnmarshalErr, "Error unmarshalling CR Template")
 	}
 	var changedCRDecoded map[string]interface{}
 	changedCRUnmarshalErr := json.Unmarshal(changedCR, &changedCRDecoded)
 	if changedCRUnmarshalErr != nil {
-		logger.Error(changedCRUnmarshalErr, "Error unmarshalling OperandConfig service spec")
+		klog.Error(changedCRUnmarshalErr, "Error unmarshalling OperandConfig service spec")
 	}
 	for key := range defaultCRDecoded {
 		checkKeyBeforeMerging(key, defaultCRDecoded[key], changedCRDecoded[key], changedCRDecoded)
