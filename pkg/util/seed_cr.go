@@ -24,6 +24,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/klog"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -56,16 +57,16 @@ func InitInstance(yamlPath string, mgr manager.Manager) error {
 		obj.SetNamespace(namespace)
 	}
 
-	logger := log.WithValues("Namespace", namespace, "Name", name)
+	klog.V(2).Info("Namespace", namespace, "Name", name)
 
 	err = kubeClient.Create(context.TODO(), obj)
 
 	if errors.IsAlreadyExists(err) {
-		logger.Info("CR exists in the cluster")
+		klog.V(3).Info("CR exists in the cluster")
 	} else if err != nil {
 		return fmt.Errorf("could not Create resource: %v", err)
 	} else {
-		logger.Info("CR was created successfully")
+		klog.V(3).Info("CR was created successfully")
 	}
 
 	return nil
