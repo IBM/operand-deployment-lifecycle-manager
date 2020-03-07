@@ -50,7 +50,7 @@ func Add(mgr manager.Manager) error {
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	olmClientset, err := olmclient.NewForConfig(mgr.GetConfig())
 	if err != nil {
-		klog.Error(err, "Initialize the OLM client failed.")
+		klog.Error("Initialize the OLM client failed: ", err)
 		return nil
 	}
 	return &ReconcileOperandConfig{client: mgr.GetClient(), scheme: mgr.GetScheme(), olmClient: olmClientset}
@@ -74,7 +74,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	deployDirectory := os.Getenv("DEPLOY_DIR")
 	klog.V(2).Info("Initializing default operandconfig instance")
 	if err = util.InitInstance(deployDirectory+"/operator.ibm.com_v1alpha1_operandconfig_cr.yaml", mgr); err != nil {
-		klog.Error(err, "Error creating CR, please create it manually")
+		klog.Error("Error creating CR, please create it manually: ", err)
 	}
 
 	return nil
@@ -100,7 +100,6 @@ type ReconcileOperandConfig struct {
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileOperandConfig) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	klog.V(2).Info("Initializing OperandConfig instance status", request)
 
 	// Fetch the OperandConfig instance
 	instance := &operatorv1alpha1.OperandConfig{}

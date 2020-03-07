@@ -28,12 +28,12 @@ func MergeCR(defaultCR, changedCR []byte) map[string]interface{} {
 	var defaultCRDecoded map[string]interface{}
 	defaultCRUnmarshalErr := json.Unmarshal(defaultCR, &defaultCRDecoded)
 	if defaultCRUnmarshalErr != nil {
-		klog.Error(defaultCRUnmarshalErr, "Error unmarshalling CR Template")
+		klog.Error("Error unmarshalling CR Template: ", defaultCRUnmarshalErr)
 	}
 	var changedCRDecoded map[string]interface{}
 	changedCRUnmarshalErr := json.Unmarshal(changedCR, &changedCRDecoded)
 	if changedCRUnmarshalErr != nil {
-		klog.Error(changedCRUnmarshalErr, "Error unmarshalling OperandConfig service spec")
+		klog.Error("Error unmarshalling OperandConfig service spec: ", changedCRUnmarshalErr)
 	}
 	for key := range defaultCRDecoded {
 		checkKeyBeforeMerging(key, defaultCRDecoded[key], changedCRDecoded[key], changedCRDecoded)

@@ -18,7 +18,6 @@ package operandrequest
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -56,7 +55,7 @@ func Add(mgr manager.Manager) error {
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	olmClientset, err := olmclient.NewForConfig(mgr.GetConfig())
 	if err != nil {
-		klog.Error(err, "Initialize the OLM client failed.")
+		klog.Error("Initialize the OLM client failed: ", err)
 		return nil
 	}
 	return &ReconcileOperandRequest{
@@ -155,7 +154,7 @@ func (mer *multiErr) Add(err error) {
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 
-	klog.V(1).Info("Reconciling OperandRequest", request)
+	klog.V(1).Info("Reconciling OperandRequest: ", request)
 
 	// Fetch the OperandRequest instance
 	requestInstance := &operatorv1alpha1.OperandRequest{}
@@ -278,7 +277,7 @@ func (r *ReconcileOperandRequest) waitForInstallPlan(requestInstance *operatorv1
 						subs[found.ObjectMeta.Name] = "Ready"
 					} else {
 						// Subscription existing and not managed by OperandRequest controller
-						klog.V(4).Info("Subscription has created by other user, ignore update/delete it.", "Subscription.Namespace", found.Namespace, "Subscription.Name", found.Name)
+						klog.V(4).Info("Subscription has created by other user, ignore update/delete it. ", "Subscription.Namespace: ", found.Namespace, "Subscription.Name: ", found.Name)
 					}
 				}
 			}
@@ -286,7 +285,7 @@ func (r *ReconcileOperandRequest) waitForInstallPlan(requestInstance *operatorv1
 		return ready, nil
 	})
 	for sub, state := range subs {
-		klog.V(3).Info("Subscription " + sub + " state: " + state)
+		klog.V(3).Info("Subscription: " + sub + ", state: " + state)
 	}
 	if err != nil {
 		return err
@@ -304,28 +303,4 @@ func (r *ReconcileOperandRequest) addFinalizer(cr *operatorv1alpha1.OperandReque
 		}
 	}
 	return nil
-}
-
-func (r *ReconcileOperandRequest) listConfig(namespace string) (*operatorv1alpha1.OperandConfig, error) {
-
-	// Fetch the OperandConfig instance
-	cscList := &operatorv1alpha1.OperandConfigList{}
-	if err := r.client.List(context.TODO(), cscList, &client.ListOptions{Namespace: namespace}); err != nil {
-		return nil, err
-	}
-
-	if len(cscList.Items) == 0 {
-		return nil, nil
-	}
-
-	if len(cscList.Items) > 1 {
-		klog.Error(fmt.Errorf("multiple OperandConfig in one namespace"),
-			"There are multiple OperandConfig custom resource in "+
-				namespace+
-				". Choose the first one "+
-				cscList.Items[0].Name+
-				". You need to leave one and delete the others")
-	}
-	klog.V(2).Info("Found OperandConfig instance: " + cscList.Items[0].Name)
-	return &cscList.Items[0], nil
 }
