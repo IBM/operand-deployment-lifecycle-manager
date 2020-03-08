@@ -257,7 +257,7 @@ func (r *ReconcileOperandRequest) deleteCr(csv *olmv1alpha1.ClusterServiceVersio
 			// Compare the name of OperandConfig and CRD name
 			if strings.EqualFold(kind, crdName) {
 				crDeleteErr := r.client.Delete(context.TODO(), &unstruct)
-				if crDeleteErr != nil && !errors.IsNotFound(crDeleteErr){
+				if crDeleteErr != nil && !errors.IsNotFound(crDeleteErr) {
 					klog.Error("Failed to delete the custom resource: ", crDeleteErr)
 					merr.Add(crDeleteErr)
 					continue
