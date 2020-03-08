@@ -102,10 +102,12 @@ func (r *ReconcileOperandRegistry) Reconcile(request reconcile.Request) (reconci
 	if err := r.client.Get(context.TODO(), request.NamespacedName, instance); err != nil {
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
+	// Set the default scope for OperandRegistry instance
 	instance.SetDefaultsRegistry()
 	if err := r.client.Update(context.TODO(), instance); err != nil {
 		return reconcile.Result{}, err
 	}
+	// Set the default status for OperandRegistry instance
 	instance.InitRegistryStatus()
 	klog.V(2).Info("Initializing OperandRegistry instance status: ", request)
 	if err := r.client.Status().Update(context.TODO(), instance); err != nil {
