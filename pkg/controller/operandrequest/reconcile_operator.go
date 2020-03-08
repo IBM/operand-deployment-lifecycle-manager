@@ -91,8 +91,6 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1a
 			return err
 		}
 		for o := range needDeletedOperands.Iter() {
-			operandN := fmt.Sprintf("%v", o)
-			fmt.Println(operandN)
 			if err := r.deleteSubscription(fmt.Sprintf("%v", o), requestInstance, registryInstance, configInstance, reconcileReq); err != nil {
 				return err
 			}
@@ -161,8 +159,38 @@ func (r *ReconcileOperandRequest) updateSubscription(cr *operatorv1alpha1.Operan
 	return nil
 }
 
+func preDeleteCheck(operandName string, reconcileReq reconcile.Request, registryInstance *operatorv1alpha1.OperandRegistry) (int, int) {
+	klog.V(4).Infof("Pre-check for delete subscription: $s", operandName)
+	operatorStatus := registryInstance.Status.OperatorsStatus[operandName]
+	if operatorStatus.Phase != operatorv1alpha1.OperatorReady {
+		pos := registryInstance.GetReconcileRequest(operandName, reconcileReq)
+		reconcileReqNum := len(operatorStatus.ReconcileRequests)
+		return pos, reconcileReqNum
+	}
+	return -1, 0
+}
+
 func (r *ReconcileOperandRequest) deleteSubscription(operandName string, requestInstance *operatorv1alpha1.OperandRequest, registryInstance *operatorv1alpha1.OperandRegistry, configInstance *operatorv1alpha1.OperandConfig, reconcileReq reconcile.Request) error {
 	klog.V(2).Info("Delete Subscription: ", operandName)
+	pos, reconcileReqNum := preDeleteCheck(operandName, reconcileReq, registryInstance)
+
+	// If subscription not find in the registry status, nothing to do, return nil
+	if pos == -1 {
+		return nil
+	}
+	// If there are more than one reconcile request in the registry status, just update the
+	// operandrequest and operandregistry status, don't really delete the subscription.
+	if reconcileReqNum > 1 {
+		requestInstance.CleanMemberStatus(operandName)
+		if err := r.client.Status().Update(context.TODO(), requestInstance); err != nil {
+			return err
+		}
+		if err := r.deleteRegistryStatus(registryInstance, reconcileReq, operandName); err != nil {
+			return err
+		}
+		return nil
+	}
+
 	opt := r.getOperatorFromRegistryInstance(operandName, registryInstance)
 
 	csv, err := r.getClusterServiceVersion(operandName)
