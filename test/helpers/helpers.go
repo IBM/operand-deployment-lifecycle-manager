@@ -143,39 +143,39 @@ func CreateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *fra
 // 	return nil
 // }
 
-// //DeleteTest delete a OperandRequest instance
-// func DeleteTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *framework.TestCtx) error {
-// 	namespace, err := ctx.GetNamespace()
-// 	if err != nil {
-// 		return fmt.Errorf("could not get namespace: %v", err)
-// 	}
-// 	requestInstance := &operator.OperandRequest{}
-// 	fmt.Println("--- DELETE: subscription")
-// 	// Get OperandRequest instance
-// 	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandRequestCrName, Namespace: namespace}, requestInstance)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	// Delete first operator
-// 	operandName := requestInstance.Spec.Requests[0].Operands[0].Name
-// 	requestInstance.Spec.Requests[0].Operands = requestInstance.Spec.Requests[0].Operands[1:]
-// 	err = f.Client.Update(goctx.TODO(), requestInstance)
-// 	if err != nil {
-// 		return err
-// 	}
+//DeleteTest delete a OperandRequest instance
+func DeleteTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *framework.TestCtx) error {
+	namespace, err := ctx.GetNamespace()
+	if err != nil {
+		return fmt.Errorf("could not get namespace: %v", err)
+	}
+	requestInstance := &operator.OperandRequest{}
+	fmt.Println("--- DELETE: subscription")
+	// Get OperandRequest instance
+	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandRequestCrName, Namespace: namespace}, requestInstance)
+	if err != nil {
+		return err
+	}
+	// Delete first operator
+	operandName := requestInstance.Spec.Requests[0].Operands[0].Name
+	requestInstance.Spec.Requests[0].Operands = requestInstance.Spec.Requests[0].Operands[1:]
+	err = f.Client.Update(goctx.TODO(), requestInstance)
+	if err != nil {
+		return err
+	}
 
-// 	optMap, err := GetOperators(f, namespace)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	opt := optMap[operandName]
-// 	// Waiting for subscription deleted
-// 	err = WaitForSubscriptionDelete(olmClient, metav1.ObjectMeta{Name: opt.Name, Namespace: opt.Namespace})
-// 	if err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
+	optMap, err := GetOperators(f, namespace)
+	if err != nil {
+		return err
+	}
+	opt := optMap[operandName]
+	// Waiting for subscription deleted
+	err = WaitForSubscriptionDelete(olmClient, metav1.ObjectMeta{Name: opt.Name, Namespace: opt.Namespace})
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
 // UpdateConfigTest updates a OperandConfig instance
 func UpdateConfigTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *framework.TestCtx) error {

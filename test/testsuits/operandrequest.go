@@ -78,10 +78,9 @@ func OperandRequestCreateDelete(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Commnet out delete test
-	// if err = helpers.DeleteTest(olmClient, f, ctx); err != nil {
-	// 	t.Fatal(err)
-	// }
+	if err = helpers.DeleteTest(olmClient, f, ctx); err != nil {
+		t.Fatal(err)
+	}
 }
 
 // OperandConfigUpdate is for testing the update of the OperandConfig
