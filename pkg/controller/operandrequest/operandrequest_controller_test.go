@@ -129,6 +129,13 @@ func mog(name, namespace string) *v1alpha1.OperandRegistry {
 				},
 			},
 		},
+		Status: v1alpha1.OperandRegistryStatus{
+			OperatorsStatus: map[string]v1alpha1.OperatorStatus{
+				"etcd": {
+					Phase: v1alpha1.OperatorReady,
+				},
+			},
+		},
 	}
 }
 
@@ -149,6 +156,15 @@ func moc(name, namespace string) *v1alpha1.OperandConfig {
 				},
 			},
 		},
+		Status: v1alpha1.OperandConfigStatus{
+			ServiceStatus: map[string]v1alpha1.CrStatus{
+				"etcd": {
+					CrStatus: map[string]v1alpha1.ServicePhase{
+						"etcdCluster": v1alpha1.ServiceReady,
+					},
+				},
+			},
+		},
 	}
 }
 
@@ -162,8 +178,8 @@ func mos(name, namespace string) *v1alpha1.OperandRequest {
 		Spec: v1alpha1.OperandRequestSpec{
 			Requests: []v1alpha1.Request{
 				{
-					Registry:          "common-service",
-					RegistryNamespace: "ibm-common-services",
+					Registry:          name,
+					RegistryNamespace: namespace,
 					Operands: []v1alpha1.Operand{
 						{
 							Name: "etcd",

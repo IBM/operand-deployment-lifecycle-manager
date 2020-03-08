@@ -81,7 +81,7 @@ func main() {
 
 	namespace, err := k8sutil.GetWatchNamespace()
 	if err != nil {
-		klog.Error(err, " - Failed to get watch namespace")
+		klog.Error("Failed to get watch namespace: ", err)
 		os.Exit(1)
 	}
 
@@ -131,7 +131,7 @@ func main() {
 
 	// Start the Cmd
 	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
-		klog.Error(err, "Manager exited non-zero")
+		klog.Error("Manager exited non-zero: ", err)
 		os.Exit(1)
 	}
 }

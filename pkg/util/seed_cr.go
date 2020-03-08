@@ -57,7 +57,7 @@ func InitInstance(yamlPath string, mgr manager.Manager) error {
 		obj.SetNamespace(namespace)
 	}
 
-	klog.V(4).Info("Generating", name, "in namespace", namespace)
+	klog.V(4).Info("Generating: ", name, " in namespace: ", namespace)
 
 	err = kubeClient.Create(context.TODO(), obj)
 
