@@ -32,8 +32,11 @@ func (r *ReconcileOperandRequest) updateServiceStatus(cr *operatorv1alpha1.Opera
 }
 
 func (r *ReconcileOperandRequest) deleteServiceStatus(cr *operatorv1alpha1.OperandConfig, operatorName, serviceName string) error {
-
-	delete(cr.Status.ServiceStatus[operatorName].CrStatus, serviceName)
+	configInstance, err := r.getConfigInstance(cr.Name, cr.Namespace)
+	if err != nil {
+		return err
+	}
+	delete(configInstance.Status.ServiceStatus[operatorName].CrStatus, serviceName)
 	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
 		return err
 	}
