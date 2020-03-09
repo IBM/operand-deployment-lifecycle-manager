@@ -91,8 +91,6 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1a
 			return err
 		}
 		for o := range needDeletedOperands.Iter() {
-			operandN := fmt.Sprintf("%v", o)
-			fmt.Println(operandN)
 			if err := r.deleteSubscription(fmt.Sprintf("%v", o), requestInstance, registryInstance, configInstance, reconcileReq); err != nil {
 				return err
 			}
@@ -161,8 +159,61 @@ func (r *ReconcileOperandRequest) updateSubscription(cr *operatorv1alpha1.Operan
 	return nil
 }
 
-func (r *ReconcileOperandRequest) deleteSubscription(operandName string, requestInstance *operatorv1alpha1.OperandRequest, registryInstance *operatorv1alpha1.OperandRegistry, configInstance *operatorv1alpha1.OperandConfig, reconcileReq reconcile.Request) error {
+func preDeleteCheck(operandName string, rr reconcile.Request, registryInstance *operatorv1alpha1.OperandRegistry) (int, int) {
+	klog.V(4).Infof("Pre-check for delete subscription: %s", operandName)
+	operatorStatus := registryInstance.Status.OperatorsStatus[operandName]
+	if operatorStatus.Phase != operatorv1alpha1.OperatorReady {
+		pos := registryInstance.GetReconcileRequest(operandName, rr)
+		rrs := len(operatorStatus.ReconcileRequests)
+		return pos, rrs
+	}
+	return -1, 0
+}
+
+func (r *ReconcileOperandRequest) deleteSubscription(operandName string, requestInstance *operatorv1alpha1.OperandRequest, registryInstance *operatorv1alpha1.OperandRegistry, configInstance *operatorv1alpha1.OperandConfig, rr reconcile.Request) error {
 	klog.V(2).Info("Delete Subscription: ", operandName)
+	pos, rrs := preDeleteCheck(operandName, rr, registryInstance)
+
+	// If subscription not find in the registry status, nothing to do, return nil
+	if pos == -1 {
+		return nil
+	}
+	// If there are more than one reconcile requests in the registry status, don't really delete
+	// the subscription, just delete this subscription's reconcile request from the OperandRegistry
+	// status and delete this subscription from member status of currently OperandRequest.
+	// When all the reconcileRequests are deleted, this operator will be real delete.
+	// Example, there are 2 OperandRequests "common-services-ns/request-1" and "common-services-ns/request-2"
+	// request servcie "mongodb-operator", if delete "mongodb-operator" from request "common-services-ns/request-1",
+	// and mongodb-operator still used by request "common-services-ns/request-1", only delete reconcile request
+	// Before delete "mongodb-operator" from request "common-services-ns/request-1"
+	// status:
+	//   operatorsStatus:
+	//     mongodb-operator:
+	//       phase: Running
+	//       reconcileRequests:
+	//       - name: request-1
+	//         namespace: common-services-ns
+	//       - name: request-2
+	//         namespace: common-services-ns
+	// After delete "mongodb-operator" from request "common-services-ns/request-1"
+	// status:
+	//   operatorsStatus:
+	//     mongodb-operator:
+	//       phase: Running
+	//       reconcileRequests:
+	//       - name: request-2
+	//         namespace: common-services-ns
+	if rrs > 1 {
+		requestInstance.CleanMemberStatus(operandName)
+		if err := r.client.Status().Update(context.TODO(), requestInstance); err != nil {
+			return err
+		}
+		if err := r.deleteRegistryStatus(registryInstance, rr, operandName); err != nil {
+			return err
+		}
+		return nil
+	}
+
 	opt := r.getOperatorFromRegistryInstance(operandName, registryInstance)
 
 	csv, err := r.getClusterServiceVersion(operandName)
@@ -207,7 +258,7 @@ func (r *ReconcileOperandRequest) deleteSubscription(operandName string, request
 			klog.Error("Failed to delete member in the operandRequest status: ", err)
 			return err
 		}
-		if err := r.deleteRegistryStatus(registryInstance, reconcileReq, opt.Name); err != nil {
+		if err := r.deleteRegistryStatus(registryInstance, rr, opt.Name); err != nil {
 			klog.Error("Failed to delete operandRegistry status: ", err)
 			return err
 		}
