@@ -470,6 +470,7 @@ spec:
           template:
             metadata:
               labels:
+                app.kubernetes.io/instance: operand-deployment-lifecycle-manager
                 name: operand-deployment-lifecycle-manager
             spec:
               containers:
