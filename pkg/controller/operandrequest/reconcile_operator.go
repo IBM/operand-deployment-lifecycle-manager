@@ -159,20 +159,20 @@ func (r *ReconcileOperandRequest) updateSubscription(cr *operatorv1alpha1.Operan
 	return nil
 }
 
-func preDeleteCheck(operandName string, reconcileReq reconcile.Request, registryInstance *operatorv1alpha1.OperandRegistry) (int, int) {
-	klog.V(4).Infof("Pre-check for delete subscription: $s", operandName)
+func preDeleteCheck(operandName string, rr reconcile.Request, registryInstance *operatorv1alpha1.OperandRegistry) (int, int) {
+	klog.V(4).Infof("Pre-check for delete subscription: %s", operandName)
 	operatorStatus := registryInstance.Status.OperatorsStatus[operandName]
 	if operatorStatus.Phase != operatorv1alpha1.OperatorReady {
-		pos := registryInstance.GetReconcileRequest(operandName, reconcileReq)
-		reconcileReqNum := len(operatorStatus.ReconcileRequests)
-		return pos, reconcileReqNum
+		pos := registryInstance.GetReconcileRequest(operandName, rr)
+		rrs := len(operatorStatus.ReconcileRequests)
+		return pos, rrs
 	}
 	return -1, 0
 }
 
-func (r *ReconcileOperandRequest) deleteSubscription(operandName string, requestInstance *operatorv1alpha1.OperandRequest, registryInstance *operatorv1alpha1.OperandRegistry, configInstance *operatorv1alpha1.OperandConfig, reconcileReq reconcile.Request) error {
+func (r *ReconcileOperandRequest) deleteSubscription(operandName string, requestInstance *operatorv1alpha1.OperandRequest, registryInstance *operatorv1alpha1.OperandRegistry, configInstance *operatorv1alpha1.OperandConfig, rr reconcile.Request) error {
 	klog.V(2).Info("Delete Subscription: ", operandName)
-	pos, reconcileReqNum := preDeleteCheck(operandName, reconcileReq, registryInstance)
+	pos, rrs := preDeleteCheck(operandName, rr, registryInstance)
 
 	// If subscription not find in the registry status, nothing to do, return nil
 	if pos == -1 {
@@ -180,12 +180,12 @@ func (r *ReconcileOperandRequest) deleteSubscription(operandName string, request
 	}
 	// If there are more than one reconcile request in the registry status, just update the
 	// operandrequest and operandregistry status, don't really delete the subscription.
-	if reconcileReqNum > 1 {
+	if rrs > 1 {
 		requestInstance.CleanMemberStatus(operandName)
 		if err := r.client.Status().Update(context.TODO(), requestInstance); err != nil {
 			return err
 		}
-		if err := r.deleteRegistryStatus(registryInstance, reconcileReq, operandName); err != nil {
+		if err := r.deleteRegistryStatus(registryInstance, rr, operandName); err != nil {
 			return err
 		}
 		return nil
@@ -235,7 +235,7 @@ func (r *ReconcileOperandRequest) deleteSubscription(operandName string, request
 			klog.Error("Failed to delete member in the operandRequest status: ", err)
 			return err
 		}
-		if err := r.deleteRegistryStatus(registryInstance, reconcileReq, opt.Name); err != nil {
+		if err := r.deleteRegistryStatus(registryInstance, rr, opt.Name); err != nil {
 			klog.Error("Failed to delete operandRegistry status: ", err)
 			return err
 		}
