@@ -19,8 +19,8 @@ package operandrequest
 import (
 	"context"
 
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"k8s.io/klog"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 )
