@@ -309,10 +309,11 @@ metadata:
 spec:
   services:
   ...
-  - name: jenkins
-    channel: alpha
-    state: present
-    description: The jenkins service
+  requests:
+  - operands:
+      - name: jenkins
+    registry: common-service
+    registryNamespace: ibm-common-services
   ...
 ```
 
