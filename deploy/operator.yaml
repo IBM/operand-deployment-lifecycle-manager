@@ -11,6 +11,7 @@ spec:
     metadata:
       labels:
         name: operand-deployment-lifecycle-manager
+        app.kubernetes.io/instance: operand-deployment-lifecycle-manager
     spec:
       serviceAccountName: operand-deployment-lifecycle-manager
       containers:
