@@ -111,7 +111,7 @@ code-dev: ## Run the default dev commands which are the go tidy, fmt, vet then e
 	- make build
 
 run: ## Run against the configured Kubernetes cluster in ~/.kube/config
-	WATCH_NAMESPACE= go run ./cmd/manager/main.go
+	WATCH_NAMESPACE= go run ./cmd/manager/main.go --zap-level=5 --zap-encoder=console
 
 ifeq ($(BUILD_LOCALLY),0)
     export CONFIG_DOCKER_TARGET = config-docker

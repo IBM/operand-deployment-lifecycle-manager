@@ -221,7 +221,10 @@ func (r *ReconcileOperandRequest) createUpdateCr(service *operatorv1alpha1.Confi
 }
 
 // deleteCr remove custome resource base on OperandConfig and CSV alm-examples
-func (r *ReconcileOperandRequest) deleteCr(service *operatorv1alpha1.ConfigService, csv *olmv1alpha1.ClusterServiceVersion, csc *operatorv1alpha1.OperandConfig) error {
+func (r *ReconcileOperandRequest) deleteCr(csv *olmv1alpha1.ClusterServiceVersion, csc *operatorv1alpha1.OperandConfig, operandName string) error {
+
+	service := r.getServiceFromConfigInstance(operandName, csc)
+
 	almExamples := csv.ObjectMeta.Annotations["alm-examples"]
 	klog.V(2).Info("Delete all the custom resource from Subscription ", service.Name)
 	namespace := csv.ObjectMeta.Namespace
@@ -254,19 +257,21 @@ func (r *ReconcileOperandRequest) deleteCr(service *operatorv1alpha1.ConfigServi
 			// Compare the name of OperandConfig and CRD name
 			if strings.EqualFold(kind, crdName) {
 				crDeleteErr := r.client.Delete(context.TODO(), &unstruct)
-				if crDeleteErr != nil {
+				if crDeleteErr != nil && !errors.IsNotFound(crDeleteErr) {
 					klog.Error("Failed to delete the custom resource: ", crDeleteErr)
 					merr.Add(crDeleteErr)
 					continue
 				}
-
-				klog.V(4).Info("Waiting for CR: " + kind + " is deleted")
-				stateDeleteErr := r.deleteServiceStatus(csc, service.Name, crdName)
-				if stateDeleteErr != nil {
-					klog.Error("Failed to clean up the deleted service status in the operand config: ", stateDeleteErr)
-					merr.Add(stateDeleteErr)
+				if errors.IsNotFound(crDeleteErr) {
+					klog.V(4).Info("Deleted the CR: " + kind)
+					stateDeleteErr := r.deleteServiceStatus(csc, service.Name, crdName)
+					if stateDeleteErr != nil {
+						klog.Error("Failed to clean up the deleted service status in the operand config: ", stateDeleteErr)
+						merr.Add(stateDeleteErr)
+					}
 					continue
 				}
+				klog.V(4).Info("Waiting for CR: " + kind + " is deleted")
 				err := wait.PollImmediate(time.Second*20, time.Minute*10, func() (bool, error) {
 					klog.V(4).Info("Checking for CR: " + kind + " is deleted")
 					err := r.client.Get(context.TODO(), types.NamespacedName{
@@ -288,6 +293,12 @@ func (r *ReconcileOperandRequest) deleteCr(service *operatorv1alpha1.ConfigServi
 					merr.Add(err)
 					continue
 				}
+				stateDeleteErr := r.deleteServiceStatus(csc, service.Name, crdName)
+				if stateDeleteErr != nil {
+					klog.Error("Failed to clean up the deleted service status in the operand config: ", stateDeleteErr)
+					merr.Add(stateDeleteErr)
+					continue
+				}
 				klog.V(4).Info("Deleted the CR: " + kind)
 			}
 
@@ -302,7 +313,7 @@ func (r *ReconcileOperandRequest) deleteCr(service *operatorv1alpha1.ConfigServi
 
 // Get the OperandConfig instance with the name and namespace
 func (r *ReconcileOperandRequest) getConfigInstance(name, namespace string) (*operatorv1alpha1.OperandConfig, error) {
-	klog.V(4).Info("Get the OperandConfig instance from the name: ", name, "namespace: ", namespace)
+	klog.V(4).Info("Get the OperandConfig instance from the name: ", name, " namespace: ", namespace)
 	config := &operatorv1alpha1.OperandConfig{}
 	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, config); err != nil {
 		return nil, err

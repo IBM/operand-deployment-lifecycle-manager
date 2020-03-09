@@ -21,7 +21,6 @@ import (
 	"os"
 
 	olmclient "github.com/operator-framework/operator-lifecycle-manager/pkg/api/client/clientset/versioned"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -103,17 +102,14 @@ func (r *ReconcileOperandConfig) Reconcile(request reconcile.Request) (reconcile
 
 	// Fetch the OperandConfig instance
 	instance := &operatorv1alpha1.OperandConfig{}
-	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			// Request object not found, could have been deleted after reconcile request.
-			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
-			// Return and don't requeue
-			return reconcile.Result{}, nil
-		}
-		// Error reading the object - requeue the request.
+	if err := r.client.Get(context.TODO(), request.NamespacedName, instance); err != nil {
+		return reconcile.Result{}, client.IgnoreNotFound(err)
+	}
+	// Set the default status for OperandConfig instance
+	instance.InitConfigStatus()
+	klog.V(2).Info("Initializing OperandConfig instance status: ", request)
+	if err := r.client.Status().Update(context.TODO(), instance); err != nil {
 		return reconcile.Result{}, err
 	}
-
-	return reconcile.Result{}, err
+	return reconcile.Result{}, nil
 }

@@ -163,7 +163,6 @@ func (r *ReconcileOperandRequest) updateSubscription(cr *operatorv1alpha1.Operan
 
 func (r *ReconcileOperandRequest) deleteSubscription(operandName string, requestInstance *operatorv1alpha1.OperandRequest, registryInstance *operatorv1alpha1.OperandRegistry, configInstance *operatorv1alpha1.OperandConfig, reconcileReq reconcile.Request) error {
 	klog.V(2).Info("Delete Subscription: ", operandName)
-	config := r.getServiceFromConfigInstance(operandName, configInstance)
 	opt := r.getOperatorFromRegistryInstance(operandName, registryInstance)
 
 	csv, err := r.getClusterServiceVersion(operandName)
@@ -174,7 +173,7 @@ func (r *ReconcileOperandRequest) deleteSubscription(operandName string, request
 
 	if csv != nil {
 		klog.V(3).Info("Deleting a Custom Resource")
-		if err := r.deleteCr(config, csv, configInstance); err != nil {
+		if err := r.deleteCr(csv, configInstance, operandName); err != nil {
 			klog.Error("Failed to Delete a Custom Resource: ", err)
 			return err
 		}
