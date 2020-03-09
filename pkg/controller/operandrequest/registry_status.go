@@ -20,11 +20,14 @@ import (
 	"context"
 
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"k8s.io/klog"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 )
 
 func (r *ReconcileOperandRequest) updateRegistryStatus(cr *operatorv1alpha1.OperandRegistry, reconcileReq reconcile.Request, optName string, optPhase operatorv1alpha1.OperatorPhase) error {
+	klog.V(3).Info("Updating OperandRegistry status")
+
 	cr.SetOperatorStatus(optName, optPhase, reconcileReq)
 
 	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
@@ -34,6 +37,8 @@ func (r *ReconcileOperandRequest) updateRegistryStatus(cr *operatorv1alpha1.Oper
 }
 
 func (r *ReconcileOperandRequest) deleteRegistryStatus(cr *operatorv1alpha1.OperandRegistry, reconcileReq reconcile.Request, optName string) error {
+	klog.V(3).Info("Deleting OperandRegistry status")
+
 	cr.CleanOperatorStatus(optName, reconcileReq)
 	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
 		return err

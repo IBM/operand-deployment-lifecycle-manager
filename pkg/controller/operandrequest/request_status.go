@@ -22,6 +22,7 @@ import (
 	olmv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 )
@@ -33,6 +34,7 @@ const (
 )
 
 func (r *ReconcileOperandRequest) updateMemberStatus(cr *operatorv1alpha1.OperandRequest) error {
+	klog.V(3).Info("Updating OperandRequest member status")
 	subs, err := r.olmClient.OperatorsV1alpha1().Subscriptions("").List(metav1.ListOptions{
 		LabelSelector: "operator.ibm.com/opreq-control",
 	})
@@ -65,6 +67,7 @@ func (r *ReconcileOperandRequest) updateMemberStatus(cr *operatorv1alpha1.Operan
 }
 
 func (r *ReconcileOperandRequest) getOperatorPhase(s olmv1alpha1.Subscription) (olmv1alpha1.ClusterServiceVersionPhase, error) {
+	klog.V(3).Info("Get OperatorPhase for OperandRequest member status")
 	var operatorPhase olmv1alpha1.ClusterServiceVersionPhase
 	csvName := s.Status.InstalledCSV
 	if csvName != "" {
@@ -72,12 +75,17 @@ func (r *ReconcileOperandRequest) getOperatorPhase(s olmv1alpha1.Subscription) (
 		if err != nil && !errors.IsNotFound(err) {
 			return operatorPhase, err
 		}
-		operatorPhase = csv.Status.Phase
+		if csv.Status.Phase == "" {
+			operatorPhase = "Pending"
+		} else {
+			operatorPhase = csv.Status.Phase
+		}
 	}
 	return operatorPhase, nil
 }
 
 func getOperandPhase(sp map[string]operatorv1alpha1.ServicePhase) operatorv1alpha1.ServicePhase {
+	klog.V(3).Info("Get OperandPhase for OperandRequest member status")
 	operandStatusStat := struct {
 		readyNum   int
 		runningNum int
@@ -111,6 +119,7 @@ func getOperandPhase(sp map[string]operatorv1alpha1.ServicePhase) operatorv1alph
 }
 
 func (r *ReconcileOperandRequest) updateClusterPhase(cr *operatorv1alpha1.OperandRequest) error {
+	klog.V(3).Info("Update OperandRequest phase status")
 	clusterStatusStat := struct {
 		creatingNum int
 		runningNum  int
