@@ -178,8 +178,31 @@ func (r *ReconcileOperandRequest) deleteSubscription(operandName string, request
 	if pos == -1 {
 		return nil
 	}
-	// If there are more than one reconcile request in the registry status, just update the
-	// operandrequest and operandregistry status, don't really delete the subscription.
+	// If there are more than one reconcile requests in the registry status, don't really delete
+	// the subscription, just delete this subscription's reconcile request from the OperandRegistry
+	// status and delete this subscription from member status of currently OperandRequest.
+	// When all the reconcileRequests are deleted, this operator will be real delete.
+	// Example, there are 2 OperandRequests "common-services-ns/request-1" and "common-services-ns/request-2"
+	// request servcie "mongodb-operator", if delete "mongodb-operator" from request "common-services-ns/request-1",
+	// and mongodb-operator still used by request "common-services-ns/request-1", only delete reconcile request
+	// Before delete "mongodb-operator" from request "common-services-ns/request-1"
+	// status:
+	//   operatorsStatus:
+	//     mongodb-operator:
+	//       phase: Running
+	//       reconcileRequests:
+	//       - name: request-1
+	//         namespace: common-services-ns
+	//       - name: request-2
+	//         namespace: common-services-ns
+	// After delete "mongodb-operator" from request "common-services-ns/request-1"
+	// status:
+	//   operatorsStatus:
+	//     mongodb-operator:
+	//       phase: Running
+	//       reconcileRequests:
+	//       - name: request-2
+	//         namespace: common-services-ns
 	if rrs > 1 {
 		requestInstance.CleanMemberStatus(operandName)
 		if err := r.client.Status().Update(context.TODO(), requestInstance); err != nil {
