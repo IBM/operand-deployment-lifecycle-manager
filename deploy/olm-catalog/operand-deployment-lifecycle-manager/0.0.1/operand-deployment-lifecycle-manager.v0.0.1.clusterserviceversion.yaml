@@ -368,7 +368,7 @@ spec:
       kind: OperandRequest
       name: operandrequests.operator.ibm.com
       specDescriptors:
-      - description: Requests defines a list of operand installation
+      - description: Requests defines a list of operands installation
         displayName: Requests
         path: requests
       statusDescriptors:

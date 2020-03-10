@@ -75,15 +75,13 @@ spec:
                     description: The Kubernetes namespace where the CatalogSource
                       used is located
                     type: string
-                  state:
-                    description: State is a flag to enable or disable service
-                    type: string
                   targetNamespaces:
                     description: The target namespace of the OperatorGroup
                     items:
                       type: string
                     type: array
                 required:
+                - channel
                 - name
                 - packageName
                 - sourceName
@@ -96,19 +94,24 @@ spec:
           properties:
             operatorsStatus:
               additionalProperties:
-                description: OperatorStatus defines operator running state
+                description: OperatorsStatus defines operators status and the number
+                  of reconcile request
                 properties:
                   phase:
-                    description: OperatorPhase defines the operator status
+                    description: Phase is the state of operator
                     type: string
                   reconcileRequests:
+                    description: RecondileRequests store the namespace/name of all
+                      the requests
                     items:
                       description: ReconcileRequest records the information of the
                         operandRequest
                       properties:
                         name:
+                          description: Name defines the name of request
                           type: string
                         namespace:
+                          description: Namespace defines the namespace of request
                           type: string
                       required:
                       - name
@@ -116,7 +119,8 @@ spec:
                       type: object
                     type: array
                 type: object
-              description: OperatorsStatus defines operator running state
+              description: OperatorsStatus defines operators status and the number
+                of reconcile request
               type: object
           type: object
       type: object
