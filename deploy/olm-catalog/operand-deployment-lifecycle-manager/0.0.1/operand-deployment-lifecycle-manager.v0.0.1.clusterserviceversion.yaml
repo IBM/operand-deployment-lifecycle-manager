@@ -84,14 +84,15 @@ metadata:
                 }
               },
               {
-                "name": "ibm-catalog-operator",
+                "name": "ibm-catalog-ui-operator",
                 "spec": {
-                  "icpCatalogChart": {}
+                  "catalogUI": {}
                 }
               },
               {
                 "name": "ibm-platform-api-operator",
                 "spec": {
+                  "passwordRule": {},
                   "platformApi": {}
                 }
               },
@@ -110,7 +111,7 @@ metadata:
               {
                 "name": "ibm-management-repo-operator",
                 "spec": {
-                  "mgmtRepo": {}
+                  "managementRepo": {}
                 }
               },
               {
@@ -232,7 +233,7 @@ metadata:
                 "description": "Operator for managing deployment of catalog UI service.",
                 "name": "ibm-catalog-operator",
                 "namespace": "ibm-common-services",
-                "packageName": "ibm-catalog-operator-app",
+                "packageName": "ibm-catalog-ui-operator-app",
                 "sourceName": "opencloud-operators",
                 "sourceNamespace": "openshift-marketplace"
               },
@@ -247,7 +248,7 @@ metadata:
               },
               {
                 "channel": "alpha",
-                "description": "Operator for managing deployment of helm api service.",
+                "description": "Operator for managing deployment of Helm API service.",
                 "name": "ibm-helm-api-operator",
                 "namespace": "ibm-common-services",
                 "packageName": "ibm-helm-api-operator-app",
@@ -256,7 +257,7 @@ metadata:
               },
               {
                 "channel": "alpha",
-                "description": "Operator for managing deployment of helm repo service.",
+                "description": "Operator for managing deployment of Helm repository service.",
                 "name": "ibm-helm-repo-operator",
                 "namespace": "ibm-common-services",
                 "packageName": "ibm-helm-repo-operator-app",
@@ -265,7 +266,7 @@ metadata:
               },
               {
                 "channel": "alpha",
-                "description": "Operator for managing deployment of management repo service.",
+                "description": "Operator for managing deployment of Management repository service.",
                 "name": "ibm-management-repo-operator",
                 "namespace": "ibm-common-services",
                 "packageName": "ibm-management-repo-operator-app",

@@ -78,7 +78,7 @@ spec:
   - name: ibm-catalog-operator
     namespace: ibm-common-services
     channel: alpha
-    packageName: ibm-catalog-operator-app
+    packageName: ibm-catalog-ui-operator-app
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
     description: Operator for managing deployment of catalog UI service.
@@ -95,21 +95,21 @@ spec:
     packageName: ibm-helm-api-operator-app
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
-    description: Operator for managing deployment of helm api service.
+    description: Operator for managing deployment of Helm API service.
   - name: ibm-helm-repo-operator
     namespace: ibm-common-services
     channel: alpha
     packageName: ibm-helm-repo-operator-app
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
-    description: Operator for managing deployment of helm repo service.
+    description: Operator for managing deployment of Helm repository service.
   - name: ibm-management-repo-operator
     namespace: ibm-common-services
     channel: alpha
     packageName: ibm-management-repo-operator-app
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
-    description: Operator for managing deployment of management repo service.
+    description: Operator for managing deployment of Management repository service.
   - name: ibm-monitoring-exporters-operator
     namespace: ibm-common-services
     channel: alpha
