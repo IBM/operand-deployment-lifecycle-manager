@@ -21,9 +21,6 @@
 
 Before install ODLM, this operator source should be created to get operator bundles from `quay.io`.
 
-Click the plus button, and then copy the following operator source into the editor.
-![Create OperatorSource](../images/create-operator-source.png)
-
 ```yaml
 apiVersion: operators.coreos.com/v1
 kind: OperatorSource
@@ -38,6 +35,9 @@ spec:
   registryNamespace: opencloudio
   type: appregistry
 ```
+
+Click the plus button, and then copy the above operator source into the editor.
+![Create OperatorSource](../images/create-operator-source.png)
 
 Check if all the operator packages are loaded, run command:
 
