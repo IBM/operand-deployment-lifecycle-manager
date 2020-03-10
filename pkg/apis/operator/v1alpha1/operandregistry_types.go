@@ -35,6 +35,7 @@ type Operator struct {
 	// +optional
 	Scope scope `json:"scope,omitempty"`
 	// The namespace in which operator's operand should be deployed
+	// +optional
 	Namespace string `json:"namespace,omitempty"`
 	// Name of a CatalogSource that defines where and how to find the channel
 	SourceName string `json:"sourceName"`
@@ -45,13 +46,13 @@ type Operator struct {
 	// Name of the package that defines the application
 	PackageName string `json:"packageName"`
 	// Name of the channel to track
-	Channel string `json:"channel,omitempty"`
+	Channel string `json:"channel"`
 	// Description of a common service
+	// +optional
 	Description string `json:"description,omitempty"`
 	// Approval mode for emitted InstallPlans
+	// +optional
 	InstallPlanApproval string `json:"installPlanApproval,omitempty"`
-	// State is a flag to enable or disable service
-	State string `json:"state,omitempty"`
 }
 
 // +kubebuilder:validation:Enum=public;private
@@ -79,20 +80,27 @@ type OperandRegistrySpec struct {
 // OperandRegistryStatus defines the observed state of OperandRegistry
 // +k8s:openapi-gen=true
 type OperandRegistryStatus struct {
-	// OperatorsStatus defines operator running state
+	// OperatorsStatus defines operators status and the number of reconcile request
+	// +listType=set
 	// +optional
 	OperatorsStatus map[string]OperatorStatus `json:"operatorsStatus,omitempty"`
 }
 
-// OperatorStatus defines operator running state
+// OperatorsStatus defines operators status and the number of reconcile request
 type OperatorStatus struct {
-	Phase             OperatorPhase      `json:"phase,omitempty"`
+	// Phase is the state of operator
+	// +optional
+	Phase OperatorPhase `json:"phase,omitempty"`
+	// RecondileRequests store the namespace/name of all the requests
+	// +optional
 	ReconcileRequests []ReconcileRequest `json:"reconcileRequests,omitempty"`
 }
 
 // ReconcileRequest records the information of the operandRequest
 type ReconcileRequest struct {
-	Name      string `json:"name"`
+	// Name defines the name of request
+	Name string `json:"name"`
+	// Namespace defines the namespace of request
 	Namespace string `json:"namespace"`
 }
 

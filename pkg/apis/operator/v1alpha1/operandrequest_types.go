@@ -27,7 +27,7 @@ import (
 // The OperandRequestSpec identifies one or more specific operands (from a specific Registry) that should actually be installed
 // +k8s:openapi-gen=true
 type OperandRequestSpec struct {
-	// Requests defines a list of operand installation
+	// Requests defines a list of operands installation
 	// +listType=set
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
 	Requests []Request `json:"requests"`
@@ -35,24 +35,49 @@ type OperandRequestSpec struct {
 
 // Request identifies a operand detail
 type Request struct {
-	// Names the OperandRegistry entry for the operand to be deployed
-	Operands          []Operand `json:"operands"`
-	Registry          string    `json:"registry"`
-	RegistryNamespace string    `json:"registryNamespace"`
-	Description       string    `json:"description,omitempty"`
+	// Operands deines a list of the OperandRegistry entry for the operand to be deployed
+	Operands []Operand `json:"operands"`
+	// Specifies the name in which the OperandRegistry reside.
+	Registry string `json:"registry"`
+	// Specifies the namespace in which the OperandRegistry reside.
+	// The default is the current namespace in which the request is defined.
+	// +optional
+	RegistryNamespace string `json:"registryNamespace,omitempty"`
+	// Description is an optional description for the request
+	// +optional
+	Description string `json:"description,omitempty"`
 }
 
 // Operand defines the name and binding information for one operator
 type Operand struct {
-	Name     string    `json:"name"`
+	// Name of the operand to be deployed
+	Name string `json:"name"`
+	// Specify a Binding list
+	// +listType=set
+	// +optional
 	Bindings []Binding `json:"bindings,omitempty"`
 }
 
 // Binding defines the scope of the operand, and the resources, like Secret, ConfigMap and ServiceAccount
 type Binding struct {
-	Scope          scope  `json:"scope,omitempty"`
-	Secret         string `json:"secret,omitempty"`
-	ConfigMap      string `json:"configMap,omitempty"`
+	// A scope indicator, either public or private
+	// Valid values are:
+	// - "private" (default): deployment only request from the containing names;
+	// - "public": deployment can be requested from other namespaces;
+	// +optional
+	Scope scope `json:"scope,omitempty"`
+	// Specifies that name of a secret that should contain information shared
+	// from the deployed operand if it shares secrets with requesters.
+	// +optional
+	Secret string `json:"secret,omitempty"`
+	// Specifies the name of a configmap that should contain information shared
+	// from the deployed operand if it shares configmaps with requesters.
+	// +optional
+	ConfigMap string `json:"configMap,omitempty"`
+	// Specifies the name of the service account that needs to access the created secret
+	// and/or configmap (e.g. the service account being used by running pods),
+	// so that ODLM can sure that the access rights are set correctly, if needed.
+	// +optional
 	ServiceAccount string `json:"serviceAccount,omitempty"`
 }
 
@@ -89,12 +114,16 @@ type Condition struct {
 	// Status of the condition, one of True, False, Unknown
 	Status corev1.ConditionStatus `json:"status"`
 	// The last time this condition was updated
+	// +optional
 	LastUpdateTime string `json:"lastUpdateTime,omitempty"`
 	// Last time the condition transitioned from one status to another
+	// +optional
 	LastTransitionTime string `json:"lastTransitionTime,omitempty"`
 	// The reason for the condition's last transition
+	// +optional
 	Reason string `json:"reason,omitempty"`
 	// A human readable message indicating details about the transition
+	// +optional
 	Message string `json:"message,omitempty"`
 }
 
@@ -113,13 +142,17 @@ type OperandRequestStatus struct {
 	// Phase is the cluster running phase
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
 	// +optional
-	Phase ClusterPhase `json:"phase"`
+	Phase ClusterPhase `json:"phase,omitempty"`
 }
 
 // MemberPhase show the phase of the operator and operator instance
 type MemberPhase struct {
+	// OperatorPhase show the deploy phase of the operator
+	// +optional
 	OperatorPhase olmv1alpha1.ClusterServiceVersionPhase `json:"operatorPhase,omitempty"`
-	OperandPhase  ServicePhase                           `json:"operandPhase,omitempty"`
+	// OperandPhase show the deploy phase of the operator instance
+	// +optional
+	OperandPhase ServicePhase `json:"operandPhase,omitempty"`
 }
 
 // MemberStatus show if the Operator is ready
@@ -127,7 +160,8 @@ type MemberStatus struct {
 	// The member name are the same as the subscription name
 	Name string `json:"name"`
 	// The operand phase include None, Creating, Running, Failed
-	Phase MemberPhase `json:"phase"`
+	// +optional
+	Phase MemberPhase `json:"phase,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
