@@ -472,6 +472,11 @@ spec:
               labels:
                 app.kubernetes.io/instance: operand-deployment-lifecycle-manager
                 name: operand-deployment-lifecycle-manager
+              annotations:
+                productName: "IBM Cloud Platform Common Services"
+                productID: "068a62892a1e4db39641342e592daa25"
+                productVersion: "3.3.0"
+                productMetric: "FREE"
             spec:
               containers:
               - args:
