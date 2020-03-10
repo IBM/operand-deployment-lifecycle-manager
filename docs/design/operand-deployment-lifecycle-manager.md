@@ -17,7 +17,7 @@
 
 # Operand Deployment Lifecycle Manager (ODLM)
 
-Operand is the instance managed by the ooperator. ODLM is used to manage the lifecycle of for a group of operands, compoared with operator lifecycle manager, ODLM foucs on the mangement of operands but not operators.
+Operand is the instance managed by the operator. ODLM is used to manage the lifecycle of for a group of operands, compared with operator lifecycle manager, ODLM focus on the management of operands but not operators.
 
 The ODLM will have Three CRDs:
 
