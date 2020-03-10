@@ -135,7 +135,7 @@ The list of operators you can add:
     - name: ibm-licensing-operator
     - name: ibm-commonui-operator
     - name: ibm-auditlogging-operator
-    - name: ibm-catalog-operator
+    - name: ibm-catalog-ui-operator
     - name: ibm-platform-api-operator
     - name: ibm-helm-api-operator
     - name: ibm-helm-repo-operator

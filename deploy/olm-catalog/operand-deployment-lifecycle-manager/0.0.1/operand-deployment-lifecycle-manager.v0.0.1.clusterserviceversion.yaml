@@ -231,7 +231,7 @@ metadata:
               {
                 "channel": "alpha",
                 "description": "Operator for managing deployment of catalog UI service.",
-                "name": "ibm-catalog-operator",
+                "name": "ibm-catalog-ui-operator",
                 "namespace": "ibm-common-services",
                 "packageName": "ibm-catalog-ui-operator-app",
                 "sourceName": "opencloud-operators",

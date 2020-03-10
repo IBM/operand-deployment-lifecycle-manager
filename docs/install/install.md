@@ -43,7 +43,7 @@ Check if all the operator packages are loaded, run command:
 
 ```bash
 # oc -n openshift-marketplace get operatorsource opencloud-operators -o jsonpath="{.status.packages}"
-ibm-mongodb-operator-app,ibm-management-ingress-operator-app,ibm-cert-manager-operator-app,ibm-licensing-operator-app,cp4foobar-operator-app,ibm-metering-operator-app,ibm-auditlogging-operator-app,meta-operator-app,ibm-ingress-nginx-operator-app,ibm-iam-operator-app,ibm-healthcheck-operator-app,ibm-meta-operator-bridge-app,operand-deployment-lifecycle-manager-app,ibm-catalog-operator-app,ibm-commonui-operator-app
+ibm-mongodb-operator-app,ibm-management-ingress-operator-app,ibm-cert-manager-operator-app,ibm-licensing-operator-app,cp4foobar-operator-app,ibm-metering-operator-app,ibm-auditlogging-operator-app,meta-operator-app,ibm-ingress-nginx-operator-app,ibm-iam-operator-app,ibm-healthcheck-operator-app,ibm-meta-operator-bridge-app,operand-deployment-lifecycle-manager-app,ibm-catalog-ui-operator-app,ibm-commonui-operator-app
 ```
 
 During development, we need to update the csv package frequently, but the operator source need a long time to sync the new package, my experience is to re-create this operator source, the new package will be loaded immediately.
@@ -105,7 +105,7 @@ The list of operators you can add:
     - name: ibm-licensing-operator
     - name: ibm-commonui-operator
     - name: ibm-auditlogging-operator
-    - name: ibm-catalog-operator
+    - name: ibm-catalog-ui-operator
     - name: ibm-platform-api-operator
     - name: ibm-helm-api-operator
     - name: ibm-helm-repo-operator
