@@ -163,6 +163,13 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
 
+	// Set default for OperandRequest instance
+	requestInstance.SetDefaultsRequest()
+	err := r.client.Update(context.TODO(), requestInstance)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
 	// Add finalizer
 	if requestInstance.GetFinalizers() == nil {
 		if err := r.addFinalizer(requestInstance); err != nil {
@@ -202,7 +209,7 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 	}
 
 	// Fetch Subscriptions and check the status of install plan
-	err := r.waitForInstallPlan(requestInstance, request)
+	err = r.waitForInstallPlan(requestInstance, request)
 	if err != nil {
 		if err.Error() == "timed out waiting for the condition" {
 			return reconcile.Result{Requeue: true}, nil

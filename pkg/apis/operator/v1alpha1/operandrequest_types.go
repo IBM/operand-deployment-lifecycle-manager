@@ -284,6 +284,15 @@ func (r *OperandRequest) SetClusterPhase(p ClusterPhase) {
 	r.Status.Phase = p
 }
 
+// SetDefaultsRequest Set the default value for Request spec
+func (r *OperandRequest) SetDefaultsRequest() {
+	for i, req := range r.Spec.Requests {
+		if req.RegistryNamespace == "" {
+			r.Spec.Requests[i].RegistryNamespace = r.Namespace
+		}
+	}
+}
+
 func init() {
 	SchemeBuilder.Register(&OperandRequest{}, &OperandRequestList{})
 }
