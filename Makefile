@@ -174,6 +174,25 @@ scorecard: ## Run scorecard test
 	@echo ... Running the scorecard test
 	- operator-sdk scorecard --verbose
 
+##@ Red Hat Certify
+
+bundle:
+	@echo --- Updating the bundle directory with latest yamls from olm-catalog ---
+	rm -rf bundle/*
+	cp -r deploy/olm-catalog/operand-deployment-lifecycle-manager/${CSV_VERSION}/ bundle/
+	cp deploy/olm-catalog/operand-deployment-lifecycle-manager/operand-deployment-lifecycle-manager.package.yaml bundle/
+	zip bundle/operand-deployment-lifecycle-manager bundle/*.yaml
+
+install-operator-courier:
+	@echo --- Installing Operator Courier ---
+	pip3 install operator-courier
+
+verify-bundle:
+	@echo --- Verify Bundle is Redhat Certify ready ---
+	operator-courier --verbose verify --ui_validate_io bundle/
+
+redhat-certify-ready: bundle install-operator-courier verify-bundle
+
 ##@ Release
 
 images: build-image build-image-ppc64le build-image-s390x
