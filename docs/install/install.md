@@ -19,7 +19,7 @@
 
 ## 1. Create OperatorSource
 
-Before install ODLM, this operator source should be created, you can use OCP UI or CLI create it.
+Before install ODLM, this operator source should be created to get operator bundles from `quay.io`.
 
 Click the plus button, and then copy the following operator source into the editor.
 ![Create OperatorSource](../images/create-operator-source.png)
