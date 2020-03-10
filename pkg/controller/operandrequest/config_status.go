@@ -19,10 +19,13 @@ package operandrequest
 import (
 	"context"
 
+	"k8s.io/klog"
+
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 )
 
 func (r *ReconcileOperandRequest) updateServiceStatus(cr *operatorv1alpha1.OperandConfig, operatorName, serviceName string, serviceStatus operatorv1alpha1.ServicePhase) error {
+	klog.V(3).Info("Updating OperandConfig status")
 
 	cr.Status.ServiceStatus[operatorName].CrStatus[serviceName] = serviceStatus
 	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
@@ -32,6 +35,8 @@ func (r *ReconcileOperandRequest) updateServiceStatus(cr *operatorv1alpha1.Opera
 }
 
 func (r *ReconcileOperandRequest) deleteServiceStatus(cr *operatorv1alpha1.OperandConfig, operatorName, serviceName string) error {
+	klog.V(3).Info("Deleting OperandConfig status")
+
 	configInstance, err := r.getConfigInstance(cr.Name, cr.Namespace)
 	if err != nil {
 		return err

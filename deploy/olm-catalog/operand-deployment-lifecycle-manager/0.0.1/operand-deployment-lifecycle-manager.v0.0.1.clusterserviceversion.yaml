@@ -475,7 +475,7 @@ spec:
             spec:
               containers:
               - args:
-                - --zap-level=3
+                - -v=3
                 command:
                 - odlm
                 env:
