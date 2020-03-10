@@ -80,7 +80,7 @@ spec:
 ## 4. Check Operator CSV
 
 ```bash
-oc -n operand-deployment-lifecycle-manager get csv
+oc -n ibm-common-services get csv
 ```
 
 ## 5. Create OperandRequest instance
