@@ -42,7 +42,7 @@ func (r *ReconcileOperandRequest) reconcileOperand(requestInstance *operatorv1al
 		for _, operand := range req.Operands {
 			configInstance, err := r.getConfigInstance(req.Registry, req.RegistryNamespace)
 			if err != nil {
-				klog.Error(err)
+				klog.Error("Error when get Config Instance: ",err)
 				merr.Add(err)
 				continue
 			}
@@ -55,7 +55,7 @@ func (r *ReconcileOperandRequest) reconcileOperand(requestInstance *operatorv1al
 
 				// If can't get CSV, requeue the request
 				if err != nil {
-					klog.Error(err)
+					klog.Error("Error when get Cluster Service Version: ",err)
 					merr.Add(err)
 					continue
 				}
@@ -69,6 +69,7 @@ func (r *ReconcileOperandRequest) reconcileOperand(requestInstance *operatorv1al
 				// Merge and Generate CR
 				err = r.createUpdateCr(svc, csv, configInstance)
 				if err != nil {
+					klog.Error("Error when get create or update custom resource: ",err)
 					merr.Add(err)
 				}
 			}
@@ -169,6 +170,7 @@ func (r *ReconcileOperandRequest) createUpdateCr(service *operatorv1alpha1.Confi
 				if crCreateErr != nil && !errors.IsAlreadyExists(crCreateErr) {
 					stateUpdateErr := r.updateServiceStatus(csc, service.Name, crdName, operatorv1alpha1.ServiceFailed)
 					if stateUpdateErr != nil {
+						klog.Error("Fail to update status")
 						merr.Add(stateUpdateErr)
 					}
 					klog.Error("Fail to Create the Custom Resource: ", crdName, ". Error message: ", crCreateErr)
@@ -190,6 +192,7 @@ func (r *ReconcileOperandRequest) createUpdateCr(service *operatorv1alpha1.Confi
 					if crGetErr != nil {
 						stateUpdateErr := r.updateServiceStatus(csc, service.Name, crdName, operatorv1alpha1.ServiceFailed)
 						if stateUpdateErr != nil {
+							klog.Error("Fail to update status")
 							merr.Add(stateUpdateErr)
 						}
 						klog.Error("Fail to Get the Custom Resource: ", crdName, ". Error message: ", crGetErr)
@@ -200,6 +203,7 @@ func (r *ReconcileOperandRequest) createUpdateCr(service *operatorv1alpha1.Confi
 					if crUpdateErr := r.client.Update(context.TODO(), existingCR); crUpdateErr != nil {
 						stateUpdateErr := r.updateServiceStatus(csc, service.Name, crdName, operatorv1alpha1.ServiceFailed)
 						if stateUpdateErr != nil {
+							klog.Error("Fail to update status")
 							merr.Add(stateUpdateErr)
 						}
 						klog.Error("Fail to Update the Custom Resource ", crdName, ". Error message: ", crUpdateErr)
@@ -209,12 +213,14 @@ func (r *ReconcileOperandRequest) createUpdateCr(service *operatorv1alpha1.Confi
 					klog.V(2).Info("Finish updating the Custom Resource: ", crdName)
 					stateUpdateErr := r.updateServiceStatus(csc, service.Name, crdName, operatorv1alpha1.ServiceRunning)
 					if stateUpdateErr != nil {
+						klog.Error("Fail to update status")
 						merr.Add(stateUpdateErr)
 					}
 				} else {
 					klog.V(2).Info("Finish creating the Custom Resource: ", crdName)
 					stateUpdateErr := r.updateServiceStatus(csc, service.Name, crdName, operatorv1alpha1.ServiceRunning)
 					if stateUpdateErr != nil {
+						klog.Error("Fail to update status")
 						merr.Add(stateUpdateErr)
 					}
 				}
@@ -232,7 +238,7 @@ func (r *ReconcileOperandRequest) createUpdateCr(service *operatorv1alpha1.Confi
 				Namespace: namespace,
 			}, crShouldBeDeleted)
 			if getError != nil && !errors.IsNotFound(getError) {
-				klog.Error(getError)
+				klog.Error("Failed to get the custom resource should be deleted: ",getError)
 				merr.Add(getError)
 				continue
 			}
@@ -240,7 +246,7 @@ func (r *ReconcileOperandRequest) createUpdateCr(service *operatorv1alpha1.Confi
 				klog.V(3).Infof("Deleting custom resource: %s from custom resource definition: %s", name, kind)
 				deleteErr := r.client.Delete(context.TODO(),crShouldBeDeleted)
 				if deleteErr != nil {
-					klog.Error(deleteErr)
+					klog.Error("Failed to delete the custom resource should be deleted: ", deleteErr)
 					merr.Add(deleteErr)
 					continue
 				}
@@ -300,7 +306,7 @@ func (r *ReconcileOperandRequest) deleteCr(csv *olmv1alpha1.ClusterServiceVersio
 					Namespace: namespace,
 				},  &unstruct)
 				if getError != nil && !errors.IsNotFound(getError) {
-					klog.Error(getError)
+					klog.Error("Failed to get the custom resource should be deleted: ",getError)
 					merr.Add(getError)
 					continue
 				}
