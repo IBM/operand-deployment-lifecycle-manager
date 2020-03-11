@@ -173,25 +173,6 @@ scorecard: ## Run scorecard test
 	@echo ... Running the scorecard test
 	- operator-sdk scorecard --verbose
 
-##@ Red Hat Certify
-
-bundle:
-	@echo --- Updating the bundle directory with latest yamls from olm-catalog ---
-	rm -rf bundle/*
-	cp -r deploy/olm-catalog/operand-deployment-lifecycle-manager/${CSV_VERSION}/ bundle/
-	cp deploy/olm-catalog/operand-deployment-lifecycle-manager/operand-deployment-lifecycle-manager.package.yaml bundle/
-	zip bundle/operand-deployment-lifecycle-manager bundle/*.yaml
-
-install-operator-courier:
-	@echo --- Installing Operator Courier ---
-	pip3 install operator-courier
-
-verify-bundle:
-	@echo --- Verify Bundle is Redhat Certify ready ---
-	operator-courier --verbose verify --ui_validate_io bundle/
-
-redhat-certify-ready: bundle verify-bundle
-
 ##@ Release
 
 images: build-image build-image-ppc64le build-image-s390x
@@ -220,4 +201,4 @@ help: ## Display this help
 		/^[a-zA-Z0-9_-]+:.*?##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 } \
 		/^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
-.PHONY: all build run check install uninstall code-dev test test-e2e coverage images csv clean help bundle install-operator-courier verify-bundle
+.PHONY: all build run check install uninstall code-dev test test-e2e coverage images csv clean help
