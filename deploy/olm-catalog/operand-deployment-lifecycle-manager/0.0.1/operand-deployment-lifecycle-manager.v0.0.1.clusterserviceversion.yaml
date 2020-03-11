@@ -125,6 +125,12 @@ metadata:
                 "spec": {
                   "prometheusExt": {}
                 }
+              },
+              {
+                "name": "ibm-monitoring-grafana-operator",
+                "spec": {
+                  "grafana": {}
+                }
               }
             ]
           }
@@ -290,6 +296,15 @@ metadata:
                 "packageName": "ibm-monitoring-prometheusext-operator-app",
                 "sourceName": "opencloud-operators",
                 "sourceNamespace": "openshift-marketplace"
+              },
+              {
+                "name": "ibm-monitoring-grafana-operator",
+                "namespace": "ibm-common-services",
+                "channel": "alpha",
+                "packageName": "ibm-monitoring-grafana-operator-app",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace",
+                "description": "Operator to deploy Grafana instances with RBAC enabled."
               }
             ]
           }
@@ -319,6 +334,9 @@ metadata:
                   },
                   {
                     "name": "ibm-monitoring-prometheusext-operator"
+                  },
+                  {
+                    "name": "ibm-monitoring-grafana-operator"
                   },
                   {
                     "name": "ibm-healthcheck-operator"
