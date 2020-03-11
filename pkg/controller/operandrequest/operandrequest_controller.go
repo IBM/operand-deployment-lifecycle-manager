@@ -137,7 +137,7 @@ type multiErr struct {
 }
 
 func (mer *multiErr) Error() string {
-	return "Operand Deleployment Lifecycle Manager reconcile errors : " + strings.Join(mer.errors, ":")
+	return "Operand Deleployment Lifecycle Manager reconcile error list : " + strings.Join(mer.errors, " # ")
 }
 
 func (mer *multiErr) Add(err error) {

@@ -13,7 +13,7 @@ spec:
       IBMLicensing: {}
   - name: ibm-mongodb-operator
     spec:
-      mongodb: {}
+      mongoDB: {}
   - name: ibm-cert-manager-operator
     spec:
       certManager: {}
