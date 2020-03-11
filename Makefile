@@ -191,7 +191,7 @@ verify-bundle:
 	@echo --- Verify Bundle is Redhat Certify ready ---
 	operator-courier --verbose verify --ui_validate_io bundle/
 
-redhat-certify-ready: bundle install-operator-courier verify-bundle
+redhat-certify-ready: bundle verify-bundle
 
 ##@ Release
 
