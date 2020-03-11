@@ -14,6 +14,7 @@ spec:
     - name: ibm-monitoring-exporters-operator
     - name: ibm-monitoring-prometheusext-operator
     - name: ibm-healthcheck-operator
+    - name: ibm-monitoring-grafana-operator
     # - name: ibm-management-ingress-operator
     # - name: ibm-ingress-nginx-operator
     # - name: ibm-metering-operator

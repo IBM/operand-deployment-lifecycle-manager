@@ -68,3 +68,6 @@ spec:
   - name: ibm-monitoring-prometheusext-operator
     spec:
       prometheusExt: {}
+  - name: ibm-monitoring-grafana-operator
+    spec:
+      grafana: {}
