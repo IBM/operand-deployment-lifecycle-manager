@@ -34,6 +34,8 @@ import (
 	util "github.com/IBM/operand-deployment-lifecycle-manager/pkg/util"
 )
 
+const t string = "true"
+
 func (r *ReconcileOperandRequest) reconcileOperand(requestInstance *operatorv1alpha1.OperandRequest) *multiErr {
 	klog.V(1).Info("Reconciling Operand")
 	merr := &multiErr{}
@@ -42,7 +44,7 @@ func (r *ReconcileOperandRequest) reconcileOperand(requestInstance *operatorv1al
 		for _, operand := range req.Operands {
 			configInstance, err := r.getConfigInstance(req.Registry, req.RegistryNamespace)
 			if err != nil {
-				klog.Error("Error when get Config Instance: ",err)
+				klog.Error("Error when get Config Instance: ", err)
 				merr.Add(err)
 				continue
 			}
@@ -55,7 +57,7 @@ func (r *ReconcileOperandRequest) reconcileOperand(requestInstance *operatorv1al
 
 				// If can't get CSV, requeue the request
 				if err != nil {
-					klog.Error("Error when get Cluster Service Version: ",err)
+					klog.Error("Error when get Cluster Service Version: ", err)
 					merr.Add(err)
 					continue
 				}
@@ -69,7 +71,7 @@ func (r *ReconcileOperandRequest) reconcileOperand(requestInstance *operatorv1al
 				// Merge and Generate CR
 				err = r.createUpdateCr(svc, csv, configInstance)
 				if err != nil {
-					klog.Error("Error when get create or update custom resource: ",err)
+					klog.Error("Error when get create or update custom resource: ", err)
 					merr.Add(err)
 				}
 			}
@@ -159,11 +161,11 @@ func (r *ReconcileOperandRequest) createUpdateCr(service *operatorv1alpha1.Confi
 
 				unstruct.Object["spec"] = mergedCR
 				unstruct.Object["metadata"].(map[string]interface{})["namespace"] = namespace
-				if (unstruct.Object["metadata"].(map[string]interface{})["labels"] == nil) {
+				if unstruct.Object["metadata"].(map[string]interface{})["labels"] == nil {
 					klog.V(4).Info("Adding ODLM label in the custom resource")
 					unstruct.Object["metadata"].(map[string]interface{})["labels"] = make(map[string]interface{})
 				}
-				unstruct.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{})["operator.ibm.com/opreq-control"] = "true"
+				unstruct.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{})["operator.ibm.com/opreq-control"] = t
 
 				// Creat or Update the CR
 				crCreateErr := r.client.Create(context.TODO(), &unstruct)
@@ -226,25 +228,25 @@ func (r *ReconcileOperandRequest) createUpdateCr(service *operatorv1alpha1.Confi
 				}
 			}
 		}
-		if (!found) {
+		if !found {
 			crShouldBeDeleted := &unstructured.Unstructured{
 				Object: map[string]interface{}{
 					"apiVersion": apiversion,
 					"kind":       kind,
 				},
 			}
-			getError := r.client.Get(context.TODO(),types.NamespacedName{
-				Name: name,
+			getError := r.client.Get(context.TODO(), types.NamespacedName{
+				Name:      name,
 				Namespace: namespace,
 			}, crShouldBeDeleted)
 			if getError != nil && !errors.IsNotFound(getError) {
-				klog.Error("Failed to get the custom resource should be deleted: ",getError)
+				klog.Error("Failed to get the custom resource should be deleted: ", getError)
 				merr.Add(getError)
 				continue
 			}
-			if !errors.IsNotFound(getError) && crShouldBeDeleted.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{})["operator.ibm.com/opreq-control"] == "true"  {
+			if !errors.IsNotFound(getError) && crShouldBeDeleted.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{})["operator.ibm.com/opreq-control"] == t {
 				klog.V(3).Infof("Deleting custom resource: %s from custom resource definition: %s", name, kind)
-				deleteErr := r.client.Delete(context.TODO(),crShouldBeDeleted)
+				deleteErr := r.client.Delete(context.TODO(), crShouldBeDeleted)
 				if deleteErr != nil {
 					klog.Error("Failed to delete the custom resource should be deleted: ", deleteErr)
 					merr.Add(deleteErr)
@@ -256,7 +258,8 @@ func (r *ReconcileOperandRequest) createUpdateCr(service *operatorv1alpha1.Confi
 					merr.Add(stateDeleteErr)
 					continue
 				}
-				klog.V(3).Infof("Finish deleting custom resource: %s from custom resource definition: %s", name, kind)			}
+				klog.V(3).Infof("Finish deleting custom resource: %s from custom resource definition: %s", name, kind)
+			}
 		}
 	}
 	if len(merr.errors) != 0 {
@@ -301,12 +304,12 @@ func (r *ReconcileOperandRequest) deleteCr(csv *olmv1alpha1.ClusterServiceVersio
 
 			// Compare the name of OperandConfig and CRD name
 			if strings.EqualFold(kind, crdName) {
-				getError := r.client.Get(context.TODO(),types.NamespacedName{
-					Name: name,
+				getError := r.client.Get(context.TODO(), types.NamespacedName{
+					Name:      name,
 					Namespace: namespace,
-				},  &unstruct)
+				}, &unstruct)
 				if getError != nil && !errors.IsNotFound(getError) {
-					klog.Error("Failed to get the custom resource should be deleted: ",getError)
+					klog.Error("Failed to get the custom resource should be deleted: ", getError)
 					merr.Add(getError)
 					continue
 				}
@@ -319,7 +322,7 @@ func (r *ReconcileOperandRequest) deleteCr(csv *olmv1alpha1.ClusterServiceVersio
 					}
 					continue
 				}
-				if unstruct.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{})["operator.ibm.com/opreq-control"] == "true" {
+				if unstruct.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{})["operator.ibm.com/opreq-control"] == t {
 					crDeleteErr := r.client.Delete(context.TODO(), &unstruct)
 					if crDeleteErr != nil && !errors.IsNotFound(crDeleteErr) {
 						klog.Error("Failed to delete the custom resource: ", crDeleteErr)

@@ -20,10 +20,10 @@ import (
 	"unicode"
 )
 
-// Lcfirst changes the first charactor to lower case
+// Lcfirst changes the first character to lower case
 func Lcfirst(str string) string {
-    for i, v := range str {
-        return string(unicode.ToLower(v)) + str[i+1:]
-    }
-    return ""
+	for i, v := range str {
+		return string(unicode.ToLower(v)) + str[i+1:]
+	}
+	return ""
 }

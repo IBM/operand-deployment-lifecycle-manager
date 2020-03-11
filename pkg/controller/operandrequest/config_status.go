@@ -35,7 +35,7 @@ func (r *ReconcileOperandRequest) updateServiceStatus(cr *operatorv1alpha1.Opera
 }
 
 func (r *ReconcileOperandRequest) deleteServiceStatus(cr *operatorv1alpha1.OperandConfig, operatorName, serviceName string) error {
-	klog.V(3).Infof("Deleting custom resouce %s from OperandConfig status", serviceName)
+	klog.V(3).Infof("Deleting custom resource %s from OperandConfig status", serviceName)
 
 	configInstance, err := r.getConfigInstance(cr.Name, cr.Namespace)
 	if err != nil {
