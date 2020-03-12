@@ -6,6 +6,7 @@ metadata:
       [
         {
           "apiVersion": "operator.ibm.com/v1alpha1",
+<<<<<<< HEAD
           "kind": "OperandConfig",
           "metadata": {
             "name": "common-service"
@@ -297,6 +298,8 @@ metadata:
         },
         {
           "apiVersion": "operator.ibm.com/v1alpha1",
+=======
+>>>>>>> remove config and registry  alm-example
           "kind": "OperandRequest",
           "metadata": {
             "name": "common-service"
