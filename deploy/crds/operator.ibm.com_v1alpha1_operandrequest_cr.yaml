@@ -2,11 +2,9 @@ apiVersion: operator.ibm.com/v1alpha1
 kind: OperandRequest
 metadata:
   name: common-service
-  namespace: ibm-common-services
 spec:
   requests:
   - registry: common-service
-    registryNamespace: ibm-common-services
     operands:
     - name: ibm-cert-manager-operator
     - name: ibm-mongodb-operator
