@@ -19,8 +19,6 @@ package testgroups
 import (
 	"testing"
 
-	olmclient "github.com/operator-framework/operator-lifecycle-manager/pkg/api/client/clientset/versioned"
-
 	"github.com/operator-framework/operator-sdk/pkg/test"
 
 	"github.com/IBM/operand-deployment-lifecycle-manager/test/helpers"
@@ -28,32 +26,32 @@ import (
 
 // TestOperandRegistry is the test group for testing Operand Registry
 func TestOperandRegistry(t *testing.T) {
-	t.Run("TestOperandRegistryCURD", TestOperandRegistryCURD)
+	t.Run("TestOperandRegistryCRUD", TestOperandRegistryCRUD)
 }
 
-// TestOperandRegistryCURD is for testing OperandRegistry
-func TestOperandRegistryCURD(t *testing.T) {
+// TestOperandRegistryCRUD is for testing OperandRegistry
+func TestOperandRegistryCRUD(t *testing.T) {
 
 	ctx := test.NewTestCtx(t)
 	defer ctx.Cleanup()
 
 	// get global framework variables
 	f := test.Global
-	olmClient, err := olmclient.NewForConfig(f.KubeConfig)
+
+	if err := helpers.CreateOperandRegistry(f, ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	regCr, err := helpers.RetrieveOperandRegistry(f, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if err = helpers.CreateOperandRegistry(f, ctx); err != nil {
+	if err := helpers.UpdateOperandRegistry(f, ctx); err != nil {
 		t.Fatal(err)
 	}
 
-	ri, err := helpers.GetOperandRegistry(olmClient, f, ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if err = helpers.DeleteOperandRegistry(olmClient, ri, f); err != nil {
+	if err = helpers.DeleteOperandRegistry(f, regCr); err != nil {
 		t.Fatal(err)
 	}
 }

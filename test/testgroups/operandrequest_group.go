@@ -19,8 +19,6 @@ package testgroups
 import (
 	"testing"
 
-	olmclient "github.com/operator-framework/operator-lifecycle-manager/pkg/api/client/clientset/versioned"
-
 	"github.com/operator-framework/operator-sdk/pkg/test"
 
 	"github.com/IBM/operand-deployment-lifecycle-manager/test/helpers"
@@ -28,21 +26,17 @@ import (
 
 // TestOperandRequest is the test group for testing Operand Request
 func TestOperandRequest(t *testing.T) {
-	t.Run("TestOperandRequestCURD", TestOperandRequestCURD)
+	t.Run("TestOperandRequestCRUD", TestOperandRequestCRUD)
 }
 
 // TestOperandRequest is for testing the OperandRequest
-func TestOperandRequestCURD(t *testing.T) {
+func TestOperandRequestCRUD(t *testing.T) {
 
 	ctx := test.NewTestCtx(t)
 	defer ctx.Cleanup()
 
 	// get global framework variables
 	f := test.Global
-	olmClient, err := olmclient.NewForConfig(f.KubeConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	if err := helpers.CreateOperandRegistry(f, ctx); err != nil {
 		t.Fatal(err)
@@ -52,27 +46,27 @@ func TestOperandRequestCURD(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err = helpers.CreateOperandRequest(f, ctx); err != nil {
+	if err := helpers.CreateOperandRequest(f, ctx); err != nil {
 		t.Fatal(err)
 	}
 
-	reqCr, err := helpers.GetOperandRequest(f, ctx)
+	reqCr, err := helpers.RetrieveOperandRequest(f, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = helpers.CheckingSub(f, olmClient, reqCr)
+	err = helpers.CheckingSub(f, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// if err = helpers.AbsentOperandFormRequest(reqCr, f); err != nil {
-	// 	t.Fatal(err)
-	// }
+	if err = helpers.AbsentOperandFormRequest(f, ctx); err != nil {
+		t.Fatal(err)
+	}
 
-	// if err = helpers.PresentOperandFormRequest(reqCr, f); err != nil {
-	// 	t.Fatal(err)
-	// }
+	if err = helpers.PresentOperandFormRequest(f, ctx); err != nil {
+		t.Fatal(err)
+	}
 
 	if err = helpers.DeleteOperandRequest(reqCr, f); err != nil {
 		t.Fatal(err)

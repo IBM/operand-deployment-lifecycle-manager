@@ -26,11 +26,11 @@ import (
 
 // TestOperandConfig is the test group for testing Operand Config
 func TestOperandConfig(t *testing.T) {
-	t.Run("TestOperandConfigCURD", TestOperandConfigCURD)
+	t.Run("TestOperandConfigCRUD", TestOperandConfigCRUD)
 }
 
-// TestOperandConfigCURD is for testing OperandConfig
-func TestOperandConfigCURD(t *testing.T) {
+// TestOperandConfigCRUD is for testing OperandConfig
+func TestOperandConfigCRUD(t *testing.T) {
 
 	ctx := test.NewTestCtx(t)
 	defer ctx.Cleanup()
@@ -42,16 +42,16 @@ func TestOperandConfigCURD(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ci, err := helpers.GetOperandConfig(f, ctx)
+	conCr, err := helpers.RetrieveOperandConfig(f, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// if err = helpers.UpdateOperandConfig(ci, f); err != nil {
-	// 	t.Fatal(err)
-	// }
+	if err = helpers.UpdateOperandConfig(f, ctx); err != nil {
+		t.Fatal(err)
+	}
 
-	if err = helpers.DeleteOperandConfig(ci, f); err != nil {
+	if err = helpers.DeleteOperandConfig(f, conCr); err != nil {
 		t.Fatal(err)
 	}
 }
