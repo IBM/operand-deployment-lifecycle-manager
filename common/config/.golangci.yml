@@ -30,7 +30,6 @@ linters:
     - deadcode
     - errcheck
     - goconst
-    - gocritic
     - gocyclo
     - gofmt
     - goimports
@@ -50,6 +49,7 @@ linters:
     - unused
     - varcheck
   # don't enable:
+  # - gocritic
   # - bodyclose
   # - depguard
   # - dogsled

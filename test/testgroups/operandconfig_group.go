@@ -19,8 +19,9 @@ package testgroups
 import (
 	"testing"
 
-	"github.com/IBM/operand-deployment-lifecycle-manager/test/helpers"
 	"github.com/operator-framework/operator-sdk/pkg/test"
+
+	"github.com/IBM/operand-deployment-lifecycle-manager/test/helpers"
 )
 
 // TestOperandConfig is the test group for testing Operand Config

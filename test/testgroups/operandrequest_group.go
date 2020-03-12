@@ -21,8 +21,9 @@ import (
 
 	olmclient "github.com/operator-framework/operator-lifecycle-manager/pkg/api/client/clientset/versioned"
 
-	"github.com/IBM/operand-deployment-lifecycle-manager/test/helpers"
 	"github.com/operator-framework/operator-sdk/pkg/test"
+
+	"github.com/IBM/operand-deployment-lifecycle-manager/test/helpers"
 )
 
 // TestOperandRequest is the test group for testing Operand Request

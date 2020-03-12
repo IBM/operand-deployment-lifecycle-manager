@@ -373,7 +373,7 @@ func CheckingSub(f *framework.Framework, olmClient *olmclient.Clientset, reqCr *
 			}
 			for _, operand := range req.Operands {
 				if registryInstance.Status.OperatorsStatus[operand.Name].Phase != operator.OperatorReady {
-					return false, fmt.Errorf("Subsciption[%s] phase not ready", operand.Name)
+					return false, fmt.Errorf("subsciption[%s] phase not ready", operand.Name)
 				}
 			}
 		}
@@ -391,15 +391,6 @@ func getRegistryInstance(f *framework.Framework, name, namespace string) (*opera
 		return nil, err
 	}
 	return reg, nil
-}
-
-func getOperatorFromRegistryInstance(operandName string, registryInstance *operator.OperandRegistry) *operator.Operator {
-	for _, o := range registryInstance.Spec.Operators {
-		if o.Name == operandName {
-			return &o
-		}
-	}
-	return nil
 }
 
 func GetReconcileRequest(name, namespace string) reconcile.Request {
