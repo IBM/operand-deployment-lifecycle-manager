@@ -21,13 +21,10 @@ import (
 	"testing"
 	"time"
 
-	olmclient "github.com/operator-framework/operator-lifecycle-manager/pkg/api/client/clientset/versioned"
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/wait"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -85,14 +82,15 @@ func DeleteOperandRequest(reqCr *operator.OperandRequest, f *framework.Framework
 func AbsentOperandFormRequest(f *framework.Framework, ctx *framework.TestCtx) error {
 	fmt.Println("--- ABSENT: Operator and Operand")
 	// Delete first operator and related operand
-	if err := utilwait.Poll(config.WaitForRetry, config.WaitForTimeout, func() (done bool, err error) {
+	if err := utilwait.PollImmediate(config.WaitForRetry, config.WaitForTimeout, func() (done bool, err error) {
 		reqCr, err := RetrieveOperandRequest(f, ctx)
 		if err != nil {
 			return false, err
 		}
 		reqCr.Spec.Requests[0].Operands = reqCr.Spec.Requests[0].Operands[1:]
 		if err := f.Client.Update(goctx.TODO(), reqCr); err != nil {
-			return false, err
+			fmt.Println("    --- Waiting for OperandRequest instance stable ...")
+			return false, nil
 		}
 		return true, nil
 	}); err != nil {
@@ -105,14 +103,34 @@ func AbsentOperandFormRequest(f *framework.Framework, ctx *framework.TestCtx) er
 func PresentOperandFormRequest(f *framework.Framework, ctx *framework.TestCtx) error {
 	fmt.Println("--- PRESENT: Operator and Operand [etcd]")
 	// Add an operator and related operand
-	if err := utilwait.Poll(config.WaitForRetry, config.WaitForTimeout, func() (done bool, err error) {
+	if err := utilwait.PollImmediate(time.Second*10, time.Minute*5, func() (done bool, err error) {
 		reqCr, err := RetrieveOperandRequest(f, ctx)
 		if err != nil {
 			return false, err
 		}
 		reqCr.Spec.Requests[0].Operands = append(reqCr.Spec.Requests[0].Operands, operator.Operand{Name: "etcd"})
 		if err := f.Client.Update(goctx.TODO(), reqCr); err != nil {
+			fmt.Println("    --- Waiting for OperandRequest instance stable ...")
+			return false, nil
+		}
+		return true, nil
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Checking Cluster phase is running
+func CheckingClusterState(f *framework.Framework, ctx *framework.TestCtx) error {
+	fmt.Println("--- CHECKING: Cluster Phase")
+	if err := utilwait.PollImmediate(time.Second*10, time.Minute*5, func() (bool, error) {
+		reqCr, err := RetrieveOperandRequest(f, ctx)
+		if err != nil {
 			return false, err
+		}
+		if reqCr.Status.Phase != operator.ClusterPhaseRunning {
+			fmt.Println("    --- Waiting for cluster ready ...")
+			return false, nil
 		}
 		return true, nil
 	}); err != nil {
@@ -158,7 +176,7 @@ func RetrieveOperandConfig(f *framework.Framework, ctx *framework.TestCtx) (*ope
 // UpdateOperandConfig updates a OperandConfig instance
 func UpdateOperandConfig(f *framework.Framework, ctx *framework.TestCtx) error {
 	fmt.Println("--- UPDATE: OperandConfig Instance")
-	if err := utilwait.Poll(config.WaitForRetry, config.WaitForTimeout, func() (done bool, err error) {
+	if err := utilwait.PollImmediate(config.WaitForRetry, config.WaitForTimeout, func() (done bool, err error) {
 		conCr, err := RetrieveOperandConfig(f, ctx)
 		if err != nil {
 			return false, err
@@ -167,7 +185,8 @@ func UpdateOperandConfig(f *framework.Framework, ctx *framework.TestCtx) error {
 			"etcdCluster": {Raw: []byte(`{"size": 3}`)},
 		}
 		if err := f.Client.Update(goctx.TODO(), conCr); err != nil {
-			return false, err
+			fmt.Println("    --- Waiting for OperandConfig instance stable ...")
+			return false, nil
 		}
 		return true, nil
 	}); err != nil {
@@ -229,14 +248,15 @@ func RetrieveOperandRegistry(f *framework.Framework, ctx *framework.TestCtx) (*o
 // UpdateOperandRegistry update a OperandRegistry instance
 func UpdateOperandRegistry(f *framework.Framework, ctx *framework.TestCtx) error {
 	fmt.Println("--- UPDATE: OperandRegistry Instance")
-	if err := utilwait.Poll(config.WaitForRetry, config.WaitForTimeout, func() (done bool, err error) {
+	if err := utilwait.PollImmediate(config.WaitForRetry, config.WaitForTimeout, func() (done bool, err error) {
 		regCr, err := RetrieveOperandRegistry(f, ctx)
 		if err != nil {
 			return false, err
 		}
 		regCr.Spec.Operators[0].Channel = "clusterwide-alpha"
 		if err := f.Client.Update(goctx.TODO(), regCr); err != nil {
-			return false, err
+			fmt.Println("    --- Waiting for OperandRegistry instance stable ...")
+			return false, nil
 		}
 		return true, nil
 	}); err != nil {
@@ -255,56 +275,6 @@ func DeleteOperandRegistry(f *framework.Framework, regCr *operator.OperandRegist
 		return err
 	}
 
-	return nil
-}
-
-// WaitForSubscriptionDelete waits for the subscription deleted
-func WaitForSubscriptionDelete(olmClient *olmclient.Clientset, opt metav1.ObjectMeta) error {
-	lastReason := ""
-	fmt.Println("Waiting on subscription to be deleted [" + opt.Name + "]")
-	waitErr := utilwait.Poll(config.WaitForRetry, config.WaitForTimeout, func() (done bool, err error) {
-		_, err = olmClient.OperatorsV1alpha1().Subscriptions(opt.Namespace).Get(opt.Name, metav1.GetOptions{})
-		if err != nil {
-			if errors.IsNotFound(err) {
-				return true, nil
-			}
-			return false, err
-		}
-		lastReason = fmt.Sprintf("Waiting on subscription to be deleted" + ", Subscription.Name: " + opt.Name + " Subscription.Namespace: " + opt.Namespace)
-		return false, nil
-	})
-	if waitErr != nil {
-		return fmt.Errorf("%v: %s", waitErr, lastReason)
-	}
-	return nil
-}
-
-// ValidateCustomResource check the result of the OperandConfig
-func ValidateCustomResource(f *framework.Framework, namespace string) error {
-	fmt.Println("Validating custom resources are ready")
-	configInstance := &operator.OperandConfig{}
-	// Get OperandRequest instance
-	err := f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandConfigCrName, Namespace: namespace}, configInstance)
-	if err != nil {
-		return err
-	}
-	lastReason := ""
-	waitErr := utilwait.Poll(config.WaitForRetry, config.WaitForTimeout, func() (done bool, err error) {
-		for operatorName, operatorState := range configInstance.Status.ServiceStatus {
-			for crName, crState := range operatorState.CrStatus {
-				if crState == operator.ServiceRunning {
-					continue
-				} else {
-					lastReason = fmt.Sprintf("Waiting on custom resource to be ready" + ", custom resource name: " + crName + " Operator name: " + operatorName)
-					return false, nil
-				}
-			}
-		}
-		return true, nil
-	})
-	if waitErr != nil {
-		return fmt.Errorf("%v: %s", waitErr, lastReason)
-	}
 	return nil
 }
 
@@ -395,26 +365,6 @@ func newOperandRequestCR(name, namespace string) *operator.OperandRequest {
 			},
 		},
 	}
-}
-
-// Checking Subscription are ready
-func CheckingSub(f *framework.Framework, ctx *framework.TestCtx) error {
-	fmt.Println("--- CHECKING: Subscription")
-	if err := wait.PollImmediate(time.Second*10, time.Minute*5, func() (bool, error) {
-		regCr, err := RetrieveOperandRegistry(f, ctx)
-		if err != nil {
-			return false, err
-		}
-		for name, s := range regCr.Status.OperatorsStatus {
-			if s.Phase != operator.OperatorReady {
-				return false, fmt.Errorf("subsciption[%s] phase not ready", name)
-			}
-		}
-		return true, nil
-	}); err != nil {
-		return err
-	}
-	return nil
 }
 
 func GetReconcileRequest(name, namespace string) reconcile.Request {

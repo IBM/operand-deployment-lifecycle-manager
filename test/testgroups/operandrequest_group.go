@@ -55,7 +55,7 @@ func TestOperandRequestCRUD(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = helpers.CheckingSub(f, ctx)
+	err = helpers.CheckingClusterState(f, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
