@@ -2,7 +2,6 @@ apiVersion: operator.ibm.com/v1alpha1
 kind: OperandRegistry
 metadata:
   name: common-service
-  namespace: ibm-common-services
 spec:
   operators:
   - name: ibm-metering-operator

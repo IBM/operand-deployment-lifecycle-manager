@@ -299,13 +299,14 @@ metadata:
                 "sourceNamespace": "openshift-marketplace"
               },
               {
+                "channel": "alpha",
+                "description": "Operator to deploy Grafana instances with RBAC enabled.",
                 "name": "ibm-monitoring-grafana-operator",
                 "namespace": "ibm-common-services",
-                "channel": "alpha",
                 "packageName": "ibm-monitoring-grafana-operator-app",
+                "scope": "private",
                 "sourceName": "opencloud-operators",
-                "sourceNamespace": "openshift-marketplace",
-                "description": "Operator to deploy Grafana instances with RBAC enabled."
+                "sourceNamespace": "openshift-marketplace"
               }
             ]
           }
@@ -314,8 +315,7 @@ metadata:
           "apiVersion": "operator.ibm.com/v1alpha1",
           "kind": "OperandRequest",
           "metadata": {
-            "name": "common-service",
-            "namespace": "ibm-common-services"
+            "name": "common-service"
           },
           "spec": {
             "requests": [
@@ -337,14 +337,13 @@ metadata:
                     "name": "ibm-monitoring-prometheusext-operator"
                   },
                   {
-                    "name": "ibm-monitoring-grafana-operator"
+                    "name": "ibm-healthcheck-operator"
                   },
                   {
-                    "name": "ibm-healthcheck-operator"
+                    "name": "ibm-monitoring-grafana-operator"
                   }
                 ],
-                "registry": "common-service",
-                "registryNamespace": "ibm-common-services"
+                "registry": "common-service"
               }
             ]
           }
