@@ -28,7 +28,7 @@ metadata:
               {
                 "name": "ibm-mongodb-operator",
                 "spec": {
-                  "mongodb": {}
+                  "mongoDB": {}
                 }
               },
               {
@@ -62,7 +62,8 @@ metadata:
                 "name": "ibm-commonui-operator",
                 "spec": {
                   "commonWebUI": {},
-                  "legacyHeader": {}
+                  "legacyHeader": {},
+                  "navconfiguration": {}
                 }
               },
               {
@@ -488,14 +489,14 @@ spec:
           strategy: {}
           template:
             metadata:
+              annotations:
+                productID: 068a62892a1e4db39641342e592daa25
+                productMetric: FREE
+                productName: IBM Cloud Platform Common Services
+                productVersion: 3.3.0
               labels:
                 app.kubernetes.io/instance: operand-deployment-lifecycle-manager
                 name: operand-deployment-lifecycle-manager
-              annotations:
-                productName: "IBM Cloud Platform Common Services"
-                productID: "068a62892a1e4db39641342e592daa25"
-                productVersion: "3.3.0"
-                productMetric: "FREE"
             spec:
               containers:
               - args:
