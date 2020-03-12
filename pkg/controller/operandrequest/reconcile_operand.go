@@ -51,7 +51,7 @@ func (r *ReconcileOperandRequest) reconcileOperand(requestInstance *operatorv1al
 			// Check the requested Service Config if exist in specific OperandConfig
 			svc := r.getServiceFromConfigInstance(operand.Name, configInstance)
 			if svc != nil {
-				klog.V(4).Info("Reconciling custom resource: ", svc.Name)
+				klog.V(3).Info("Reconciling custom resource: ", svc.Name)
 				// Looking for the CSV
 				csv, err := r.getClusterServiceVersion(svc.Name)
 
@@ -85,7 +85,7 @@ func (r *ReconcileOperandRequest) reconcileOperand(requestInstance *operatorv1al
 
 // getCSV retrieves the Cluster Service Version
 func (r *ReconcileOperandRequest) getClusterServiceVersion(subName string) (*olmv1alpha1.ClusterServiceVersion, error) {
-	klog.V(2).Info("Looking for the Cluster Service Version ", "in Subscription: ", subName)
+	klog.V(2).Info("Looking for the Cluster Service Version for the Subscription: ", subName)
 	subs, listSubErr := r.olmClient.OperatorsV1alpha1().Subscriptions("").List(metav1.ListOptions{
 		LabelSelector: "operator.ibm.com/opreq-control",
 	})

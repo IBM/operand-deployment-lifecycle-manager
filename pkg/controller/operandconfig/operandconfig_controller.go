@@ -107,7 +107,7 @@ func (r *ReconcileOperandConfig) Reconcile(request reconcile.Request) (reconcile
 	}
 	// Set the default status for OperandConfig instance
 	instance.InitConfigStatus()
-	klog.V(2).Info("Initializing OperandConfig instance status: ", request)
+	klog.V(3).Info("Initializing OperandConfig instance status: ", request)
 	if err := r.client.Status().Update(context.TODO(), instance); err != nil {
 		return reconcile.Result{}, err
 	}
