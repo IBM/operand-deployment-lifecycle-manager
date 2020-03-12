@@ -27,51 +27,44 @@ import (
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 )
 
-// States of common services
-const (
-	Absent  = "absent"
-	Present = "present"
-)
-
 func (r *ReconcileOperandRequest) updateMemberStatus(cr *operatorv1alpha1.OperandRequest) error {
 	klog.V(3).Info("Updating OperandRequest member status")
-	subs, err := r.olmClient.OperatorsV1alpha1().Subscriptions("").List(metav1.ListOptions{
-		LabelSelector: "operator.ibm.com/opreq-control",
-	})
-	if err != nil {
-		return err
-	}
-
-	for _, s := range subs.Items {
-		// Get operator phase
-		operatorPhase, err := r.getOperatorPhase(s)
+	for _, req := range cr.Spec.Requests {
+		registryInstance, err := r.getRegistryInstance(req.Registry, req.RegistryNamespace)
 		if err != nil {
 			return err
 		}
-		// Get operand phase
-		for _, req := range cr.Spec.Requests {
-			configInstance, err := r.getConfigInstance(req.Registry, req.RegistryNamespace)
+		configInstance, err := r.getConfigInstance(req.Registry, req.RegistryNamespace)
+		if err != nil {
+			return err
+		}
+
+		for _, ro := range req.Operands {
+			opt := r.getOperatorFromRegistryInstance(ro.Name, registryInstance)
+			operatorPhase, err := r.getOperatorPhase(opt.Name, opt.Namespace)
+			operandPhase := getOperandPhase(configInstance.Status.ServiceStatus[ro.Name].CrStatus)
 			if err != nil {
 				return err
 			}
-			operandPhase := getOperandPhase(configInstance.Status.ServiceStatus[s.Name].CrStatus)
-
-			cr.SetMemberStatus(s.Name, operatorPhase, operandPhase)
+			cr.SetMemberStatus(ro.Name, operatorPhase, operandPhase)
 		}
 	}
-
 	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *ReconcileOperandRequest) getOperatorPhase(s olmv1alpha1.Subscription) (olmv1alpha1.ClusterServiceVersionPhase, error) {
+func (r *ReconcileOperandRequest) getOperatorPhase(name, namespace string) (olmv1alpha1.ClusterServiceVersionPhase, error) {
 	klog.V(3).Info("Get OperatorPhase for OperandRequest member status")
+	sub, err := r.olmClient.OperatorsV1alpha1().Subscriptions(namespace).Get(name, metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
 	var operatorPhase olmv1alpha1.ClusterServiceVersionPhase
-	csvName := s.Status.InstalledCSV
+	csvName := sub.Status.InstalledCSV
 	if csvName != "" {
-		csv, err := r.olmClient.OperatorsV1alpha1().ClusterServiceVersions(s.Namespace).Get(csvName, metav1.GetOptions{})
+		csv, err := r.olmClient.OperatorsV1alpha1().ClusterServiceVersions(namespace).Get(csvName, metav1.GetOptions{})
 		if err != nil && !errors.IsNotFound(err) {
 			return operatorPhase, err
 		}
