@@ -140,8 +140,7 @@ metadata:
           "apiVersion": "operator.ibm.com/v1alpha1",
           "kind": "OperandRegistry",
           "metadata": {
-            "name": "common-service",
-            "namespace": "ibm-common-services"
+            "name": "common-service"
           },
           "spec": {
             "operators": [
@@ -499,7 +498,7 @@ spec:
             spec:
               containers:
               - args:
-                - -v=3
+                - -v=2
                 command:
                 - odlm
                 env:
