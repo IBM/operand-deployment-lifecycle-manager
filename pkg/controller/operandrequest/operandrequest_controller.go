@@ -238,7 +238,7 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 }
 
 func (r *ReconcileOperandRequest) waitForInstallPlan(requestInstance *operatorv1alpha1.OperandRequest, reconcileReq reconcile.Request) error {
-	klog.V(3).Info("Waiting for subscriptions to be ready ...")
+	klog.V(2).Info("Waiting for subscriptions to be ready ...")
 
 	subs := make(map[string]string)
 	err := wait.PollImmediate(time.Second*20, time.Minute*10, func() (bool, error) {
@@ -292,7 +292,7 @@ func (r *ReconcileOperandRequest) waitForInstallPlan(requestInstance *operatorv1
 		return ready, nil
 	})
 	for sub, state := range subs {
-		klog.V(3).Info("Subscription: " + sub + ", state: " + state)
+		klog.V(2).Info("Subscription: " + sub + ", state: " + state)
 	}
 	if err != nil {
 		return err
