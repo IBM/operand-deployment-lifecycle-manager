@@ -13,7 +13,7 @@ spec:
       IBMLicensing: {}
   - name: ibm-mongodb-operator
     spec:
-      mongodb: {}
+      mongoDB: {}
   - name: ibm-cert-manager-operator
     spec:
       certManager: {}
@@ -46,11 +46,12 @@ spec:
   - name: ibm-auditlogging-operator
     spec:
       auditLogging: {}
-  - name: ibm-catalog-operator
+  - name: ibm-catalog-ui-operator
     spec:
-      icpCatalogChart: {}
+      catalogUI: {}
   - name: ibm-platform-api-operator
     spec:
+      passwordRule: {}
       platformApi: {}
   - name: ibm-helm-api-operator
     spec:
@@ -60,10 +61,13 @@ spec:
       helmRepo: {}
   - name: ibm-management-repo-operator
     spec:
-      mgmtRepo: {}
+      managementRepo: {}
   - name: ibm-monitoring-exporters-operator
     spec:
       exporter: {}
   - name: ibm-monitoring-prometheusext-operator
     spec:
       prometheusExt: {}
+  - name: ibm-monitoring-grafana-operator
+    spec:
+      grafana: {}

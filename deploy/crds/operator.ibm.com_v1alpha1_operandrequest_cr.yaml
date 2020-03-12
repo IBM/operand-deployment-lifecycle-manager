@@ -5,7 +5,6 @@ metadata:
 spec:
   requests:
   - registry: common-service
-    registryNamespace: ibm-common-services
     operands:
     - name: ibm-cert-manager-operator
     - name: ibm-mongodb-operator
@@ -13,14 +12,16 @@ spec:
     - name: ibm-monitoring-exporters-operator
     - name: ibm-monitoring-prometheusext-operator
     - name: ibm-healthcheck-operator
+    - name: ibm-monitoring-grafana-operator
     # - name: ibm-management-ingress-operator
     # - name: ibm-ingress-nginx-operator
     # - name: ibm-metering-operator
     # - name: ibm-licensing-operator
     # - name: ibm-commonui-operator
     # - name: ibm-auditlogging-operator
-    # - name: ibm-catalog-operator
     # - name: ibm-platform-api-operator
     # - name: ibm-helm-api-operator
     # - name: ibm-helm-repo-operator
     # - name: ibm-management-repo-operator
+    # - name: ibm-catalog-ui-operator
+

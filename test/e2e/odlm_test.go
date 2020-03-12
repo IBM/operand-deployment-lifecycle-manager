@@ -13,8 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-
-package testgroups
+package e2e
 
 import (
 	"testing"
@@ -23,25 +22,38 @@ import (
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
 	"github.com/operator-framework/operator-sdk/pkg/test/e2eutil"
 
+	apis "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis"
+	operator "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 	"github.com/IBM/operand-deployment-lifecycle-manager/test/config"
 	"github.com/IBM/operand-deployment-lifecycle-manager/test/helpers"
-	"github.com/IBM/operand-deployment-lifecycle-manager/test/testsuits"
+	"github.com/IBM/operand-deployment-lifecycle-manager/test/testgroups"
 )
 
-// ODLM is the test group for testing Operand Deployment Lifecycle Manager
-func ODLM(t *testing.T) {
+func TestODLM(t *testing.T) {
+	requestList := &operator.OperandRequestList{}
+	registryList := &operator.OperandRegistryList{}
+	configList := &operator.OperandConfigList{}
+	if err := framework.AddToFrameworkScheme(apis.AddToScheme, requestList); err != nil {
+		t.Fatalf("failed to add custom resource scheme to framework: %v", err)
+	}
+	if err := framework.AddToFrameworkScheme(apis.AddToScheme, registryList); err != nil {
+		t.Fatalf("failed to add custom resource scheme to framework: %v", err)
+	}
+	if err := framework.AddToFrameworkScheme(apis.AddToScheme, configList); err != nil {
+		t.Fatalf("failed to add custom resource scheme to framework: %v", err)
+	}
 	t.Parallel()
 	ctx := framework.NewTestCtx(t)
 	defer ctx.Cleanup()
 
-	err := deployOperator(t, ctx)
-	helpers.AssertNoError(t, err)
+	if err := deployOperator(t, ctx); err != nil {
+		helpers.AssertNoError(t, err)
+	}
 
-	t.Run("OperandRequest Create", testsuits.OperandRequestCreate)
-	t.Run("OperandRequest Create Update", testsuits.OperandRequestCreateUpdate)
-	t.Run("OperandConfig Update", testsuits.OperandConfigUpdate)
-	t.Run("OperandRegistry Create Update", testsuits.OperandRegistryUpdate)
-	t.Run("OperandRequest Create Delete", testsuits.OperandRequestCreateDelete)
+	// Run group test
+	t.Run("TestOperandRegistry", testgroups.TestOperandRegistry)
+	t.Run("TestOperandConfig", testgroups.TestOperandConfig)
+	t.Run("TestOperandRequest", testgroups.TestOperandRequest)
 
 }
 

@@ -19,349 +19,262 @@ import (
 	goctx "context"
 	"fmt"
 	"testing"
+	"time"
 
-	olmv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
-	olmclient "github.com/operator-framework/operator-lifecycle-manager/pkg/api/client/clientset/versioned"
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 	operator "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 	"github.com/IBM/operand-deployment-lifecycle-manager/test/config"
 )
 
-// CreateTest creates a OperandRequest instance
-func CreateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *framework.TestCtx) error {
+// CreateOperandRequest creates a OperandRequest instance
+func CreateOperandRequest(f *framework.Framework, ctx *framework.TestCtx) error {
 	namespace, err := ctx.GetNamespace()
 	if err != nil {
 		return fmt.Errorf("could not get namespace: %v", err)
 	}
 
-	// create.OperandConfig custom resource
-	fmt.Println("--- CREATE: OperandConfigCR Instance")
-	configInstance := newOperandConfigCR(config.OperandConfigCrName, namespace)
-	err = f.Client.Create(goctx.TODO(), configInstance, &framework.CleanupOptions{TestContext: ctx, Timeout: config.CleanupTimeout, RetryInterval: config.CleanupRetry})
-	if err != nil {
-		return err
-	}
-
-	// create OperandRegistry custom resource
-	fmt.Println("--- CREATE: OperandRegistry Instance")
-	operandRegistryInstance := newOperandRegistryCR(config.OperandRegistryCrName, namespace)
-	err = f.Client.Create(goctx.TODO(), operandRegistryInstance, &framework.CleanupOptions{TestContext: ctx, Timeout: config.CleanupTimeout, RetryInterval: config.CleanupRetry})
-	if err != nil {
-		return err
-	}
-
-	// create OperandRequest custom resource
-	requestInstance := &operator.OperandRequest{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      config.OperandRequestCrName,
-			Namespace: namespace,
-		},
-		Spec: v1alpha1.OperandRequestSpec{
-			Requests: []v1alpha1.Request{
-				{
-					Registry:          "common-service",
-					RegistryNamespace: "ibm-common-services",
-					Operands: []v1alpha1.Operand{
-						{
-							Name: "etcd",
-						},
-						{
-							Name: "jenkins",
-						},
-					},
-				},
-			},
-		},
-	}
-
 	fmt.Println("--- CREATE: OperandRequest Instance")
+	requestInstance := newOperandRequestCR(config.OperandRequestCrName, namespace)
 	// use TestCtx's create helper to create the object and add a cleanup function for the new object
 	err = f.Client.Create(goctx.TODO(), requestInstance, &framework.CleanupOptions{TestContext: ctx, Timeout: config.CleanupTimeout, RetryInterval: config.CleanupRetry})
 	if err != nil {
 		return err
 	}
-	// wait for all the csv ready
-	optMap, err := GetOperators(f, namespace)
+
+	return nil
+}
+
+// RetrieveOperandRequest gets an OperandRequest instance
+func RetrieveOperandRequest(f *framework.Framework, ctx *framework.TestCtx) (*operator.OperandRequest, error) {
+	namespace, err := ctx.GetNamespace()
 	if err != nil {
-		return err
+		return nil, err
+	}
+	reqCr := &operator.OperandRequest{}
+	fmt.Println("--- GET: OperandRequest Instance")
+	// Get OperandRequest instance
+	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandRequestCrName, Namespace: namespace}, reqCr)
+	if err != nil {
+		return nil, err
 	}
 
-	for _, req := range requestInstance.Spec.Requests {
-		for _, operand := range req.Operands {
-			opt := optMap[operand.Name]
-			err = WaitForSubCsvReady(olmClient, metav1.ObjectMeta{Name: opt.Name, Namespace: opt.Namespace})
-			if err != nil {
-				return err
-			}
-		}
-	}
+	return reqCr, nil
+}
 
-	err = ValidatecustomResource(f, namespace)
-	if err != nil {
+// DeleteOperandRequest delete a OperandRequest instance
+func DeleteOperandRequest(reqCr *operator.OperandRequest, f *framework.Framework) error {
+	fmt.Println("--- DELETE: OperandRequest Instance")
+	// Delete OperandRequest instance
+	if err := f.Client.Delete(goctx.TODO(), reqCr); err != nil {
 		return err
 	}
 	return nil
 }
 
-// UpdateTest updates a OperandRequest instance
-// func UpdateTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *framework.TestCtx) error {
-// 	namespace, err := ctx.GetNamespace()
-// 	if err != nil {
-// 		return err
-// 	}
-// 	requestInstance := &operator.OperandRequest{}
-// 	fmt.Println("--- UPDATE: subscription")
-// 	// Get OperandRequest instance
-// 	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandRequestCrName, Namespace: namespace}, requestInstance)
-// 	if err != nil {
-// 		return err
-// 	}
+// AbsentOperandFormRequest delete an operator and operand from OperandRequest
+func AbsentOperandFormRequest(f *framework.Framework, ctx *framework.TestCtx) error {
+	fmt.Println("--- ABSENT: Operator and Operand")
+	// Delete first operator and related operand
+	if err := utilwait.PollImmediate(config.WaitForRetry, config.WaitForTimeout, func() (done bool, err error) {
+		reqCr, err := RetrieveOperandRequest(f, ctx)
+		if err != nil {
+			return false, err
+		}
+		reqCr.Spec.Requests[0].Operands = reqCr.Spec.Requests[0].Operands[1:]
+		if err := f.Client.Update(goctx.TODO(), reqCr); err != nil {
+			fmt.Println("    --- Waiting for OperandRequest instance stable ...")
+			return false, nil
+		}
+		return true, nil
+	}); err != nil {
+		return err
+	}
+	return nil
+}
 
-// 	requestInstance.Spec.Requests[0].Channel = "clusterwide-alpha"
-// 	err = f.Client.Update(goctx.TODO(), requestInstance)
-// 	if err != nil {
-// 		return err
-// 	}
+// PresentOperandFormRequest add an operator and operand into OperandRequest
+func PresentOperandFormRequest(f *framework.Framework, ctx *framework.TestCtx) error {
+	fmt.Println("--- PRESENT: Operator and Operand [etcd]")
+	// Add an operator and related operand
+	if err := utilwait.PollImmediate(time.Second*10, time.Minute*5, func() (done bool, err error) {
+		reqCr, err := RetrieveOperandRequest(f, ctx)
+		if err != nil {
+			return false, err
+		}
+		reqCr.Spec.Requests[0].Operands = append(reqCr.Spec.Requests[0].Operands, operator.Operand{Name: "etcd"})
+		if err := f.Client.Update(goctx.TODO(), reqCr); err != nil {
+			fmt.Println("    --- Waiting for OperandRequest instance stable ...")
+			return false, nil
+		}
+		return true, nil
+	}); err != nil {
+		return err
+	}
+	return nil
+}
 
-// 	// wait for updated csv ready
-// 	optMap, err := GetOperators(f, namespace)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	opt := optMap[requestInstance.Spec.Services[0].Name]
-// 	err = WaitForSubCsvReady(olmClient, metav1.ObjectMeta{Name: opt.Name, Namespace: opt.Namespace})
-// 	if err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
+// Checking Cluster phase is running
+func CheckingClusterState(f *framework.Framework, ctx *framework.TestCtx) error {
+	fmt.Println("--- CHECKING: Cluster Phase")
+	if err := utilwait.PollImmediate(time.Second*10, time.Minute*5, func() (bool, error) {
+		reqCr, err := RetrieveOperandRequest(f, ctx)
+		if err != nil {
+			return false, err
+		}
+		if reqCr.Status.Phase != operator.ClusterPhaseRunning {
+			fmt.Println("    --- Waiting for cluster ready ...")
+			return false, nil
+		}
+		return true, nil
+	}); err != nil {
+		return err
+	}
+	return nil
+}
 
-//DeleteTest delete a OperandRequest instance
-func DeleteTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *framework.TestCtx) error {
+// CreateOperandConfig creates a OperandConfig instance
+func CreateOperandConfig(f *framework.Framework, ctx *framework.TestCtx) error {
 	namespace, err := ctx.GetNamespace()
 	if err != nil {
 		return fmt.Errorf("could not get namespace: %v", err)
 	}
-	requestInstance := &operator.OperandRequest{}
-	fmt.Println("--- DELETE: subscription")
-	// Get OperandRequest instance
-	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandRequestCrName, Namespace: namespace}, requestInstance)
-	if err != nil {
-		return err
-	}
-	// Delete first operator
-	operandName := requestInstance.Spec.Requests[0].Operands[0].Name
-	requestInstance.Spec.Requests[0].Operands = requestInstance.Spec.Requests[0].Operands[1:]
-	err = f.Client.Update(goctx.TODO(), requestInstance)
+
+	// Create OperandConfig instance
+	fmt.Println("--- CREATE: OperandConfig Instance")
+	ci := newOperandConfigCR(config.OperandConfigCrName, namespace)
+	err = f.Client.Create(goctx.TODO(), ci, &framework.CleanupOptions{TestContext: ctx, Timeout: config.CleanupTimeout, RetryInterval: config.CleanupRetry})
 	if err != nil {
 		return err
 	}
 
-	optMap, err := GetOperators(f, namespace)
-	if err != nil {
-		return err
-	}
-	opt := optMap[operandName]
-	// Waiting for subscription deleted
-	err = WaitForSubscriptionDelete(olmClient, metav1.ObjectMeta{Name: opt.Name, Namespace: opt.Namespace})
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
-// UpdateConfigTest updates a OperandConfig instance
-func UpdateConfigTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *framework.TestCtx) error {
+// RetrieveOperandConfig gets a OperandConfig instance
+func RetrieveOperandConfig(f *framework.Framework, ctx *framework.TestCtx) (*operator.OperandConfig, error) {
 	namespace, err := ctx.GetNamespace()
 	if err != nil {
-		return err
+		return nil, err
 	}
-	configInstance := &operator.OperandConfig{}
-	fmt.Println("--- UPDATE: custom resource")
-	// Get OperandRequest instance
-	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandConfigCrName, Namespace: namespace}, configInstance)
+	ci := &operator.OperandConfig{}
+	fmt.Println("--- GET: OperandConfig Instance")
+	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandConfigCrName, Namespace: namespace}, ci)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	configInstance.Spec.Services[0].Spec = map[string]runtime.RawExtension{
-		"etcdCluster": {Raw: []byte(`{"size": 3}`)},
-	}
-	err = f.Client.Update(goctx.TODO(), configInstance)
-	if err != nil {
-		return err
-	}
-
-	err = ValidatecustomResource(f, namespace)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return ci, nil
 }
 
-// UpdateOperandRegistryTest updates a OperandRegistry instance
-func UpdateOperandRegistryTest(olmClient *olmclient.Clientset, f *framework.Framework, ctx *framework.TestCtx) error {
-	namespace, err := ctx.GetNamespace()
-	if err != nil {
-		return err
-	}
-	operandRegistryInstance := &operator.OperandRegistry{}
-	fmt.Println("--- UPDATE: operandRegistry Instance")
-
-	// Get OperandRegistry instance
-	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandRegistryCrName, Namespace: namespace}, operandRegistryInstance)
-	if err != nil {
-		return err
-	}
-
-	operandRegistryInstance.Spec.Operators[0].Channel = "clusterwide-alpha"
-	err = f.Client.Update(goctx.TODO(), operandRegistryInstance)
-	if err != nil {
-		return err
-	}
-
-	// wait for updated csv ready
-	optMap, err := GetOperators(f, namespace)
-	if err != nil {
-		return err
-	}
-	opt := optMap[operandRegistryInstance.Spec.Operators[0].Name]
-	err = WaitForSubCsvReady(olmClient, metav1.ObjectMeta{Name: opt.Name, Namespace: opt.Namespace})
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// GetOperators get a operator list waiting for being installed
-func GetOperators(f *framework.Framework, namespace string) (map[string]operator.Operator, error) {
-	registryInstance := &operator.OperandRegistry{}
-	lastReason := ""
-	waitErr := utilwait.PollImmediate(config.WaitForRetry, config.APITimeout, func() (done bool, err error) {
-		err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandRegistryCrName, Namespace: namespace}, registryInstance)
+// UpdateOperandConfig updates a OperandConfig instance
+func UpdateOperandConfig(f *framework.Framework, ctx *framework.TestCtx) error {
+	fmt.Println("--- UPDATE: OperandConfig Instance")
+	if err := utilwait.PollImmediate(config.WaitForRetry, config.WaitForTimeout, func() (done bool, err error) {
+		conCr, err := RetrieveOperandConfig(f, ctx)
 		if err != nil {
-			if errors.IsNotFound(err) {
-				lastReason = fmt.Sprintf("Waiting on odlm instance to be created [operand-deployment-lifecycle-manager]")
-				return false, nil
-			}
 			return false, err
 		}
-		return true, nil
-	})
-	if waitErr != nil {
-		return nil, fmt.Errorf("%v: %s", waitErr, lastReason)
-	}
-	optMap := make(map[string]operator.Operator)
-	for _, v := range registryInstance.Spec.Operators {
-		optMap[v.Name] = v
-	}
-	return optMap, nil
-}
-
-// WaitForSubCsvReady waits for the subscription and csv create success
-func WaitForSubCsvReady(olmClient *olmclient.Clientset, opt metav1.ObjectMeta) error {
-	lastReason := ""
-	sub := &olmv1alpha1.Subscription{}
-	fmt.Println("Waiting for Subscription created [" + opt.Name + "]")
-	waitErr := utilwait.PollImmediate(config.WaitForRetry, config.APITimeout, func() (done bool, err error) {
-		foundSub, err := olmClient.OperatorsV1alpha1().Subscriptions(opt.Namespace).Get(opt.Name, metav1.GetOptions{})
-		if err != nil {
-			if errors.IsNotFound(err) {
-				lastReason = fmt.Sprintf("Waiting on subscription to be created" + ", Subscription.Name: " + opt.Name + " Subscription.Namespace: " + opt.Namespace)
-				return false, nil
-			}
-			return false, err
+		conCr.Spec.Services[0].Spec = map[string]runtime.RawExtension{
+			"etcdCluster": {Raw: []byte(`{"size": 3}`)},
 		}
-		if foundSub.Status.InstalledCSV == "" {
-			lastReason = fmt.Sprintf("Waiting on CSV to be installed" + ", Subscription.Name: " + opt.Name + " Subscription.Namespace: " + opt.Namespace)
+		if err := f.Client.Update(goctx.TODO(), conCr); err != nil {
+			fmt.Println("    --- Waiting for OperandConfig instance stable ...")
 			return false, nil
 		}
-		sub = foundSub
 		return true, nil
-	})
-	if waitErr != nil {
-		return fmt.Errorf("%v: %s", waitErr, lastReason)
-	}
-
-	fmt.Println("Waiting for CSV status succeeded [" + sub.Status.InstalledCSV + "]")
-	waitErr = utilwait.PollImmediate(config.WaitForRetry, config.APITimeout, func() (done bool, err error) {
-		csv, err := olmClient.OperatorsV1alpha1().ClusterServiceVersions(opt.Namespace).Get(sub.Status.InstalledCSV, metav1.GetOptions{})
-		if err != nil {
-			if errors.IsNotFound(err) {
-				lastReason = fmt.Sprintf("Waiting on CSV to be created" + ", CSV.Name: " + sub.Status.InstalledCSV + " CSV.Namespace: " + opt.Namespace)
-				return false, nil
-			}
-			return false, err
-		}
-
-		// New csv found and phase is succeeeded
-		if sub.Status.InstalledCSV == csv.Name && csv.Status.Phase == "Succeeded" {
-			return true, nil
-		}
-		lastReason = fmt.Sprintf("Waiting on CSV status succeeded" + ", CSV.Name: " + sub.Status.InstalledCSV + " CSV.Namespace: " + opt.Namespace)
-		return false, nil
-	})
-	if waitErr != nil {
-		return fmt.Errorf("%v: %s", waitErr, lastReason)
+	}); err != nil {
+		return err
 	}
 	return nil
 }
 
-// WaitForSubscriptionDelete waits for the subscription deleted
-func WaitForSubscriptionDelete(olmClient *olmclient.Clientset, opt metav1.ObjectMeta) error {
-	lastReason := ""
-	fmt.Println("Waiting on subscription to be deleted [" + opt.Name + "]")
-	waitErr := utilwait.PollImmediate(config.WaitForRetry, config.APITimeout, func() (done bool, err error) {
-		_, err = olmClient.OperatorsV1alpha1().Subscriptions(opt.Namespace).Get(opt.Name, metav1.GetOptions{})
-		if err != nil {
-			if errors.IsNotFound(err) {
-				return true, nil
-			}
-			return false, err
-		}
-		lastReason = fmt.Sprintf("Waiting on subscription to be deleted" + ", Subscription.Name: " + opt.Name + " Subscription.Namespace: " + opt.Namespace)
-		return false, nil
-	})
-	if waitErr != nil {
-		return fmt.Errorf("%v: %s", waitErr, lastReason)
+// DeleteOperandConfig deletes a OperandConfig instance
+func DeleteOperandConfig(f *framework.Framework, ci *operator.OperandConfig) error {
+	fmt.Println("--- DELETE: OperandConfig Instance")
+	if err := f.Client.Delete(goctx.TODO(), ci); err != nil {
+		return err
 	}
 	return nil
 }
 
-// ValidatecustomResource check the result of the OperandConfig
-func ValidatecustomResource(f *framework.Framework, namespace string) error {
-	fmt.Println("Validating custom resources are ready")
-	configInstance := &operator.OperandConfig{}
-	// Get OperandRequest instance
-	err := f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandConfigCrName, Namespace: namespace}, configInstance)
+// CreateOperandRegistry creates a OperandRegistry instance
+func CreateOperandRegistry(f *framework.Framework, ctx *framework.TestCtx) error {
+	namespace, err := ctx.GetNamespace()
+	if err != nil {
+		return fmt.Errorf("could not get namespace: %v", err)
+	}
+
+	// Create OperandRegistry instance
+	fmt.Println("--- CREATE: OperandRegistry Instance")
+	ri := newOperandRegistryCR(config.OperandRegistryCrName, namespace)
+	err = f.Client.Create(goctx.TODO(), ri, &framework.CleanupOptions{TestContext: ctx, Timeout: config.CleanupTimeout, RetryInterval: config.CleanupRetry})
 	if err != nil {
 		return err
 	}
-	lastReason := ""
-	waitErr := utilwait.PollImmediate(config.WaitForRetry, config.APITimeout, func() (done bool, err error) {
-		for operatorName, operatorState := range configInstance.Status.ServiceStatus {
-			for crName, crState := range operatorState.CrStatus {
-				if crState == operator.ServiceRunning {
-					continue
-				} else {
-					lastReason = fmt.Sprintf("Waiting on custom resource to be ready" + ", custom resource name: " + crName + " Operator name: " + operatorName)
-					return false, nil
-				}
-			}
+	// Get OperandRegistry instance
+	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandRegistryCrName, Namespace: namespace}, ri)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// RetrieveOperandRegistry get and update a OperandRegistry instance
+func RetrieveOperandRegistry(f *framework.Framework, ctx *framework.TestCtx) (*operator.OperandRegistry, error) {
+	namespace, err := ctx.GetNamespace()
+	if err != nil {
+		return nil, fmt.Errorf("could not get namespace: %v", err)
+	}
+	ri := &operator.OperandRegistry{}
+	fmt.Println("--- GET: OperandRegistry Instance")
+
+	// Get OperandRegistry instance
+	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandRegistryCrName, Namespace: namespace}, ri)
+	if err != nil {
+		return nil, err
+	}
+
+	return ri, nil
+}
+
+// UpdateOperandRegistry update a OperandRegistry instance
+func UpdateOperandRegistry(f *framework.Framework, ctx *framework.TestCtx) error {
+	fmt.Println("--- UPDATE: OperandRegistry Instance")
+	if err := utilwait.PollImmediate(config.WaitForRetry, config.WaitForTimeout, func() (done bool, err error) {
+		regCr, err := RetrieveOperandRegistry(f, ctx)
+		if err != nil {
+			return false, err
+		}
+		regCr.Spec.Operators[0].Channel = "clusterwide-alpha"
+		if err := f.Client.Update(goctx.TODO(), regCr); err != nil {
+			fmt.Println("    --- Waiting for OperandRegistry instance stable ...")
+			return false, nil
 		}
 		return true, nil
-	})
-	if waitErr != nil {
-		return fmt.Errorf("%v: %s", waitErr, lastReason)
+	}); err != nil {
+		return err
 	}
+	return nil
+}
+
+// DeleteOperandRegistry delete a OperandRegistry instance
+func DeleteOperandRegistry(f *framework.Framework, regCr *operator.OperandRegistry) error {
+	fmt.Println("--- DELETE: OperandRegistry Instance")
+
+	// Delete OperandRegistry instance
+	err := f.Client.Delete(goctx.TODO(), regCr)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -410,27 +323,55 @@ func newOperandRegistryCR(name, namespace string) *operator.OperandRegistry {
 			Operators: []operator.Operator{
 				{
 					Name:            "etcd",
-					Namespace:       "etcd-operator",
+					Namespace:       namespace,
 					SourceName:      "community-operators",
 					SourceNamespace: "openshift-marketplace",
 					PackageName:     "etcd",
 					Channel:         "singlenamespace-alpha",
-					TargetNamespaces: []string{
-						"etcd-operator",
-					},
 				},
 				{
 					Name:            "jenkins",
-					Namespace:       "jenkins-operator",
+					Namespace:       namespace,
 					SourceName:      "community-operators",
 					SourceNamespace: "openshift-marketplace",
 					PackageName:     "jenkins-operator",
 					Channel:         "alpha",
-					TargetNamespaces: []string{
-						"jenkins-operator",
+				},
+			},
+		},
+	}
+}
+
+func newOperandRequestCR(name, namespace string) *operator.OperandRequest {
+	return &operator.OperandRequest{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: v1alpha1.OperandRequestSpec{
+			Requests: []v1alpha1.Request{
+				{
+					Registry:          "common-service",
+					RegistryNamespace: namespace,
+					Operands: []v1alpha1.Operand{
+						{
+							Name: "etcd",
+						},
+						{
+							Name: "jenkins",
+						},
 					},
 				},
 			},
+		},
+	}
+}
+
+func GetReconcileRequest(name, namespace string) reconcile.Request {
+	return reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Name:      name,
+			Namespace: namespace,
 		},
 	}
 }
