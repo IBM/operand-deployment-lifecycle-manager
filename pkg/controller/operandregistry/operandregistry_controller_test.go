@@ -16,7 +16,10 @@
 package operandregistry
 
 import (
+	"context"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	v1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 
@@ -28,13 +31,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-// TestCatalogController runs ReconcileOperandRegistry.Reconcile() against a
+// TestRegistryController runs ReconcileOperandRegistry.Reconcile() against a
 // fake client that tracks a OperandRegistry object.
-func TestCatalogController(t *testing.T) {
-
+func TestRegistryController(t *testing.T) {
+	assert := assert.New(t)
 	var (
-		name      = "operand-deployment-lifecycle-manager-registry"
-		namespace = "common-service"
+		name      = "cs-registry"
+		namespace = "ibm-common-service"
 	)
 	// Mock request to simulate Reconcile() being called on an event for a
 	// watched resource .
@@ -60,9 +63,6 @@ func TestCatalogController(t *testing.T) {
 					SourceNamespace: "openshift-marketplace",
 					PackageName:     "etcd",
 					Channel:         "singlenamespace-alpha",
-					TargetNamespaces: []string{
-						"etcd-operator",
-					},
 				},
 				{
 					Name:            "jenkins",
@@ -71,9 +71,6 @@ func TestCatalogController(t *testing.T) {
 					SourceNamespace: "openshift-marketplace",
 					PackageName:     "jenkins-operator",
 					Channel:         "alpha",
-					TargetNamespaces: []string{
-						"jenkins-operator",
-					},
 				},
 			},
 		},
@@ -91,13 +88,19 @@ func TestCatalogController(t *testing.T) {
 	// Create a ReconcileOperandRegistry object with the scheme and fake client.
 	r := &ReconcileOperandRegistry{client: cl, scheme: s}
 
-	res, err := r.Reconcile(req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
+	_, err := r.Reconcile(req)
+	assert.NoError(err)
+
+	err = r.client.Get(context.TODO(), req.NamespacedName, registry)
+	assert.NoError(err)
+	// Check the default value
+	for _, o := range registry.Spec.Operators {
+		assert.Equal(v1alpha1.ScopePrivate, o.Scope, "default operator("+o.Name+") scope should be private")
 	}
-	// Check the result of reconciliation to make sure it has the desired state.
-	if res.Requeue {
-		t.Error("reconcile requeue which is not expected")
+	// Check the registry init status
+	assert.NotNil(registry.Status.OperatorsStatus, "init operator status should not be empty")
+	for k, s := range registry.Status.OperatorsStatus {
+		assert.Equal(v1alpha1.OperatorReady, s.Phase, "operator("+k+") phase should be 'Ready for Deployment'")
 	}
 
 	// Create a fake client to mock instance not found.
@@ -105,12 +108,7 @@ func TestCatalogController(t *testing.T) {
 	// Create a ReconcileOperandRegistry object with the scheme and fake client.
 	r = &ReconcileOperandRegistry{client: cl, scheme: s}
 
-	res, err = r.Reconcile(req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
-	}
-	// Check the result of reconciliation to make sure it has the desired state.
-	if res.Requeue {
-		t.Error("reconcile requeue which is not expected")
-	}
+	_, err = r.Reconcile(req)
+	assert.NoError(err)
+
 }

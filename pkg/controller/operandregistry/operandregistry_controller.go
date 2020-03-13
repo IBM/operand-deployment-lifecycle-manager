@@ -86,7 +86,6 @@ type ReconcileOperandRegistry struct {
 	client   client.Client
 	recorder record.EventRecorder
 	scheme   *runtime.Scheme
-	// olmClient *olmclient.Clientset
 }
 
 // Reconcile reads that state of the cluster for a OperandRegistry object and makes changes based on the state read

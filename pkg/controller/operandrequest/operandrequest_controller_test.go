@@ -26,6 +26,7 @@ import (
 	fakeolmclient "github.com/operator-framework/operator-lifecycle-manager/pkg/api/client/clientset/versioned/fake"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -38,80 +39,134 @@ import (
 
 // TestRequestController runs ReconcileOperandRequest.Reconcile() against a
 // fake client that tracks a OperandRequest object.
-func TestInitRequest(t *testing.T) {
-
-	req := getReconcileRequest()
-	r := getReconcilerWithoutMOS()
-
-	res, err := r.Reconcile(req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
-	}
-	// Check the result of reconciliation to make sure it has the desired state.
-	if res.Requeue {
-		t.Error("reconcile requeue which is not expected")
-	}
-}
-
-// func TestUpdateRequestChannel(t *testing.T) {
-// 	req := getReconcileRequest()
-// 	r := getReconcilerWithMOS()
-// 	assert := assert.New(t)
-// 	// Update default channel from alpha to beta
-// 	mos := mos(req.Name, req.Namespace)
-
-// 	err := r.client.Update(context.TODO(), mos)
-// 	assert.NoError(err)
-
-// 	_, err = r.Reconcile(req)
-// 	assert.NoError(err)
-// }
-
-// func TestUpdateRequestState(t *testing.T) {
-// 	req := getReconcileRequest()
-// 	r := getReconcilerWithMOS()
-// 	assert := assert.New(t)
-// 	// Update default state from present to absent
-// 	mos := mos(req.Name, req.Namespace)
-
-// 	err := r.client.Update(context.TODO(), mos)
-// 	assert.NoError(err)
-
-// 	_, err = r.Reconcile(req)
-// 	assert.NoError(err)
-
-// 	found, err := r.olmClient.OperatorsV1alpha1().Subscriptions(req.Name).List(metav1.ListOptions{
-// 		LabelSelector: "operator.ibm.com/opreq-control",
-// 	})
-// 	assert.NoError(err)
-// 	assert.Nil(found.Items, "The subscription list should be empty.")
-// }
-
-func TestDeleteRequest(t *testing.T) {
-	req := getReconcileRequest()
-	r := getReconcilerWithMOS()
+func TestRequestController(t *testing.T) {
+	var (
+		name      = "common-service"
+		namespace = "ibm-common-service"
+	)
 	assert := assert.New(t)
+	req := getReconcileRequest(name, namespace)
+	r := getReconciler(name, namespace)
 
 	_, err := r.Reconcile(req)
 	assert.NoError(err)
 
-	mos := &v1alpha1.OperandRequest{}
-	err = r.client.Get(context.TODO(), req.NamespacedName, mos)
+	// Retrieve OperandRequest instance
+	requestInstance := &v1alpha1.OperandRequest{}
+	err = r.client.Get(context.TODO(), req.NamespacedName, requestInstance)
 	assert.NoError(err)
 
-	// Mark OperandRequest Cr as delete state
-	deleteTime := metav1.NewTime(time.Now())
-	mos.SetDeletionTimestamp(&deleteTime)
-
-	err = r.client.Update(context.TODO(), mos)
+	// Absent an operator from request
+	requestInstance.Spec.Requests[0].Operands = requestInstance.Spec.Requests[0].Operands[1:]
+	err = r.client.Update(context.TODO(), requestInstance)
 	assert.NoError(err)
-
 	_, err = r.Reconcile(req)
 	assert.NoError(err)
+
+	// Check if operator absent from the request
+	err = r.client.Get(context.TODO(), req.NamespacedName, requestInstance)
+	assert.NoError(err)
+	assert.Equal(1, len(requestInstance.Status.Members), "operands member list should have only one element")
+
+	// // TBD... Present an operator into request, due to fakeolmclient cannot mock subscription status
+	// requestInstance.Spec.Requests[0].Operands = append(requestInstance.Spec.Requests[0].Operands, v1alpha1.Operand{Name: "etcd"})
+	// err = r.client.Update(context.TODO(), requestInstance)
+	// _, err = r.Reconcile(req)
+	// assert.NoError(err)
+
+	// // Check if operator present into the request
+	// err = r.client.Get(context.TODO(), req.NamespacedName, requestInstance)
+	// assert.NoError(err)
+	// assert.Equal(2, len(requestInstance.Spec.Requests[0].Operands), "operands list should have two elements")
+
+	// requestInstance.Spec.Requests[0].Operands = append(requestInstance.Spec.Requests[0].Operands, v1alpha1.Operand{Name: "etcd"})
+	// err = r.client.Update(context.TODO(), requestInstance)
+	// registryInstance, err := r.getRegistryInstance(name, namespace)
+	// assert.NoError(err)
+	// opt := r.getOperatorFromRegistryInstance("etcd", registryInstance)
+	// err = r.createSubscription(requestInstance, opt)
+	// assert.NoError(err)
+	// err = r.updateMemberStatus(requestInstance)
+	// assert.NoError(err)
+	// err = r.client.Get(context.TODO(), req.NamespacedName, requestInstance)
+	// assert.NoError(err)
+	// assert.Equal(2, len(requestInstance.Status.Members), "operands member list should have two elements")
+
+	// Mock delete OperandRequest instance, mark OperandRequest instance as delete state
+	deleteTime := metav1.NewTime(time.Now())
+	requestInstance.SetDeletionTimestamp(&deleteTime)
+	err = r.client.Update(context.TODO(), requestInstance)
+	assert.NoError(err)
+	_, err = r.Reconcile(req)
+	assert.NoError(err)
+	subs, err := r.olmClient.OperatorsV1alpha1().Subscriptions(namespace).List(metav1.ListOptions{})
+	assert.NoError(err)
+	assert.Empty(subs.Items, "all subscriptions should be deleted")
+
+	// Check if OperandRequest instance deleted
+	err = r.client.Delete(context.TODO(), requestInstance)
+	assert.NoError(err)
+	err = r.client.Get(context.TODO(), req.NamespacedName, requestInstance)
+	assert.True(errors.IsNotFound(err), "retrieve operand request should be return an error of type is 'NotFound'")
+}
+
+func getReconcileRequest(name, namespace string) reconcile.Request {
+	// Mock request to simulate Reconcile() being called on an event for a
+	// watched resource
+	return reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+}
+
+type DataObj struct {
+	odlmObjs []runtime.Object
+	olmObjs  []runtime.Object
+}
+
+func initClientData(name, namespace string) *DataObj {
+	return &DataObj{
+		odlmObjs: []runtime.Object{
+			operandRegistry(name, namespace),
+			operandRequest(name, namespace),
+			operandConfig(name, namespace)},
+		olmObjs: []runtime.Object{
+			sub("etcd", namespace, "0.0.1"),
+			sub("jenkins", namespace, "0.0.1"),
+			csv("etcd-csv.v0.0.1", namespace, etcdExample),
+			csv("jenkins-csv.v0.0.1", namespace, jenkinsExample),
+			ip("etcd-install-plan", namespace),
+			ip("jenkins-install-plan", namespace)},
+	}
+}
+
+func getReconciler(name, namespace string) ReconcileOperandRequest {
+	s := scheme.Scheme
+	v1alpha1.SchemeBuilder.AddToScheme(s)
+	olmv1.SchemeBuilder.AddToScheme(s)
+	olmv1alpha1.SchemeBuilder.AddToScheme(s)
+	v1beta2.SchemeBuilder.AddToScheme(s)
+
+	initData := initClientData(name, namespace)
+
+	// Create a fake client to mock API calls.
+	client := fake.NewFakeClient(initData.odlmObjs...)
+
+	// Create a fake OLM client to mock OLM API calls.
+	olmClient := fakeolmclient.NewSimpleClientset(initData.olmObjs...)
+
+	// Return a ReconcileOperandRequest object with the scheme and fake client.
+	return ReconcileOperandRequest{
+		scheme:    s,
+		client:    client,
+		olmClient: olmClient,
+	}
 }
 
 // Return OperandRegistry obj
-func mog(name, namespace string) *v1alpha1.OperandRegistry {
+func operandRegistry(name, namespace string) *v1alpha1.OperandRegistry {
 	return &v1alpha1.OperandRegistry{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -121,10 +176,18 @@ func mog(name, namespace string) *v1alpha1.OperandRegistry {
 			Operators: []v1alpha1.Operator{
 				{
 					Name:            "etcd",
-					Namespace:       "etcd-operator",
+					Namespace:       namespace,
 					SourceName:      "community-operators",
 					SourceNamespace: "openshift-marketplace",
 					PackageName:     "etcd",
+					Channel:         "singlenamespace-alpha",
+				},
+				{
+					Name:            "jenkins",
+					Namespace:       namespace,
+					SourceName:      "community-operators",
+					SourceNamespace: "openshift-marketplace",
+					PackageName:     "jenkins-operator",
 					Channel:         "alpha",
 				},
 			},
@@ -134,13 +197,16 @@ func mog(name, namespace string) *v1alpha1.OperandRegistry {
 				"etcd": {
 					Phase: v1alpha1.OperatorReady,
 				},
+				"jenkins": {
+					Phase: v1alpha1.OperatorReady,
+				},
 			},
 		},
 	}
 }
 
 // Return OperandConfig obj
-func moc(name, namespace string) *v1alpha1.OperandConfig {
+func operandConfig(name, namespace string) *v1alpha1.OperandConfig {
 	return &v1alpha1.OperandConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -154,6 +220,12 @@ func moc(name, namespace string) *v1alpha1.OperandConfig {
 						"etcdCluster": {Raw: []byte(`{"size": 1}`)},
 					},
 				},
+				{
+					Name: "jenkins",
+					Spec: map[string]runtime.RawExtension{
+						"jenkins": {Raw: []byte(`{"service":{"port": 8081}}`)},
+					},
+				},
 			},
 		},
 		Status: v1alpha1.OperandConfigStatus{
@@ -163,13 +235,18 @@ func moc(name, namespace string) *v1alpha1.OperandConfig {
 						"etcdCluster": v1alpha1.ServiceReady,
 					},
 				},
+				"jenkins": {
+					CrStatus: map[string]v1alpha1.ServicePhase{
+						"jenkins": v1alpha1.ServiceReady,
+					},
+				},
 			},
 		},
 	}
 }
 
 // Return OperandRequest obj
-func mos(name, namespace string) *v1alpha1.OperandRequest {
+func operandRequest(name, namespace string) *v1alpha1.OperandRequest {
 	return &v1alpha1.OperandRequest{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -183,6 +260,9 @@ func mos(name, namespace string) *v1alpha1.OperandRequest {
 					Operands: []v1alpha1.Operand{
 						{
 							Name: "etcd",
+						},
+						{
+							Name: "jenkins",
 						},
 					},
 				},
@@ -256,73 +336,6 @@ func ip(name, namespace string) *olmv1alpha1.InstallPlan {
 	}
 }
 
-func getReconcileRequest() reconcile.Request {
-	var (
-		name      = "common-service"
-		namespace = "operand-deployment-lifecycle-manager"
-	)
-	// Mock request to simulate Reconcile() being called on an event for a
-	// watched resource
-	return reconcile.Request{
-		NamespacedName: types.NamespacedName{
-			Name:      name,
-			Namespace: namespace,
-		},
-	}
-}
-
-func getReconcilerWithoutMOS() ReconcileOperandRequest {
-	var (
-		name      = "common-service"
-		namespace = "operand-deployment-lifecycle-manager"
-	)
-	metaObjs := []runtime.Object{
-		mog(name, namespace),
-		moc(name, namespace)}
-	olmObjs := []runtime.Object{
-		sub("etcd", "etcd-operator", "0.0.1"),
-		csv("etcd-csv.v0.0.1", "etcd-operator", etcdExample),
-		ip("etcd-install-plan", "etcd-operator")}
-	return getReconciler(metaObjs, olmObjs)
-}
-
-func getReconcilerWithMOS() ReconcileOperandRequest {
-	var (
-		name      = "common-service"
-		namespace = "operand-deployment-lifecycle-manager"
-	)
-	metaObjs := []runtime.Object{
-		mog(name, namespace),
-		mos(name, namespace),
-		moc(name, namespace)}
-	olmObjs := []runtime.Object{
-		sub("etcd", "etcd-operator", "0.0.1"),
-		csv("etcd-csv.v0.0.1", "etcd-operator", etcdExample),
-		ip("etcd-install-plan", "etcd-operator")}
-	return getReconciler(metaObjs, olmObjs)
-}
-
-func getReconciler(metaObjs, olmObjs []runtime.Object) ReconcileOperandRequest {
-	s := scheme.Scheme
-	v1alpha1.SchemeBuilder.AddToScheme(s)
-	olmv1.SchemeBuilder.AddToScheme(s)
-	olmv1alpha1.SchemeBuilder.AddToScheme(s)
-	v1beta2.SchemeBuilder.AddToScheme(s)
-
-	// Create a fake client to mock API calls.
-	client := fake.NewFakeClient(metaObjs...)
-
-	// Create a fake OLM client to mock OLM API calls.
-	olmClient := fakeolmclient.NewSimpleClientset(olmObjs...)
-
-	// Return a ReconcileOperandRequest object with the scheme and fake client.
-	return ReconcileOperandRequest{
-		scheme:    s,
-		client:    client,
-		olmClient: olmClient,
-	}
-}
-
 const etcdExample string = `
 [
 	{
@@ -334,6 +347,20 @@ const etcdExample string = `
 	  "spec": {
 		"size": 3,
 		"version": "3.2.13"
+	  }
+	}
+]
+`
+const jenkinsExample string = `
+[
+	{
+	  "apiVersion": "etcd.database.coreos.com/v1beta2",
+	  "kind": "Jenkins",
+	  "metadata": {
+		"name": "example"
+	  },
+	  "spec": {
+		"service": {"port": 8081}
 	  }
 	}
 ]
