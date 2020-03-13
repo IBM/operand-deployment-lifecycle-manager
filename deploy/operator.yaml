@@ -22,7 +22,7 @@ spec:
       containers:
         - name: operand-deployment-lifecycle-manager
           # Replace this with the built image name
-          image: quay.io/opencloudio/odlm:latest
+          image: quay.io/horis233/odlm:latest
           command:
           - odlm
           args:
