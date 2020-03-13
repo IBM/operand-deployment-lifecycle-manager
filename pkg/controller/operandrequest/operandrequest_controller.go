@@ -181,10 +181,10 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 	if !requestInstance.ObjectMeta.DeletionTimestamp.IsZero() {
 
 		// Check and clean up the subscriptions
-		err := r.checkFinalizer(requestInstance,request)
+		err := r.checkFinalizer(requestInstance, request)
 		if err != nil {
 			return reconcile.Result{}, err
-		}		
+		}
 		// Update finalizer to allow delete CR
 		requestInstance.SetFinalizers(nil)
 		err = r.client.Update(context.TODO(), requestInstance)
@@ -302,7 +302,7 @@ func (r *ReconcileOperandRequest) addFinalizer(cr *operatorv1alpha1.OperandReque
 	return nil
 }
 
-func (r *ReconcileOperandRequest) checkFinalizer(requestInstance *operatorv1alpha1.OperandRequest,request reconcile.Request) error {
+func (r *ReconcileOperandRequest) checkFinalizer(requestInstance *operatorv1alpha1.OperandRequest, request reconcile.Request) error {
 	existingSub, err := r.olmClient.OperatorsV1alpha1().Subscriptions(metav1.NamespaceAll).List(metav1.ListOptions{
 		LabelSelector: "operator.ibm.com/opreq-control",
 	})
