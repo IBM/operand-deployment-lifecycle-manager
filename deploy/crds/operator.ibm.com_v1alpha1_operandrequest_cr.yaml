@@ -22,6 +22,5 @@ spec:
     # - name: ibm-platform-api-operator
     # - name: ibm-helm-api-operator
     # - name: ibm-helm-repo-operator
-    # - name: ibm-management-repo-operator
     # - name: ibm-catalog-ui-operator
 
