@@ -137,8 +137,6 @@ func (r *ReconcileOperandRequest) updateClusterPhase(cr *operatorv1alpha1.Operan
 		}
 
 		switch m.Phase.OperandPhase {
-		case operatorv1alpha1.ServiceReady:
-			clusterStatusStat.creatingNum++
 		case operatorv1alpha1.ServiceRunning:
 			clusterStatusStat.runningNum++
 		case operatorv1alpha1.ServiceFailed:
