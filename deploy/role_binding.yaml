@@ -5,7 +5,7 @@ metadata:
 subjects:
 - kind: ServiceAccount
   name: operand-deployment-lifecycle-manager
-  namespace: ibm-common-services
+  namespace: scorecard
 roleRef:
   kind: ClusterRole
   name: operand-deployment-lifecycle-manager

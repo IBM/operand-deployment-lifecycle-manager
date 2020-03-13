@@ -49,6 +49,7 @@ type ConfigService struct {
 type OperandConfigStatus struct {
 	// ServiceStatus defines all the status of a operator
 	// +optional
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
 	ServiceStatus map[string]CrStatus `json:"serviceStatus,omitempty"`
 }
 
