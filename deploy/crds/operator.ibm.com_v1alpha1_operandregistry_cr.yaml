@@ -102,13 +102,6 @@ spec:
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
     description: Operator for managing deployment of Helm repository service.
-  - name: ibm-management-repo-operator
-    namespace: ibm-common-services
-    channel: alpha
-    packageName: ibm-management-repo-operator-app
-    sourceName: opencloud-operators
-    sourceNamespace: openshift-marketplace
-    description: Operator for managing deployment of Management repository service.
   - name: ibm-monitoring-exporters-operator
     namespace: ibm-common-services
     channel: alpha

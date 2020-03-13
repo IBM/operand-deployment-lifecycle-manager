@@ -139,7 +139,6 @@ The list of operators you can add:
     - name: ibm-platform-api-operator
     - name: ibm-helm-api-operator
     - name: ibm-helm-repo-operator
-    - name: ibm-management-repo-operator
 ```
 
 After the `OperandRequest` created, we can check if our common services install successfully by command.

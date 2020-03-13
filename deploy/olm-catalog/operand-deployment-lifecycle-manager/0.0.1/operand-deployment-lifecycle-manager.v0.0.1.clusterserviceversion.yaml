@@ -110,12 +110,6 @@ metadata:
                 }
               },
               {
-                "name": "ibm-management-repo-operator",
-                "spec": {
-                  "managementRepo": {}
-                }
-              },
-              {
                 "name": "ibm-monitoring-exporters-operator",
                 "spec": {
                   "exporter": {}
@@ -267,15 +261,6 @@ metadata:
                 "name": "ibm-helm-repo-operator",
                 "namespace": "ibm-common-services",
                 "packageName": "ibm-helm-repo-operator-app",
-                "sourceName": "opencloud-operators",
-                "sourceNamespace": "openshift-marketplace"
-              },
-              {
-                "channel": "alpha",
-                "description": "Operator for managing deployment of Management repository service.",
-                "name": "ibm-management-repo-operator",
-                "namespace": "ibm-common-services",
-                "packageName": "ibm-management-repo-operator-app",
                 "sourceName": "opencloud-operators",
                 "sourceNamespace": "openshift-marketplace"
               },
