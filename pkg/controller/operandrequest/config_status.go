@@ -27,8 +27,13 @@ import (
 func (r *ReconcileOperandRequest) updateServiceStatus(cr *operatorv1alpha1.OperandConfig, operatorName, serviceName string, serviceStatus operatorv1alpha1.ServicePhase) error {
 	klog.V(3).Info("Updating OperandConfig status")
 
-	cr.Status.ServiceStatus[operatorName].CrStatus[serviceName] = serviceStatus
-	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
+	configInstance, err := r.getConfigInstance(cr.Name, cr.Namespace)
+	if err != nil {
+		return err
+	}
+
+	configInstance.Status.ServiceStatus[operatorName].CrStatus[serviceName] = serviceStatus
+	if err := r.client.Status().Update(context.TODO(), configInstance); err != nil {
 		return err
 	}
 	return nil
