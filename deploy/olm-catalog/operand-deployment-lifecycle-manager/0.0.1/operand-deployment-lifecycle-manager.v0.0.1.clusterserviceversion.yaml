@@ -498,7 +498,7 @@ spec:
             spec:
               containers:
               - args:
-                - -v=3
+                - -v=2
                 command:
                 - odlm
                 env:

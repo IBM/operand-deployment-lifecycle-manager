@@ -26,7 +26,7 @@ spec:
           command:
           - odlm
           args:
-          - "-v=3"
+          - "-v=2"
           imagePullPolicy: Always
           env:
             - name: WATCH_NAMESPACE
