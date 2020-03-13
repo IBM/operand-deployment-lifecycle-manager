@@ -342,7 +342,7 @@ metadata:
     capabilities: Basic Install
     categories: Developer Tools, Monitoring, Logging & Tracing, Security
     certified: "false"
-    containerImage: quay.io/opencloudio/odlm:latest
+    containerImage: quay.io/horis233/odlm:latest
     createdAt: "2020-02-26T16:40:16Z"
     description: The Operand Deployment Lifecycle Manager provides a Kubernetes CRD-Based
       API to manage the lifecycle of IBM cloud common services.
@@ -363,11 +363,21 @@ spec:
         displayName: Services
         path: services
       statusDescriptors:
+<<<<<<< HEAD
       - description: Phase describes the overall phase of operands in the OperandConfig
         displayName: Phase
         path: phase
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.phase
+=======
+      - description: ServiceStatus defines all the status of a operator
+        displayName: Service Status
+        path: serviceStatus
+      resources:
+      - kind: Deployment
+        name: ''
+        version: v1
+>>>>>>> Using test image
       version: v1alpha1
     - description: OperandRegistry is the Schema for the operandregistries API
       displayName: OperandRegistry
@@ -378,11 +388,22 @@ spec:
         displayName: Operators
         path: operators
       statusDescriptors:
+<<<<<<< HEAD
       - description: Phase describes the overall phase of operators in the OperandRegistry
         displayName: Phase
         path: phase
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.phase
+=======
+      - description: OperatorsStatus defines operators status and the number of reconcile
+          request
+        displayName: Operators Status
+        path: operatorsStatus
+      resources:
+      - kind: Deployment
+        name: ''
+        version: v1
+>>>>>>> Using test image
       version: v1alpha1
     - description: OperandRequest is the Schema for the operandrequests API
       displayName: OperandRequest
@@ -403,6 +424,10 @@ spec:
         path: phase
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.phase
+      resources:
+      - kind: Deployment
+        name: ''
+        version: v1
       version: v1alpha1
   description: The Operand Deployment Lifecycle Manager provides a Kubernetes CRD-Based
     API to manage the lifecycle of IBM cloud common services.
@@ -519,7 +544,7 @@ spec:
                       fieldPath: metadata.namespace
                 - name: OPERATOR_NAME
                   value: operand-deployment-lifecycle-manager
-                image: quay.io/opencloudio/odlm:latest
+                image: quay.io/horis233/odlm:latest
                 imagePullPolicy: Always
                 name: operand-deployment-lifecycle-manager
                 resources: {}

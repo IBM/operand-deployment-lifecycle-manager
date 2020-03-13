@@ -87,6 +87,7 @@ type OperandRegistryStatus struct {
 	// OperatorsStatus defines operators status and the number of reconcile request
 	// +listType=set
 	// +optional
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
 	OperatorsStatus map[string]OperatorStatus `json:"operatorsStatus,omitempty"`
 }
 
