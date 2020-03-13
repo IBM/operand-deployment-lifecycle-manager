@@ -53,6 +53,7 @@ type OperandConfigStatus struct {
 	Phase ServicePhase `json:"phase,omitempty"`
 	// ServiceStatus defines all the status of a operator
 	// +optional
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
 	ServiceStatus map[string]CrStatus `json:"serviceStatus,omitempty"`
 }
 
