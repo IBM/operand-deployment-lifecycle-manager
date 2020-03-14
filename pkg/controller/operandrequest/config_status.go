@@ -18,7 +18,9 @@ package operandrequest
 
 import (
 	"context"
+	"time"
 
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
@@ -27,30 +29,44 @@ import (
 func (r *ReconcileOperandRequest) updateServiceStatus(cr *operatorv1alpha1.OperandConfig, operatorName, serviceName string, serviceStatus operatorv1alpha1.ServicePhase) error {
 	klog.V(3).Info("Updating OperandConfig status")
 
-	configInstance, err := r.getConfigInstance(cr.Name, cr.Namespace)
-	if err != nil {
+	if err := wait.PollImmediate(time.Second*20, time.Minute*10, func() (done bool, err error) {
+		configInstance, err := r.getConfigInstance(cr.Name, cr.Namespace)
+		if err != nil {
+			return false, err
+		}
+
+		configInstance.Status.ServiceStatus[operatorName].CrStatus[serviceName] = serviceStatus
+		if err := r.client.Status().Update(context.TODO(), configInstance); err != nil {
+			klog.V(3).Info("Waiting for OperandConfig instance status ready ...")
+			return false, nil
+		}
+		return true, nil
+	}); err != nil {
 		return err
 	}
 
-	configInstance.Status.ServiceStatus[operatorName].CrStatus[serviceName] = serviceStatus
-	if err := r.client.Status().Update(context.TODO(), configInstance); err != nil {
-		return err
-	}
 	return nil
 }
 
 func (r *ReconcileOperandRequest) deleteServiceStatus(cr *operatorv1alpha1.OperandConfig, operatorName, serviceName string) error {
 	klog.V(3).Infof("Deleting custom resource %s from OperandConfig status", serviceName)
 
-	configInstance, err := r.getConfigInstance(cr.Name, cr.Namespace)
-	if err != nil {
+	if err := wait.PollImmediate(time.Second*20, time.Minute*10, func() (done bool, err error) {
+		configInstance, err := r.getConfigInstance(cr.Name, cr.Namespace)
+		if err != nil {
+			return false, err
+		}
+
+		delete(configInstance.Status.ServiceStatus[operatorName].CrStatus, serviceName)
+
+		if err := r.client.Status().Update(context.TODO(), configInstance); err != nil {
+			klog.V(3).Info("Waiting for OperandConfig instance status ready ...")
+			return false, nil
+		}
+		return true, nil
+	}); err != nil {
 		return err
 	}
 
-	delete(configInstance.Status.ServiceStatus[operatorName].CrStatus, serviceName)
-
-	if err := r.client.Status().Update(context.TODO(), configInstance); err != nil {
-		return err
-	}
 	return nil
 }
