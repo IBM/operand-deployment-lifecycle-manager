@@ -65,7 +65,10 @@ func (r *ReconcileOperandRequest) getOperatorPhase(name, namespace string) (olmv
 	csvName := sub.Status.InstalledCSV
 	if csvName != "" {
 		csv, err := r.olmClient.OperatorsV1alpha1().ClusterServiceVersions(namespace).Get(csvName, metav1.GetOptions{})
-		if err != nil && !errors.IsNotFound(err) {
+		if err != nil {
+			if errors.IsNotFound(err) {
+				return operatorPhase, nil
+			}
 			return operatorPhase, err
 		}
 		if csv.Status.Phase == "" {

@@ -44,64 +44,120 @@ func TestRequestController(t *testing.T) {
 		name      = "common-service"
 		namespace = "ibm-common-service"
 	)
-	assert := assert.New(t)
+
 	req := getReconcileRequest(name, namespace)
 	r := getReconciler(name, namespace)
+	requestInstance := &v1alpha1.OperandRequest{}
 
+	initReconcile(t, r, req, requestInstance)
+
+	absentOperand(t, r, req, requestInstance)
+
+	presentOperand(t, r, req, requestInstance)
+
+	deleteOperandRequest(t, r, req, requestInstance)
+}
+
+// Init reconcile the OperandRequest
+func initReconcile(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, requestInstance *v1alpha1.OperandRequest) {
+	assert := assert.New(t)
 	_, err := r.Reconcile(req)
 	assert.NoError(err)
 
-	// Retrieve OperandRequest instance
-	requestInstance := &v1alpha1.OperandRequest{}
-	err = r.client.Get(context.TODO(), req.NamespacedName, requestInstance)
+	// Retrieve OperandRegistry
+	registryInstance, err := r.getRegistryInstance(req.Name, req.Namespace)
 	assert.NoError(err)
+	for k, v := range registryInstance.Status.OperatorsStatus {
+		assert.Equalf(v1alpha1.OperatorRunning, v.Phase, "operator(%s) phase should be Running", k)
+		assert.NotEqualf(-1, registryInstance.GetReconcileRequest(k, req), "reconcile requests should be include %s", req.NamespacedName)
+	}
 
-	// Absent an operator from request
+	// Retrieve OperandConfig
+	configInstance, err := r.getConfigInstance(req.Name, req.Namespace)
+	assert.NoError(err)
+	for k, v := range configInstance.Status.ServiceStatus {
+		for crK, crV := range v.CrStatus {
+			assert.Equalf(v1alpha1.ServiceRunning, crV, "operator(%s) cr(%s) phase should be Running", k, crK)
+		}
+	}
+
+	// Retrieve OperandRequest
+	retrieveOperandRequest(t, r, req, requestInstance, 2)
+
+}
+
+// Retrieve OperandRequest instance
+func retrieveOperandRequest(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, requestInstance *v1alpha1.OperandRequest, expectedMemNum int) {
+	assert := assert.New(t)
+	// requestInstance := &v1alpha1.OperandRequest{}
+	err := r.client.Get(context.TODO(), req.NamespacedName, requestInstance)
+	assert.NoError(err)
+	assert.Equal(expectedMemNum, len(requestInstance.Status.Members), "operands member list should have two elements")
+	for _, m := range requestInstance.Status.Members {
+		assert.Equalf(olmv1alpha1.CSVPhaseSucceeded, m.Phase.OperatorPhase, "operator(%s) phase should be Running", m.Name)
+		assert.Equalf(v1alpha1.ServiceRunning, m.Phase.OperandPhase, "operand(%s) phase should be Running", m.Name)
+	}
+	assert.Equal(v1alpha1.ClusterPhaseRunning, requestInstance.Status.Phase, "cluster phase should be Running")
+}
+
+// Absent an operator from request
+func absentOperand(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, requestInstance *v1alpha1.OperandRequest) {
+	assert := assert.New(t)
 	requestInstance.Spec.Requests[0].Operands = requestInstance.Spec.Requests[0].Operands[1:]
-	err = r.client.Update(context.TODO(), requestInstance)
+	err := r.client.Update(context.TODO(), requestInstance)
 	assert.NoError(err)
 	_, err = r.Reconcile(req)
 	assert.NoError(err)
+	retrieveOperandRequest(t, r, req, requestInstance, 1)
+}
 
-	// Check if operator absent from the request
-	err = r.client.Get(context.TODO(), req.NamespacedName, requestInstance)
+// Present an operator from request
+func presentOperand(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, requestInstance *v1alpha1.OperandRequest) {
+	assert := assert.New(t)
+	// Present an operator into request
+	requestInstance.Spec.Requests[0].Operands = append(requestInstance.Spec.Requests[0].Operands, v1alpha1.Operand{Name: "etcd"})
+	err := r.client.Update(context.TODO(), requestInstance)
 	assert.NoError(err)
-	assert.Equal(1, len(requestInstance.Status.Members), "operands member list should have only one element")
 
-	// // TBD... Present an operator into request, due to fakeolmclient cannot mock subscription status
-	// requestInstance.Spec.Requests[0].Operands = append(requestInstance.Spec.Requests[0].Operands, v1alpha1.Operand{Name: "etcd"})
-	// err = r.client.Update(context.TODO(), requestInstance)
-	// _, err = r.Reconcile(req)
-	// assert.NoError(err)
+	err = r.createSubscription(requestInstance, &v1alpha1.Operator{
+		Name:            "etcd",
+		Namespace:       req.Namespace,
+		SourceName:      "community-operators",
+		SourceNamespace: "openshift-marketplace",
+		PackageName:     "etcd",
+		Channel:         "singlenamespace-alpha",
+	})
+	assert.NoError(err)
+	err = r.reconcileOperator(requestInstance, req)
+	assert.NoError(err)
+	_, err = r.olmClient.OperatorsV1alpha1().Subscriptions(req.Namespace).UpdateStatus(sub("etcd", req.Namespace, "0.0.1"))
+	assert.NoError(err)
+	_, err = r.olmClient.OperatorsV1alpha1().ClusterServiceVersions(req.Namespace).Create(csv("etcd-csv.v0.0.1", req.Namespace, etcdExample))
+	assert.NoError(err)
+	err = r.waitForInstallPlan(requestInstance, req)
+	assert.NoError(err)
+	multiErr := r.reconcileOperand(requestInstance)
+	assert.Empty(multiErr.errors, "all the operands reconcile should not be error")
+	err = r.updateMemberStatus(requestInstance)
+	assert.NoError(err)
+	err = r.updateClusterPhase(requestInstance)
+	assert.NoError(err)
 
-	// // Check if operator present into the request
-	// err = r.client.Get(context.TODO(), req.NamespacedName, requestInstance)
-	// assert.NoError(err)
-	// assert.Equal(2, len(requestInstance.Spec.Requests[0].Operands), "operands list should have two elements")
+	retrieveOperandRequest(t, r, req, requestInstance, 2)
+}
 
-	// requestInstance.Spec.Requests[0].Operands = append(requestInstance.Spec.Requests[0].Operands, v1alpha1.Operand{Name: "etcd"})
-	// err = r.client.Update(context.TODO(), requestInstance)
-	// registryInstance, err := r.getRegistryInstance(name, namespace)
-	// assert.NoError(err)
-	// opt := r.getOperatorFromRegistryInstance("etcd", registryInstance)
-	// err = r.createSubscription(requestInstance, opt)
-	// assert.NoError(err)
-	// err = r.updateMemberStatus(requestInstance)
-	// assert.NoError(err)
-	// err = r.client.Get(context.TODO(), req.NamespacedName, requestInstance)
-	// assert.NoError(err)
-	// assert.Equal(2, len(requestInstance.Status.Members), "operands member list should have two elements")
-
-	// Mock delete OperandRequest instance, mark OperandRequest instance as delete state
+// Mock delete OperandRequest instance, mark OperandRequest instance as delete state
+func deleteOperandRequest(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, requestInstance *v1alpha1.OperandRequest) {
+	assert := assert.New(t)
 	deleteTime := metav1.NewTime(time.Now())
 	requestInstance.SetDeletionTimestamp(&deleteTime)
-	err = r.client.Update(context.TODO(), requestInstance)
+	err := r.client.Update(context.TODO(), requestInstance)
 	assert.NoError(err)
 	_, err = r.Reconcile(req)
 	assert.NoError(err)
-	subs, err := r.olmClient.OperatorsV1alpha1().Subscriptions(namespace).List(metav1.ListOptions{})
+	subs, err := r.olmClient.OperatorsV1alpha1().Subscriptions(req.Namespace).List(metav1.ListOptions{})
 	assert.NoError(err)
-	assert.Empty(subs.Items, "all subscriptions should be deleted")
+	assert.Empty(subs.Items, "all the subscriptions should be deleted")
 
 	// Check if OperandRequest instance deleted
 	err = r.client.Delete(context.TODO(), requestInstance)
@@ -110,9 +166,31 @@ func TestRequestController(t *testing.T) {
 	assert.True(errors.IsNotFound(err), "retrieve operand request should be return an error of type is 'NotFound'")
 }
 
+func getReconciler(name, namespace string) ReconcileOperandRequest {
+	s := scheme.Scheme
+	v1alpha1.SchemeBuilder.AddToScheme(s)
+	olmv1.SchemeBuilder.AddToScheme(s)
+	olmv1alpha1.SchemeBuilder.AddToScheme(s)
+	v1beta2.SchemeBuilder.AddToScheme(s)
+
+	initData := initClientData(name, namespace)
+
+	// Create a fake client to mock API calls.
+	client := fake.NewFakeClient(initData.odlmObjs...)
+
+	// Create a fake OLM client to mock OLM API calls.
+	olmClient := fakeolmclient.NewSimpleClientset(initData.olmObjs...)
+
+	// Return a ReconcileOperandRequest object with the scheme and fake client.
+	return ReconcileOperandRequest{
+		scheme:    s,
+		client:    client,
+		olmClient: olmClient,
+	}
+}
+
+// Mock request to simulate Reconcile() being called on an event for a watched resource
 func getReconcileRequest(name, namespace string) reconcile.Request {
-	// Mock request to simulate Reconcile() being called on an event for a
-	// watched resource
 	return reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      name,
@@ -139,29 +217,6 @@ func initClientData(name, namespace string) *DataObj {
 			csv("jenkins-csv.v0.0.1", namespace, jenkinsExample),
 			ip("etcd-install-plan", namespace),
 			ip("jenkins-install-plan", namespace)},
-	}
-}
-
-func getReconciler(name, namespace string) ReconcileOperandRequest {
-	s := scheme.Scheme
-	v1alpha1.SchemeBuilder.AddToScheme(s)
-	olmv1.SchemeBuilder.AddToScheme(s)
-	olmv1alpha1.SchemeBuilder.AddToScheme(s)
-	v1beta2.SchemeBuilder.AddToScheme(s)
-
-	initData := initClientData(name, namespace)
-
-	// Create a fake client to mock API calls.
-	client := fake.NewFakeClient(initData.odlmObjs...)
-
-	// Create a fake OLM client to mock OLM API calls.
-	olmClient := fakeolmclient.NewSimpleClientset(initData.olmObjs...)
-
-	// Return a ReconcileOperandRequest object with the scheme and fake client.
-	return ReconcileOperandRequest{
-		scheme:    s,
-		client:    client,
-		olmClient: olmClient,
 	}
 }
 
@@ -319,6 +374,9 @@ func csv(name, namespace, example string) *olmv1alpha1.ClusterServiceVersion {
 			},
 		},
 		Spec: olmv1alpha1.ClusterServiceVersionSpec{},
+		Status: olmv1alpha1.ClusterServiceVersionStatus{
+			Phase: olmv1alpha1.CSVPhaseSucceeded,
+		},
 	}
 }
 
@@ -354,7 +412,7 @@ const etcdExample string = `
 const jenkinsExample string = `
 [
 	{
-	  "apiVersion": "etcd.database.coreos.com/v1beta2",
+	  "apiVersion": "jenkins.io/v1alpha2",
 	  "kind": "Jenkins",
 	  "metadata": {
 		"name": "example"
