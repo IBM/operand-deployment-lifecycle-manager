@@ -22,7 +22,7 @@ metadata:
               {
                 "name": "ibm-licensing-operator",
                 "spec": {
-                  "IBMLicensing": {}
+                  "iBMLicensing": {}
                 }
               },
               {
@@ -44,12 +44,12 @@ metadata:
                 "name": "ibm-iam-operator",
                 "spec": {
                   "authentication": {},
-                  "oidcclientwatcher": {},
+                  "oIDCClientWatcher": {},
                   "pap": {},
-                  "policycontroller": {},
-                  "policydecision": {},
-                  "secretwatcher": {},
-                  "securityonboarding": {}
+                  "policyController": {},
+                  "policyDecision": {},
+                  "secretWatcher": {},
+                  "securityOnboarding": {}
                 }
               },
               {
@@ -63,7 +63,7 @@ metadata:
                 "spec": {
                   "commonWebUI": {},
                   "legacyHeader": {},
-                  "navconfiguration": {}
+                  "navConfiguration": {}
                 }
               },
               {
