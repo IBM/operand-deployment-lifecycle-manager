@@ -10,7 +10,7 @@ spec:
       meteringUI: {}
   - name: ibm-licensing-operator
     spec:
-      IBMLicensing: {}
+      iBMLicensing: {}
   - name: ibm-mongodb-operator
     spec:
       mongoDB: {}
@@ -23,12 +23,12 @@ spec:
   - name: ibm-iam-operator
     spec:
       authentication: {}
-      oidcclientwatcher: {}
+      oIDCClientWatcher: {}
       pap: {}
-      policycontroller: {}
-      policydecision: {}
-      secretwatcher: {}
-      securityonboarding: {}
+      policyController: {}
+      policyDecision: {}
+      secretWatcher: {}
+      securityOnboarding: {}
   - name: ibm-healthcheck-operator
     spec:
       healthService: {}
@@ -36,7 +36,7 @@ spec:
     spec:
       commonWebUI: {}
       legacyHeader: {}
-      navconfiguration: {}
+      navConfiguration: {}
   - name: ibm-management-ingress-operator
     spec:
       managementIngress: {}
