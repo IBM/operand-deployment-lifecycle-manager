@@ -80,13 +80,17 @@ type OperandRegistrySpec struct {
 // OperandRegistryStatus defines the observed state of OperandRegistry
 // +k8s:openapi-gen=true
 type OperandRegistryStatus struct {
+	// Phase is the operator running phase
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
+	// +optional
+	Phase OperatorPhase `json:"phase,omitempty"`
 	// OperatorsStatus defines operators status and the number of reconcile request
 	// +listType=set
 	// +optional
 	OperatorsStatus map[string]OperatorStatus `json:"operatorsStatus,omitempty"`
 }
 
-// OperatorsStatus defines operators status and the number of reconcile request
+// OperatorStatus defines operators status and the number of reconcile request
 type OperatorStatus struct {
 	// Phase is the state of operator
 	// +optional
@@ -127,6 +131,7 @@ const (
 	OperatorReady   OperatorPhase = "Ready for Deployment"
 	OperatorRunning OperatorPhase = "Running"
 	OperatorFailed  OperatorPhase = "Failed"
+	OperatorNone    OperatorPhase = ""
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -157,6 +162,7 @@ func (r *OperandRegistry) InitRegistryStatus() {
 			}
 			r.Status.OperatorsStatus[opt.Name] = opratorStatus
 		}
+		r.UpdateOperatorPhase()
 	}
 }
 
@@ -182,6 +188,7 @@ func (r *OperandRegistry) SetOperatorStatus(name string, phase OperatorPhase, re
 		s.ReconcileRequests = append(s.ReconcileRequests, ReconcileRequest{Name: request.Name, Namespace: request.Namespace})
 	}
 	r.Status.OperatorsStatus[name] = s
+	r.UpdateOperatorPhase()
 }
 
 // CleanOperatorStatus remove the operator status in the operandRegistry
@@ -194,8 +201,41 @@ func (r *OperandRegistry) CleanOperatorStatus(name string, request reconcile.Req
 		s.Phase = OperatorReady
 	}
 	r.Status.OperatorsStatus[name] = s
+	r.UpdateOperatorPhase()
 }
 
 func init() {
 	SchemeBuilder.Register(&OperandRegistry{}, &OperandRegistryList{})
+}
+
+// UpdateOperatorPhase sets the current Phase status
+func (r *OperandRegistry) UpdateOperatorPhase() {
+	operatorStatusStat := struct {
+		readyNum int
+		runningNum  int
+		failedNum   int
+	}{
+		readyNum: 0,
+		runningNum:  0,
+		failedNum:   0,
+	}
+	for _, operator := range r.Status.OperatorsStatus{
+		switch operator.Phase {
+		case OperatorReady:
+			operatorStatusStat.readyNum++
+		case OperatorRunning:
+			operatorStatusStat.runningNum++
+		case OperatorFailed:
+			operatorStatusStat.failedNum++
+		}
+	}
+	if operatorStatusStat.failedNum > 0 {
+		r.Status.Phase = OperatorFailed
+	} else if operatorStatusStat.runningNum > 0 {
+		r.Status.Phase = OperatorRunning
+	} else if operatorStatusStat.readyNum > 0 {
+		r.Status.Phase = OperatorReady
+	} else {
+		r.Status.Phase = OperatorNone
+	}
 }

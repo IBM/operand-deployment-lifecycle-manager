@@ -47,6 +47,10 @@ type ConfigService struct {
 // OperandConfigStatus defines the observed state of OperandConfig
 // +k8s:openapi-gen=true
 type OperandConfigStatus struct {
+	// Phase is the operand running phase
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
+	// +optional
+	Phase ServicePhase `json:"phase,omitempty"`
 	// ServiceStatus defines all the status of a operator
 	// +optional
 	ServiceStatus map[string]CrStatus `json:"serviceStatus,omitempty"`
@@ -115,5 +119,40 @@ func (r *OperandConfig) InitConfigStatus() {
 				}
 			}
 		}
+	}
+	r.UpdateOperandPhase()
+}
+
+// UpdateOperandPhase sets the current Phase status
+func (r *OperandConfig) UpdateOperandPhase() {
+	operandStatusStat := struct {
+		readyNum int
+		runningNum  int
+		failedNum   int
+	}{
+		readyNum: 0,
+		runningNum:  0,
+		failedNum:   0,
+	}
+	for _, operator := range r.Status.ServiceStatus{
+		for _, service := range operator.CrStatus{
+			switch service {
+			case ServiceReady:
+				operandStatusStat.readyNum++
+			case ServiceRunning:
+				operandStatusStat.runningNum++
+			case ServiceFailed:
+				operandStatusStat.failedNum++
+			}
+		}
+	}
+	if operandStatusStat.failedNum > 0 {
+		r.Status.Phase = ServiceFailed
+	} else if operandStatusStat.runningNum > 0 {
+		r.Status.Phase = ServiceRunning
+	} else if operandStatusStat.readyNum > 0 {
+		r.Status.Phase = ServiceReady
+	} else {
+		r.Status.Phase = ServiceNone
 	}
 }
