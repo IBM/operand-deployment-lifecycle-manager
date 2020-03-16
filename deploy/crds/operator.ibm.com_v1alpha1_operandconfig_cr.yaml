@@ -71,3 +71,193 @@ spec:
   - name: ibm-monitoring-grafana-operator
     spec:
       grafana: {}
+  - name: ibm-elastic-stack-operator
+    spec:
+#      elasticStack: {}
+      elasticStack:
+        nameOverride: elk
+        general:
+          environment: Openshift
+          ingressPort: "443"
+        security:
+          ca:
+            # set to `external` to use existing CA stored in Kubernetes secret to generate certs
+            origin: external
+            external:
+              # the secret need to be in the same namespace as the chart release
+              secretName: cluster-ca-cert
+              # the Kubenetes field name (key) within the specified secret that stores CA cert
+              certFieldName: tls.crt
+              # the Kubenets field name (key) within the specified secret that stores CA private key
+              keyFieldName: tls.key
+          tls:
+            version: TLSv1.2
+
+        logstash:
+          replicas: 3
+          port: 5044
+          nodeSelector:
+            management: "true"
+          tolerations:
+            - key: "dedicated"
+              operator: "Exists"
+              effect: "NoSchedule"
+          image:
+            repository: hyc-cloud-private-edge-docker-local.artifactory.swg-devops.com/ibmcom-amd64/icp-logstash-oss
+          probe:
+            image:
+              repository: hyc-cloud-private-edge-docker-local.artifactory.swg-devops.com/ibmcom-amd64/logstash-liveness-probe
+        kibana:
+          replicas: 3
+          nodeSelector:
+            management: "true"
+          tolerations:
+            - key: "dedicated"
+              operator: "Exists"
+              effect: "NoSchedule"
+          image:
+            repository: hyc-cloud-private-edge-docker-local.artifactory.swg-devops.com/ibmcom-amd64/icp-kibana-oss
+          routerImage:
+            repository: hyc-cloud-private-edge-docker-local.artifactory.swg-devops.com/ibmcom-amd64/icp-management-ingress
+          initImage:
+            repository: hyc-cloud-private-edge-docker-local.artifactory.swg-devops.com/ibmcom-amd64/curl
+          # accepted values:
+          # ingress or loadBalancer, defaults to loadBalancer
+          access: ingress
+          ingress:
+            # "/kibana" for managed service logging instance
+            # sample value for custom ingress: "/tenantA/kibana"
+            # no trailing /
+            path: "/kibana"
+            # additional labels to facilitate link rendering in icp console
+            labels:
+              # Nav link currently explicitly created by platform UI when Logging is present.  If this is changed, inmenu should be set to "true".
+              inmenu: "false"
+              # if provided, the link will open in a new tab with the target value in the <a> tag
+              target: "platform-logging"
+          service:
+            # "/kibana" for managed service logging instance
+            # sample value for custom ingress: "/tenantA/kibana"
+            # no trailing /
+            path: "/kibana"
+            # additional labels to facilitate link rendering in icp console
+            labels:
+              # Nav link currently explicitly created by platform UI when Logging is present.  If this is changed, inmenu should be set to "true".
+              inmenu: "false"
+              # if provided, the link will open in a new tab with the target value in the <a> tag
+              target: "platform-logging"
+            # additional annotations to facilitate link rendering in icp console
+            annotations:
+              # display name that will show in the menu
+              name: "Logging"
+              # provided by icp console
+              id: "add-ons"
+              # list of roles to be able to view TA in the menu
+              # for managed logging instance deployed
+              # without other multi-tenant logging
+              # instances, use the following:
+              roles: "ClusterAdministrator,Administrator,Operator,Viewer,Auditor,Editor"
+              # for managed logging instance deployed
+              # with other multi-tenant logging
+              # instances, use the following:
+              # roles: "ClusterAdministrator"
+              # show link if user is in any of the teams
+              # ui.icp.ibm.com/tenant: "tenantA,tenantB"
+          security:
+            authc:
+              enabled: true
+              # accepted values: icp
+              # what it does: redirects to icp login page first
+              provider: icp
+            authz:
+              enabled: false
+              # accepted values: icp
+              # what it does: only allow request to pass if user
+              # have access to the required namespaces
+              # that the current user has access to
+              # requires authc.enabled = true and authc.provider = icp
+              provider: icp
+              icp:
+                # 1. user is allowed to access the kibana ingress
+                #    if namespaces granted to user are listed below
+                # 2. when the list below is empty, only cluster admin
+                #    can access this kibana ingress
+                authorizedNamespaces:
+                  # - tenantadev
+                  # - tenantatest
+                  # - tenantaprod
+
+        filebeat:
+          scope:
+            nodes:
+              # for managed logging instance deployed
+              # with other multi-tenant logging
+              # instances, it might be a good
+              # idea to have managed logging instance
+              # only collect log from limited workloads
+              # (rather than workloads from all tenants).
+              # set desired node selector here
+            namespaces:
+          tolerations:
+            - key: "dedicated"
+              operator: "Exists"
+              effect: "NoSchedule"
+          image:
+            repository: hyc-cloud-private-edge-docker-local.artifactory.swg-devops.com/ibmcom-amd64/icp-filebeat-oss
+
+        elasticsearch:
+          security:
+            authz:
+              enabled: true
+              # accepted values: icp
+              # what it does: filter log content by the namespace
+              # that the current user has access to
+              provider: icp
+          image:
+            repository: hyc-cloud-private-edge-docker-local.artifactory.swg-devops.com/ibmcom-amd64/icp-elasticsearch-oss
+          initImage:
+            repository: hyc-cloud-private-edge-docker-local.artifactory.swg-devops.com/ibmcom-amd64/icp-initcontainer
+            # TODO remove after pushed to edge
+            tag: "1.0.0-build.1"
+          pkiInitImage:
+            repository: hyc-cloud-private-edge-docker-local.artifactory.swg-devops.com/ibmcom-amd64/logging-pki-init
+          routerImage:
+            repository: hyc-cloud-private-edge-docker-local.artifactory.swg-devops.com/ibmcom-amd64/icp-management-ingress
+          client:
+            tolerations:
+              - key: "dedicated"
+                operator: "Exists"
+                effect: "NoSchedule"
+            nodeSelector:
+              management: "true"
+
+          master:
+            tolerations:
+              - key: "dedicated"
+                operator: "Exists"
+                effect: "NoSchedule"
+            nodeSelector:
+              management: "true"
+
+          data:
+            replicas: 1
+            tolerations:
+              - key: "dedicated"
+                operator: "Exists"
+                effect: "NoSchedule"
+            nodeSelector:
+              management: "true"
+            storage:
+              size: "20Gi"
+              storageClass: "gp2"
+              useDynamicProvisioning: true
+
+        curator:
+          nodeSelector:
+            management: "true"
+          tolerations:
+            - key: "dedicated"
+              operator: "Exists"
+              effect: "NoSchedule"
+          image:
+            repository: hyc-cloud-private-edge-docker-local.artifactory.swg-devops.com/ibmcom-amd64/indices-cleaner
