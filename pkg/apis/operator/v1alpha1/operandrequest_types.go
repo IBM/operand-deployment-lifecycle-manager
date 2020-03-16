@@ -260,6 +260,13 @@ func (r *OperandRequest) CleanMemberStatus(name string) {
 	}
 }
 
+// InitRquestStatus Init OperandRquest status
+func (r *OperandRequest) InitRquestStatus() {
+	if r.Status.Phase == "" {
+		r.Status.Phase = ClusterPhaseNone
+	}
+}
+
 func getMemberStatus(status *OperandRequestStatus, name string) (int, *MemberStatus) {
 	for i, m := range status.Members {
 		if name == m.Name {
