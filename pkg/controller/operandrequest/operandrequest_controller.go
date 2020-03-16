@@ -179,25 +179,15 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 
 	// Remove finalizer when DeletionTimestamp none zero
 	if !requestInstance.ObjectMeta.DeletionTimestamp.IsZero() {
-		// Delete all the subscriptions that created by current request
-		for _, req := range requestInstance.Spec.Requests {
-			registryInstance, err := r.getRegistryInstance(req.Registry, req.RegistryNamespace)
-			if err != nil {
-				return reconcile.Result{}, err
-			}
-			configInstance, err := r.getConfigInstance(req.Registry, req.RegistryNamespace)
-			if err != nil {
-				return reconcile.Result{}, err
-			}
-			for _, operand := range req.Operands {
-				if err := r.deleteSubscription(operand.Name, requestInstance, registryInstance, configInstance, request); err != nil {
-					return reconcile.Result{}, err
-				}
-			}
+
+		// Check and clean up the subscriptions
+		err := r.checkFinalizer(requestInstance, request)
+		if err != nil {
+			return reconcile.Result{}, err
 		}
 		// Update finalizer to allow delete CR
 		requestInstance.SetFinalizers(nil)
-		err := r.client.Update(context.TODO(), requestInstance)
+		err = r.client.Update(context.TODO(), requestInstance)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
@@ -228,6 +218,9 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, err
 	}
 
+	if err := r.updateClusterPhase(requestInstance); err != nil {
+		return reconcile.Result{}, err
+	}
 	// Check if all csv deploy successed
 	if requestInstance.Status.Phase != operatorv1alpha1.ClusterPhaseRunning {
 		klog.V(2).Info("Waiting for all the operands deploy successed")
@@ -307,6 +300,35 @@ func (r *ReconcileOperandRequest) addFinalizer(cr *operatorv1alpha1.OperandReque
 		err := r.client.Update(context.TODO(), cr)
 		if err != nil {
 			return err
+		}
+	}
+	return nil
+}
+
+func (r *ReconcileOperandRequest) checkFinalizer(requestInstance *operatorv1alpha1.OperandRequest, request reconcile.Request) error {
+	existingSub, err := r.olmClient.OperatorsV1alpha1().Subscriptions(metav1.NamespaceAll).List(metav1.ListOptions{
+		LabelSelector: "operator.ibm.com/opreq-control",
+	})
+	if err != nil {
+		return err
+	}
+	if len(existingSub.Items) == 0 {
+		return nil
+	}
+	// Delete all the subscriptions that created by current request
+	for _, req := range requestInstance.Spec.Requests {
+		registryInstance, err := r.getRegistryInstance(req.Registry, req.RegistryNamespace)
+		if err != nil {
+			return err
+		}
+		configInstance, err := r.getConfigInstance(req.Registry, req.RegistryNamespace)
+		if err != nil {
+			return err
+		}
+		for _, operand := range req.Operands {
+			if err := r.deleteSubscription(operand.Name, requestInstance, registryInstance, configInstance, request); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

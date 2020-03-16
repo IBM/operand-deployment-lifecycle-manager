@@ -96,7 +96,7 @@ const (
 	ConditionUpdating ConditionType = "Updating"
 	ConditionDeleting ConditionType = "Deleting"
 
-	ClusterPhaseNone     ClusterPhase = ""
+	ClusterPhaseNone     ClusterPhase = "Pending"
 	ClusterPhaseCreating ClusterPhase = "Creating"
 	ClusterPhaseRunning  ClusterPhase = "Running"
 	ClusterPhaseFailed   ClusterPhase = "Failed"

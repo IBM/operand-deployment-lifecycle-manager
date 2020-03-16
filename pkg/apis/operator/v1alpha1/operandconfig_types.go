@@ -90,6 +90,7 @@ const (
 	ServiceReady   ServicePhase = "Ready for Deployment"
 	ServiceRunning ServicePhase = "Running"
 	ServiceFailed  ServicePhase = "Failed"
+	ServiceNone    ServicePhase = ""
 )
 
 func init() {
@@ -98,25 +99,21 @@ func init() {
 
 //InitConfigStatus OperandConfig status
 func (r *OperandConfig) InitConfigStatus() {
-
 	if r.Status.ServiceStatus == nil {
 		r.Status.ServiceStatus = make(map[string]CrStatus)
 	}
+	originalServiceStatus := r.Status.DeepCopy().ServiceStatus
 
 	for _, operator := range r.Spec.Services {
-		_, ok := r.Status.ServiceStatus[operator.Name]
-		if !ok {
-			r.Status.ServiceStatus[operator.Name] = CrStatus{}
-		}
-
-		if r.Status.ServiceStatus[operator.Name].CrStatus == nil {
-			tmp := r.Status.ServiceStatus[operator.Name]
-			tmp.CrStatus = make(map[string]ServicePhase)
-			r.Status.ServiceStatus[operator.Name] = tmp
-		}
+		r.Status.ServiceStatus[operator.Name] = CrStatus{CrStatus: make(map[string]ServicePhase)}
 		for service := range operator.Spec {
-			if _, ok := r.Status.ServiceStatus[operator.Name].CrStatus[service]; !ok {
-				r.Status.ServiceStatus[operator.Name].CrStatus[service] = ServiceReady
+			r.Status.ServiceStatus[operator.Name].CrStatus[service] = ServiceReady
+			if originalServiceStatus != nil {
+				if ss, ok := originalServiceStatus[operator.Name]; ok {
+					if cs, ok := ss.CrStatus[service]; ok {
+						r.Status.ServiceStatus[operator.Name].CrStatus[service] = cs
+					}
+				}
 			}
 		}
 	}
