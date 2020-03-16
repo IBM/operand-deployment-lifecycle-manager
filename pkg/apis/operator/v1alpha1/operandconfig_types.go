@@ -126,16 +126,16 @@ func (r *OperandConfig) InitConfigStatus() {
 // UpdateOperandPhase sets the current Phase status
 func (r *OperandConfig) UpdateOperandPhase() {
 	operandStatusStat := struct {
-		readyNum int
-		runningNum  int
-		failedNum   int
+		readyNum   int
+		runningNum int
+		failedNum  int
 	}{
-		readyNum: 0,
-		runningNum:  0,
-		failedNum:   0,
+		readyNum:   0,
+		runningNum: 0,
+		failedNum:  0,
 	}
-	for _, operator := range r.Status.ServiceStatus{
-		for _, service := range operator.CrStatus{
+	for _, operator := range r.Status.ServiceStatus {
+		for _, service := range operator.CrStatus {
 			switch service {
 			case ServiceReady:
 				operandStatusStat.readyNum++

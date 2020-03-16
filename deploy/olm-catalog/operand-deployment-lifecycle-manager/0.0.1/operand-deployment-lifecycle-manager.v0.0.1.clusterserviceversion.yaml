@@ -356,6 +356,12 @@ spec:
       - description: Services is a list of configuration of service
         displayName: Services
         path: services
+      statusDescriptors:
+      - description: Phase is the operand running phase
+        displayName: Phase
+        path: phase
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes.phase
       version: v1alpha1
     - description: OperandRegistry is the Schema for the operandregistries API
       displayName: OperandRegistry
@@ -365,6 +371,12 @@ spec:
       - description: Operators is a list of operator OLM definition
         displayName: Operators
         path: operators
+      statusDescriptors:
+      - description: Phase is the operator running phase
+        displayName: Phase
+        path: phase
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes.phase
       version: v1alpha1
     - description: OperandRequest is the Schema for the operandrequests API
       displayName: OperandRequest
