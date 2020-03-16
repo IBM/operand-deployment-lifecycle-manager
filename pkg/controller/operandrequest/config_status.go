@@ -56,8 +56,12 @@ func (r *ReconcileOperandRequest) deleteServiceStatus(cr *operatorv1alpha1.Opera
 		if err != nil {
 			return false, err
 		}
+		if configInstance.Status.ServiceStatus[operatorName].CrStatus == nil {
+			return true, nil
+		}
 
 		configInstance.Status.ServiceStatus[operatorName].CrStatus[serviceName] = operatorv1alpha1.ServiceReady
+
 		if err := r.client.Status().Update(context.TODO(), configInstance); err != nil {
 			klog.V(3).Info("Waiting for OperandConfig instance status ready ...")
 			return false, nil
