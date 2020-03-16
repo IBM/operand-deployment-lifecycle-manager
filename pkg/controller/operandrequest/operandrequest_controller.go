@@ -169,7 +169,7 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 	err := r.client.Update(context.TODO(), requestInstance)
 	if err != nil {
 		return reconcile.Result{}, err
-		
+
 	}
 	// Set the default status for OperandRequest instance
 	requestInstance.InitRquestStatus()
