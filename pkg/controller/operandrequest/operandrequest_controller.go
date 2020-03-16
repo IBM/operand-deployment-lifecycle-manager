@@ -165,12 +165,16 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 
 	// Set default for OperandRequest instance
 	requestInstance.SetDefaultsRequest()
-
-	// Set the default status for OperandRequest instance
-	requestInstance.InitRquestStatus()
-
+	klog.V(3).Info("Initializing OperandRegistry instance: ", request)
 	err := r.client.Update(context.TODO(), requestInstance)
 	if err != nil {
+		return reconcile.Result{}, err
+		
+	}
+	// Set the default status for OperandRequest instance
+	requestInstance.InitRquestStatus()
+	klog.V(3).Info("Initializing OperandRegistry instance status: ", request)
+	if err := r.client.Status().Update(context.TODO(), requestInstance); err != nil {
 		return reconcile.Result{}, err
 	}
 
