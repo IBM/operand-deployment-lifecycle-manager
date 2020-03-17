@@ -73,5 +73,7 @@ code-gen:
 	@echo Updating/Generating a ClusterServiceVersion YAML manifest for the operator
 	operator-sdk generate csv --csv-version ${CSV_VERSION} --update-crds
 
+bundle:
+	@common/scripts/create_bundle.sh
 
-.PHONY: code-vet code-fmt code-tidy code-gen csv-gen lint-copyright-banner lint-go lint-all config-docker install-operator-sdk
+.PHONY: code-vet code-fmt code-tidy code-gen csv-gen lint-copyright-banner lint-go lint-all config-docker install-operator-sdk bundle

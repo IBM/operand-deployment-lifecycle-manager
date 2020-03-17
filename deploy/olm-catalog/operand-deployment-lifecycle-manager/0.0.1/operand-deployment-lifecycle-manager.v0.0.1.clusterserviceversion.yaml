@@ -377,6 +377,10 @@ spec:
       displayName: OperandConfig
       kind: OperandConfig
       name: operandconfigs.operator.ibm.com
+      resources:
+      - kind: Subscription
+        name: operators.coreos.com
+        version: v1alpha1
       specDescriptors:
       - description: Services is a list of configuration of service
         displayName: Services
@@ -392,6 +396,10 @@ spec:
       displayName: OperandRegistry
       kind: OperandRegistry
       name: operandregistries.operator.ibm.com
+      resources:
+      - kind: Subscription
+        name: operators.coreos.com
+        version: v1alpha1
       specDescriptors:
       - description: Operators is a list of operator OLM definition
         displayName: Operators
@@ -407,6 +415,10 @@ spec:
       displayName: OperandRequest
       kind: OperandRequest
       name: operandrequests.operator.ibm.com
+      resources:
+      - kind: Subscription
+        name: operators.coreos.com
+        version: v1alpha1
       specDescriptors:
       - description: Requests defines a list of operands installation
         displayName: Requests
