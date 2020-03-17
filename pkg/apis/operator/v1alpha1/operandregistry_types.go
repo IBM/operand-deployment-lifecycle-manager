@@ -17,6 +17,8 @@
 package v1alpha1
 
 import (
+	"reflect"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -155,7 +157,9 @@ func (r *OperandRegistry) SetDefaultsRegistry() {
 
 // InitRegistryStatus Init Phase in the OperandRegistry status
 func (r *OperandRegistry) InitRegistryStatus() {
-	r.Status.Phase = OperatorPending
+	if (reflect.DeepEqual(r.Status, OperandRegistryStatus{})) {
+		r.Status.Phase = OperatorPending
+	}
 }
 
 // InitRegistryOperatorStatus Init Operators status in the OperandRegistry instance
