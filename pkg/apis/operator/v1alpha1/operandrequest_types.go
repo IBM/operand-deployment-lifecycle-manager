@@ -19,7 +19,6 @@ package v1alpha1
 import (
 	"time"
 
-	olmv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -149,7 +148,7 @@ type OperandRequestStatus struct {
 type MemberPhase struct {
 	// OperatorPhase show the deploy phase of the operator
 	// +optional
-	OperatorPhase olmv1alpha1.ClusterServiceVersionPhase `json:"operatorPhase,omitempty"`
+	OperatorPhase OperatorPhase `json:"operatorPhase,omitempty"`
 	// OperandPhase show the deploy phase of the operator instance
 	// +optional
 	OperandPhase ServicePhase `json:"operandPhase,omitempty"`
@@ -237,7 +236,7 @@ func newCondition(condType ConditionType, status corev1.ConditionStatus, reason,
 }
 
 // SetMemberStatus appends a Member status in the Member status list
-func (r *OperandRequest) SetMemberStatus(name string, operatorPhase olmv1alpha1.ClusterServiceVersionPhase, operandPhase ServicePhase) {
+func (r *OperandRequest) SetMemberStatus(name string, operatorPhase OperatorPhase, operandPhase ServicePhase) {
 	m := newMemberStatus(name, operatorPhase, operandPhase)
 	pos, mp := getMemberStatus(&r.Status, name)
 	if mp != nil {
@@ -276,7 +275,7 @@ func getMemberStatus(status *OperandRequestStatus, name string) (int, *MemberSta
 	return -1, nil
 }
 
-func newMemberStatus(name string, operatorPhase olmv1alpha1.ClusterServiceVersionPhase, operandPhase ServicePhase) MemberStatus {
+func newMemberStatus(name string, operatorPhase OperatorPhase, operandPhase ServicePhase) MemberStatus {
 	return MemberStatus{
 		Name: name,
 		Phase: MemberPhase{
@@ -289,6 +288,52 @@ func newMemberStatus(name string, operatorPhase olmv1alpha1.ClusterServiceVersio
 // SetClusterPhase sets the current Phase status
 func (r *OperandRequest) SetClusterPhase(p ClusterPhase) {
 	r.Status.Phase = p
+}
+
+func (r *OperandRequest) UpdateClusterPhase() {
+	clusterStatusStat := struct {
+		creatingNum int
+		runningNum  int
+		failedNum   int
+	}{
+		creatingNum: 0,
+		runningNum:  0,
+		failedNum:   0,
+	}
+
+	for _, m := range r.Status.Members {
+		switch m.Phase.OperatorPhase {
+		case OperatorReady:
+			clusterStatusStat.creatingNum++
+		case OperatorFailed:
+			clusterStatusStat.failedNum++
+		case OperatorRunning:
+			clusterStatusStat.runningNum++
+		default:
+		}
+
+		switch m.Phase.OperandPhase {
+		case ServiceReady:
+			clusterStatusStat.creatingNum++
+		case ServiceRunning:
+			clusterStatusStat.runningNum++
+		case ServiceFailed:
+			clusterStatusStat.failedNum++
+		default:
+		}
+	}
+
+	var clusterPhase ClusterPhase
+	if clusterStatusStat.failedNum > 0 {
+		clusterPhase = ClusterPhaseFailed
+	} else if clusterStatusStat.creatingNum > 0 {
+		clusterPhase = ClusterPhaseCreating
+	} else if clusterStatusStat.runningNum > 0 {
+		clusterPhase = ClusterPhaseRunning
+	} else {
+		clusterPhase = ClusterPhaseNone
+	}
+	r.SetClusterPhase(clusterPhase)
 }
 
 // SetDefaultsRequest Set the default value for Request spec

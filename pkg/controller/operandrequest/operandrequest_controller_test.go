@@ -94,7 +94,7 @@ func retrieveOperandRequest(t *testing.T, r ReconcileOperandRequest, req reconci
 	assert.NoError(err)
 	assert.Equal(expectedMemNum, len(requestInstance.Status.Members), "operands member list should have two elements")
 	for _, m := range requestInstance.Status.Members {
-		assert.Equalf(olmv1alpha1.CSVPhaseSucceeded, m.Phase.OperatorPhase, "operator(%s) phase should be Running", m.Name)
+		assert.Equalf(v1alpha1.OperatorRunning, m.Phase.OperatorPhase, "operator(%s) phase should be Running", m.Name)
 		assert.Equalf(v1alpha1.ServiceRunning, m.Phase.OperandPhase, "operand(%s) phase should be Running", m.Name)
 	}
 	assert.Equal(v1alpha1.ClusterPhaseRunning, requestInstance.Status.Phase, "cluster phase should be Running")
@@ -138,11 +138,8 @@ func presentOperand(t *testing.T, r ReconcileOperandRequest, req reconcile.Reque
 	assert.NoError(err)
 	multiErr := r.reconcileOperand(requestInstance)
 	assert.Empty(multiErr.errors, "all the operands reconcile should not be error")
-	err = r.updateMemberStatus(requestInstance)
+	err = r.UpdateMemberStatus(requestInstance)
 	assert.NoError(err)
-	err = r.updateClusterPhase(requestInstance)
-	assert.NoError(err)
-
 	retrieveOperandRequest(t, r, req, requestInstance, 2)
 }
 

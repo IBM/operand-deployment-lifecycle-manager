@@ -97,10 +97,7 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1a
 		}
 	}
 
-	if err := r.updateMemberStatus(requestInstance); err != nil {
-		return err
-	}
-	if err := r.updateClusterPhase(requestInstance); err != nil {
+	if err := r.UpdateMemberStatus(requestInstance); err != nil {
 		return err
 	}
 	return nil
