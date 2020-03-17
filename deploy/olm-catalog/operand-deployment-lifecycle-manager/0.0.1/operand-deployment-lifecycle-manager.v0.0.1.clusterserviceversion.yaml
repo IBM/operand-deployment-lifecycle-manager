@@ -6,8 +6,6 @@ metadata:
       [
         {
           "apiVersion": "operator.ibm.com/v1alpha1",
-<<<<<<< HEAD
-<<<<<<< HEAD
           "kind": "OperandConfig",
           "metadata": {
             "name": "common-service"
@@ -299,10 +297,6 @@ metadata:
         },
         {
           "apiVersion": "operator.ibm.com/v1alpha1",
-=======
->>>>>>> remove config and registry  alm-example
-=======
->>>>>>> remove config and registry  alm-example
           "kind": "OperandRequest",
           "metadata": {
             "name": "common-service"
@@ -363,13 +357,11 @@ spec:
         displayName: Services
         path: services
       statusDescriptors:
-<<<<<<< HEAD
       - description: Phase describes the overall phase of operands in the OperandConfig
         displayName: Phase
         path: phase
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.phase
-=======
       - description: ServiceStatus defines all the status of a operator
         displayName: Service Status
         path: serviceStatus
@@ -377,7 +369,6 @@ spec:
       - kind: Deployment
         name: ''
         version: v1
->>>>>>> Using test image
       version: v1alpha1
     - description: OperandRegistry is the Schema for the operandregistries API
       displayName: OperandRegistry
@@ -388,13 +379,11 @@ spec:
         displayName: Operators
         path: operators
       statusDescriptors:
-<<<<<<< HEAD
       - description: Phase describes the overall phase of operators in the OperandRegistry
         displayName: Phase
         path: phase
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.phase
-=======
       - description: OperatorsStatus defines operators status and the number of reconcile
           request
         displayName: Operators Status
@@ -403,7 +392,6 @@ spec:
       - kind: Deployment
         name: ''
         version: v1
->>>>>>> Using test image
       version: v1alpha1
     - description: OperandRequest is the Schema for the operandrequests API
       displayName: OperandRequest
