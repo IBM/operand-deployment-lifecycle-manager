@@ -47,7 +47,7 @@ type ConfigService struct {
 // OperandConfigStatus defines the observed state of OperandConfig
 // +k8s:openapi-gen=true
 type OperandConfigStatus struct {
-	// Phase is the operand running phase
+	// Phase describes the overall phase of operands in the OperandConfig
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
 	// +optional
 	Phase ServicePhase `json:"phase,omitempty"`

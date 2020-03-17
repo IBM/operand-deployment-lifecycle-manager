@@ -80,7 +80,7 @@ type OperandRegistrySpec struct {
 // OperandRegistryStatus defines the observed state of OperandRegistry
 // +k8s:openapi-gen=true
 type OperandRegistryStatus struct {
-	// Phase is the operator running phase
+	// Phase describes the overall phase of operators in the OperandRegistry
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
 	// +optional
 	Phase OperatorPhase `json:"phase,omitempty"`
