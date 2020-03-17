@@ -58,6 +58,9 @@ spec:
         status:
           description: OperandConfigStatus defines the observed state of OperandConfig
           properties:
+            phase:
+              description: Phase describes the overall phase of operands in the OperandConfig
+              type: string
             serviceStatus:
               additionalProperties:
                 description: CrStatus defines the status of the custom resource
