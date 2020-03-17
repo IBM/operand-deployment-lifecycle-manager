@@ -222,11 +222,7 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, merr
 	}
 
-	if err := r.updateMemberStatus(requestInstance); err != nil {
-		return reconcile.Result{}, err
-	}
-
-	if err := r.updateClusterPhase(requestInstance); err != nil {
+	if err := r.UpdateMemberStatus(requestInstance); err != nil {
 		return reconcile.Result{}, err
 	}
 	// Check if all csv deploy successed
