@@ -27,6 +27,11 @@ import (
 )
 
 func (r *ReconcileOperandRequest) updateServiceStatus(cr *operatorv1alpha1.OperandConfig, operatorName, serviceName string, serviceStatus operatorv1alpha1.ServicePhase) error {
+	if cr.Status.ServiceStatus == nil {
+		klog.V(3).Info("Initializing OperandConfig status")
+		cr.InitConfigServiceStatus()
+	}
+
 	klog.V(3).Info("Updating OperandConfig status")
 
 	if err := wait.PollImmediate(time.Second*20, time.Minute*10, func() (done bool, err error) {

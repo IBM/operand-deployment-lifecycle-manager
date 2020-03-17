@@ -93,6 +93,7 @@ const (
 	ServiceReady   ServicePhase = "Ready for Deployment"
 	ServiceRunning ServicePhase = "Running"
 	ServiceFailed  ServicePhase = "Failed"
+	ServicePending ServicePhase = "Pending"
 	ServiceNone    ServicePhase = ""
 )
 
@@ -102,9 +103,12 @@ func init() {
 
 //InitConfigStatus OperandConfig status
 func (r *OperandConfig) InitConfigStatus() {
-	if r.Status.ServiceStatus == nil {
-		r.Status.ServiceStatus = make(map[string]CrStatus)
-	}
+	r.Status.Phase = ServicePending
+}
+
+//InitConfigServiceStatus service status in the OperandConfig instance
+func (r *OperandConfig) InitConfigServiceStatus() {
+	r.Status.ServiceStatus = make(map[string]CrStatus)
 	originalServiceStatus := r.Status.DeepCopy().ServiceStatus
 
 	for _, operator := range r.Spec.Services {
