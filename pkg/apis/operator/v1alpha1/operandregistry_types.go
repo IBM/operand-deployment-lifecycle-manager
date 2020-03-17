@@ -87,7 +87,6 @@ type OperandRegistryStatus struct {
 	// +optional
 	Phase OperatorPhase `json:"phase,omitempty"`
 	// OperatorsStatus defines operators status and the number of reconcile request
-	// +listType=set
 	// +optional
 	OperatorsStatus map[string]OperatorStatus `json:"operatorsStatus,omitempty"`
 }
