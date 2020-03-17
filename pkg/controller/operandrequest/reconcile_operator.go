@@ -74,7 +74,7 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1a
 			} else {
 				klog.V(2).Infof("Operator %s not found in the registry %s/%s", operand.Name, registryInstance.Namespace, registryInstance.Name)
 				requestInstance.SetNotFoundOperatorFromRegistryCondition(operand.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionTrue)
-				if updateErr := r.client.Status().Update(context.TODO(), requestInstance); err != nil {
+				if updateErr := r.client.Status().Update(context.TODO(), requestInstance); updateErr != nil {
 					return updateErr
 				}
 			}
@@ -146,7 +146,7 @@ func (r *ReconcileOperandRequest) createSubscription(cr *operatorv1alpha1.Operan
 	_, err = r.olmClient.OperatorsV1alpha1().Subscriptions(sub.Namespace).Create(sub)
 	if err != nil && !errors.IsAlreadyExists(err) {
 		cr.SetCreatingCondition(sub.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionFalse)
-		if updateErr := r.client.Status().Update(context.TODO(), cr); err != nil {
+		if updateErr := r.client.Status().Update(context.TODO(), cr); updateErr != nil {
 			return updateErr
 		}
 		return err
@@ -163,7 +163,7 @@ func (r *ReconcileOperandRequest) updateSubscription(cr *operatorv1alpha1.Operan
 	}
 	if _, err := r.olmClient.OperatorsV1alpha1().Subscriptions(sub.Namespace).Update(sub); err != nil {
 		cr.SetUpdatingCondition(sub.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionFalse)
-		if updateErr := r.client.Status().Update(context.TODO(), cr); err != nil {
+		if updateErr := r.client.Status().Update(context.TODO(), cr); updateErr != nil {
 			return updateErr
 		}
 		return err
@@ -250,7 +250,7 @@ func (r *ReconcileOperandRequest) deleteSubscription(operandName string, request
 		if err := r.olmClient.OperatorsV1alpha1().ClusterServiceVersions(csv.Namespace).Delete(csv.Name, &metav1.DeleteOptions{}); err != nil {
 			klog.Error("Failed to delete the ClusterServiceVersion: ", err)
 			requestInstance.SetDeletingCondition(csv.Name, operatorv1alpha1.ResourceTypeCsv, corev1.ConditionFalse)
-			if updateErr := r.client.Status().Update(context.TODO(), requestInstance); err != nil {
+			if updateErr := r.client.Status().Update(context.TODO(), requestInstance); updateErr != nil {
 				return updateErr
 			}
 			return err
@@ -267,7 +267,7 @@ func (r *ReconcileOperandRequest) deleteSubscription(operandName string, request
 		if err := r.olmClient.OperatorsV1alpha1().Subscriptions(opt.Namespace).Delete(opt.Name, &metav1.DeleteOptions{}); err != nil {
 			klog.Error("Failed to update delete subscription: ", err)
 			requestInstance.SetDeletingCondition(opt.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionFalse)
-			if updateErr := r.client.Status().Update(context.TODO(), requestInstance); err != nil {
+			if updateErr := r.client.Status().Update(context.TODO(), requestInstance); updateErr != nil {
 				klog.Error("Failed to update delete condition for operandRequest: ", updateErr)
 				return updateErr
 			}
