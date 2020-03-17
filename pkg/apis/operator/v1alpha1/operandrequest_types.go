@@ -94,6 +94,7 @@ const (
 	ConditionCreating ConditionType = "Creating"
 	ConditionUpdating ConditionType = "Updating"
 	ConditionDeleting ConditionType = "Deleting"
+	ConditionNotFound ConditionType = "NotFound"
 
 	ClusterPhaseNone     ClusterPhase = "Pending"
 	ClusterPhaseCreating ClusterPhase = "Creating"
@@ -188,20 +189,26 @@ type OperandRequestList struct {
 }
 
 // SetCreatingCondition creates a new condition status
-func (r *OperandRequest) SetCreatingCondition(name string, rt ResourceType) {
-	c := newCondition(ConditionCreating, corev1.ConditionTrue, "Creating "+string(rt), "Creating "+string(rt)+" "+name)
+func (r *OperandRequest) SetCreatingCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
+	c := newCondition(ConditionCreating, cs, "Creating "+string(rt), "Creating "+string(rt)+" "+name)
 	r.setCondition(*c)
 }
 
 // SetUpdatingCondition updates a condition status
-func (r *OperandRequest) SetUpdatingCondition(name string, rt ResourceType) {
-	c := newCondition(ConditionUpdating, corev1.ConditionTrue, "Updating "+string(rt), "Updating "+string(rt)+" "+name)
+func (r *OperandRequest) SetUpdatingCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
+	c := newCondition(ConditionUpdating, cs, "Updating "+string(rt), "Updating "+string(rt)+" "+name)
 	r.setCondition(*c)
 }
 
 // SetDeletingCondition delete a condition status
-func (r *OperandRequest) SetDeletingCondition(name string, rt ResourceType) {
-	c := newCondition(ConditionDeleting, corev1.ConditionTrue, "Deleting "+string(rt), "Deleting "+string(rt)+" "+name)
+func (r *OperandRequest) SetDeletingCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
+	c := newCondition(ConditionDeleting, cs, "Deleting "+string(rt), "Deleting "+string(rt)+" "+name)
+	r.setCondition(*c)
+}
+
+// SetNotFoundCondition not found resource
+func (r *OperandRequest) SetNotFoundOperatorFromRegistryCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
+	c := newCondition(ConditionNotFound, cs, "Not found "+string(rt), "Not found "+string(rt)+" "+name+" from registry")
 	r.setCondition(*c)
 }
 
