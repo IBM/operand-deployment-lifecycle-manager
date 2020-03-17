@@ -460,7 +460,7 @@ func (r *ReconcileOperandRequest) deleteCustomResource(unstruct unstructured.Uns
 				klog.Error("Failed to delete the custom resource should be deleted: ", err)
 				return err
 			}
-			stateDeleteErr := r.deleteServiceStatus(csc, service.Name, util.Lcfirst(kind))
+			stateDeleteErr := r.deleteServiceStatus(csc, service.Name, kind)
 			if stateDeleteErr != nil {
 				klog.Error("Failed to clean up the deleted service status in the operand config: ", stateDeleteErr)
 				return stateDeleteErr
