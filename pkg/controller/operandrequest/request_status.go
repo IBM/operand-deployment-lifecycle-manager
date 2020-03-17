@@ -39,9 +39,6 @@ func (r *ReconcileOperandRequest) UpdateMemberStatus(cr *operatorv1alpha1.Operan
 		for _, ro := range req.Operands {
 			operatorPhase := registryInstance.Status.OperatorsStatus[ro.Name].Phase
 			operandPhase := getOperandPhase(configInstance.Status.ServiceStatus[ro.Name].CrStatus)
-			if err != nil {
-				return err
-			}
 			cr.SetMemberStatus(ro.Name, operatorPhase, operandPhase)
 		}
 	}
