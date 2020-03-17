@@ -66,7 +66,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	if err != nil {
 		return err
 	}
-	
+
 	deployInstance := os.Getenv("DEPLOY_INSTANCE")
 	if deployInstance == "TRUE" {
 		deployDirectory := os.Getenv("DEPLOY_DIR")
