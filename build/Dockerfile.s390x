@@ -39,7 +39,8 @@ LABEL org.label-schema.vendor="IBM" \
 ENV OPERATOR=/usr/local/bin/odlm \
   DEPLOY_DIR=/deploy \
   USER_UID=1001 \
-  USER_NAME=odlm
+  USER_NAME=odlm \
+  DEPLOY_INSTANCE=FALSE
 
 COPY --from=builder /qemu-s390x-static /usr/bin/
 
