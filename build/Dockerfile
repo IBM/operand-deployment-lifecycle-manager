@@ -33,7 +33,8 @@ LABEL org.label-schema.vendor="IBM" \
 ENV OPERATOR=/usr/local/bin/odlm \
   DEPLOY_DIR=/deploy \
   USER_UID=1001 \
-  USER_NAME=odlm
+  USER_NAME=odlm \
+  DEPLOY_INSTANCE=FALSE
 
 # install operator binary
 COPY build/_output/bin/odlm ${OPERATOR}
