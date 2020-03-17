@@ -66,11 +66,14 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	if err != nil {
 		return err
 	}
-
-	deployDirectory := os.Getenv("DEPLOY_DIR")
-	klog.V(2).Info("Initializing default operandregistry instance")
-	if err = util.InitInstance(deployDirectory+"/operator.ibm.com_v1alpha1_operandregistry_cr.yaml", mgr); err != nil {
-		klog.Error("Error creating CR, please create it manually: ", err)
+	
+	deployInstance := os.Getenv("DEPLOY_INSTANCE")
+	if deployInstance == "TRUE" {
+		deployDirectory := os.Getenv("DEPLOY_DIR")
+		klog.V(2).Info("Initializing default operandregistry instance")
+		if err = util.InitInstance(deployDirectory+"/operator.ibm.com_v1alpha1_operandregistry_cr.yaml", mgr); err != nil {
+			klog.Error("Error creating CR, please create it manually: ", err)
+		}
 	}
 
 	return nil
