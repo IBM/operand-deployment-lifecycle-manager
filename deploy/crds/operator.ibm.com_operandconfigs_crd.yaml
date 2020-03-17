@@ -59,7 +59,7 @@ spec:
           description: OperandConfigStatus defines the observed state of OperandConfig
           properties:
             phase:
-              description: Phase is the operand running phase
+              description: Phase describes the overall phase of operands in the OperandConfig
               type: string
             serviceStatus:
               additionalProperties:

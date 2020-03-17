@@ -357,7 +357,7 @@ spec:
         displayName: Services
         path: services
       statusDescriptors:
-      - description: Phase is the operand running phase
+      - description: Phase describes the overall phase of operands in the OperandConfig
         displayName: Phase
         path: phase
         x-descriptors:
@@ -372,7 +372,7 @@ spec:
         displayName: Operators
         path: operators
       statusDescriptors:
-      - description: Phase is the operator running phase
+      - description: Phase describes the overall phase of operators in the OperandRegistry
         displayName: Phase
         path: phase
         x-descriptors:
