@@ -259,13 +259,6 @@ func (r *OperandRequest) CleanMemberStatus(name string) {
 	}
 }
 
-// InitRquestStatus Init OperandRquest status
-func (r *OperandRequest) InitRquestStatus() {
-	if r.Status.Phase == "" {
-		r.Status.Phase = ClusterPhaseNone
-	}
-}
-
 func getMemberStatus(status *OperandRequestStatus, name string) (int, *MemberStatus) {
 	for i, m := range status.Members {
 		if name == m.Name {
@@ -336,12 +329,19 @@ func (r *OperandRequest) UpdateClusterPhase() {
 	r.SetClusterPhase(clusterPhase)
 }
 
-// SetDefaultsRequest Set the default value for Request spec
-func (r *OperandRequest) SetDefaultsRequest() {
+// SetDefaultsRequestSpec Set the default value for Request spec
+func (r *OperandRequest) SetDefaultsRequestSpec() {
 	for i, req := range r.Spec.Requests {
 		if req.RegistryNamespace == "" {
 			r.Spec.Requests[i].RegistryNamespace = r.Namespace
 		}
+	}
+}
+
+// SetDefaultRequestStatus set the default OperandRquest status
+func (r *OperandRequest) SetDefaultRequestStatus() {
+	if r.Status.Phase == "" {
+		r.Status.Phase = ClusterPhaseNone
 	}
 }
 

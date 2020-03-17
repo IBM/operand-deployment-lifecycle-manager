@@ -164,16 +164,12 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 	}
 
 	// Set default for OperandRequest instance
-	requestInstance.SetDefaultsRequest()
-	klog.V(3).Info("Initializing OperandRequest instance: ", request)
-	err := r.client.Update(context.TODO(), requestInstance)
-	if err != nil {
+	requestInstance.SetDefaultsRequestSpec()
+	if err := r.client.Update(context.TODO(), requestInstance); err != nil {
 		return reconcile.Result{}, err
-
 	}
 	// Set the default status for OperandRequest instance
-	requestInstance.InitRquestStatus()
-	klog.V(3).Info("Initializing OperandRequest instance status: ", request)
+	requestInstance.SetDefaultRequestStatus()
 	if err := r.client.Status().Update(context.TODO(), requestInstance); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -207,7 +203,7 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 	}
 
 	// Fetch Subscriptions and check the status of install plan
-	err = r.waitForInstallPlan(requestInstance, request)
+	err := r.waitForInstallPlan(requestInstance, request)
 	if err != nil {
 		if err.Error() == "timed out waiting for the condition" {
 			return reconcile.Result{Requeue: true}, nil
