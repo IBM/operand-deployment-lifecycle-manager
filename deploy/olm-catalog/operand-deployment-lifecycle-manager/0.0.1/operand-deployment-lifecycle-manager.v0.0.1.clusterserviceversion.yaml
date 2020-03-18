@@ -6,6 +6,52 @@ metadata:
       [
         {
           "apiVersion": "operator.ibm.com/v1alpha1",
+          "kind": "OperandRequest",
+          "metadata": {
+            "name": "common-service"
+          },
+          "spec": {
+            "requests": [
+              {
+                "operands": [
+                  {
+                    "name": "ibm-cert-manager-operator"
+                  },
+                  {
+                    "name": "ibm-mongodb-operator"
+                  },
+                  {
+                    "name": "ibm-iam-operator"
+                  },
+                  {
+                    "name": "ibm-monitoring-exporters-operator"
+                  },
+                  {
+                    "name": "ibm-monitoring-prometheusext-operator"
+                  },
+                  {
+                    "name": "ibm-monitoring-grafana-operator"
+                  },
+                  {
+                    "name": "ibm-healthcheck-operator"
+                  },
+                  {
+                    "name": "ibm-management-ingress-operator"
+                  },
+                  {
+                    "name": "ibm-licensing-operator"
+                  },
+                  {
+                    "name": "ibm-metering-operator"
+                  }
+                ],
+                "registry": "common-service"
+              }
+            ]
+          }
+        },
+        {
+          "apiVersion": "operator.ibm.com/v1alpha1",
           "kind": "OperandConfig",
           "metadata": {
             "name": "common-service"
@@ -307,52 +353,6 @@ metadata:
                 "scope": "private",
                 "sourceName": "opencloud-operators",
                 "sourceNamespace": "openshift-marketplace"
-              }
-            ]
-          }
-        },
-        {
-          "apiVersion": "operator.ibm.com/v1alpha1",
-          "kind": "OperandRequest",
-          "metadata": {
-            "name": "common-service"
-          },
-          "spec": {
-            "requests": [
-              {
-                "operands": [
-                  {
-                    "name": "ibm-cert-manager-operator"
-                  },
-                  {
-                    "name": "ibm-mongodb-operator"
-                  },
-                  {
-                    "name": "ibm-iam-operator"
-                  },
-                  {
-                    "name": "ibm-monitoring-exporters-operator"
-                  },
-                  {
-                    "name": "ibm-monitoring-prometheusext-operator"
-                  },
-                  {
-                    "name": "ibm-monitoring-grafana-operator"
-                  },
-                  {
-                    "name": "ibm-healthcheck-operator"
-                  },
-                  {
-                    "name": "ibm-management-ingress-operator"
-                  },
-                  {
-                    "name": "ibm-licensing-operator"
-                  },
-                  {
-                    "name": "ibm-metering-operator"
-                  }
-                ],
-                "registry": "common-service"
               }
             ]
           }
