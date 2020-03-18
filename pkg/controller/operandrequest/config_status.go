@@ -18,6 +18,7 @@ package operandrequest
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -61,9 +62,12 @@ func (r *ReconcileOperandRequest) deleteServiceStatus(cr *operatorv1alpha1.Opera
 		if configInstance.Status.ServiceStatus[operatorName].CrStatus == nil {
 			return true, nil
 		}
-
-		configInstance.Status.ServiceStatus[operatorName].CrStatus[serviceName] = operatorv1alpha1.ServiceReady
-		configInstance.UpdateOperandPhase()
+		for name := range configInstance.Status.ServiceStatus[operatorName].CrStatus {
+			if strings.EqualFold(name, serviceName) {
+				configInstance.Status.ServiceStatus[operatorName].CrStatus[name] = operatorv1alpha1.ServiceReady
+				configInstance.UpdateOperandPhase()
+			}
+		}
 
 		if err := r.client.Status().Update(context.TODO(), configInstance); err != nil {
 			klog.V(3).Info("Waiting for OperandConfig instance status ready ...")
