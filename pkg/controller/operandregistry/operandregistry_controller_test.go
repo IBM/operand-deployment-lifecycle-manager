@@ -98,7 +98,7 @@ func TestRegistryController(t *testing.T) {
 		assert.Equal(v1alpha1.ScopePrivate, o.Scope, "default operator("+o.Name+") scope should be private")
 	}
 	// Check the registry init status
-	assert.NotNil(registry.Status.OperatorsStatus, "init operator status should not be empty")
+	assert.NotNil(registry.Status, "init operator status should not be empty")
 	for k, s := range registry.Status.OperatorsStatus {
 		assert.Equal(v1alpha1.OperatorReady, s.Phase, "operator("+k+") phase should be 'Ready for Deployment'")
 	}

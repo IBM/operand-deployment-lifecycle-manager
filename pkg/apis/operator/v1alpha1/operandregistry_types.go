@@ -17,6 +17,8 @@
 package v1alpha1
 
 import (
+	"reflect"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -131,6 +133,7 @@ const (
 	OperatorReady   OperatorPhase = "Ready for Deployment"
 	OperatorRunning OperatorPhase = "Running"
 	OperatorFailed  OperatorPhase = "Failed"
+	OperatorPending OperatorPhase = "Pending"
 	OperatorNone    OperatorPhase = ""
 )
 
@@ -152,18 +155,23 @@ func (r *OperandRegistry) SetDefaultsRegistry() {
 	}
 }
 
-// InitRegistryStatus Init OperandRegistry status
+// InitRegistryStatus Init Phase in the OperandRegistry status
 func (r *OperandRegistry) InitRegistryStatus() {
-	if r.Status.OperatorsStatus == nil {
-		r.Status.OperatorsStatus = make(map[string]OperatorStatus)
-		for _, opt := range r.Spec.Operators {
-			opratorStatus := OperatorStatus{
-				Phase: OperatorReady,
-			}
-			r.Status.OperatorsStatus[opt.Name] = opratorStatus
-		}
-		r.UpdateOperatorPhase()
+	if (reflect.DeepEqual(r.Status, OperandRegistryStatus{})) {
+		r.Status.Phase = OperatorPending
 	}
+}
+
+// InitRegistryOperatorStatus Init Operators status in the OperandRegistry instance
+func (r *OperandRegistry) InitRegistryOperatorStatus() {
+	r.Status.OperatorsStatus = make(map[string]OperatorStatus)
+	for _, opt := range r.Spec.Operators {
+		opratorStatus := OperatorStatus{
+			Phase: OperatorReady,
+		}
+		r.Status.OperatorsStatus[opt.Name] = opratorStatus
+	}
+	r.UpdateOperatorPhase()
 }
 
 // GetReconcileRequest gets the position of request from OperandRegistry status
