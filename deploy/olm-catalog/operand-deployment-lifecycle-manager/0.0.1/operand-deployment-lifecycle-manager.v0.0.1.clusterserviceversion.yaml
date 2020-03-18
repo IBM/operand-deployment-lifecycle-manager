@@ -132,6 +132,12 @@ metadata:
                 "spec": {
                   "grafana": {}
                 }
+              },
+              {
+                "name": "ibm-elastic-stack-operator",
+                "spec": {
+                  "elasticStack": {}
+                }
               }
             ]
           }
@@ -140,8 +146,7 @@ metadata:
           "apiVersion": "operator.ibm.com/v1alpha1",
           "kind": "OperandRegistry",
           "metadata": {
-            "name": "common-service",
-            "namespace": "ibm-common-services"
+            "name": "common-service"
           },
           "spec": {
             "operators": [
@@ -304,6 +309,16 @@ metadata:
                 "name": "ibm-monitoring-grafana-operator",
                 "namespace": "ibm-common-services",
                 "packageName": "ibm-monitoring-grafana-operator-app",
+                "scope": "private",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace"
+              },
+              {
+                "channel": "alpha",
+                "description": "Operator that installs and manages Elastic Stack logging service instances.",
+                "name": "ibm-elastic-stack-operator",
+                "namespace": "ibm-common-services",
+                "packageName": "ibm-elastic-stack-operator-app",
                 "scope": "private",
                 "sourceName": "opencloud-operators",
                 "sourceNamespace": "openshift-marketplace"
