@@ -58,6 +58,27 @@ func TestRequestController(t *testing.T) {
 	deleteOperandRequest(t, r, req, requestInstance)
 }
 
+// TestOperandConfig runs ReconcileOperandRequest.Reconcile() against a
+// fake client that checks operand reconcile function.
+func TestOperandConfig(t *testing.T) {
+	var (
+		name      = "common-service"
+		namespace = "ibm-common-service"
+	)
+
+	req := getReconcileRequest(name, namespace)
+	r := getReconciler(name, namespace)
+	requestInstance := &v1alpha1.OperandRequest{}
+
+	initReconcile(t, r, req, requestInstance)
+
+	absentOperandCustomResource(t, r, req, requestInstance)
+
+	presentOperandCustomResource(t, r, req, requestInstance)
+
+	deleteOperandRequest(t, r, req, requestInstance)
+}
+
 // Init reconcile the OperandRequest
 func initReconcile(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, requestInstance *v1alpha1.OperandRequest) {
 	assert := assert.New(t)
@@ -208,6 +229,42 @@ func getReconcileRequest(name, namespace string) reconcile.Request {
 			Namespace: namespace,
 		},
 	}
+}
+
+// Absent an operand custom resource from config
+func absentOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, requestInstance *v1alpha1.OperandRequest) {
+	assert := assert.New(t)
+	// Retrieve OperandConfig
+	configInstance, err := r.getConfigInstance(req.Name, req.Namespace)
+	assert.NoError(err)
+	configInstance.Spec.Services[0].Spec = make(map[string]runtime.RawExtension)
+	err = r.client.Update(context.TODO(), configInstance)
+	assert.NoError(err)
+	_, err = r.Reconcile(req)
+	assert.NoError(err)
+	configInstance, err = r.getConfigInstance(req.Name, req.Namespace)
+	assert.NoError(err)
+	assert.Equal(v1alpha1.ServiceReady, configInstance.Status.ServiceStatus["etcd"].CrStatus["etcdCluster"], "The status of etcdCluster should be cleaned up in the OperandConfig")
+	err = r.client.Get(context.TODO(), req.NamespacedName, requestInstance)
+	assert.NoError(err)
+	assert.Equal(v1alpha1.ServiceReady, requestInstance.Status.Members[0].Phase.OperandPhase, "The status of etcdCluster should be cleaned up in the OperandRequest")
+}
+
+// Present an operand custom resource from config
+func presentOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, requestInstance *v1alpha1.OperandRequest) {
+	assert := assert.New(t)
+	// Retrieve OperandConfig
+	configInstance := operandConfig(req.Name, req.Namespace)
+	err := r.client.Update(context.TODO(), configInstance)
+	assert.NoError(err)
+	_, err = r.Reconcile(req)
+	assert.NoError(err)
+	configInstance, err = r.getConfigInstance(req.Name, req.Namespace)
+	assert.NoError(err)
+	assert.Equal(v1alpha1.ServiceRunning, configInstance.Status.ServiceStatus["etcd"].CrStatus["etcdCluster"], "The status of etcdCluster should be cleaned up in the OperandConfig")
+	err = r.client.Get(context.TODO(), req.NamespacedName, requestInstance)
+	assert.NoError(err)
+	assert.Equal(v1alpha1.ServiceRunning, requestInstance.Status.Members[0].Phase.OperandPhase, "The status of etcdCluster should be cleaned up in the OperandRequest")
 }
 
 type DataObj struct {
