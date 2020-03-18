@@ -27,25 +27,21 @@ import (
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 )
 
-func (r *ReconcileOperandRequest) updateServiceStatus(cr *operatorv1alpha1.OperandConfig, operatorName, serviceName string, serviceStatus operatorv1alpha1.ServicePhase) error {
-	if cr.Status.ServiceStatus == nil {
+func (r *ReconcileOperandRequest) updateServiceStatus(configInstance *operatorv1alpha1.OperandConfig, operatorName, serviceName string, serviceStatus operatorv1alpha1.ServicePhase) error {
+	if configInstance.Status.ServiceStatus == nil {
 		klog.V(3).Info("Initializing OperandConfig status")
-		cr.InitConfigServiceStatus()
+		configInstance.InitConfigServiceStatus()
 	}
 
 	klog.V(3).Info("Updating OperandConfig status")
 
 	if err := wait.PollImmediate(time.Second*20, time.Minute*10, func() (done bool, err error) {
-		configInstance, err := r.getConfigInstance(cr.Name, cr.Namespace)
-		if err != nil {
-			return false, err
-		}
-
 		configInstance.Status.ServiceStatus[operatorName].CrStatus[serviceName] = serviceStatus
 		configInstance.UpdateOperandPhase()
 
 		if err := r.client.Status().Update(context.TODO(), configInstance); err != nil {
 			klog.V(3).Info("Waiting for OperandConfig instance status ready ...")
+			configInstance, _ = r.getConfigInstance(configInstance.Name, configInstance.Namespace)
 			return false, nil
 		}
 		return true, nil

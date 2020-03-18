@@ -113,19 +113,11 @@ func (r *OperandConfig) InitConfigStatus() {
 //InitConfigServiceStatus service status in the OperandConfig instance
 func (r *OperandConfig) InitConfigServiceStatus() {
 	r.Status.ServiceStatus = make(map[string]CrStatus)
-	originalServiceStatus := r.Status.DeepCopy().ServiceStatus
 
 	for _, operator := range r.Spec.Services {
 		r.Status.ServiceStatus[operator.Name] = CrStatus{CrStatus: make(map[string]ServicePhase)}
 		for service := range operator.Spec {
 			r.Status.ServiceStatus[operator.Name].CrStatus[service] = ServiceReady
-			if originalServiceStatus != nil {
-				if ss, ok := originalServiceStatus[operator.Name]; ok {
-					if cs, ok := ss.CrStatus[service]; ok {
-						r.Status.ServiceStatus[operator.Name].CrStatus[service] = cs
-					}
-				}
-			}
 		}
 	}
 	r.UpdateOperandPhase()
