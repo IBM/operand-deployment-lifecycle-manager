@@ -92,7 +92,7 @@ func TestConfigController(t *testing.T) {
 	// Check the config init status
 	for sk, sv := range config.Status.ServiceStatus {
 		for ck, cv := range sv.CrStatus {
-			assert.Equal(v1alpha1.ServiceReady, cv, "servcie("+sk+"/"+ck+") phase should be 'Ready for Deployment'")
+			assert.Equalf(v1alpha1.ServiceReady, cv, "servcie(%s/%s) phase should be 'Ready for Deployment'", sk, ck)
 		}
 	}
 

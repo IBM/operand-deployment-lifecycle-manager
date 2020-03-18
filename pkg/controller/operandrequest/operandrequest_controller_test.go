@@ -71,6 +71,7 @@ func initReconcile(t *testing.T, r ReconcileOperandRequest, req reconcile.Reques
 		assert.Equalf(v1alpha1.OperatorRunning, v.Phase, "operator(%s) phase should be Running", k)
 		assert.NotEqualf(-1, registryInstance.GetReconcileRequest(k, req), "reconcile requests should be include %s", req.NamespacedName)
 	}
+	assert.Equalf(v1alpha1.OperatorRunning, registryInstance.Status.Phase, "registry(%s/%s) phase should be Running", registryInstance.Namespace, registryInstance.Name)
 
 	// Retrieve OperandConfig
 	configInstance, err := r.getConfigInstance(req.Name, req.Namespace)
@@ -80,6 +81,7 @@ func initReconcile(t *testing.T, r ReconcileOperandRequest, req reconcile.Reques
 			assert.Equalf(v1alpha1.ServiceRunning, crV, "operator(%s) cr(%s) phase should be Running", k, crK)
 		}
 	}
+	assert.Equalf(v1alpha1.ServiceRunning, configInstance.Status.Phase, "config(%s/%s) phase should be Running", configInstance.Namespace, configInstance.Name)
 
 	// Retrieve OperandRequest
 	retrieveOperandRequest(t, r, req, requestInstance, 2)
@@ -89,15 +91,23 @@ func initReconcile(t *testing.T, r ReconcileOperandRequest, req reconcile.Reques
 // Retrieve OperandRequest instance
 func retrieveOperandRequest(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, requestInstance *v1alpha1.OperandRequest, expectedMemNum int) {
 	assert := assert.New(t)
-	// requestInstance := &v1alpha1.OperandRequest{}
 	err := r.client.Get(context.TODO(), req.NamespacedName, requestInstance)
 	assert.NoError(err)
-	assert.Equal(expectedMemNum, len(requestInstance.Status.Members), "operands member list should have two elements")
+	assert.Equal(expectedMemNum, len(requestInstance.Status.Members), "operandrequest member list should have two elements")
+
+	subs, err := r.olmClient.OperatorsV1alpha1().Subscriptions(req.Namespace).List(metav1.ListOptions{})
+	assert.NoError(err)
+	assert.Equalf(expectedMemNum, len(subs.Items), "subscription list should have %s Subscriptions", expectedMemNum)
+
+	csvs, err := r.olmClient.OperatorsV1alpha1().ClusterServiceVersions(req.Namespace).List(metav1.ListOptions{})
+	assert.NoError(err)
+	assert.Equalf(expectedMemNum, len(csvs.Items), "csv list should have %s ClusterServiceVersions", expectedMemNum)
+
 	for _, m := range requestInstance.Status.Members {
 		assert.Equalf(v1alpha1.OperatorRunning, m.Phase.OperatorPhase, "operator(%s) phase should be Running", m.Name)
 		assert.Equalf(v1alpha1.ServiceRunning, m.Phase.OperandPhase, "operand(%s) phase should be Running", m.Name)
 	}
-	assert.Equal(v1alpha1.ClusterPhaseRunning, requestInstance.Status.Phase, "cluster phase should be Running")
+	assert.Equalf(v1alpha1.ClusterPhaseRunning, requestInstance.Status.Phase, "request(%s/%s) phase should be Running", requestInstance.Namespace, requestInstance.Name)
 }
 
 // Absent an operator from request
@@ -154,7 +164,11 @@ func deleteOperandRequest(t *testing.T, r ReconcileOperandRequest, req reconcile
 	assert.NoError(err)
 	subs, err := r.olmClient.OperatorsV1alpha1().Subscriptions(req.Namespace).List(metav1.ListOptions{})
 	assert.NoError(err)
-	assert.Empty(subs.Items, "all the subscriptions should be deleted")
+	assert.Empty(subs.Items, "all the Subscriptions should be deleted")
+
+	csvs, err := r.olmClient.OperatorsV1alpha1().ClusterServiceVersions(req.Namespace).List(metav1.ListOptions{})
+	assert.NoError(err)
+	assert.Empty(csvs.Items, "all the ClusterServiceVersions should be deleted")
 
 	// Check if OperandRequest instance deleted
 	err = r.client.Delete(context.TODO(), requestInstance)
@@ -244,16 +258,6 @@ func operandRegistry(name, namespace string) *v1alpha1.OperandRegistry {
 				},
 			},
 		},
-		Status: v1alpha1.OperandRegistryStatus{
-			OperatorsStatus: map[string]v1alpha1.OperatorStatus{
-				"etcd": {
-					Phase: v1alpha1.OperatorReady,
-				},
-				"jenkins": {
-					Phase: v1alpha1.OperatorReady,
-				},
-			},
-		},
 	}
 }
 
@@ -276,20 +280,6 @@ func operandConfig(name, namespace string) *v1alpha1.OperandConfig {
 					Name: "jenkins",
 					Spec: map[string]runtime.RawExtension{
 						"jenkins": {Raw: []byte(`{"service":{"port": 8081}}`)},
-					},
-				},
-			},
-		},
-		Status: v1alpha1.OperandConfigStatus{
-			ServiceStatus: map[string]v1alpha1.CrStatus{
-				"etcd": {
-					CrStatus: map[string]v1alpha1.ServicePhase{
-						"etcdCluster": v1alpha1.ServiceReady,
-					},
-				},
-				"jenkins": {
-					CrStatus: map[string]v1alpha1.ServicePhase{
-						"jenkins": v1alpha1.ServiceReady,
 					},
 				},
 			},
