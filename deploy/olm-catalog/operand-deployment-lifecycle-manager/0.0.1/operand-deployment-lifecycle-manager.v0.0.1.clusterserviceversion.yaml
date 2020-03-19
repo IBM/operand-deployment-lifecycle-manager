@@ -350,6 +350,9 @@ metadata:
                   },
                   {
                     "name": "ibm-metering-operator"
+                  },
+                  {
+                    "name": "ibm-commonui-operator"
                   }
                 ],
                 "registry": "common-service"
