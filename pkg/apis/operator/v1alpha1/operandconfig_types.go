@@ -95,6 +95,7 @@ const (
 	ServiceReady   ServicePhase = "Ready for Deployment"
 	ServiceRunning ServicePhase = "Running"
 	ServiceFailed  ServicePhase = "Failed"
+	ServiceInit    ServicePhase = "Initialized"
 	ServiceNone    ServicePhase = ""
 )
 
@@ -105,7 +106,7 @@ func init() {
 //InitConfigStatus OperandConfig status
 func (r *OperandConfig) InitConfigStatus() {
 	if (reflect.DeepEqual(r.Status, OperandConfigStatus{})) {
-		r.Status.Phase = ServiceReady
+		r.Status.Phase = ServiceInit
 	}
 }
 

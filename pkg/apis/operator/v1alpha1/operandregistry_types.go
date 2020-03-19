@@ -133,6 +133,7 @@ const (
 	OperatorReady   OperatorPhase = "Ready for Deployment"
 	OperatorRunning OperatorPhase = "Running"
 	OperatorFailed  OperatorPhase = "Failed"
+	OperatorInit    OperatorPhase = "Initialized"
 	OperatorNone    OperatorPhase = ""
 )
 
@@ -157,7 +158,7 @@ func (r *OperandRegistry) SetDefaultsRegistry() {
 // InitRegistryStatus Init Phase in the OperandRegistry status
 func (r *OperandRegistry) InitRegistryStatus() {
 	if (reflect.DeepEqual(r.Status, OperandRegistryStatus{})) {
-		r.Status.Phase = OperatorReady
+		r.Status.Phase = OperatorInit
 	}
 }
 
