@@ -99,9 +99,7 @@ func TestRegistryController(t *testing.T) {
 	}
 	// Check the registry init status
 	assert.NotNil(registry.Status, "init operator status should not be empty")
-	for k, s := range registry.Status.OperatorsStatus {
-		assert.Equalf(v1alpha1.OperatorReady, s.Phase, "operator(%s) phase should be 'Ready for Deployment'", k)
-	}
+	assert.Equalf(v1alpha1.OperatorInit, registry.Status.Phase, "Overall OperandRegistry phase should be 'Ready for Deployment'")
 
 	// Create a fake client to mock instance not found.
 	cl = fake.NewFakeClient()

@@ -28,6 +28,7 @@ export PATH=${PATH}:${GOPATH}/bin
 
 ROOTDIR="$(cd "$(dirname "$0")"/../.. ; pwd -P)"
 REPORT_PATH=${REPORT_PATH:-"${GOPATH}/out/codecov"}
+CODECOV_TOKEN="bfc8d455-e398-4458-8dbf-ca0e66a7f4f6"
 #CODECOV_SKIP=${GOPATH}/out/codecov/codecov.skip
 MAXPROCS="${MAXPROCS:-}"
 BUILD_LOCALLY=${1:?0}

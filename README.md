@@ -1,9 +1,9 @@
 [![Docker Repository on Quay](https://quay.io/repository/opencloudio/odlm/status "Docker Repository on Quay")](https://quay.io/repository/opencloudio/odlm)
 [![License](http://img.shields.io/:license-apache-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
 [![Go Report Card](https://goreportcard.com/badge/github.com/IBM/operand-deployment-lifecycle-manager)](https://goreportcard.com/report/github.com/IBM/operand-deployment-lifecycle-manager)
+[![Code Coverage](https://codecov.io/gh/IBM/operand-deployment-lifecycle-manager/branch/master/graphs/badge.svg?branch=master)](https://codecov.io/gh/IBM/operand-deployment-lifecycle-manager?branch=master)
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
 - [Operand Deployment Lifecycle Manager (ODLM)](#operand-deployment-lifecycle-manager-odlm)
   - [Overview](#overview)
