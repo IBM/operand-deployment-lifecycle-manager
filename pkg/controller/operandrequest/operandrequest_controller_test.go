@@ -152,7 +152,7 @@ func presentOperand(t *testing.T, r ReconcileOperandRequest, req reconcile.Reque
 	assert.NoError(err)
 	multiErr := r.reconcileOperand(requestInstance)
 	assert.Empty(multiErr.errors, "all the operands reconcile should not be error")
-	err = r.UpdateMemberStatus(requestInstance)
+	err = r.updateMemberStatus(requestInstance)
 	assert.NoError(err)
 	retrieveOperandRequest(t, r, req, requestInstance, 2)
 }

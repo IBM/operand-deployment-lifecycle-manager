@@ -211,6 +211,11 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, err
 	}
 
+	// Update request status after subscription ready
+	if err := r.updateMemberStatus(requestInstance); err != nil {
+		return reconcile.Result{}, err
+	}
+
 	// Reconcile the Operand
 	merr := r.reconcileOperand(requestInstance)
 
@@ -218,7 +223,7 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, merr
 	}
 
-	if err := r.UpdateMemberStatus(requestInstance); err != nil {
+	if err := r.updateMemberStatus(requestInstance); err != nil {
 		return reconcile.Result{}, err
 	}
 	// Check if all csv deploy successed
