@@ -90,11 +90,8 @@ func TestConfigController(t *testing.T) {
 	err = r.client.Get(context.TODO(), req.NamespacedName, config)
 	assert.NoError(err)
 	// Check the config init status
-	for sk, sv := range config.Status.ServiceStatus {
-		for ck, cv := range sv.CrStatus {
-			assert.Equalf(v1alpha1.ServiceReady, cv, "servcie(%s/%s) phase should be 'Ready for Deployment'", sk, ck)
-		}
-	}
+	assert.NotNil(config.Status, "init operator status should not be empty")
+	assert.Equal(v1alpha1.ServiceInit, config.Status.Phase, "Overall OperandConfig phase should be 'Ready for Deployment'")
 
 	// Create a fake client to mock instance not found.
 	cl = fake.NewFakeClient()

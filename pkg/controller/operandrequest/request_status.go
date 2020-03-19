@@ -78,7 +78,6 @@ func getOperandPhase(sp map[string]operatorv1alpha1.ServicePhase) operatorv1alph
 		operandPhase = operatorv1alpha1.ServiceReady
 	} else if operandStatusStat.runningNum > 0 {
 		operandPhase = operatorv1alpha1.ServiceRunning
-
 	}
 	return operandPhase
 }

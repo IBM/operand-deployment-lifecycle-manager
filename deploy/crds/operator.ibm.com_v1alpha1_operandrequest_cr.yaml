@@ -11,12 +11,13 @@ spec:
     - name: ibm-iam-operator
     - name: ibm-monitoring-exporters-operator
     - name: ibm-monitoring-prometheusext-operator
-    - name: ibm-healthcheck-operator
     - name: ibm-monitoring-grafana-operator
+    - name: ibm-healthcheck-operator
     - name: ibm-management-ingress-operator
+    - name: ibm-licensing-operator
+    - name: ibm-metering-operator
+    # - name: ibm-elastic-stack-operator
     # - name: ibm-ingress-nginx-operator
-    # - name: ibm-metering-operator
-    # - name: ibm-licensing-operator
     # - name: ibm-commonui-operator
     # - name: ibm-auditlogging-operator
     # - name: ibm-platform-api-operator
