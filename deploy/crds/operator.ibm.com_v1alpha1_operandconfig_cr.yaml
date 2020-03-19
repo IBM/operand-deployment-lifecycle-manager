@@ -68,3 +68,6 @@ spec:
   - name: ibm-monitoring-grafana-operator
     spec:
       grafana: {}
+  - name: ibm-elastic-stack-operator
+    spec:
+      elasticStack: {}

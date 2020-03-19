@@ -13,6 +13,7 @@ spec:
     - name: ibm-monitoring-prometheusext-operator
     - name: ibm-healthcheck-operator
     - name: ibm-monitoring-grafana-operator
+    # - name: ibm-elastic-stack-operator
     # - name: ibm-management-ingress-operator
     # - name: ibm-ingress-nginx-operator
     # - name: ibm-metering-operator
