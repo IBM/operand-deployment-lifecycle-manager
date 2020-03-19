@@ -497,7 +497,7 @@ spec:
     ibm-common-services [4]\n    operands: [5]\n    - name: ibm-metering-operator
     [6]\n```\n\n1. Name of the OperandRequest\n1. Namespace of the OperandRequest\n1.
     **registry** identifies the name of the name of the OperandRegistry CR from which
-    this operand deployment is being requested.\n1. **registrynamespace** identifies
+    this operand deployment is being requested.\n1. **registryNamespace** identifies
     the namespace in which the catalog CR is defined. **Note:** If the catalog name
     and namespace are not specified then it is assumed that the Request (1) is for
     a catalog in the current (requester's) namespace and (2) that only one catalog
