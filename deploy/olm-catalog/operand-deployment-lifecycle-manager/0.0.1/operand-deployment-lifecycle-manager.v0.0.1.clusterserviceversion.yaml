@@ -325,6 +325,9 @@ metadata:
                   },
                   {
                     "name": "ibm-monitoring-grafana-operator"
+                  },
+                  {
+                    "name": "ibm-management-ingress-operator"
                   }
                 ],
                 "registry": "common-service"
