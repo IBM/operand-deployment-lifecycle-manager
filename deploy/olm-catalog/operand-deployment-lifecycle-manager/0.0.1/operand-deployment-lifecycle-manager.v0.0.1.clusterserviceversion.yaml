@@ -432,7 +432,7 @@ spec:
     defines the individual operand deployment info\n* OperandConfigs, defines the
     individual operand deployment config\n* OperandRequests, defines which operator/operand
     want to be installed in the cluster\n\n**NOTE:** The ODLM managed operator subscriptions
-    will have a label `\"operator.ibm.com/opreq-control\": \"true\"`, we use this
+    will have a label **\"operator.ibm.com/opreq-control\": \"true\"**, we use this
     label to distinguish if an operator is managed by ODLM or not.\n\n## OperandRegistry\n\nOperandRegistry
     defines the individual dervice state. For example, an individual service should
     be present or absent.\n\n**NOTE:** When ODLM operator is deployed, it will generate
