@@ -91,7 +91,7 @@ func TestConfigController(t *testing.T) {
 	assert.NoError(err)
 	// Check the config init status
 	assert.NotNil(config.Status, "init operator status should not be empty")
-	assert.Equal(v1alpha1.ServiceReady, config.Status.Phase, "Overall OperandConfig phase should be 'Ready for Deployment'")
+	assert.Equal(v1alpha1.ServiceInit, config.Status.Phase, "Overall OperandConfig phase should be 'Ready for Deployment'")
 
 	// Create a fake client to mock instance not found.
 	cl = fake.NewFakeClient()
