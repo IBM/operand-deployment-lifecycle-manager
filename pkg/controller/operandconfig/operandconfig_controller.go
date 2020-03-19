@@ -70,13 +70,10 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Create an example OperandConfig CR
-	deployInstance := os.Getenv("DEPLOY_INSTANCE")
-	if deployInstance == "TRUE" {
-		deployDirectory := os.Getenv("DEPLOY_DIR")
-		klog.V(2).Info("Initializing default operandconfig instance")
-		if err = util.InitInstance(deployDirectory+"/operator.ibm.com_v1alpha1_operandconfig_cr.yaml", mgr); err != nil {
-			klog.Error("Error creating CR, please create it manually: ", err)
-		}
+	deployDirectory := os.Getenv("DEPLOY_DIR")
+	klog.V(2).Info("Initializing default operandconfig instance")
+	if err = util.InitInstance(deployDirectory+"/operator.ibm.com_v1alpha1_operandconfig_cr.yaml", mgr); err != nil {
+		klog.Error("Error creating CR, please create it manually: ", err)
 	}
 
 	return nil
