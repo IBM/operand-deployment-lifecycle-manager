@@ -55,23 +55,6 @@ func TestRequestController(t *testing.T) {
 
 	presentOperand(t, r, req, requestInstance)
 
-	deleteOperandRequest(t, r, req, requestInstance)
-}
-
-// TestOperandConfig runs ReconcileOperandRequest.Reconcile() against a
-// fake client that checks operand reconcile function.
-func TestOperandConfig(t *testing.T) {
-	var (
-		name      = "common-service"
-		namespace = "ibm-common-service"
-	)
-
-	req := getReconcileRequest(name, namespace)
-	r := getReconciler(name, namespace)
-	requestInstance := &v1alpha1.OperandRequest{}
-
-	initReconcile(t, r, req, requestInstance)
-
 	absentOperandCustomResource(t, r, req, requestInstance)
 
 	presentOperandCustomResource(t, r, req, requestInstance)
