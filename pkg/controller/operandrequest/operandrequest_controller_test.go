@@ -244,10 +244,10 @@ func absentOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req re
 	assert.NoError(err)
 	configInstance, err = r.getConfigInstance(req.Name, req.Namespace)
 	assert.NoError(err)
-	assert.Equal(v1alpha1.ServiceReady, configInstance.Status.ServiceStatus["etcd"].CrStatus["etcdCluster"], "The status of etcdCluster should be cleaned up in the OperandConfig")
+	assert.Equal(v1alpha1.ServiceNone, configInstance.Status.ServiceStatus["etcd"].CrStatus["etcdCluster"], "The status of etcdCluster should be cleaned up in the OperandConfig")
 	err = r.client.Get(context.TODO(), req.NamespacedName, requestInstance)
 	assert.NoError(err)
-	assert.Equal(v1alpha1.ServiceReady, requestInstance.Status.Members[0].Phase.OperandPhase, "The status of etcdCluster should be cleaned up in the OperandRequest")
+	assert.Equal(v1alpha1.ClusterPhaseRunning, requestInstance.Status.Phase, "The cluster phase status should be running in the OperandRequest")
 }
 
 // Present an operand custom resource from config
@@ -261,10 +261,11 @@ func presentOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req r
 	assert.NoError(err)
 	configInstance, err = r.getConfigInstance(req.Name, req.Namespace)
 	assert.NoError(err)
-	assert.Equal(v1alpha1.ServiceRunning, configInstance.Status.ServiceStatus["etcd"].CrStatus["etcdCluster"], "The status of etcdCluster should be cleaned up in the OperandConfig")
+	assert.Equal(v1alpha1.ServiceRunning, configInstance.Status.ServiceStatus["etcd"].CrStatus["etcdCluster"], "The status of etcdCluster should be running in the OperandConfig")
 	err = r.client.Get(context.TODO(), req.NamespacedName, requestInstance)
 	assert.NoError(err)
-	assert.Equal(v1alpha1.ServiceRunning, requestInstance.Status.Members[0].Phase.OperandPhase, "The status of etcdCluster should be cleaned up in the OperandRequest")
+	assert.Equal(v1alpha1.ServiceRunning, requestInstance.Status.Members[0].Phase.OperandPhase, "The status of etcdCluster should be running in the OperandRequest")
+	assert.Equal(v1alpha1.ClusterPhaseRunning, requestInstance.Status.Phase, "The cluster phase status should be running in the OperandRequest")
 }
 
 type DataObj struct {

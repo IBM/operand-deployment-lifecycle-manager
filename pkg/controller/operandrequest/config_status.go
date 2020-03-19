@@ -36,6 +36,19 @@ func (r *ReconcileOperandRequest) updateServiceStatus(configInstance *operatorv1
 	klog.V(3).Info("Updating OperandConfig status")
 
 	if err := wait.PollImmediate(time.Second*20, time.Minute*10, func() (done bool, err error) {
+
+		_, ok := configInstance.Status.ServiceStatus[operatorName]
+
+		if !ok {
+			configInstance.Status.ServiceStatus[operatorName] = operatorv1alpha1.CrStatus{}
+		}
+
+		if configInstance.Status.ServiceStatus[operatorName].CrStatus == nil {
+			tmp := configInstance.Status.ServiceStatus[operatorName]
+			tmp.CrStatus = make(map[string]operatorv1alpha1.ServicePhase)
+			configInstance.Status.ServiceStatus[operatorName] = tmp
+		}
+
 		configInstance.Status.ServiceStatus[operatorName].CrStatus[serviceName] = serviceStatus
 		configInstance.UpdateOperandPhase()
 
@@ -65,7 +78,7 @@ func (r *ReconcileOperandRequest) deleteServiceStatus(cr *operatorv1alpha1.Opera
 		}
 		for name := range configInstance.Status.ServiceStatus[operatorName].CrStatus {
 			if strings.EqualFold(name, serviceName) {
-				configInstance.Status.ServiceStatus[operatorName].CrStatus[name] = operatorv1alpha1.ServiceReady
+				delete(configInstance.Status.ServiceStatus[operatorName].CrStatus, name)
 				configInstance.UpdateOperandPhase()
 			}
 		}
