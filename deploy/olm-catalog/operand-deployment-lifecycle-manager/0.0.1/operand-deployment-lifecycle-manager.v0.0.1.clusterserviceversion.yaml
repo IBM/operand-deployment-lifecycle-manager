@@ -381,8 +381,41 @@ spec:
       kind: OperandConfig
       name: operandconfigs.operator.ibm.com
       resources:
+      - kind: Deployment
+        name: ''
+        version: v1
+      - kind: Pod
+        name: ''
+        version: v1
+      - kind: Service
+        name: ''
+        version: v1
+      - kind: Configmap
+        name: ''
+        version: v1
+      - kind: Installplan
+        name: ''
+        version: v1alpha1
+      - kind: Catalogsource
+        name: ''
+        version: v1alpha1
+      - kind: Clusterserviceversion
+        name: ''
+        version: v1alpha1
+      - kind: Operatorgroup
+        name: ''
+        version: v1
       - kind: Subscription
         name: operators.coreos.com
+        version: v1alpha1
+      - kind: Operandconfig
+        name: ''
+        version: v1alpha1
+      - kind: Operandrequest
+        name: ''
+        version: v1alpha1
+      - kind: Operandregistry
+        name: ''
         version: v1alpha1
       specDescriptors:
       - description: Services is a list of configuration of service
@@ -400,8 +433,41 @@ spec:
       kind: OperandRegistry
       name: operandregistries.operator.ibm.com
       resources:
+      - kind: Deployment
+        name: ''
+        version: v1
+      - kind: Pod
+        name: ''
+        version: v1
+      - kind: Service
+        name: ''
+        version: v1
+      - kind: Configmap
+        name: ''
+        version: v1
+      - kind: Installplan
+        name: ''
+        version: v1alpha1
+      - kind: Catalogsource
+        name: ''
+        version: v1alpha1
+      - kind: Clusterserviceversion
+        name: ''
+        version: v1alpha1
+      - kind: Operatorgroup
+        name: ''
+        version: v1
       - kind: Subscription
         name: operators.coreos.com
+        version: v1alpha1
+      - kind: Operandconfig
+        name: ''
+        version: v1alpha1
+      - kind: Operandrequest
+        name: ''
+        version: v1alpha1
+      - kind: Operandregistry
+        name: ''
         version: v1alpha1
       specDescriptors:
       - description: Operators is a list of operator OLM definition
@@ -419,8 +485,41 @@ spec:
       kind: OperandRequest
       name: operandrequests.operator.ibm.com
       resources:
+      - kind: Deployment
+        name: ''
+        version: v1
+      - kind: Pod
+        name: ''
+        version: v1
+      - kind: Service
+        name: ''
+        version: v1
+      - kind: Configmap
+        name: ''
+        version: v1
+      - kind: Installplan
+        name: ''
+        version: v1alpha1
+      - kind: Catalogsource
+        name: ''
+        version: v1alpha1
+      - kind: Clusterserviceversion
+        name: ''
+        version: v1alpha1
+      - kind: Operatorgroup
+        name: ''
+        version: v1
       - kind: Subscription
         name: operators.coreos.com
+        version: v1alpha1
+      - kind: Operandconfig
+        name: ''
+        version: v1alpha1
+      - kind: Operandrequest
+        name: ''
+        version: v1alpha1
+      - kind: Operandregistry
+        name: ''
         version: v1alpha1
       specDescriptors:
       - description: Requests defines a list of operands installation
