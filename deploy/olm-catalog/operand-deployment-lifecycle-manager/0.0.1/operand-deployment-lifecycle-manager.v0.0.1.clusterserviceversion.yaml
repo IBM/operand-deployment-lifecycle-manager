@@ -384,6 +384,9 @@ spec:
       - kind: Deployment
         name: ''
         version: v1
+      - kind: Replicaset
+        name: ''
+        version: v1
       - kind: Pod
         name: ''
         version: v1
@@ -436,6 +439,9 @@ spec:
       - kind: Deployment
         name: ''
         version: v1
+      - kind: Replicaset
+        name: ''
+        version: v1
       - kind: Pod
         name: ''
         version: v1
@@ -485,7 +491,13 @@ spec:
       kind: OperandRequest
       name: operandrequests.operator.ibm.com
       resources:
+      - kind: Namespace
+        name: ''
+        version: v1
       - kind: Deployment
+        name: ''
+        version: v1
+      - kind: Replicaset
         name: ''
         version: v1
       - kind: Pod
