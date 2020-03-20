@@ -24,9 +24,9 @@ import (
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 )
 
-func (r *ReconcileOperandRequest) UpdateMemberStatus(cr *operatorv1alpha1.OperandRequest) error {
+func (r *ReconcileOperandRequest) updateMemberStatus(requestInstance *operatorv1alpha1.OperandRequest) error {
 	klog.V(3).Info("Updating OperandRequest member status")
-	for _, req := range cr.Spec.Requests {
+	for _, req := range requestInstance.Spec.Requests {
 		registryInstance, err := r.getRegistryInstance(req.Registry, req.RegistryNamespace)
 		if err != nil {
 			return err
@@ -39,11 +39,11 @@ func (r *ReconcileOperandRequest) UpdateMemberStatus(cr *operatorv1alpha1.Operan
 		for _, ro := range req.Operands {
 			operatorPhase := registryInstance.Status.OperatorsStatus[ro.Name].Phase
 			operandPhase := getOperandPhase(configInstance.Status.ServiceStatus[ro.Name].CrStatus)
-			cr.SetMemberStatus(ro.Name, operatorPhase, operandPhase)
+			requestInstance.SetMemberStatus(ro.Name, operatorPhase, operandPhase)
 		}
 	}
-	cr.UpdateClusterPhase()
-	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
+	requestInstance.UpdateClusterPhase()
+	if err := r.client.Status().Update(context.TODO(), requestInstance); err != nil {
 		return err
 	}
 	return nil

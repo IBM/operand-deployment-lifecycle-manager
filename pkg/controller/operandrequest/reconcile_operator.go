@@ -104,9 +104,6 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1a
 		}
 	}
 
-	if err := r.UpdateMemberStatus(requestInstance); err != nil {
-		return err
-	}
 	return nil
 }
 
