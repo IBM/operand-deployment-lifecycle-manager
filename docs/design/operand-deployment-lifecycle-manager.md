@@ -46,7 +46,7 @@ OperandRegistry defines the operand deployment info:
 * sourceName, the name of operator registry
 * sourceNamespace, the namespace of operator registry
 
-The OperandRegistry managed operator subscriptions will have a label `"operator.ibm.com/css-control": "true"`, we use this label to distinguish if an operator is managed by OperandRegistry or not.
+The OperandRegistry managed operator subscriptions will have a label `"operator.ibm.com/opreq-control": "true"`, we use this label to distinguish if an operator is managed by OperandRegistry or not.
 
 > **NOTE: These operands will not be installed by default, unless you explicitly set them in OperandRequests**
 
@@ -210,8 +210,7 @@ spec:
   services:
   - name: iam
     catalog: common-services
-    catalognamespace: common-services
-    
+    catalognamespace: common-services  
   - name: mongo
     catalog: common-services
     catalognamespace: common-services
