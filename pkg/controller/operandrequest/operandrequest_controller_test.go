@@ -21,6 +21,7 @@ import (
 	"time"
 
 	v1beta2 "github.com/coreos/etcd-operator/pkg/apis/etcd/v1beta2"
+	v1alpha2 "github.com/jenkinsci/kubernetes-operator/pkg/apis/jenkins/v1alpha2"
 	olmv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1"
 	olmv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
 	fakeolmclient "github.com/operator-framework/operator-lifecycle-manager/pkg/api/client/clientset/versioned/fake"
@@ -55,11 +56,11 @@ func TestRequestController(t *testing.T) {
 
 	presentOperand(t, r, req, requestInstance)
 
-	updateOperandCustomResource(t, r, req, requestInstance)
+	updateOperandCustomResource(t, r, req)
 
-	absentOperandCustomResource(t, r, req, requestInstance)
+	absentOperandCustomResource(t, r, req)
 
-	presentOperandCustomResource(t, r, req, requestInstance)
+	presentOperandCustomResource(t, r, req)
 
 	deleteOperandRequest(t, r, req, requestInstance)
 }
@@ -67,7 +68,10 @@ func TestRequestController(t *testing.T) {
 // Init reconcile the OperandRequest
 func initReconcile(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, requestInstance *v1alpha1.OperandRequest) {
 	assert := assert.New(t)
-	_, err := r.Reconcile(req)
+	res, err := r.Reconcile(req)
+	if res.Requeue {
+		t.Error("Reconcile requeued request as not expected")
+	}
 	assert.NoError(err)
 
 	// Retrieve OperandRegistry
@@ -92,6 +96,8 @@ func initReconcile(t *testing.T, r ReconcileOperandRequest, req reconcile.Reques
 	// Retrieve OperandRequest
 	retrieveOperandRequest(t, r, req, requestInstance, 2)
 
+	err = checkOperandCustomResource(t, r, registryInstance, 3, 8081, "3.2.13")
+	assert.NoError(err)
 }
 
 // Retrieve OperandRequest instance
@@ -122,7 +128,10 @@ func absentOperand(t *testing.T, r ReconcileOperandRequest, req reconcile.Reques
 	requestInstance.Spec.Requests[0].Operands = requestInstance.Spec.Requests[0].Operands[1:]
 	err := r.client.Update(context.TODO(), requestInstance)
 	assert.NoError(err)
-	_, err = r.Reconcile(req)
+	res, err := r.Reconcile(req)
+	if res.Requeue {
+		t.Error("Reconcile requeued request as not expected")
+	}
 	assert.NoError(err)
 	retrieveOperandRequest(t, r, req, requestInstance, 1)
 }
@@ -166,7 +175,10 @@ func deleteOperandRequest(t *testing.T, r ReconcileOperandRequest, req reconcile
 	requestInstance.SetDeletionTimestamp(&deleteTime)
 	err := r.client.Update(context.TODO(), requestInstance)
 	assert.NoError(err)
-	_, err = r.Reconcile(req)
+	res, err := r.Reconcile(req)
+	if res.Requeue {
+		t.Error("Reconcile requeued request as not expected")
+	}
 	assert.NoError(err)
 	subs, err := r.olmClient.OperatorsV1alpha1().Subscriptions(req.Namespace).List(metav1.ListOptions{})
 	assert.NoError(err)
@@ -189,6 +201,7 @@ func getReconciler(name, namespace string) ReconcileOperandRequest {
 	olmv1.SchemeBuilder.AddToScheme(s)
 	olmv1alpha1.SchemeBuilder.AddToScheme(s)
 	v1beta2.SchemeBuilder.AddToScheme(s)
+	v1alpha2.SchemeBuilder.AddToScheme(s)
 
 	initData := initClientData(name, namespace)
 
@@ -217,7 +230,7 @@ func getReconcileRequest(name, namespace string) reconcile.Request {
 }
 
 // Update an operand custom resource from config
-func updateOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, requestInstance *v1alpha1.OperandRequest) {
+func updateOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req reconcile.Request) {
 	assert := assert.New(t)
 	// Retrieve OperandConfig
 	configInstance, err := r.getConfigInstance(req.Name, req.Namespace)
@@ -231,7 +244,10 @@ func updateOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req re
 	}
 	err = r.client.Update(context.TODO(), configInstance)
 	assert.NoError(err)
-	_, err = r.Reconcile(req)
+	res, err := r.Reconcile(req)
+	if res.Requeue {
+		t.Error("Reconcile requeued request as not expected")
+	}
 	assert.NoError(err)
 	configInstance, err = r.getConfigInstance(req.Name, req.Namespace)
 	assert.NoError(err)
@@ -245,10 +261,15 @@ func updateOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req re
 		}
 	}
 	assert.Equal(v1alpha1.ClusterPhaseRunning, updatedRequestInstance.Status.Phase, "The cluster phase status should be running in the OperandRequest")
+
+	registryInstance, err := r.getRegistryInstance(req.Name, req.Namespace)
+	assert.NoError(err)
+	err = checkOperandCustomResource(t, r, registryInstance, 1, 8081, "3.2.13")
+	assert.NoError(err)
 }
 
 // Absent an operand custom resource from config
-func absentOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, requestInstance *v1alpha1.OperandRequest) {
+func absentOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req reconcile.Request) {
 	assert := assert.New(t)
 	// Retrieve OperandConfig
 	configInstance, err := r.getConfigInstance(req.Name, req.Namespace)
@@ -260,7 +281,10 @@ func absentOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req re
 	}
 	err = r.client.Update(context.TODO(), configInstance)
 	assert.NoError(err)
-	_, err = r.Reconcile(req)
+	res, err := r.Reconcile(req)
+	if res.Requeue {
+		t.Error("Reconcile requeued request as not expected")
+	}
 	assert.NoError(err)
 	configInstance, err = r.getConfigInstance(req.Name, req.Namespace)
 	assert.NoError(err)
@@ -277,13 +301,16 @@ func absentOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req re
 }
 
 // Present an operand custom resource from config
-func presentOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, requestInstance *v1alpha1.OperandRequest) {
+func presentOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req reconcile.Request) {
 	assert := assert.New(t)
 	// Retrieve OperandConfig
 	configInstance := operandConfig(req.Name, req.Namespace)
 	err := r.client.Update(context.TODO(), configInstance)
 	assert.NoError(err)
-	_, err = r.Reconcile(req)
+	res, err := r.Reconcile(req)
+	if res.Requeue {
+		t.Error("Reconcile requeued request as not expected")
+	}
 	assert.NoError(err)
 	configInstance, err = r.getConfigInstance(req.Name, req.Namespace)
 	assert.NoError(err)
@@ -297,6 +324,36 @@ func presentOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req r
 		}
 	}
 	assert.Equal(v1alpha1.ClusterPhaseRunning, updatedRequestInstance.Status.Phase, "The cluster phase status should be running in the OperandRequest")
+}
+
+func checkOperandCustomResource(t *testing.T, r ReconcileOperandRequest, registryInstance *v1alpha1.OperandRegistry, etcdSize, jenkinsPort int, etcdVersion string) error {
+	assert := assert.New(t)
+	for _, operator := range registryInstance.Spec.Operators {
+		if operator.Name == "etcd" {
+			etcdCluster := &v1beta2.EtcdCluster{}
+			err := r.client.Get(context.TODO(), types.NamespacedName{
+				Name:      "example",
+				Namespace: operator.Namespace,
+			}, etcdCluster)
+			if err != nil {
+				return err
+			}
+			assert.Equalf(etcdCluster.Spec.Size, etcdSize, "The size of etcdCluster should be %d, but it is %d", etcdSize, etcdCluster.Spec.Size)
+			assert.Equalf(etcdCluster.Spec.Version, etcdVersion, "The version of etcdCluster should be %s, but it is %s", etcdVersion, etcdCluster.Spec.Version)
+		}
+		if operator.Name == "jenkins" {
+			jenkins := &v1alpha2.Jenkins{}
+			err := r.client.Get(context.TODO(), types.NamespacedName{
+				Name:      "example",
+				Namespace: operator.Namespace,
+			}, jenkins)
+			if err != nil {
+				return err
+			}
+			assert.Equalf(jenkins.Spec.Service.Port, int32(jenkinsPort), "The post of jenkins service should be %d, but it is %d", int32(jenkinsPort), jenkins.Spec.Service.Port)
+		}
+	}
+	return nil
 }
 
 type DataObj struct {
@@ -362,7 +419,7 @@ func operandConfig(name, namespace string) *v1alpha1.OperandConfig {
 				{
 					Name: "etcd",
 					Spec: map[string]runtime.RawExtension{
-						"etcdCluster": {Raw: []byte(`{"size": 1}`)},
+						"etcdCluster": {Raw: []byte(`{"size": 3}`)},
 					},
 				},
 				{
