@@ -177,9 +177,7 @@ Suppose IAM Operator has two CRDs: Apikey and Identity:
                 "name": "iam-identity"
               },
               "spec": {
-                "key": "value",
-                "nested": {
-                  "key": "value"
+                "key": "value"
                 }
               }
             }
@@ -195,7 +193,7 @@ Suppose IAM Operator has two CRDs: Apikey and Identity:
 
 ## OperandRequests Spec
 
-OperandRequests defines which operator/operand want to be installed int the cluster.
+OperandRequests defines which operator/operand want to be installed in the cluster.
 
 * name, the name of the individual operator
 * channel, optional parameter, the subscription channel(version) of the individual operator
