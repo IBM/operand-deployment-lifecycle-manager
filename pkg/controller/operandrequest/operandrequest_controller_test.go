@@ -55,6 +55,8 @@ func TestRequestController(t *testing.T) {
 
 	presentOperand(t, r, req, requestInstance)
 
+	updateOperandCustomResource(t, r, req, requestInstance)
+
 	absentOperandCustomResource(t, r, req, requestInstance)
 
 	presentOperandCustomResource(t, r, req, requestInstance)
@@ -214,13 +216,48 @@ func getReconcileRequest(name, namespace string) reconcile.Request {
 	}
 }
 
+// Update an operand custom resource from config
+func updateOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, requestInstance *v1alpha1.OperandRequest) {
+	assert := assert.New(t)
+	// Retrieve OperandConfig
+	configInstance, err := r.getConfigInstance(req.Name, req.Namespace)
+	assert.NoError(err)
+	for id, operator := range configInstance.Spec.Services {
+		if operator.Name == "etcd" {
+			configInstance.Spec.Services[id].Spec = map[string]runtime.RawExtension{
+				"etcdCluster": {Raw: []byte(`{"size": 1}`)},
+			}
+		}
+	}
+	err = r.client.Update(context.TODO(), configInstance)
+	assert.NoError(err)
+	_, err = r.Reconcile(req)
+	assert.NoError(err)
+	configInstance, err = r.getConfigInstance(req.Name, req.Namespace)
+	assert.NoError(err)
+	assert.Equal(v1alpha1.ServiceRunning, configInstance.Status.ServiceStatus["etcd"].CrStatus["etcdCluster"], "The status of etcdCluster should be running in the OperandConfig")
+	updatedRequestInstance := &v1alpha1.OperandRequest{}
+	err = r.client.Get(context.TODO(), req.NamespacedName, updatedRequestInstance)
+	assert.NoError(err)
+	for _, operator := range updatedRequestInstance.Status.Members {
+		if operator.Name == "etcd" {
+			assert.Equal(v1alpha1.ServiceRunning, operator.Phase.OperandPhase, "The etcd phase status should be running in the OperandRequest")
+		}
+	}
+	assert.Equal(v1alpha1.ClusterPhaseRunning, updatedRequestInstance.Status.Phase, "The cluster phase status should be running in the OperandRequest")
+}
+
 // Absent an operand custom resource from config
 func absentOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, requestInstance *v1alpha1.OperandRequest) {
 	assert := assert.New(t)
 	// Retrieve OperandConfig
 	configInstance, err := r.getConfigInstance(req.Name, req.Namespace)
 	assert.NoError(err)
-	configInstance.Spec.Services[0].Spec = make(map[string]runtime.RawExtension)
+	for id, operator := range configInstance.Spec.Services {
+		if operator.Name == "etcd" {
+			configInstance.Spec.Services[id].Spec = make(map[string]runtime.RawExtension)
+		}
+	}
 	err = r.client.Update(context.TODO(), configInstance)
 	assert.NoError(err)
 	_, err = r.Reconcile(req)
@@ -228,9 +265,15 @@ func absentOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req re
 	configInstance, err = r.getConfigInstance(req.Name, req.Namespace)
 	assert.NoError(err)
 	assert.Equal(v1alpha1.ServiceNone, configInstance.Status.ServiceStatus["etcd"].CrStatus["etcdCluster"], "The status of etcdCluster should be cleaned up in the OperandConfig")
-	err = r.client.Get(context.TODO(), req.NamespacedName, requestInstance)
+	updatedRequestInstance := &v1alpha1.OperandRequest{}
+	err = r.client.Get(context.TODO(), req.NamespacedName, updatedRequestInstance)
 	assert.NoError(err)
-	assert.Equal(v1alpha1.ClusterPhaseRunning, requestInstance.Status.Phase, "The cluster phase status should be running in the OperandRequest")
+	for _, operator := range updatedRequestInstance.Status.Members {
+		if operator.Name == "etcd" {
+			assert.Equal(v1alpha1.ServiceNone, operator.Phase.OperandPhase, "The etcd phase status should be none in the OperandRequest")
+		}
+	}
+	assert.Equal(v1alpha1.ClusterPhaseRunning, updatedRequestInstance.Status.Phase, "The cluster phase status should be running in the OperandRequest")
 }
 
 // Present an operand custom resource from config
@@ -245,10 +288,15 @@ func presentOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req r
 	configInstance, err = r.getConfigInstance(req.Name, req.Namespace)
 	assert.NoError(err)
 	assert.Equal(v1alpha1.ServiceRunning, configInstance.Status.ServiceStatus["etcd"].CrStatus["etcdCluster"], "The status of etcdCluster should be running in the OperandConfig")
-	err = r.client.Get(context.TODO(), req.NamespacedName, requestInstance)
+	updatedRequestInstance := &v1alpha1.OperandRequest{}
+	err = r.client.Get(context.TODO(), req.NamespacedName, updatedRequestInstance)
 	assert.NoError(err)
-	assert.Equal(v1alpha1.ServiceRunning, requestInstance.Status.Members[0].Phase.OperandPhase, "The status of etcdCluster should be running in the OperandRequest")
-	assert.Equal(v1alpha1.ClusterPhaseRunning, requestInstance.Status.Phase, "The cluster phase status should be running in the OperandRequest")
+	for _, operator := range updatedRequestInstance.Status.Members {
+		if operator.Name == "etcd" {
+			assert.Equal(v1alpha1.ServiceRunning, operator.Phase.OperandPhase, "The etcd phase status should be none in the OperandRequest")
+		}
+	}
+	assert.Equal(v1alpha1.ClusterPhaseRunning, updatedRequestInstance.Status.Phase, "The cluster phase status should be running in the OperandRequest")
 }
 
 type DataObj struct {
