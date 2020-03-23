@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-FROM registry.access.redhat.com/ubi8/ubi-minimal@sha256:d41676554f34c417c82a016c94790179fb4116063547b757ec7a65a52235c9c8
+FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
 ARG VCS_REF
 ARG VCS_URL
 
@@ -36,7 +36,7 @@ ENV OPERATOR=/usr/local/bin/odlm \
   USER_NAME=odlm
 
 # install operator binary
-COPY build/_output/bin/odlm-s390x ${OPERATOR}
+COPY build/_output/bin/odlm ${OPERATOR}
 COPY deploy/crds ${DEPLOY_DIR}
 
 COPY build/bin /usr/local/bin
