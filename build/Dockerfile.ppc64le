@@ -14,12 +14,6 @@
 # limitations under the License.
 #
 
-FROM alpine as builder
-
-RUN wget -O /qemu-ppc64le-static https://github.com/multiarch/qemu-user-static/releases/latest/download/qemu-ppc64le-static
-
-RUN chmod +x /qemu-ppc64le-static
-
 FROM registry.access.redhat.com/ubi8/ubi-minimal@sha256:e55721eb97b2517542b695c3ad36e9534fb8f7a8641d06b2ad87e802e36dd8d2
 ARG VCS_REF
 ARG VCS_URL
@@ -40,8 +34,6 @@ ENV OPERATOR=/usr/local/bin/odlm \
   DEPLOY_DIR=/deploy \
   USER_UID=1001 \
   USER_NAME=odlm
-
-COPY --from=builder /qemu-ppc64le-static /usr/bin/
 
 # install operator binary
 COPY build/_output/bin/odlm-ppc64le ${OPERATOR}

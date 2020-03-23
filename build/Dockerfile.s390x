@@ -14,12 +14,6 @@
 # limitations under the License.
 #
 
-FROM alpine as builder
-
-RUN wget -O /qemu-s390x-static https://github.com/multiarch/qemu-user-static/releases/latest/download/qemu-s390x-static
-
-RUN chmod +x /qemu-s390x-static
-
 FROM registry.access.redhat.com/ubi8/ubi-minimal@sha256:d41676554f34c417c82a016c94790179fb4116063547b757ec7a65a52235c9c8
 ARG VCS_REF
 ARG VCS_URL
@@ -40,8 +34,6 @@ ENV OPERATOR=/usr/local/bin/odlm \
   DEPLOY_DIR=/deploy \
   USER_UID=1001 \
   USER_NAME=odlm
-
-COPY --from=builder /qemu-s390x-static /usr/bin/
 
 # install operator binary
 COPY build/_output/bin/odlm-s390x ${OPERATOR}
