@@ -26,6 +26,14 @@
 
 Operand Deployment Lifecycle Manager is used to manage the lifecycle of a group of operands. Checkout design document at [here](./docs/design/operand-deployment-lifecycle-manager.md).
 
+Operand Deployment Lifecycle Manager has Three CRDs:
+
+| Resource                 | Short Name | Description                                                                                |
+|--------------------------|------------|--------------------------------------------------------------------------------------------|
+| OperandRequest | opreg | It defines which operator/operand want to be installed in the cluster |
+| OperandRegistry | opcon | It defines the individual operand deployment info |
+| OperandConfig | opreq | It defines the individual operand deployment config |
+
 ## Prerequisites
 
 - [go][go_tool] version v1.13+.
@@ -37,14 +45,6 @@ Operand Deployment Lifecycle Manager is used to manage the lifecycle of a group 
 ## Common Service Onboarding
 
 - [common-service-onboarding](./docs/install/common-service-integration.md)
-
-## Custom Resources
-
-| Resource                 | Short Name | Description                                                                                |
-|--------------------------|------------|--------------------------------------------------------------------------------------------|
-| OperandRequest | opreg | It defines which operator/operand want to be installed in the cluster |
-| OperandRegistry | opcon | It defines the individual operand deployment info |
-| OperandConfig | opreq | It defines the individual operand deployment config |
 
 ## Getting Started
 
