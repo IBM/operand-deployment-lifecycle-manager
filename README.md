@@ -38,6 +38,14 @@ Operand Deployment Lifecycle Manager is used to manage the lifecycle of a group 
 
 - [common-service-onboarding](./docs/install/common-service-integration.md)
 
+## Custom Resources
+
+| Resource                 | Short Name | Description                                                                                |
+|--------------------------|------------|--------------------------------------------------------------------------------------------|
+| OperandRequest | opreg | It defines which operator/operand want to be installed in the cluster |
+| OperandRegistry | opcon | It defines the individual operand deployment info |
+| OperandConfig | opreq | It defines the individual operand deployment config |
+
 ## Getting Started
 
 ### Cloning the repository
