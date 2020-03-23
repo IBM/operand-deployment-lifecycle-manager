@@ -307,6 +307,16 @@ metadata:
                 "scope": "private",
                 "sourceName": "opencloud-operators",
                 "sourceNamespace": "openshift-marketplace"
+              },
+              {
+                "channel": "beta",
+                "description": "Manage the full lifecycle of configuring and managing Prometheus and Alertmanager servers.",
+                "name": "prometheus-operator",
+                "namespace": "ibm-common-services",
+                "packageName": "prometheus-operator-app",
+                "scope": "private",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace"
               }
             ]
           }
@@ -338,6 +348,9 @@ metadata:
                   },
                   {
                     "name": "ibm-monitoring-grafana-operator"
+                  },
+                  {
+                    "name": "prometheus-operator"
                   },
                   {
                     "name": "ibm-healthcheck-operator"
