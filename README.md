@@ -32,7 +32,7 @@ Operand Deployment Lifecycle Manager has Three CRDs:
 |--------------------------|------------|--------------------------------------------------------------------------------------------|
 | OperandRequest | opreg | It defines which operator/operand want to be installed in the cluster |
 | OperandRegistry | opcon | It defines the OLM information, like channel and catalog source, for each operator|
-| OperandConfig | opreq | It defines the parameters that should be used to install the operator's operand by specifying an installation CR. |
+| OperandConfig | opreq | It defines the parameters that should be used to install the operator's operand |
 
 ## Prerequisites
 
