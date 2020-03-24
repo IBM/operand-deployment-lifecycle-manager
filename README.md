@@ -26,6 +26,14 @@
 
 Operand Deployment Lifecycle Manager is used to manage the lifecycle of a group of operands. Checkout design document at [here](./docs/design/operand-deployment-lifecycle-manager.md).
 
+Operand Deployment Lifecycle Manager has Three CRDs:
+
+| Resource                 | Short Name | Description                                                                                |
+|--------------------------|------------|--------------------------------------------------------------------------------------------|
+| OperandRequest | opreg | It defines which operator/operand want to be installed in the cluster |
+| OperandRegistry | opcon | It defines the OLM information, like channel and catalog source, for each operator|
+| OperandConfig | opreq | It defines the parameters that should be used to install the operator's operand |
+
 ## Prerequisites
 
 - [go][go_tool] version v1.13+.

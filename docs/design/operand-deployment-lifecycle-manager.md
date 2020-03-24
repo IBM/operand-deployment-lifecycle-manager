@@ -21,9 +21,11 @@ Operand is the instance managed by the operator. ODLM is used to manage the life
 
 The ODLM will have Three CRDs:
 
-* OperandRegistry, defines the individual operand deployment info
-* OperandConfigs, defines the individual operand deployment config
-* OperandRequests, defines which operator/operand want to be installed in the cluster
+| Resource                 | Short Name | Description                                                                                |
+|--------------------------|------------|--------------------------------------------------------------------------------------------|
+| OperandRequest | opreg | It defines which operator/operand want to be installed in the cluster |
+| OperandRegistry | opcon | It defines the OLM information, like channel and catalog source, for each operator |
+| OperandConfig | opreq | It defines the parameters that should be used to install the operator's operand |
 
 ## Goal
 
