@@ -181,7 +181,9 @@ func (r *ReconcileOperandRequest) reconcileCr(service *operatorv1alpha1.ConfigSe
 func (r *ReconcileOperandRequest) deleteAllCustomResource(csv *olmv1alpha1.ClusterServiceVersion, csc *operatorv1alpha1.OperandConfig, operandName string) error {
 
 	service := r.getServiceFromConfigInstance(operandName, csc)
-
+	if service == nil {
+		return nil
+	}
 	almExamples := csv.ObjectMeta.Annotations["alm-examples"]
 	klog.V(2).Info("Delete all the custom resource from Subscription ", service.Name)
 	namespace := csv.ObjectMeta.Namespace
