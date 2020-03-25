@@ -271,7 +271,7 @@ metadata:
                 "sourceNamespace": "openshift-marketplace"
               },
               {
-                "channel": "alpha",
+                "channel": "stable-v1",
                 "description": "Operator to provision node-exporter, kube-state-metrics and collectd exporter with tls enabled.",
                 "name": "ibm-monitoring-exporters-operator",
                 "namespace": "ibm-common-services",
@@ -280,7 +280,7 @@ metadata:
                 "sourceNamespace": "openshift-marketplace"
               },
               {
-                "channel": "alpha",
+                "channel": "stable-v1",
                 "description": "Operator to deploy Prometheus and Alertmanager instances with RBAC enabled. It will also enable Multicloud monitoring.",
                 "name": "ibm-monitoring-prometheusext-operator",
                 "namespace": "ibm-common-services",
@@ -289,7 +289,7 @@ metadata:
                 "sourceNamespace": "openshift-marketplace"
               },
               {
-                "channel": "alpha",
+                "channel": "stable-v1",
                 "description": "Operator to deploy Grafana instances with RBAC enabled.",
                 "name": "ibm-monitoring-grafana-operator",
                 "namespace": "ibm-common-services",
