@@ -208,7 +208,7 @@ metadata:
                 "sourceNamespace": "openshift-marketplace"
               },
               {
-                "channel": "alpha",
+                "channel": "stable-v1",
                 "description": "Operator for managing deployment of management ingress service.",
                 "name": "ibm-management-ingress-operator",
                 "namespace": "ibm-common-services",
@@ -217,7 +217,7 @@ metadata:
                 "sourceNamespace": "openshift-marketplace"
               },
               {
-                "channel": "alpha",
+                "channel": "stable-v1",
                 "description": "Operator for managing deployment of ingress nginx service.",
                 "name": "ibm-ingress-nginx-operator",
                 "namespace": "ibm-common-services",
