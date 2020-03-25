@@ -20,7 +20,7 @@ spec:
     description: The service used to management the license in a kubernetes cluster
   - name: ibm-mongodb-operator
     namespace: ibm-common-services
-    channel: alpha
+    channel: stable-v1
     packageName: ibm-mongodb-operator-app
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
@@ -69,7 +69,7 @@ spec:
     description: Operator for managing deployment of ingress nginx service.
   - name: ibm-auditlogging-operator
     namespace: ibm-common-services
-    channel: alpha
+    channel: stable-v1
     packageName: ibm-auditlogging-operator-app
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
