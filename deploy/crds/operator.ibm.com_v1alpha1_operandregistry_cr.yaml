@@ -55,14 +55,14 @@ spec:
     description: The service that services the login page, common header, LDAP, and Team resources pages
   - name: ibm-management-ingress-operator
     namespace: ibm-common-services
-    channel: alpha
+    channel: stable-v1
     packageName: ibm-management-ingress-operator-app
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
     description: Operator for managing deployment of management ingress service.
   - name: ibm-ingress-nginx-operator
     namespace: ibm-common-services
-    channel: alpha
+    channel: stable-v1
     packageName: ibm-ingress-nginx-operator-app
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
