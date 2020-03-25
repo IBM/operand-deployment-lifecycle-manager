@@ -69,7 +69,7 @@ spec:
     description: Operator for managing deployment of ingress nginx service.
   - name: ibm-auditlogging-operator
     namespace: ibm-common-services
-    channel: alpha
+    channel: stable-v1
     packageName: ibm-auditlogging-operator-app
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
