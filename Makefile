@@ -26,7 +26,7 @@ NAMESPACE=ibm-common-services
 # IMAGE_REPO, IMAGE_NAME and RELEASE_TAG environment variable.
 IMAGE_REPO ?= quay.io/opencloudio
 IMAGE_NAME ?= odlm
-CSV_VERSION ?= 0.0.1
+CSV_VERSION ?= 1.1.0
 
 QUAY_USERNAME ?=
 QUAY_PASSWORD ?=
@@ -165,7 +165,7 @@ scorecard: ## Run scorecard test
 ##@ Release
 
 multiarch-image: $(CONFIG_DOCKER_TARGET)
-	@MAX_PULLING_RETRY=20 RETRY_INTERVAL=30 common/scripts/multiarch_image.sh $(IMAGE_REPO) $(IMAGE_NAME) $(VERSION)
+	@MAX_PULLING_RETRY=20 RETRY_INTERVAL=30 common/scripts/multiarch_image.sh $(IMAGE_REPO) $(IMAGE_NAME) $(VERSION) $(CSV_VERSION)
 
 csv: ## Push CSV package to the catalog
 	@RELEASE=${CSV_VERSION} common/scripts/push-csv.sh
