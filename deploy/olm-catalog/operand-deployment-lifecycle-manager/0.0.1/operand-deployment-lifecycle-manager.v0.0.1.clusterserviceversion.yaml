@@ -145,7 +145,7 @@ metadata:
           "spec": {
             "operators": [
               {
-                "channel": "alpha",
+                "channel": "stable-v3",
                 "description": "The service used to meter workloads in a kubernetes cluster",
                 "name": "ibm-metering-operator",
                 "namespace": "ibm-common-services",
