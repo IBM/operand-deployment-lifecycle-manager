@@ -21,9 +21,11 @@ Operand is the instance managed by the operator. ODLM is used to manage the life
 
 The ODLM will have Three CRDs:
 
-* OperandRegistry, defines the individual operand deployment info
-* OperandConfigs, defines the individual operand deployment config
-* OperandRequests, defines which operator/operand want to be installed in the cluster
+| Resource                 | Short Name | Description                                                                                |
+|--------------------------|------------|--------------------------------------------------------------------------------------------|
+| OperandRequest | opreg | It defines which operator/operand want to be installed in the cluster |
+| OperandRegistry | opcon | It defines the OLM information, like channel and catalog source, for each operator |
+| OperandConfig | opreq | It defines the parameters that should be used to install the operator's operand |
 
 ## Goal
 
@@ -46,7 +48,7 @@ OperandRegistry defines the operand deployment info:
 * sourceName, the name of operator registry
 * sourceNamespace, the namespace of operator registry
 
-The OperandRegistry managed operator subscriptions will have a label `"operator.ibm.com/css-control": "true"`, we use this label to distinguish if an operator is managed by OperandRegistry or not.
+The OperandRegistry managed operator subscriptions will have a label `"operator.ibm.com/opreq-control": "true"`, we use this label to distinguish if an operator is managed by OperandRegistry or not.
 
 > **NOTE: These operands will not be installed by default, unless you explicitly set them in OperandRequests**
 
@@ -177,9 +179,7 @@ Suppose IAM Operator has two CRDs: Apikey and Identity:
                 "name": "iam-identity"
               },
               "spec": {
-                "key": "value",
-                "nested": {
-                  "key": "value"
+                "key": "value"
                 }
               }
             }
@@ -195,7 +195,7 @@ Suppose IAM Operator has two CRDs: Apikey and Identity:
 
 ## OperandRequests Spec
 
-OperandRequests defines which operator/operand want to be installed int the cluster.
+OperandRequests defines which operator/operand want to be installed in the cluster.
 
 * name, the name of the individual operator
 * channel, optional parameter, the subscription channel(version) of the individual operator
@@ -210,8 +210,7 @@ spec:
   services:
   - name: iam
     catalog: common-services
-    catalognamespace: common-services
-    
+    catalognamespace: common-services  
   - name: mongo
     catalog: common-services
     catalognamespace: common-services

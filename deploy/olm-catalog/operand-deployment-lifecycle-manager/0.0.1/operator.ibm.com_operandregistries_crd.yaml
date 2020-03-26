@@ -94,7 +94,7 @@ spec:
           properties:
             operatorsStatus:
               additionalProperties:
-                description: OperatorsStatus defines operators status and the number
+                description: OperatorStatus defines operators status and the number
                   of reconcile request
                 properties:
                   phase:
@@ -122,6 +122,9 @@ spec:
               description: OperatorsStatus defines operators status and the number
                 of reconcile request
               type: object
+            phase:
+              description: Phase describes the overall phase of operators in the OperandRegistry
+              type: string
           type: object
       type: object
   version: v1alpha1

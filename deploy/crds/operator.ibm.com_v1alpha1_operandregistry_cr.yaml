@@ -20,7 +20,7 @@ spec:
     description: The service used to management the license in a kubernetes cluster
   - name: ibm-mongodb-operator
     namespace: ibm-common-services
-    channel: alpha
+    channel: stable-v1
     packageName: ibm-mongodb-operator-app
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
@@ -55,21 +55,21 @@ spec:
     description: The service that services the login page, common header, LDAP, and Team resources pages
   - name: ibm-management-ingress-operator
     namespace: ibm-common-services
-    channel: alpha
+    channel: stable-v1
     packageName: ibm-management-ingress-operator-app
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
     description: Operator for managing deployment of management ingress service.
   - name: ibm-ingress-nginx-operator
     namespace: ibm-common-services
-    channel: alpha
+    channel: stable-v1
     packageName: ibm-ingress-nginx-operator-app
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
     description: Operator for managing deployment of ingress nginx service.
   - name: ibm-auditlogging-operator
     namespace: ibm-common-services
-    channel: alpha
+    channel: stable-v1
     packageName: ibm-auditlogging-operator-app
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
@@ -102,28 +102,21 @@ spec:
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
     description: Operator for managing deployment of Helm repository service.
-  - name: ibm-management-repo-operator
-    namespace: ibm-common-services
-    channel: alpha
-    packageName: ibm-management-repo-operator-app
-    sourceName: opencloud-operators
-    sourceNamespace: openshift-marketplace
-    description: Operator for managing deployment of Management repository service.
   - name: ibm-monitoring-exporters-operator
     namespace: ibm-common-services
-    channel: alpha
+    channel: stable-v1
     packageName: ibm-monitoring-exporters-operator-app
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
     description: Operator to provision node-exporter, kube-state-metrics and collectd exporter with tls enabled.
   - name: ibm-monitoring-prometheusext-operator
     namespace: ibm-common-services
-    channel: alpha
+    channel: stable-v1
     packageName: ibm-monitoring-prometheusext-operator-app
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
     description: Operator to deploy Prometheus and Alertmanager instances with RBAC enabled. It will also enable Multicloud monitoring.
-  - channel: alpha
+  - channel: stable-v1
     description: Operator to deploy Grafana instances with RBAC enabled.
     name: ibm-monitoring-grafana-operator
     namespace: ibm-common-services

@@ -29,7 +29,6 @@ linters:
   enable:
     - deadcode
     - errcheck
-    - goconst
     - gocyclo
     - gofmt
     - goimports

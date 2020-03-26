@@ -164,9 +164,13 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 	}
 
 	// Set default for OperandRequest instance
-	requestInstance.SetDefaultsRequest()
-	err := r.client.Update(context.TODO(), requestInstance)
-	if err != nil {
+	requestInstance.SetDefaultsRequestSpec()
+	if err := r.client.Update(context.TODO(), requestInstance); err != nil {
+		return reconcile.Result{}, err
+	}
+	// Set the default status for OperandRequest instance
+	requestInstance.SetDefaultRequestStatus()
+	if err := r.client.Status().Update(context.TODO(), requestInstance); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -179,25 +183,15 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 
 	// Remove finalizer when DeletionTimestamp none zero
 	if !requestInstance.ObjectMeta.DeletionTimestamp.IsZero() {
-		// Delete all the subscriptions that created by current request
-		for _, req := range requestInstance.Spec.Requests {
-			registryInstance, err := r.getRegistryInstance(req.Registry, req.RegistryNamespace)
-			if err != nil {
-				return reconcile.Result{}, err
-			}
-			configInstance, err := r.getConfigInstance(req.Registry, req.RegistryNamespace)
-			if err != nil {
-				return reconcile.Result{}, err
-			}
-			for _, operand := range req.Operands {
-				if err := r.deleteSubscription(operand.Name, requestInstance, registryInstance, configInstance, request); err != nil {
-					return reconcile.Result{}, err
-				}
-			}
+
+		// Check and clean up the subscriptions
+		err := r.checkFinalizer(requestInstance, request)
+		if err != nil {
+			return reconcile.Result{}, err
 		}
 		// Update finalizer to allow delete CR
 		requestInstance.SetFinalizers(nil)
-		err := r.client.Update(context.TODO(), requestInstance)
+		err = r.client.Update(context.TODO(), requestInstance)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
@@ -209,11 +203,16 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 	}
 
 	// Fetch Subscriptions and check the status of install plan
-	err = r.waitForInstallPlan(requestInstance, request)
+	err := r.waitForInstallPlan(requestInstance, request)
 	if err != nil {
 		if err.Error() == "timed out waiting for the condition" {
 			return reconcile.Result{Requeue: true}, nil
 		}
+		return reconcile.Result{}, err
+	}
+
+	// Update request status after subscription ready
+	if err := r.updateMemberStatus(requestInstance); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -227,10 +226,9 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 	if err := r.updateMemberStatus(requestInstance); err != nil {
 		return reconcile.Result{}, err
 	}
-
 	// Check if all csv deploy successed
 	if requestInstance.Status.Phase != operatorv1alpha1.ClusterPhaseRunning {
-		klog.V(4).Info("Waiting for all the operands deploy successed")
+		klog.V(2).Info("Waiting for all the operands deploy successed")
 		return reconcile.Result{RequeueAfter: 5}, nil
 	}
 
@@ -238,7 +236,7 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 }
 
 func (r *ReconcileOperandRequest) waitForInstallPlan(requestInstance *operatorv1alpha1.OperandRequest, reconcileReq reconcile.Request) error {
-	klog.V(4).Info("Waiting for subscriptions to be ready ...")
+	klog.V(2).Info("Waiting for subscriptions to be ready ...")
 
 	subs := make(map[string]string)
 	err := wait.PollImmediate(time.Second*20, time.Minute*10, func() (bool, error) {
@@ -284,7 +282,7 @@ func (r *ReconcileOperandRequest) waitForInstallPlan(requestInstance *operatorv1
 						subs[found.ObjectMeta.Name] = "Ready"
 					} else {
 						// Subscription existing and not managed by OperandRequest controller
-						klog.V(4).Info("Subscription has created by other user, ignore update/delete it. ", "Subscription.Namespace: ", found.Namespace, "Subscription.Name: ", found.Name)
+						klog.V(3).Info("Subscription has created by other user, ignore update/delete it. ", "Subscription.Namespace: ", found.Namespace, "Subscription.Name: ", found.Name)
 					}
 				}
 			}
@@ -292,7 +290,7 @@ func (r *ReconcileOperandRequest) waitForInstallPlan(requestInstance *operatorv1
 		return ready, nil
 	})
 	for sub, state := range subs {
-		klog.V(3).Info("Subscription: " + sub + ", state: " + state)
+		klog.V(2).Info("Subscription: " + sub + ", state: " + state)
 	}
 	if err != nil {
 		return err
@@ -307,6 +305,35 @@ func (r *ReconcileOperandRequest) addFinalizer(cr *operatorv1alpha1.OperandReque
 		err := r.client.Update(context.TODO(), cr)
 		if err != nil {
 			return err
+		}
+	}
+	return nil
+}
+
+func (r *ReconcileOperandRequest) checkFinalizer(requestInstance *operatorv1alpha1.OperandRequest, request reconcile.Request) error {
+	existingSub, err := r.olmClient.OperatorsV1alpha1().Subscriptions(metav1.NamespaceAll).List(metav1.ListOptions{
+		LabelSelector: "operator.ibm.com/opreq-control",
+	})
+	if err != nil {
+		return err
+	}
+	if len(existingSub.Items) == 0 {
+		return nil
+	}
+	// Delete all the subscriptions that created by current request
+	for _, req := range requestInstance.Spec.Requests {
+		registryInstance, err := r.getRegistryInstance(req.Registry, req.RegistryNamespace)
+		if err != nil {
+			return err
+		}
+		configInstance, err := r.getConfigInstance(req.Registry, req.RegistryNamespace)
+		if err != nil {
+			return err
+		}
+		for _, operand := range req.Operands {
+			if err := r.deleteSubscription(operand.Name, requestInstance, registryInstance, configInstance, request); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

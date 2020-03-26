@@ -19,7 +19,6 @@ package v1alpha1
 import (
 	"time"
 
-	olmv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -95,8 +94,9 @@ const (
 	ConditionCreating ConditionType = "Creating"
 	ConditionUpdating ConditionType = "Updating"
 	ConditionDeleting ConditionType = "Deleting"
+	ConditionNotFound ConditionType = "NotFound"
 
-	ClusterPhaseNone     ClusterPhase = ""
+	ClusterPhaseNone     ClusterPhase = "Pending"
 	ClusterPhaseCreating ClusterPhase = "Creating"
 	ClusterPhaseRunning  ClusterPhase = "Running"
 	ClusterPhaseFailed   ClusterPhase = "Failed"
@@ -149,7 +149,7 @@ type OperandRequestStatus struct {
 type MemberPhase struct {
 	// OperatorPhase show the deploy phase of the operator
 	// +optional
-	OperatorPhase olmv1alpha1.ClusterServiceVersionPhase `json:"operatorPhase,omitempty"`
+	OperatorPhase OperatorPhase `json:"operatorPhase,omitempty"`
 	// OperandPhase show the deploy phase of the operator instance
 	// +optional
 	OperandPhase ServicePhase `json:"operandPhase,omitempty"`
@@ -189,20 +189,26 @@ type OperandRequestList struct {
 }
 
 // SetCreatingCondition creates a new condition status
-func (r *OperandRequest) SetCreatingCondition(name string, rt ResourceType) {
-	c := newCondition(ConditionCreating, corev1.ConditionTrue, "Creating "+string(rt), "Creating "+string(rt)+" "+name)
+func (r *OperandRequest) SetCreatingCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
+	c := newCondition(ConditionCreating, cs, "Creating "+string(rt), "Creating "+string(rt)+" "+name)
 	r.setCondition(*c)
 }
 
 // SetUpdatingCondition updates a condition status
-func (r *OperandRequest) SetUpdatingCondition(name string, rt ResourceType) {
-	c := newCondition(ConditionUpdating, corev1.ConditionTrue, "Updating "+string(rt), "Updating "+string(rt)+" "+name)
+func (r *OperandRequest) SetUpdatingCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
+	c := newCondition(ConditionUpdating, cs, "Updating "+string(rt), "Updating "+string(rt)+" "+name)
 	r.setCondition(*c)
 }
 
 // SetDeletingCondition delete a condition status
-func (r *OperandRequest) SetDeletingCondition(name string, rt ResourceType) {
-	c := newCondition(ConditionDeleting, corev1.ConditionTrue, "Deleting "+string(rt), "Deleting "+string(rt)+" "+name)
+func (r *OperandRequest) SetDeletingCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
+	c := newCondition(ConditionDeleting, cs, "Deleting "+string(rt), "Deleting "+string(rt)+" "+name)
+	r.setCondition(*c)
+}
+
+// SetNotFoundCondition not found resource
+func (r *OperandRequest) SetNotFoundOperatorFromRegistryCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
+	c := newCondition(ConditionNotFound, cs, "Not found "+string(rt), "Not found "+string(rt)+" "+name+" from registry")
 	r.setCondition(*c)
 }
 
@@ -237,7 +243,7 @@ func newCondition(condType ConditionType, status corev1.ConditionStatus, reason,
 }
 
 // SetMemberStatus appends a Member status in the Member status list
-func (r *OperandRequest) SetMemberStatus(name string, operatorPhase olmv1alpha1.ClusterServiceVersionPhase, operandPhase ServicePhase) {
+func (r *OperandRequest) SetMemberStatus(name string, operatorPhase OperatorPhase, operandPhase ServicePhase) {
 	m := newMemberStatus(name, operatorPhase, operandPhase)
 	pos, mp := getMemberStatus(&r.Status, name)
 	if mp != nil {
@@ -269,7 +275,7 @@ func getMemberStatus(status *OperandRequestStatus, name string) (int, *MemberSta
 	return -1, nil
 }
 
-func newMemberStatus(name string, operatorPhase olmv1alpha1.ClusterServiceVersionPhase, operandPhase ServicePhase) MemberStatus {
+func newMemberStatus(name string, operatorPhase OperatorPhase, operandPhase ServicePhase) MemberStatus {
 	return MemberStatus{
 		Name: name,
 		Phase: MemberPhase{
@@ -284,12 +290,65 @@ func (r *OperandRequest) SetClusterPhase(p ClusterPhase) {
 	r.Status.Phase = p
 }
 
-// SetDefaultsRequest Set the default value for Request spec
-func (r *OperandRequest) SetDefaultsRequest() {
+func (r *OperandRequest) UpdateClusterPhase() {
+	clusterStatusStat := struct {
+		creatingNum int
+		runningNum  int
+		failedNum   int
+	}{
+		creatingNum: 0,
+		runningNum:  0,
+		failedNum:   0,
+	}
+
+	for _, m := range r.Status.Members {
+		switch m.Phase.OperatorPhase {
+		case OperatorReady:
+			clusterStatusStat.creatingNum++
+		case OperatorFailed:
+			clusterStatusStat.failedNum++
+		case OperatorRunning:
+			clusterStatusStat.runningNum++
+		default:
+		}
+
+		switch m.Phase.OperandPhase {
+		case ServiceReady:
+			clusterStatusStat.creatingNum++
+		case ServiceRunning:
+			clusterStatusStat.runningNum++
+		case ServiceFailed:
+			clusterStatusStat.failedNum++
+		default:
+		}
+	}
+
+	var clusterPhase ClusterPhase
+	if clusterStatusStat.failedNum > 0 {
+		clusterPhase = ClusterPhaseFailed
+	} else if clusterStatusStat.creatingNum > 0 {
+		clusterPhase = ClusterPhaseCreating
+	} else if clusterStatusStat.runningNum > 0 {
+		clusterPhase = ClusterPhaseRunning
+	} else {
+		clusterPhase = ClusterPhaseNone
+	}
+	r.SetClusterPhase(clusterPhase)
+}
+
+// SetDefaultsRequestSpec Set the default value for Request spec
+func (r *OperandRequest) SetDefaultsRequestSpec() {
 	for i, req := range r.Spec.Requests {
 		if req.RegistryNamespace == "" {
 			r.Spec.Requests[i].RegistryNamespace = r.Namespace
 		}
+	}
+}
+
+// SetDefaultRequestStatus set the default OperandRquest status
+func (r *OperandRequest) SetDefaultRequestStatus() {
+	if r.Status.Phase == "" {
+		r.Status.Phase = ClusterPhaseNone
 	}
 }
 

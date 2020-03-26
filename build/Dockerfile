@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-FROM registry.access.redhat.com/ubi8/ubi-minimal@sha256:39df7365f1343e9a49132f96edd852ddb80e4dcdec03ef8fe1779acb5418d37e
+FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
 ARG VCS_REF
 ARG VCS_URL
 

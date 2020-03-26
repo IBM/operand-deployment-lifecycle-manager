@@ -26,6 +26,11 @@ import (
 )
 
 func (r *ReconcileOperandRequest) updateRegistryStatus(cr *operatorv1alpha1.OperandRegistry, reconcileReq reconcile.Request, optName string, optPhase operatorv1alpha1.OperatorPhase) error {
+	if cr.Status.OperatorsStatus == nil {
+		klog.V(3).Info("Initializing OperandRegistry status")
+		cr.InitRegistryOperatorStatus()
+	}
+
 	klog.V(3).Info("Updating OperandRegistry status")
 
 	cr.SetOperatorStatus(optName, optPhase, reconcileReq)

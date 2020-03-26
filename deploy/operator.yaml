@@ -22,11 +22,11 @@ spec:
       containers:
         - name: operand-deployment-lifecycle-manager
           # Replace this with the built image name
-          image: quay.io/opencloudio/odlm:latest
+          image: quay.io/opencloudio/odlm:1.1.0
           command:
           - odlm
           args:
-          - "-v=3"
+          - "-v=2"
           imagePullPolicy: Always
           env:
             - name: WATCH_NAMESPACE

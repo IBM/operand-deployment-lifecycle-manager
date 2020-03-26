@@ -18,32 +18,79 @@ package operandrequest
 
 import (
 	"context"
+	"strings"
+	"time"
 
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 )
 
-func (r *ReconcileOperandRequest) updateServiceStatus(cr *operatorv1alpha1.OperandConfig, operatorName, serviceName string, serviceStatus operatorv1alpha1.ServicePhase) error {
+func (r *ReconcileOperandRequest) updateServiceStatus(configInstance *operatorv1alpha1.OperandConfig, operatorName, serviceName string, serviceStatus operatorv1alpha1.ServicePhase) error {
+	if configInstance.Status.ServiceStatus == nil {
+		klog.V(3).Info("Initializing OperandConfig status")
+		configInstance.InitConfigServiceStatus()
+	}
+
 	klog.V(3).Info("Updating OperandConfig status")
 
-	cr.Status.ServiceStatus[operatorName].CrStatus[serviceName] = serviceStatus
-	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
+	if err := wait.PollImmediate(time.Second*20, time.Minute*10, func() (done bool, err error) {
+
+		_, ok := configInstance.Status.ServiceStatus[operatorName]
+
+		if !ok {
+			configInstance.Status.ServiceStatus[operatorName] = operatorv1alpha1.CrStatus{}
+		}
+
+		if configInstance.Status.ServiceStatus[operatorName].CrStatus == nil {
+			tmp := configInstance.Status.ServiceStatus[operatorName]
+			tmp.CrStatus = make(map[string]operatorv1alpha1.ServicePhase)
+			configInstance.Status.ServiceStatus[operatorName] = tmp
+		}
+
+		configInstance.Status.ServiceStatus[operatorName].CrStatus[serviceName] = serviceStatus
+		configInstance.UpdateOperandPhase()
+
+		if err := r.client.Status().Update(context.TODO(), configInstance); err != nil {
+			klog.V(3).Info("Waiting for OperandConfig instance status ready ...")
+			configInstance, _ = r.getConfigInstance(configInstance.Name, configInstance.Namespace)
+			return false, nil
+		}
+		return true, nil
+	}); err != nil {
 		return err
 	}
+
 	return nil
 }
 
 func (r *ReconcileOperandRequest) deleteServiceStatus(cr *operatorv1alpha1.OperandConfig, operatorName, serviceName string) error {
 	klog.V(3).Infof("Deleting custom resource %s from OperandConfig status", serviceName)
 
-	configInstance, err := r.getConfigInstance(cr.Name, cr.Namespace)
-	if err != nil {
+	if err := wait.PollImmediate(time.Second*20, time.Minute*10, func() (done bool, err error) {
+		configInstance, err := r.getConfigInstance(cr.Name, cr.Namespace)
+		if err != nil {
+			return false, err
+		}
+		if configInstance.Status.ServiceStatus[operatorName].CrStatus == nil {
+			return true, nil
+		}
+		for name := range configInstance.Status.ServiceStatus[operatorName].CrStatus {
+			if strings.EqualFold(name, serviceName) {
+				delete(configInstance.Status.ServiceStatus[operatorName].CrStatus, name)
+				configInstance.UpdateOperandPhase()
+			}
+		}
+
+		if err := r.client.Status().Update(context.TODO(), configInstance); err != nil {
+			klog.V(3).Info("Waiting for OperandConfig instance status ready ...")
+			return false, nil
+		}
+		return true, nil
+	}); err != nil {
 		return err
 	}
-	delete(configInstance.Status.ServiceStatus[operatorName].CrStatus, serviceName)
-	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
-		return err
-	}
+
 	return nil
 }

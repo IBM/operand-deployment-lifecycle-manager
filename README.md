@@ -1,6 +1,9 @@
+[![Docker Repository on Quay](https://quay.io/repository/opencloudio/odlm/status "Docker Repository on Quay")](https://quay.io/repository/opencloudio/odlm)
+[![License](http://img.shields.io/:license-apache-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
+[![Go Report Card](https://goreportcard.com/badge/github.com/IBM/operand-deployment-lifecycle-manager)](https://goreportcard.com/report/github.com/IBM/operand-deployment-lifecycle-manager)
+[![Code Coverage](https://codecov.io/gh/IBM/operand-deployment-lifecycle-manager/branch/master/graphs/badge.svg?branch=master)](https://codecov.io/gh/IBM/operand-deployment-lifecycle-manager?branch=master)
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
 - [Operand Deployment Lifecycle Manager (ODLM)](#operand-deployment-lifecycle-manager-odlm)
   - [Overview](#overview)
@@ -22,6 +25,14 @@
 ## Overview
 
 Operand Deployment Lifecycle Manager is used to manage the lifecycle of a group of operands. Checkout design document at [here](./docs/design/operand-deployment-lifecycle-manager.md).
+
+Operand Deployment Lifecycle Manager has Three CRDs:
+
+| Resource                 | Short Name | Description                                                                                |
+|--------------------------|------------|--------------------------------------------------------------------------------------------|
+| OperandRequest | opreg | It defines which operator/operand want to be installed in the cluster |
+| OperandRegistry | opcon | It defines the OLM information, like channel and catalog source, for each operator|
+| OperandConfig | opreq | It defines the parameters that should be used to install the operator's operand |
 
 ## Prerequisites
 

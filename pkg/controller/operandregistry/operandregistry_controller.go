@@ -86,7 +86,6 @@ type ReconcileOperandRegistry struct {
 	client   client.Client
 	recorder record.EventRecorder
 	scheme   *runtime.Scheme
-	// olmClient *olmclient.Clientset
 }
 
 // Reconcile reads that state of the cluster for a OperandRegistry object and makes changes based on the state read
@@ -109,7 +108,7 @@ func (r *ReconcileOperandRegistry) Reconcile(request reconcile.Request) (reconci
 	}
 	// Set the default status for OperandRegistry instance
 	instance.InitRegistryStatus()
-	klog.V(2).Info("Initializing OperandRegistry instance status: ", request)
+	klog.V(3).Info("Initializing OperandRegistry instance status: ", request)
 	if err := r.client.Status().Update(context.TODO(), instance); err != nil {
 		return reconcile.Result{}, err
 	}

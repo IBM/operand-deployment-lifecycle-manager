@@ -1,5 +1,3 @@
-#!/bin/bash
-#
 # Copyright 2020 IBM Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,17 +17,16 @@
 # If set to 1, then you need to also set 'DOCKER_USERNAME' and 'DOCKER_PASSWORD'
 # environment variables before build the repo.
 BUILD_LOCALLY ?= 1
-TARGET_GOOS=linux
-TARGET_GOARCH=amd64
 
 # The namespcethat operator will be deployed in
 NAMESPACE=ibm-common-services
 
 # Image URL to use all building/pushing image targets;
-# Use your own docker registry and image name for dev/test by overridding the IMG and REGISTRY environment variable.
-IMG ?= odlm
-REGISTRY ?= quay.io/opencloudio
-CSV_VERSION ?= 0.0.1
+# Use your own docker registry and image name for dev/test by overridding the
+# IMAGE_REPO, IMAGE_NAME and RELEASE_TAG environment variable.
+IMAGE_REPO ?= quay.io/opencloudio
+IMAGE_NAME ?= odlm
+CSV_VERSION ?= 1.1.0
 
 QUAY_USERNAME ?=
 QUAY_PASSWORD ?=
@@ -39,10 +36,9 @@ MARKDOWN_LINT_WHITELIST=https://quay.io/cnr
 TESTARGS_DEFAULT := "-v"
 export TESTARGS ?= $(TESTARGS_DEFAULT)
 VERSION ?= $(shell git describe --exact-match 2> /dev/null || \
-                 git describe --match=$(git rev-parse --short=8 HEAD) --always --dirty --abbrev=8)
+				git describe --match=$(git rev-parse --short=8 HEAD) --always --dirty --abbrev=8)
 
 LOCAL_OS := $(shell uname)
-LOCAL_ARCH := $(shell uname -m)
 ifeq ($(LOCAL_OS),Linux)
     TARGET_OS ?= linux
     XARGS_FLAGS="-r"
@@ -53,6 +49,18 @@ else ifeq ($(LOCAL_OS),Darwin)
 	STRIP_FLAGS="-x"
 else
     $(error "This system's OS $(LOCAL_OS) isn't recognized/supported")
+endif
+
+ARCH := $(shell uname -m)
+LOCAL_ARCH := "amd64"
+ifeq ($(ARCH),x86_64)
+    LOCAL_ARCH="amd64"
+else ifeq ($(ARCH),ppc64le)
+    LOCAL_ARCH="ppc64le"
+else ifeq ($(ARCH),s390x)
+    LOCAL_ARCH="s390x"
+else
+    $(error "This system's ARCH $(ARCH) isn't recognized/supported")
 endif
 
 include common/Makefile.common.mk
@@ -111,7 +119,8 @@ code-dev: ## Run the default dev commands which are the go tidy, fmt, vet then e
 	- make build
 
 run: ## Run against the configured Kubernetes cluster in ~/.kube/config
-	WATCH_NAMESPACE= go run ./cmd/manager/main.go -v=3 --zap-encoder=console
+	@echo ....... Start Operator locally with go run ......
+	WATCH_NAMESPACE= DEPLOY_DIR=${PWD}/deploy/crds go run ./cmd/manager/main.go -v=2 --zap-encoder=console
 
 ifeq ($(BUILD_LOCALLY),0)
     export CONFIG_DOCKER_TARGET = config-docker
@@ -120,44 +129,25 @@ endif
 ##@ Build
 
 build:
-	@echo "Building the odlm binary"
-	@CGO_ENABLED=0 go build -o build/_output/bin/$(IMG) ./cmd/manager
-	@strip $(STRIP_FLAGS) build/_output/bin/$(IMG)
+	@echo "Building the $(IMAGE_NAME) binary for $(LOCAL_ARCH)..."
+	@GOARCH=$(LOCAL_ARCH) common/scripts/gobuild.sh build/_output/bin/$(IMAGE_NAME) ./cmd/manager
+	@strip $(STRIP_FLAGS) build/_output/bin/$(IMAGE_NAME)
 
-build-image: build $(CONFIG_DOCKER_TARGET)
-	$(eval ARCH := $(shell uname -m|sed 's/x86_64/amd64/'))
-	docker build -t $(REGISTRY)/$(IMG)-$(ARCH):$(VERSION) -f build/Dockerfile .
-	@\rm -f build/_output/bin/odlm
-	@if [ $(BUILD_LOCALLY) -ne 1 ] && [ "$(ARCH)" = "amd64" ]; then docker push $(REGISTRY)/$(IMG)-$(ARCH):$(VERSION); fi
+build-push-image: build-image push-image
 
-# runs on amd64 machine
-build-image-ppc64le: $(CONFIG_DOCKER_TARGET)
-ifeq ($(LOCAL_OS),Linux)
-ifeq ($(LOCAL_ARCH),x86_64)
-	GOOS=linux GOARCH=ppc64le CGO_ENABLED=0 go build -o build/_output/bin/odlm-ppc64le ./cmd/manager
-	docker run --rm --privileged multiarch/qemu-user-static:register --reset
-	docker build -t $(REGISTRY)/$(IMG)-ppc64le:$(VERSION) -f build/Dockerfile.ppc64le .
-	@\rm -f build/_output/bin/odlm-ppc64le
-	@if [ $(BUILD_LOCALLY) -ne 1 ]; then docker push $(REGISTRY)/$(IMG)-ppc64le:$(VERSION); fi
-endif
-endif
+build-image: build
+	@echo "Building the $(IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
+	@docker build -t $(IMAGE_REPO)/$(IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) -f build/Dockerfile .
 
-# runs on amd64 machine
-build-image-s390x: $(CONFIG_DOCKER_TARGET)
-ifeq ($(LOCAL_OS),Linux)
-ifeq ($(LOCAL_ARCH),x86_64)
-	GOOS=linux GOARCH=s390x CGO_ENABLED=0 go build -o build/_output/bin/odlm-s390x ./cmd/manager
-	docker run --rm --privileged multiarch/qemu-user-static:register --reset
-	docker build -t $(REGISTRY)/$(IMG)-s390x:$(VERSION) -f build/Dockerfile.s390x .
-	@\rm -f build/_output/bin/odlm-s390x
-	@if [ $(BUILD_LOCALLY) -ne 1 ]; then docker push $(REGISTRY)/$(IMG)-s390x:$(VERSION); fi
-endif
-endif
+push-image: $(CONFIG_DOCKER_TARGET) build-image
+	@echo "Pushing the $(IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
+	@docker push $(IMAGE_REPO)/$(IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION)
 
 ##@ Test
 
 test: ## Run unit test
-	@go test ${TESTARGS} ./pkg/...
+	@echo "Running the tests for $(IMAGE_NAME) on $(LOCAL_ARCH)..."
+	@go test $(TESTARGS) ./pkg/controller/...
 
 test-e2e: ## Run integration e2e tests with different options.
 	@echo ... Running the same e2e tests with different args ...
@@ -167,7 +157,7 @@ test-e2e: ## Run integration e2e tests with different options.
 	# - operator-sdk test local ./test/e2e --namespace=${NAMESPACE}
 
 coverage: ## Run code coverage test
-	@common/scripts/codecov.sh ${BUILD_LOCALLY}
+	@common/scripts/codecov.sh ${BUILD_LOCALLY} "pkg/controller"
 
 scorecard: ## Run scorecard test
 	@echo ... Running the scorecard test
@@ -175,15 +165,8 @@ scorecard: ## Run scorecard test
 
 ##@ Release
 
-images: build-image build-image-ppc64le build-image-s390x
-ifeq ($(LOCAL_OS),Linux)
-ifeq ($(LOCAL_ARCH),x86_64)
-	@curl -L -o /tmp/manifest-tool https://github.com/estesp/manifest-tool/releases/download/v1.0.0/manifest-tool-linux-amd64
-	@chmod +x /tmp/manifest-tool
-	/tmp/manifest-tool push from-args --platforms linux/amd64,linux/ppc64le,linux/s390x --template $(REGISTRY)/$(IMG)-ARCH:$(VERSION) --target $(REGISTRY)/$(IMG) --ignore-missing
-	/tmp/manifest-tool push from-args --platforms linux/amd64,linux/ppc64le,linux/s390x --template $(REGISTRY)/$(IMG)-ARCH:$(VERSION) --target $(REGISTRY)/$(IMG):$(VERSION) --ignore-missing
-endif
-endif
+multiarch-image: $(CONFIG_DOCKER_TARGET)
+	@MAX_PULLING_RETRY=20 RETRY_INTERVAL=30 common/scripts/multiarch_image.sh $(IMAGE_REPO) $(IMAGE_NAME) $(VERSION)
 
 csv: ## Push CSV package to the catalog
 	@RELEASE=${CSV_VERSION} common/scripts/push-csv.sh
@@ -192,7 +175,7 @@ all: check test coverage build images
 
 ##@ Cleanup
 clean: ## Clean build binary
-	rm -f build/_output/bin/$(IMG)
+	rm -f build/_output/bin/$(IMAGE_NAME)
 
 ##@ Help
 help: ## Display this help
@@ -201,4 +184,4 @@ help: ## Display this help
 		/^[a-zA-Z0-9_-]+:.*?##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 } \
 		/^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
-.PHONY: all build run check install uninstall code-dev test test-e2e coverage images csv clean help
+.PHONY: all build run check install uninstall code-dev test test-e2e coverage build multiarch-image csv clean help

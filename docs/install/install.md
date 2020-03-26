@@ -98,6 +98,8 @@ The list of operators you can add:
     - name: ibm-iam-operator
     - name: ibm-monitoring-exporters-operator
     - name: ibm-monitoring-prometheusext-operator
+    - name: ibm-monitoring-grafana-operator
+    - name: prometheus-operator
     - name: ibm-healthcheck-operator
     - name: ibm-management-ingress-operator
     - name: ibm-ingress-nginx-operator
@@ -109,7 +111,6 @@ The list of operators you can add:
     - name: ibm-platform-api-operator
     - name: ibm-helm-api-operator
     - name: ibm-helm-repo-operator
-    - name: ibm-management-repo-operator
 ```
 
 After the `OperandRequest` created, we can click the left navigation tree `Installed Operators` to check if our common services install successfully.

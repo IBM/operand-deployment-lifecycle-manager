@@ -16,7 +16,10 @@
 package operandconfig
 
 import (
+	"context"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	v1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 
@@ -28,13 +31,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-// TestConfigConfig runs ReconcileOperandConfig.Reconcile() against a
+// TestConfigController runs ReconcileOperandConfig.Reconcile() against a
 // fake client that tracks a OperandConfig object.
 func TestConfigController(t *testing.T) {
-
+	assert := assert.New(t)
 	var (
-		name      = "operand-deployment-lifecycle-manager-config"
-		namespace = "common-service"
+		name      = "cs-config"
+		namespace = "ibm-common-service"
 	)
 	// Mock request to simulate Reconcile() being called on an event for a
 	// watched resource .
@@ -81,26 +84,19 @@ func TestConfigController(t *testing.T) {
 	// Create a ReconcileOperandConfig object with the scheme and fake client.
 	r := &ReconcileOperandConfig{client: cl, scheme: s}
 
-	res, err := r.Reconcile(req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
-	}
-	// Check the result of reconciliation to make sure it has the desired state.
-	if res.Requeue {
-		t.Error("reconcile requeue which is not expected")
-	}
+	_, err := r.Reconcile(req)
+	assert.NoError(err)
+
+	err = r.client.Get(context.TODO(), req.NamespacedName, config)
+	assert.NoError(err)
+	// Check the config init status
+	assert.NotNil(config.Status, "init operator status should not be empty")
+	assert.Equal(v1alpha1.ServiceInit, config.Status.Phase, "Overall OperandConfig phase should be 'Ready for Deployment'")
 
 	// Create a fake client to mock instance not found.
 	cl = fake.NewFakeClient()
 	// Create a ReconcileOperandConfig object with the scheme and fake client.
 	r = &ReconcileOperandConfig{client: cl, scheme: s}
-
-	res, err = r.Reconcile(req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
-	}
-	// Check the result of reconciliation to make sure it has the desired state.
-	if res.Requeue {
-		t.Error("reconcile requeue which is not expected")
-	}
+	_, err = r.Reconcile(req)
+	assert.NoError(err)
 }

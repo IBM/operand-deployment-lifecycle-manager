@@ -59,9 +59,6 @@ spec:
   - name: ibm-helm-repo-operator
     spec:
       helmRepo: {}
-  - name: ibm-management-repo-operator
-    spec:
-      managementRepo: {}
   - name: ibm-monitoring-exporters-operator
     spec:
       exporter: {}
