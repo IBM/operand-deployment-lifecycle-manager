@@ -198,7 +198,7 @@ metadata:
                 "sourceNamespace": "openshift-marketplace"
               },
               {
-                "channel": "alpha",
+                "channel": "stable-v1",
                 "description": "The service that services the login page, common header, LDAP, and Team resources pages",
                 "name": "ibm-commonui-operator",
                 "namespace": "ibm-common-services",
