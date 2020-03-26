@@ -171,7 +171,7 @@ metadata:
                 "sourceNamespace": "openshift-marketplace"
               },
               {
-                "channel": "alpha",
+                "channel": "stable-v1",
                 "description": "Operator for managing deployment of cert-manager service.",
                 "name": "ibm-cert-manager-operator",
                 "namespace": "ibm-common-services",
