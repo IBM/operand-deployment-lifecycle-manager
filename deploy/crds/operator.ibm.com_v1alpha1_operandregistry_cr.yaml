@@ -27,7 +27,7 @@ spec:
     description: The service used to create mongodb in a kubernetes cluster
   - name: ibm-cert-manager-operator
     namespace: ibm-common-services
-    channel: alpha
+    channel: stable-v1
     packageName: ibm-cert-manager-operator
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
