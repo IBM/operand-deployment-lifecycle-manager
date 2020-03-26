@@ -5,7 +5,6 @@
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-
 - [Operand Deployment Lifecycle Manager (ODLM)](#operand-deployment-lifecycle-manager-odlm)
   - [Overview](#overview)
   - [Supported platforms](#supported-platforms)
@@ -42,9 +41,9 @@ You can install the Operand Deployment Lifecycle Manager on Linux® x86_64 with 
 
 ## Prerequisites
 
-- [operator-sdk](https://github.com/operator-framework/operator-sdk) version v0.15.1.
-- [go](https://golang.org/dl/) version 1.13.4+
-- [oc](https://docs.okd.io/3.11/cli_reference/get_started_cli.html#cli-reference-get-started-cli) version v3.11+
+- [operator-sdk][operator_sdk] version v0.15.1.
+- [go][go_tool] version 1.13.4+
+- [oc][oc_tool] version v3.11+ or [kubectl][kubectl_tool] v1.11.3+
 - Access to an Openshift v4.2.0+ cluster
 
 ## Documentation
@@ -113,6 +112,6 @@ When the API or CRD changed, run `make code-dev` re-generate the code.
 
 [go_tool]: https://golang.org/dl/
 [kubectl_tool]: https://kubernetes.io/docs/tasks/tools/install-kubectl/
-[oc]: https://docs.okd.io/3.11/cli_reference/get_started_cli.html#cli-reference-get-started-cli
+[oc_tool]: https://docs.okd.io/3.11/cli_reference/get_started_cli.html#cli-reference-get-started-cli
 [operator_sdk]: https://github.com/operator-framework/operator-sdk
 [operator_install]: https://github.com/operator-framework/operator-sdk/blob/master/doc/user/install-operator-sdk.md
