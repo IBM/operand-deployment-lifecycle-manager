@@ -180,7 +180,7 @@ metadata:
                 "sourceNamespace": "openshift-marketplace"
               },
               {
-                "channel": "alpha",
+                "channel": "stable-v1",
                 "description": "Operator for managing deployment of iam service.",
                 "name": "ibm-iam-operator",
                 "namespace": "ibm-common-services",

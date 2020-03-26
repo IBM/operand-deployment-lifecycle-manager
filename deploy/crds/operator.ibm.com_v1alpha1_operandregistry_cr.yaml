@@ -34,7 +34,7 @@ spec:
     description: Operator for managing deployment of cert-manager service.
   - name: ibm-iam-operator
     namespace: ibm-common-services
-    channel: alpha
+    channel: stable-v1
     packageName: ibm-iam-operator
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
