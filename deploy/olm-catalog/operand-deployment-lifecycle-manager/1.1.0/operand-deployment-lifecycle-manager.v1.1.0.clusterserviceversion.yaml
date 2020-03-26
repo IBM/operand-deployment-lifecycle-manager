@@ -6,55 +6,6 @@ metadata:
       [
         {
           "apiVersion": "operator.ibm.com/v1alpha1",
-          "kind": "OperandRequest",
-          "metadata": {
-            "name": "common-service"
-          },
-          "spec": {
-            "requests": [
-              {
-                "operands": [
-                  {
-                    "name": "ibm-cert-manager-operator"
-                  },
-                  {
-                    "name": "ibm-mongodb-operator"
-                  },
-                  {
-                    "name": "ibm-iam-operator"
-                  },
-                  {
-                    "name": "ibm-monitoring-exporters-operator"
-                  },
-                  {
-                    "name": "ibm-monitoring-prometheusext-operator"
-                  },
-                  {
-                    "name": "ibm-monitoring-grafana-operator"
-                  },
-                  {
-                    "name": "ibm-healthcheck-operator"
-                  },
-                  {
-                    "name": "ibm-management-ingress-operator"
-                  },
-                  {
-                    "name": "ibm-licensing-operator"
-                  },
-                  {
-                    "name": "ibm-metering-operator"
-                  },
-                  {
-                    "name": "ibm-commonui-operator"
-                  }
-                ],
-                "registry": "common-service"
-              }
-            ]
-          }
-        },
-        {
-          "apiVersion": "operator.ibm.com/v1alpha1",
           "kind": "OperandConfig",
           "metadata": {
             "name": "common-service"
@@ -142,7 +93,6 @@ metadata:
               {
                 "name": "ibm-platform-api-operator",
                 "spec": {
-                  "passwordRule": {},
                   "platformApi": {}
                 }
               },
@@ -284,7 +234,7 @@ metadata:
                 "sourceNamespace": "openshift-marketplace"
               },
               {
-                "channel": "alpha",
+                "channel": "stable-v1",
                 "description": "Operator for managing deployment of catalog UI service.",
                 "name": "ibm-catalog-ui-operator",
                 "namespace": "ibm-common-services",
@@ -293,7 +243,7 @@ metadata:
                 "sourceNamespace": "openshift-marketplace"
               },
               {
-                "channel": "alpha",
+                "channel": "stable-v1",
                 "description": "Operator for managing deployment of Platform API service.",
                 "name": "ibm-platform-api-operator",
                 "namespace": "ibm-common-services",
@@ -302,7 +252,7 @@ metadata:
                 "sourceNamespace": "openshift-marketplace"
               },
               {
-                "channel": "alpha",
+                "channel": "stable-v1",
                 "description": "Operator for managing deployment of Helm API service.",
                 "name": "ibm-helm-api-operator",
                 "namespace": "ibm-common-services",
@@ -311,7 +261,7 @@ metadata:
                 "sourceNamespace": "openshift-marketplace"
               },
               {
-                "channel": "alpha",
+                "channel": "stable-v1",
                 "description": "Operator for managing deployment of Helm repository service.",
                 "name": "ibm-helm-repo-operator",
                 "namespace": "ibm-common-services",
@@ -348,7 +298,7 @@ metadata:
                 "sourceNamespace": "openshift-marketplace"
               },
               {
-                "channel": "alpha",
+                "channel": "stable-v1",
                 "description": "Operator that installs and manages Elastic Stack logging service instances.",
                 "name": "ibm-elastic-stack-operator",
                 "namespace": "ibm-common-services",
@@ -359,18 +309,67 @@ metadata:
               }
             ]
           }
+        },
+        {
+          "apiVersion": "operator.ibm.com/v1alpha1",
+          "kind": "OperandRequest",
+          "metadata": {
+            "name": "common-service"
+          },
+          "spec": {
+            "requests": [
+              {
+                "operands": [
+                  {
+                    "name": "ibm-cert-manager-operator"
+                  },
+                  {
+                    "name": "ibm-mongodb-operator"
+                  },
+                  {
+                    "name": "ibm-iam-operator"
+                  },
+                  {
+                    "name": "ibm-monitoring-exporters-operator"
+                  },
+                  {
+                    "name": "ibm-monitoring-prometheusext-operator"
+                  },
+                  {
+                    "name": "ibm-monitoring-grafana-operator"
+                  },
+                  {
+                    "name": "ibm-healthcheck-operator"
+                  },
+                  {
+                    "name": "ibm-management-ingress-operator"
+                  },
+                  {
+                    "name": "ibm-licensing-operator"
+                  },
+                  {
+                    "name": "ibm-metering-operator"
+                  },
+                  {
+                    "name": "ibm-commonui-operator"
+                  }
+                ],
+                "registry": "common-service"
+              }
+            ]
+          }
         }
       ]
     capabilities: Basic Install
     categories: Developer Tools, Monitoring, Logging & Tracing, Security
     certified: "false"
     containerImage: quay.io/opencloudio/odlm:latest
-    createdAt: "2020-02-26T16:40:16Z"
+    createdAt: "2020-03-26T11:05:16Z"
     description: The Operand Deployment Lifecycle Manager provides a Kubernetes CRD-Based
       API to manage the lifecycle of IBM cloud common services.
     repository: https://github.com/IBM/operand-deployment-lifecycle-manager
     support: IBM
-  name: operand-deployment-lifecycle-manager.v0.0.1
+  name: operand-deployment-lifecycle-manager.v1.1.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -380,46 +379,6 @@ spec:
       displayName: OperandConfig
       kind: OperandConfig
       name: operandconfigs.operator.ibm.com
-      resources:
-      - kind: Deployment
-        name: ''
-        version: v1
-      - kind: Replicaset
-        name: ''
-        version: v1
-      - kind: Pod
-        name: ''
-        version: v1
-      - kind: Service
-        name: ''
-        version: v1
-      - kind: Configmap
-        name: ''
-        version: v1
-      - kind: Installplan
-        name: ''
-        version: v1alpha1
-      - kind: Catalogsource
-        name: ''
-        version: v1alpha1
-      - kind: Clusterserviceversion
-        name: ''
-        version: v1alpha1
-      - kind: Operatorgroup
-        name: ''
-        version: v1
-      - kind: Subscription
-        name: operators.coreos.com
-        version: v1alpha1
-      - kind: Operandconfig
-        name: ''
-        version: v1alpha1
-      - kind: Operandrequest
-        name: ''
-        version: v1alpha1
-      - kind: Operandregistry
-        name: ''
-        version: v1alpha1
       specDescriptors:
       - description: Services is a list of configuration of service
         displayName: Services
@@ -435,46 +394,6 @@ spec:
       displayName: OperandRegistry
       kind: OperandRegistry
       name: operandregistries.operator.ibm.com
-      resources:
-      - kind: Deployment
-        name: ''
-        version: v1
-      - kind: Replicaset
-        name: ''
-        version: v1
-      - kind: Pod
-        name: ''
-        version: v1
-      - kind: Service
-        name: ''
-        version: v1
-      - kind: Configmap
-        name: ''
-        version: v1
-      - kind: Installplan
-        name: ''
-        version: v1alpha1
-      - kind: Catalogsource
-        name: ''
-        version: v1alpha1
-      - kind: Clusterserviceversion
-        name: ''
-        version: v1alpha1
-      - kind: Operatorgroup
-        name: ''
-        version: v1
-      - kind: Subscription
-        name: operators.coreos.com
-        version: v1alpha1
-      - kind: Operandconfig
-        name: ''
-        version: v1alpha1
-      - kind: Operandrequest
-        name: ''
-        version: v1alpha1
-      - kind: Operandregistry
-        name: ''
-        version: v1alpha1
       specDescriptors:
       - description: Operators is a list of operator OLM definition
         displayName: Operators
@@ -490,49 +409,6 @@ spec:
       displayName: OperandRequest
       kind: OperandRequest
       name: operandrequests.operator.ibm.com
-      resources:
-      - kind: Namespace
-        name: ''
-        version: v1
-      - kind: Deployment
-        name: ''
-        version: v1
-      - kind: Replicaset
-        name: ''
-        version: v1
-      - kind: Pod
-        name: ''
-        version: v1
-      - kind: Service
-        name: ''
-        version: v1
-      - kind: Configmap
-        name: ''
-        version: v1
-      - kind: Installplan
-        name: ''
-        version: v1alpha1
-      - kind: Catalogsource
-        name: ''
-        version: v1alpha1
-      - kind: Clusterserviceversion
-        name: ''
-        version: v1alpha1
-      - kind: Operatorgroup
-        name: ''
-        version: v1
-      - kind: Subscription
-        name: operators.coreos.com
-        version: v1alpha1
-      - kind: Operandconfig
-        name: ''
-        version: v1alpha1
-      - kind: Operandrequest
-        name: ''
-        version: v1alpha1
-      - kind: Operandregistry
-        name: ''
-        version: v1alpha1
       specDescriptors:
       - description: Requests defines a list of operands installation
         displayName: Requests
@@ -769,7 +645,7 @@ spec:
   maintainers:
   - email: supports@ibm.com
     name: IBM Support
-  maturity: alpha
+  maturity: stable
   provider:
     name: IBM
-  version: 0.0.1
+  version: 1.1.0

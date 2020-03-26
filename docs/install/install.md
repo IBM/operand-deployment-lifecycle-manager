@@ -98,6 +98,7 @@ The list of operators you can add:
     - name: ibm-iam-operator
     - name: ibm-monitoring-exporters-operator
     - name: ibm-monitoring-prometheusext-operator
+    - name: ibm-monitoring-grafana-operator
     - name: ibm-healthcheck-operator
     - name: ibm-management-ingress-operator
     - name: ibm-ingress-nginx-operator

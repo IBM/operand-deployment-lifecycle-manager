@@ -7,6 +7,7 @@ require (
 	github.com/deckarep/golang-set v1.7.1
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/google/gofuzz v1.1.0 // indirect
+	github.com/jenkinsci/kubernetes-operator v0.3.3
 	github.com/operator-framework/operator-lifecycle-manager v0.0.0-20191115003340-16619cd27fa5
 	github.com/operator-framework/operator-sdk v0.15.1
 	github.com/spf13/pflag v1.0.5
