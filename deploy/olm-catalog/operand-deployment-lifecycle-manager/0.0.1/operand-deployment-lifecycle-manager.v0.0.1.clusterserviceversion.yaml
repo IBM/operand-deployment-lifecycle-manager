@@ -172,7 +172,7 @@ metadata:
                 "sourceNamespace": "openshift-marketplace"
               },
               {
-                "channel": "alpha",
+                "channel": "stable-v1",
                 "description": "Operator for managing deployment of cert-manager service.",
                 "name": "ibm-cert-manager-operator",
                 "namespace": "ibm-common-services",
@@ -181,7 +181,7 @@ metadata:
                 "sourceNamespace": "openshift-marketplace"
               },
               {
-                "channel": "alpha",
+                "channel": "stable-v1",
                 "description": "Operator for managing deployment of iam service.",
                 "name": "ibm-iam-operator",
                 "namespace": "ibm-common-services",
@@ -199,7 +199,7 @@ metadata:
                 "sourceNamespace": "openshift-marketplace"
               },
               {
-                "channel": "alpha",
+                "channel": "stable-v1",
                 "description": "The service that services the login page, common header, LDAP, and Team resources pages",
                 "name": "ibm-commonui-operator",
                 "namespace": "ibm-common-services",
@@ -235,7 +235,7 @@ metadata:
                 "sourceNamespace": "openshift-marketplace"
               },
               {
-                "channel": "alpha",
+                "channel": "stable-v1",
                 "description": "Operator for managing deployment of catalog UI service.",
                 "name": "ibm-catalog-ui-operator",
                 "namespace": "ibm-common-services",
@@ -244,7 +244,7 @@ metadata:
                 "sourceNamespace": "openshift-marketplace"
               },
               {
-                "channel": "alpha",
+                "channel": "stable-v1",
                 "description": "Operator for managing deployment of Platform API service.",
                 "name": "ibm-platform-api-operator",
                 "namespace": "ibm-common-services",
@@ -253,7 +253,7 @@ metadata:
                 "sourceNamespace": "openshift-marketplace"
               },
               {
-                "channel": "alpha",
+                "channel": "stable-v1",
                 "description": "Operator for managing deployment of Helm API service.",
                 "name": "ibm-helm-api-operator",
                 "namespace": "ibm-common-services",
@@ -262,7 +262,7 @@ metadata:
                 "sourceNamespace": "openshift-marketplace"
               },
               {
-                "channel": "alpha",
+                "channel": "stable-v1",
                 "description": "Operator for managing deployment of Helm repository service.",
                 "name": "ibm-helm-repo-operator",
                 "namespace": "ibm-common-services",
@@ -299,7 +299,7 @@ metadata:
                 "sourceNamespace": "openshift-marketplace"
               },
               {
-                "channel": "alpha",
+                "channel": "stable-v1",
                 "description": "Operator that installs and manages Elastic Stack logging service instances.",
                 "name": "ibm-elastic-stack-operator",
                 "namespace": "ibm-common-services",
