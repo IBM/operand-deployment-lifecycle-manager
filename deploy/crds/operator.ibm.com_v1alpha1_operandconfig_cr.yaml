@@ -51,7 +51,6 @@ spec:
       catalogUI: {}
   - name: ibm-platform-api-operator
     spec:
-      passwordRule: {}
       platformApi: {}
   - name: ibm-helm-api-operator
     spec:

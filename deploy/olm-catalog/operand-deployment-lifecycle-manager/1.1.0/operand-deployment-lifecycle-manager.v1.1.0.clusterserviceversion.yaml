@@ -93,7 +93,6 @@ metadata:
               {
                 "name": "ibm-platform-api-operator",
                 "spec": {
-                  "passwordRule": {},
                   "platformApi": {}
                 }
               },
@@ -235,7 +234,7 @@ metadata:
                 "sourceNamespace": "openshift-marketplace"
               },
               {
-                "channel": "alpha",
+                "channel": "stable-v1",
                 "description": "Operator for managing deployment of catalog UI service.",
                 "name": "ibm-catalog-ui-operator",
                 "namespace": "ibm-common-services",
@@ -244,7 +243,7 @@ metadata:
                 "sourceNamespace": "openshift-marketplace"
               },
               {
-                "channel": "alpha",
+                "channel": "stable-v1",
                 "description": "Operator for managing deployment of Platform API service.",
                 "name": "ibm-platform-api-operator",
                 "namespace": "ibm-common-services",
@@ -253,7 +252,7 @@ metadata:
                 "sourceNamespace": "openshift-marketplace"
               },
               {
-                "channel": "alpha",
+                "channel": "stable-v1",
                 "description": "Operator for managing deployment of Helm API service.",
                 "name": "ibm-helm-api-operator",
                 "namespace": "ibm-common-services",
@@ -262,7 +261,7 @@ metadata:
                 "sourceNamespace": "openshift-marketplace"
               },
               {
-                "channel": "alpha",
+                "channel": "stable-v1",
                 "description": "Operator for managing deployment of Helm repository service.",
                 "name": "ibm-helm-repo-operator",
                 "namespace": "ibm-common-services",
