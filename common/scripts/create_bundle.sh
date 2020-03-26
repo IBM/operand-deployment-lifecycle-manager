@@ -29,7 +29,7 @@ else
 fi
 
 cp -p deploy/olm-catalog/operand-deployment-lifecycle-manager/operand-deployment-lifecycle-manager.package.yaml bundle/
-cp -p deploy/olm-catalog/operand-deployment-lifecycle-manager/0.0.1/*.yaml bundle/
+cp -p deploy/olm-catalog/operand-deployment-lifecycle-manager/"$1"/*.yaml bundle/
 
 cd bundle || exit
 zip operand-deployment-lifecycle-manager ./*.yaml 

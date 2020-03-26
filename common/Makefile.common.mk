@@ -74,6 +74,6 @@ code-gen:
 	operator-sdk generate csv --csv-version ${CSV_VERSION} --update-crds
 
 bundle:
-	@common/scripts/create_bundle.sh
+	@common/scripts/create_bundle.sh ${CSV_VERSION}
 
 .PHONY: code-vet code-fmt code-tidy code-gen csv-gen lint-copyright-banner lint-go lint-all config-docker install-operator-sdk bundle
