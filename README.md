@@ -5,15 +5,18 @@
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
+
 - [Operand Deployment Lifecycle Manager (ODLM)](#operand-deployment-lifecycle-manager-odlm)
   - [Overview](#overview)
+  - [Supported platforms](#supported-platforms)
   - [Prerequisites](#prerequisites)
-  - [Common Service Onboarding](#common-service-onboarding)
-  - [Getting Started](#getting-started)
-    - [Cloning the repository](#cloning-the-repository)
-    - [Building the operator](#building-the-operator)
-    - [Installing](#installing)
-    - [Uninstalling](#uninstalling)
+  - [Documentation](#documentation)
+  - [Developer guide](#developer-guide)
+    - [Getting Started](#getting-started)
+      - [Cloning the repository](#cloning-the-repository)
+      - [Building the operator](#building-the-operator)
+      - [Installing](#installing)
+      - [Uninstalling](#uninstalling)
     - [Troubleshooting](#troubleshooting)
     - [Running Tests](#running-tests)
     - [Development](#development)
@@ -30,25 +33,30 @@ Operand Deployment Lifecycle Manager has Three CRDs:
 
 | Resource                 | Short Name | Description                                                                                |
 |--------------------------|------------|--------------------------------------------------------------------------------------------|
-| OperandRequest | opreg | It defines which operator/operand want to be installed in the cluster |
-| OperandRegistry | opcon | It defines the OLM information, like channel and catalog source, for each operator|
-| OperandConfig | opreq | It defines the parameters that should be used to install the operator's operand |
+| OperandRequest | opreq | It defines which operator/operand want to be installed in the cluster |
+| OperandRegistry | opreg | It defines the OLM information, like channel and catalog source, for each operator|
+| OperandConfig | opcon | It defines the parameters that should be used to install the operator's operand |
+
+## Supported platforms
+
+You can install the Operand Deployment Lifecycle Manager on Linux® x86_64 with Red Hat® OpenShift® Container Platform version 4.2, or 4.3.
 
 ## Prerequisites
 
-- [go][go_tool] version v1.13+.
-- [docker][docker_tool] version 17.03+
-- [kubectl][kubectl_tool] v1.11.3+
-- [operator-sdk][operator_install]
-- Access to a Kubernetes v1.11.3+ cluster
+- [operator-sdk](https://github.com/operator-framework/operator-sdk) version v0.15.1.
+- [go](https://golang.org/dl/) version 1.13.4+
+- [oc](https://docs.okd.io/3.11/cli_reference/get_started_cli.html#cli-reference-get-started-cli) version v3.11+
+- Access to an Openshift v4.2.0+ cluster
 
-## Common Service Onboarding
+## Documentation
 
-- [common-service-onboarding](./docs/install/common-service-integration.md)
+For installation and configuration, see [IBM Knowledge Center link](https://www.ibm.com/support/knowledgecenter/en/SSHKN6/installer/landing_installer.html).
 
-## Getting Started
+## Developer guide
 
-### Cloning the repository
+### Getting Started
+
+#### Cloning the repository
 
 Checkout this Operand Deployment Lifecycle Manager repository
 
@@ -57,15 +65,16 @@ Checkout this Operand Deployment Lifecycle Manager repository
 # cd operand-deployment-lifecycle-manager
 ```
 
-### Building the operator
+#### Building the operator
 
 Build the odlm image and push it to a public registry, such as quay.io:
 
 ```console
+# make build
 # make images
 ```
 
-### Installing
+#### Installing
 
 Run `make install` to install the operator. Check that the operator is running in the cluster, also check that the common service was deployed.
 
@@ -83,7 +92,7 @@ NAME                                                 DESIRED   CURRENT   READY  
 replicaset.apps/operand-deployment-lifecycle-manager-786d699956   1         1         1       22s
 ```
 
-### Uninstalling
+#### Uninstalling
 
 To uninstall all that was performed in the above step run `make uninstall`.
 
@@ -107,6 +116,6 @@ When the API or CRD changed, run `make code-dev` re-generate the code.
 
 [go_tool]: https://golang.org/dl/
 [kubectl_tool]: https://kubernetes.io/docs/tasks/tools/install-kubectl/
-[docker_tool]: https://docs.docker.com/install/
+[oc]: https://docs.okd.io/3.11/cli_reference/get_started_cli.html#cli-reference-get-started-cli
 [operator_sdk]: https://github.com/operator-framework/operator-sdk
 [operator_install]: https://github.com/operator-framework/operator-sdk/blob/master/doc/user/install-operator-sdk.md
