@@ -41,7 +41,7 @@ spec:
     description: Operator for managing deployment of iam service.
   - name: ibm-healthcheck-operator
     namespace: ibm-common-services
-    channel: alpha
+    channel: stable-v1
     packageName: ibm-healthcheck-operator-app
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
