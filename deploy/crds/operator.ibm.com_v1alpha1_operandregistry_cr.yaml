@@ -6,7 +6,7 @@ spec:
   operators:
   - name: ibm-metering-operator
     namespace: ibm-common-services
-    channel: stable-v3
+    channel: stable-v1
     packageName: ibm-metering-operator-app
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
