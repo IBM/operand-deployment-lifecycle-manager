@@ -131,7 +131,7 @@ spec:
     scope: private
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
-  - channel: alpha
+  - channel: stable-v1
     description: Operator that installs and manages Elastic Stack logging service instances. 
     name: ibm-elastic-stack-operator
     namespace: ibm-common-services
