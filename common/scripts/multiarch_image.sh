@@ -23,7 +23,7 @@ ALL_PLATFORMS="amd64 ppc64le s390x"
 
 IMAGE_REPO=${1}
 IMAGE_NAME=${2}
-VERSION=${3-"$(date +v%Y%m%d)-$(git describe --tags --always --dirty)"}
+VERSION=${3-"$(git describe --exact-match 2> /dev/null || git describe --match=$(git rev-parse --short=8 HEAD) --always --dirty --abbrev=8)"}
 
 MAX_PULLING_RETRY=${MAX_PULLING_RETRY-10}
 RETRY_INTERVAL=${RETRY_INTERVAL-10}
