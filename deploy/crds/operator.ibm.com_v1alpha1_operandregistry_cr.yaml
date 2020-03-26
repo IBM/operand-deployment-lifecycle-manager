@@ -13,7 +13,7 @@ spec:
     description: The service used to meter workloads in a kubernetes cluster
   - name: ibm-licensing-operator
     namespace: ibm-common-services
-    channel: alpha
+    channel: stable-v1
     packageName: ibm-licensing-operator-app
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
