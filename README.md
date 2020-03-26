@@ -12,11 +12,10 @@
   - [Prerequisites](#prerequisites)
   - [Documentation](#documentation)
   - [Developer guide](#developer-guide)
-    - [Getting Started](#getting-started)
-      - [Cloning the repository](#cloning-the-repository)
-      - [Building the operator](#building-the-operator)
-      - [Installing](#installing)
-      - [Uninstalling](#uninstalling)
+    - [Cloning the repository](#cloning-the-repository)
+    - [Building the operator](#building-the-operator)
+    - [Installing](#installing)
+    - [Uninstalling](#uninstalling)
     - [Troubleshooting](#troubleshooting)
     - [Running Tests](#running-tests)
     - [Development](#development)
@@ -39,7 +38,7 @@ Operand Deployment Lifecycle Manager has Three CRDs:
 
 ## Supported platforms
 
-You can install the Operand Deployment Lifecycle Manager on Linux® x86_64 with Red Hat® OpenShift® Container Platform version 4.2, or 4.3.
+You can install the Operand Deployment Lifecycle Manager on Linux® x86_64 with Red Hat® OpenShift® Container Platform version 4.2 or 4.3.
 
 ## Prerequisites
 
@@ -54,9 +53,7 @@ For installation and configuration, see [IBM Knowledge Center link](https://www.
 
 ## Developer guide
 
-### Getting Started
-
-#### Cloning the repository
+### Cloning the repository
 
 Checkout this Operand Deployment Lifecycle Manager repository
 
@@ -65,7 +62,7 @@ Checkout this Operand Deployment Lifecycle Manager repository
 # cd operand-deployment-lifecycle-manager
 ```
 
-#### Building the operator
+### Building the operator
 
 Build the odlm image and push it to a public registry, such as quay.io:
 
@@ -74,7 +71,7 @@ Build the odlm image and push it to a public registry, such as quay.io:
 # make images
 ```
 
-#### Installing
+### Installing
 
 Run `make install` to install the operator. Check that the operator is running in the cluster, also check that the common service was deployed.
 
@@ -92,7 +89,7 @@ NAME                                                 DESIRED   CURRENT   READY  
 replicaset.apps/operand-deployment-lifecycle-manager-786d699956   1         1         1       22s
 ```
 
-#### Uninstalling
+### Uninstalling
 
 To uninstall all that was performed in the above step run `make uninstall`.
 
