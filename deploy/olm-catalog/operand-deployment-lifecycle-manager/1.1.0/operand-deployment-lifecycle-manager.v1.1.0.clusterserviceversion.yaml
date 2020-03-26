@@ -1,0 +1,563 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "operator.ibm.com/v1alpha1",
+          "kind": "OperandConfig",
+          "metadata": {
+            "name": "common-service"
+          },
+          "spec": {
+            "services": [
+              {
+                "name": "ibm-metering-operator",
+                "spec": {
+                  "metering": {},
+                  "meteringUI": {}
+                }
+              },
+              {
+                "name": "ibm-licensing-operator",
+                "spec": {
+                  "IBMLicensing": {}
+                }
+              },
+              {
+                "name": "ibm-mongodb-operator",
+                "spec": {
+                  "mongoDB": {}
+                }
+              },
+              {
+                "name": "ibm-cert-manager-operator",
+                "spec": {
+                  "certManager": {},
+                  "certificate": {},
+                  "clusterIssuer": {},
+                  "issuer": {}
+                }
+              },
+              {
+                "name": "ibm-iam-operator",
+                "spec": {
+                  "authentication": {},
+                  "oidcclientwatcher": {},
+                  "pap": {},
+                  "policycontroller": {},
+                  "policydecision": {},
+                  "secretwatcher": {},
+                  "securityonboarding": {}
+                }
+              },
+              {
+                "name": "ibm-healthcheck-operator",
+                "spec": {
+                  "healthService": {}
+                }
+              },
+              {
+                "name": "ibm-commonui-operator",
+                "spec": {
+                  "commonWebUI": {},
+                  "legacyHeader": {},
+                  "navconfiguration": {}
+                }
+              },
+              {
+                "name": "ibm-management-ingress-operator",
+                "spec": {
+                  "managementIngress": {}
+                }
+              },
+              {
+                "name": "ibm-ingress-nginx-operator",
+                "spec": {
+                  "nginxIngress": {}
+                }
+              },
+              {
+                "name": "ibm-auditlogging-operator",
+                "spec": {
+                  "auditLogging": {}
+                }
+              },
+              {
+                "name": "ibm-catalog-ui-operator",
+                "spec": {
+                  "catalogUI": {}
+                }
+              },
+              {
+                "name": "ibm-platform-api-operator",
+                "spec": {
+                  "passwordRule": {},
+                  "platformApi": {}
+                }
+              },
+              {
+                "name": "ibm-helm-api-operator",
+                "spec": {
+                  "helmApi": {}
+                }
+              },
+              {
+                "name": "ibm-helm-repo-operator",
+                "spec": {
+                  "helmRepo": {}
+                }
+              },
+              {
+                "name": "ibm-monitoring-exporters-operator",
+                "spec": {
+                  "exporter": {}
+                }
+              },
+              {
+                "name": "ibm-monitoring-prometheusext-operator",
+                "spec": {
+                  "prometheusExt": {}
+                }
+              },
+              {
+                "name": "ibm-monitoring-grafana-operator",
+                "spec": {
+                  "grafana": {}
+                }
+              },
+              {
+                "name": "ibm-elastic-stack-operator",
+                "spec": {
+                  "elasticStack": {}
+                }
+              }
+            ]
+          }
+        },
+        {
+          "apiVersion": "operator.ibm.com/v1alpha1",
+          "kind": "OperandRegistry",
+          "metadata": {
+            "name": "common-service"
+          },
+          "spec": {
+            "operators": [
+              {
+                "channel": "alpha",
+                "description": "The service used to meter workloads in a kubernetes cluster",
+                "name": "ibm-metering-operator",
+                "namespace": "ibm-common-services",
+                "packageName": "ibm-metering-operator-app",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace"
+              },
+              {
+                "channel": "alpha",
+                "description": "The service used to management the license in a kubernetes cluster",
+                "name": "ibm-licensing-operator",
+                "namespace": "ibm-common-services",
+                "packageName": "ibm-licensing-operator-app",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace"
+              },
+              {
+                "channel": "stable-v1",
+                "description": "The service used to create mongodb in a kubernetes cluster",
+                "name": "ibm-mongodb-operator",
+                "namespace": "ibm-common-services",
+                "packageName": "ibm-mongodb-operator-app",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace"
+              },
+              {
+                "channel": "alpha",
+                "description": "Operator for managing deployment of cert-manager service.",
+                "name": "ibm-cert-manager-operator",
+                "namespace": "ibm-common-services",
+                "packageName": "ibm-cert-manager-operator",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace"
+              },
+              {
+                "channel": "alpha",
+                "description": "Operator for managing deployment of iam service.",
+                "name": "ibm-iam-operator",
+                "namespace": "ibm-common-services",
+                "packageName": "ibm-iam-operator",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace"
+              },
+              {
+                "channel": "alpha",
+                "description": "Operator for managing deployment of health check service.",
+                "name": "ibm-healthcheck-operator",
+                "namespace": "ibm-common-services",
+                "packageName": "ibm-healthcheck-operator-app",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace"
+              },
+              {
+                "channel": "alpha",
+                "description": "The service that services the login page, common header, LDAP, and Team resources pages",
+                "name": "ibm-commonui-operator",
+                "namespace": "ibm-common-services",
+                "packageName": "ibm-commonui-operator-app",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace"
+              },
+              {
+                "channel": "stable-v1",
+                "description": "Operator for managing deployment of management ingress service.",
+                "name": "ibm-management-ingress-operator",
+                "namespace": "ibm-common-services",
+                "packageName": "ibm-management-ingress-operator-app",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace"
+              },
+              {
+                "channel": "stable-v1",
+                "description": "Operator for managing deployment of ingress nginx service.",
+                "name": "ibm-ingress-nginx-operator",
+                "namespace": "ibm-common-services",
+                "packageName": "ibm-ingress-nginx-operator-app",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace"
+              },
+              {
+                "channel": "stable-v1",
+                "description": "Operator for managing deployment of auditlogging service.",
+                "name": "ibm-auditlogging-operator",
+                "namespace": "ibm-common-services",
+                "packageName": "ibm-auditlogging-operator-app",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace"
+              },
+              {
+                "channel": "alpha",
+                "description": "Operator for managing deployment of catalog UI service.",
+                "name": "ibm-catalog-ui-operator",
+                "namespace": "ibm-common-services",
+                "packageName": "ibm-catalog-ui-operator-app",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace"
+              },
+              {
+                "channel": "alpha",
+                "description": "Operator for managing deployment of Platform API service.",
+                "name": "ibm-platform-api-operator",
+                "namespace": "ibm-common-services",
+                "packageName": "ibm-platform-api-operator-app",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace"
+              },
+              {
+                "channel": "alpha",
+                "description": "Operator for managing deployment of Helm API service.",
+                "name": "ibm-helm-api-operator",
+                "namespace": "ibm-common-services",
+                "packageName": "ibm-helm-api-operator-app",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace"
+              },
+              {
+                "channel": "alpha",
+                "description": "Operator for managing deployment of Helm repository service.",
+                "name": "ibm-helm-repo-operator",
+                "namespace": "ibm-common-services",
+                "packageName": "ibm-helm-repo-operator-app",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace"
+              },
+              {
+                "channel": "stable-v1",
+                "description": "Operator to provision node-exporter, kube-state-metrics and collectd exporter with tls enabled.",
+                "name": "ibm-monitoring-exporters-operator",
+                "namespace": "ibm-common-services",
+                "packageName": "ibm-monitoring-exporters-operator-app",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace"
+              },
+              {
+                "channel": "stable-v1",
+                "description": "Operator to deploy Prometheus and Alertmanager instances with RBAC enabled. It will also enable Multicloud monitoring.",
+                "name": "ibm-monitoring-prometheusext-operator",
+                "namespace": "ibm-common-services",
+                "packageName": "ibm-monitoring-prometheusext-operator-app",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace"
+              },
+              {
+                "channel": "stable-v1",
+                "description": "Operator to deploy Grafana instances with RBAC enabled.",
+                "name": "ibm-monitoring-grafana-operator",
+                "namespace": "ibm-common-services",
+                "packageName": "ibm-monitoring-grafana-operator-app",
+                "scope": "private",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace"
+              },
+              {
+                "channel": "alpha",
+                "description": "Operator that installs and manages Elastic Stack logging service instances.",
+                "name": "ibm-elastic-stack-operator",
+                "namespace": "ibm-common-services",
+                "packageName": "ibm-elastic-stack-operator-app",
+                "scope": "private",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace"
+              },
+              {
+                "channel": "beta",
+                "description": "Manage the full lifecycle of configuring and managing Prometheus and Alertmanager servers.",
+                "name": "prometheus-operator",
+                "namespace": "ibm-common-services",
+                "packageName": "prometheus-operator-app",
+                "scope": "private",
+                "sourceName": "opencloud-operators",
+                "sourceNamespace": "openshift-marketplace"
+              }
+            ]
+          }
+        },
+        {
+          "apiVersion": "operator.ibm.com/v1alpha1",
+          "kind": "OperandRequest",
+          "metadata": {
+            "name": "common-service"
+          },
+          "spec": {
+            "requests": [
+              {
+                "operands": [
+                  {
+                    "name": "ibm-cert-manager-operator"
+                  },
+                  {
+                    "name": "ibm-mongodb-operator"
+                  },
+                  {
+                    "name": "ibm-iam-operator"
+                  },
+                  {
+                    "name": "ibm-monitoring-exporters-operator"
+                  },
+                  {
+                    "name": "ibm-monitoring-prometheusext-operator"
+                  },
+                  {
+                    "name": "ibm-monitoring-grafana-operator"
+                  },
+                  {
+                    "name": "prometheus-operator"
+                  },
+                  {
+                    "name": "ibm-healthcheck-operator"
+                  },
+                  {
+                    "name": "ibm-management-ingress-operator"
+                  },
+                  {
+                    "name": "ibm-licensing-operator"
+                  },
+                  {
+                    "name": "ibm-metering-operator"
+                  },
+                  {
+                    "name": "ibm-commonui-operator"
+                  }
+                ],
+                "registry": "common-service"
+              }
+            ]
+          }
+        }
+      ]
+    capabilities: Basic Install
+  name: operand-deployment-lifecycle-manager.v1.1.0
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: OperandConfig is the Schema for the operandconfigs API
+      displayName: OperandConfig
+      kind: OperandConfig
+      name: operandconfigs.operator.ibm.com
+      specDescriptors:
+      - description: Services is a list of configuration of service
+        displayName: Services
+        path: services
+      statusDescriptors:
+      - description: Phase describes the overall phase of operands in the OperandConfig
+        displayName: Phase
+        path: phase
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes.phase
+      version: v1alpha1
+    - description: OperandRegistry is the Schema for the operandregistries API
+      displayName: OperandRegistry
+      kind: OperandRegistry
+      name: operandregistries.operator.ibm.com
+      specDescriptors:
+      - description: Operators is a list of operator OLM definition
+        displayName: Operators
+        path: operators
+      statusDescriptors:
+      - description: Phase describes the overall phase of operators in the OperandRegistry
+        displayName: Phase
+        path: phase
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes.phase
+      version: v1alpha1
+    - description: OperandRequest is the Schema for the operandrequests API
+      displayName: OperandRequest
+      kind: OperandRequest
+      name: operandrequests.operator.ibm.com
+      specDescriptors:
+      - description: Requests defines a list of operands installation
+        displayName: Requests
+        path: requests
+      statusDescriptors:
+      - description: Conditions represents the current state of the Request Service
+        displayName: Conditions
+        path: conditions
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes.conditions
+      - description: Phase is the cluster running phase
+        displayName: Phase
+        path: phase
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes.phase
+      version: v1alpha1
+  description: Placeholder description
+  displayName: Operand Deployment Lifecycle Manager
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - pods
+          - services
+          - services/finalizers
+          - endpoints
+          - persistentvolumeclaims
+          - events
+          - configmaps
+          - secrets
+          - namespaces
+          verbs:
+          - '*'
+        - apiGroups:
+          - apps
+          resources:
+          - deployments
+          - daemonsets
+          - replicasets
+          - statefulsets
+          verbs:
+          - '*'
+        - apiGroups:
+          - apps
+          resourceNames:
+          - operand-deployment-lifecycle-manager
+          resources:
+          - deployments/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - ""
+          resources:
+          - pods
+          verbs:
+          - get
+          - list
+        - apiGroups:
+          - apps
+          resources:
+          - replicasets
+          - deployments
+          verbs:
+          - get
+        - apiGroups:
+          - operator.ibm.com
+          - operators.coreos.com
+          resources:
+          - '*'
+          - operandregistries
+          - operandconfigs
+          - operandrequests
+          verbs:
+          - '*'
+        - apiGroups:
+          - '*'
+          resources:
+          - '*'
+          verbs:
+          - '*'
+        - nonResourceURLs:
+          - '*'
+          verbs:
+          - '*'
+        serviceAccountName: operand-deployment-lifecycle-manager
+      deployments:
+      - name: operand-deployment-lifecycle-manager
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              name: operand-deployment-lifecycle-manager
+          strategy: {}
+          template:
+            metadata:
+              annotations:
+                productID: 068a62892a1e4db39641342e592daa25
+                productMetric: FREE
+                productName: IBM Cloud Platform Common Services
+                productVersion: 3.3.0
+              labels:
+                app.kubernetes.io/instance: operand-deployment-lifecycle-manager
+                name: operand-deployment-lifecycle-manager
+            spec:
+              containers:
+              - args:
+                - -v=2
+                command:
+                - odlm
+                env:
+                - name: WATCH_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.annotations['olm.targetNamespaces']
+                - name: POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+                - name: POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                - name: OPERATOR_NAME
+                  value: operand-deployment-lifecycle-manager
+                image: quay.io/opencloudio/odlm:1.1.0
+                imagePullPolicy: Always
+                name: operand-deployment-lifecycle-manager
+                resources: {}
+              serviceAccountName: operand-deployment-lifecycle-manager
+    strategy: deployment
+  installModes:
+  - supported: true
+    type: OwnNamespace
+  - supported: true
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  maturity: alpha
+  provider: {}
+  replaces: operand-deployment-lifecycle-manager.v0.0.1
+  version: 1.1.0
