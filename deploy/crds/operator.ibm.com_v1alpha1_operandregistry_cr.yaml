@@ -132,3 +132,4 @@ spec:
     scope: private
     sourceName: opencloud-operators
     sourceNamespace: openshift-marketplace
+
