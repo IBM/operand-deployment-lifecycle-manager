@@ -49,7 +49,7 @@ You can install the Operand Deployment Lifecycle Manager on Linux® x86_64 with 
 ## Documentation
 
 <!-- For installation and configuration, see [IBM Knowledge Center link](https://www.ibm.com/support/knowledgecenter/en/SSHKN6/installer/landing_installer.html). -->
-- [installation](./doc/install/install.md)
+- [installation](./docs/install/install.md)
 - [design](./docs/design/operand-deployment-lifecycle-manager.md)
 
 ## Developer guide
