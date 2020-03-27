@@ -40,6 +40,9 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1a
 	for _, req := range requestInstance.Spec.Requests {
 		registryInstance, err := r.getRegistryInstance(req.Registry, req.RegistryNamespace)
 		if err != nil {
+			if errors.IsNotFound(err) {
+				r.recorder.Eventf(requestInstance, corev1.EventTypeWarning, "NotFound", "NotFound OperandRegistry %s from the namespace %s", req.Registry, req.RegistryNamespace)
+			}
 			return err
 		}
 		for _, operand := range req.Operands {

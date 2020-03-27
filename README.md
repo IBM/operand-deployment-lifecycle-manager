@@ -7,9 +7,10 @@
 
 - [Operand Deployment Lifecycle Manager (ODLM)](#operand-deployment-lifecycle-manager-odlm)
   - [Overview](#overview)
+  - [Supported platforms](#supported-platforms)
   - [Prerequisites](#prerequisites)
-  - [Common Service Onboarding](#common-service-onboarding)
-  - [Getting Started](#getting-started)
+  - [Documentation](#documentation)
+  - [Developer guide](#developer-guide)
     - [Cloning the repository](#cloning-the-repository)
     - [Building the operator](#building-the-operator)
     - [Installing](#installing)
@@ -30,23 +31,28 @@ Operand Deployment Lifecycle Manager has Three CRDs:
 
 | Resource                 | Short Name | Description                                                                                |
 |--------------------------|------------|--------------------------------------------------------------------------------------------|
-| OperandRequest | opreg | It defines which operator/operand want to be installed in the cluster |
-| OperandRegistry | opcon | It defines the OLM information, like channel and catalog source, for each operator|
-| OperandConfig | opreq | It defines the parameters that should be used to install the operator's operand |
+| OperandRequest | opreq | It defines which operator/operand want to be installed in the cluster |
+| OperandRegistry | opreg | It defines the OLM information, like channel and catalog source, for each operator|
+| OperandConfig | opcon | It defines the parameters that should be used to install the operator's operand |
+
+## Supported platforms
+
+You can install the Operand Deployment Lifecycle Manager on Linux® x86_64 with Red Hat® OpenShift® Container Platform version 4.2 or 4.3.
 
 ## Prerequisites
 
-- [go][go_tool] version v1.13+.
-- [docker][docker_tool] version 17.03+
-- [kubectl][kubectl_tool] v1.11.3+
-- [operator-sdk][operator_install]
-- Access to a Kubernetes v1.11.3+ cluster
+- [operator-sdk][operator_sdk] version v0.15.1.
+- [go][go_tool] version 1.13.4+
+- [oc][oc_tool] version v3.11+ or [kubectl][kubectl_tool] v1.11.3+
+- Access to an Openshift v4.2.0+ cluster
 
-## Common Service Onboarding
+## Documentation
 
-- [common-service-onboarding](./docs/install/common-service-integration.md)
+<!-- For installation and configuration, see [IBM Knowledge Center link](https://www.ibm.com/support/knowledgecenter/en/SSHKN6/installer/landing_installer.html). -->
+- [installation](./docs/install/install.md)
+- [design](./docs/design/operand-deployment-lifecycle-manager.md)
 
-## Getting Started
+## Developer guide
 
 ### Cloning the repository
 
@@ -62,6 +68,7 @@ Checkout this Operand Deployment Lifecycle Manager repository
 Build the odlm image and push it to a public registry, such as quay.io:
 
 ```console
+# make build
 # make images
 ```
 
@@ -107,6 +114,6 @@ When the API or CRD changed, run `make code-dev` re-generate the code.
 
 [go_tool]: https://golang.org/dl/
 [kubectl_tool]: https://kubernetes.io/docs/tasks/tools/install-kubectl/
-[docker_tool]: https://docs.docker.com/install/
+[oc_tool]: https://docs.okd.io/3.11/cli_reference/get_started_cli.html#cli-reference-get-started-cli
 [operator_sdk]: https://github.com/operator-framework/operator-sdk
 [operator_install]: https://github.com/operator-framework/operator-sdk/blob/master/doc/user/install-operator-sdk.md

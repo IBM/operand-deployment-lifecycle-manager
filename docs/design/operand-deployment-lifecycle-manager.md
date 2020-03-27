@@ -23,9 +23,9 @@ The ODLM will have Three CRDs:
 
 | Resource                 | Short Name | Description                                                                                |
 |--------------------------|------------|--------------------------------------------------------------------------------------------|
-| OperandRequest | opreg | It defines which operator/operand want to be installed in the cluster |
-| OperandRegistry | opcon | It defines the OLM information, like channel and catalog source, for each operator |
-| OperandConfig | opreq | It defines the parameters that should be used to install the operator's operand |
+| OperandRequest | opreq | It defines which operator/operand want to be installed in the cluster |
+| OperandRegistry | opreg | It defines the OLM information, like channel and catalog source, for each operator |
+| OperandConfig | opcon | It defines the parameters that should be used to install the operator's operand |
 
 ## Goal
 
