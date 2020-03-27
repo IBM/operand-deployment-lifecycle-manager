@@ -426,7 +426,7 @@ spec:
         - urn:alm:descriptor:io.kubernetes.phase
       version: v1alpha1
   description: "Operand is the instance that is managed by the operator. Operand Deployment Lifecycle Manager (ODLM) is used to manage the lifecycle of a group of operands. Compared with operator lifecycle manager (OLM), ODLM focuses on the management of operands but not the operators. \n\n - A single entrypoint
-    to manage a group of operands\n - User can select a set of operands to install\n1
+    to manage a group of operands\n - User can select a set of operands to install\n
     - The install can be invoked either through the OCP UI or CLI\n\n# Use ODLM to manage
     Operators and Operands\n\nThe ODLM has three CRDs:\n\n* **OperandRegistry** that
     defines the individual operand deployment info.\n* **OperandConfigs** that defines the
