@@ -365,8 +365,8 @@ metadata:
     certified: "false"
     containerImage: quay.io/opencloudio/odlm:latest
     createdAt: "2020-03-26T11:05:16Z"
-    description: The Operand Deployment Lifecycle Manager provides a Kubernetes CRD-Based
-      API to manage the lifecycle of IBM cloud common services.
+    description: The Operand Deployment Lifecycle Manager provides a Kubernetes CRD-based
+      API to manage the lifecycle of IBM Cloud Platform common services.
     repository: https://github.com/IBM/operand-deployment-lifecycle-manager
     support: IBM
   name: operand-deployment-lifecycle-manager.v1.1.0
@@ -425,21 +425,18 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.phase
       version: v1alpha1
-  description: "Operand is the instance managed by the operator. ODLM is used to manage
-    the lifecycle of for a group of operands, compared with operator lifecycle manager,
-    ODLM focus on the management of operands but not operators.\n\n1. A single entrypoint
-    to manage a group of operands\n1. User can select a set of operands to install\n1.
-    The install can be invoked through either OCP UI or CLI\n\n# Use ODLM to manage
-    Operators and Operands\n\nThe ODLM will have Three CRDs:\n\n* OperandRegistry,
-    defines the individual operand deployment info\n* OperandConfigs, defines the
-    individual operand deployment config\n* OperandRequests, defines which operator/operand
-    want to be installed in the cluster\n\n**NOTE:** The ODLM managed operator subscriptions
-    will have a label **\"operator.ibm.com/opreq-control\": \"true\"**, we use this
+  description: "Operand is the instance that is managed by the operator. Operand Deployment Lifecycle Manager (ODLM) is used to manage the lifecycle of a group of operands. Compared with operator lifecycle manager (OLM), ODLM focuses on the management of operands but not the operators. \n\n - A single entrypoint
+    to manage a group of operands\n - User can select a set of operands to install\n1
+    - The install can be invoked either through the OCP UI or CLI\n\n# Use ODLM to manage
+    Operators and Operands\n\nThe ODLM has three CRDs:\n\n* **OperandRegistry** that
+    defines the individual operand deployment info.\n* **OperandConfigs** that defines the
+    individual operand deployment config\n* **OperandRequests** that defines which operator/operand
+    you want to install in the cluster\n\n**NOTE:** The ODLM-managed operator subscriptions have a label **\"operator.ibm.com/opreq-control\": \"true\"**. We use this
     label to distinguish if an operator is managed by ODLM or not.\n\n## OperandRegistry\n\nOperandRegistry
-    defines the individual dervice state. For example, an individual service should
-    be present or absent.\n\n**NOTE:** When ODLM operator is deployed, it will generate
-    a default OperandRegistry instance. You can edit it by your requirement. \n\nAn
-    example of the OperandRegistry CR is shown below. The \"name\" parameter must
+    defines the individual service state. For example, an individual service should
+    be present or absent.\n\n**NOTE:** When the ODLM operator is deployed, it generates
+    a default OperandRegistry instance. You can edit the instance as required. \n\nFollowing is an
+    example of the OperandRegistry CR: \n\n **NOTE:**The \"name\" parameter must
     be unique for each entry.\n\n```yaml\napiVersion: odlm.ibm.com/v1alpha1\nkind:
     OperandRegistry\nmetadata:\n  name: common-service [1]\n  namespace: ibm-common-services
     [2]\nspec:\n  operators:\n  - name: ibm-metering-operator [3]\n    namespace:
@@ -448,33 +445,32 @@ spec:
     [8]\n    description: The service used to meter workloads in a kubernetes cluster
     [9]\n```\n\nThe Operand (Deployment) Registry Custom Resource (CR) lists OLM Operator
     information for operands that may be requested for installation and/or access
-    by an application running in a namespace.  The registry CR specifies:\n\n1. Name
+    by an application that runs in a namespace.  The registry CR specifies:\n\n1. Name
     of the OperandRegistry\n1. Namespace of the OperandRegistry\n1. **name** is the
     name of the operator, which should be the same as the services name in the OperandConfig
-    and OperandRequest.\n1. **namespace** is the namespace the operator will be deployed
-    in.\n1. **channel** is the name of OLM channel should be subscribed for the operator.\n1.
-    **packageName** is the name of the package in CatalogSource should be subscribed
+    and OperandRequest.\n1. **namespace** is the namespace where the operator will be deployed.\n1. **channel** is the name of OLM channel that is subscribed for the operator.\n1.
+    **packageName** is the name of the package in CatalogSource that is subscribed
     for the operator.\n1. **sourceName** is the name of the CatalogSource.\n1. **sourceNamespace**
-    is the namespaces of the CatalogSource.\n1. **description** is used to add a detailed
-    description for service.\n\n\n## OperandConfig\n\nOperandConfig defines the individual
+    is the namespace of the CatalogSource.\n1. **description** is used to add a detailed
+    description of a  service.\n\n\n## OperandConfig\n\nOperandConfig defines the individual
     operand deployment configuration.\nThe Operand Config Custom Resource (CR) defines
-    the parameters for each operator listed in the above Registry that should be used
-    to install the operator's operand by specifying an installation CR.\n\n**NOTE:**
-    When ODLM operator is deployed, it will generate a default OperandConfig instance.
-    You can edit it by your requirement. \n\n\n```yaml\napiVersion: operator.ibm.com/v1alpha1\nKind:
+    the parameters for each operator that is listed in the OperandRegistry that should be used
+    to install the operator instance by specifying an installation CR.\n\n**NOTE:**
+    When ODLM operator is deployed, it generates a default OperandConfig instance.
+    You can edit the instance as required. \n\n\n```yaml\napiVersion: operator.ibm.com/v1alpha1\nKind:
     OperandConfigs\nmetadata:\n  name: common-service [1]\n  namespace: ibm-common-services
     [2]\nspec:\n  services:\n  # suppose metering has three CRDs\n  - name: ibm-metering-operator
     [3]\n    spec: [4]\n      reader:\n        key: value\n        nested:\n          key:
     value\n      server:\n        key: value\n        nested:\n          key: value\n
     \     dataManager:\n        key: value\n        nested:\n          key: value\n
-    \ ...\n```\n\nOperandConfigs defines the individual operand deployment config:\n\n1.
+    \ ...\n```\n\nOperandConfig defines the individual operand deployment config:\n\n1.
     Name of the OperandConfig\n1. Namespace of the OperandConfig\n1. **name** is the
     name of the operator, which should be the same as the services name in the OperandRegistry
     and OperandRequest.\n1. **spec** defines a map. Its key is the kind name of the
-    custom resource. Its value will be merged to the spec field of custom resource.
-    For more details you can check the below topic *How does ODLM create the individual
+    custom resource. Its value is merged to the spec field of custom resource.
+    For more details, you can check the following topic *How does ODLM create the individual
     operator CR?*\n\n### How does ODLM create the individual operator CR?\n\nSuppose
-    IAM Operator has two CRDs: Apikey and Identity:\n\n- The OperandConfigs CR has\n```yaml\n-
+    IAM Operator has two CRDs: Apikey and Identity:\n\n- The OperandConfig CR has\n```yaml\n-
     name: iam\n  spec:\n    apikey:\n      key: value\n      nested:\n        key:
     value\n    identity:\n      key: value\n```\n\n- The IAM Operator CSV has\n```yaml\napiVersion:
     operators.coreos.com/v1alpha1\nkind: ClusterServiceVersion\nmetadata:\n  annotations:\n
@@ -486,24 +482,24 @@ spec:
     \         \"kind\": \"Identity\",\n          \"metadata\": {\n            \"name\":
     \"iam-identity\"\n          },\n          \"spec\": {\n            \"key\": \"value\",\n
     \           \"nested\": {\n              \"key\": \"value\"\n            }\n          }\n
-    \       }\n      ]\n```\n\n- The ODLM will deep merge the OperandConfigs CR spec
+    \       }\n      ]\n```\n\n- The ODLM will deep merge the OperandConfig CR spec
     and IAM Operator CSV alm-examples to create the IAM CR.\n\n- For day2 operations,
-    the ODLM will patch the OperandConfigs CR spec to the existing IAM CR.\n\nUsually
-    the user should update the individual operator CR for day2 operations, but OperandConfigs
-    still provide the ability for individual operator/operand day2 operation.\n\n\n##
-    OperandRequest\n\nOperandRequest defines which operator/operand want to be installed
-    in the cluster.\n\n**NOTE:** OperandRequest custom resource is used trigger a
+    the ODLM will patch the OperandConfigs CR spec to the existing IAM CR.\n\nTypically,
+    users update the individual operator CR for day2 operations, but OperandConfig
+    still provides the ability for individual operator/operand day2 operation.\n\n\n##
+    OperandRequest\n\nOperandRequest defines which operator/operand you want to install
+    in the cluster.\n\n**NOTE:** OperandRequest custom resource is used to trigger a
     deployment for Operators and Operands. \n\n```yaml\napiVersion: operator.ibm.com/v1alpha1\nKind:
     OperandRequest\nmetadata:\n  name: common-service [1]\n  namespace: ibm-common-services
     [2]\nspec:\n  requests:\n  - registry: common-service [3]\n    registryNamespace:
     ibm-common-services [4]\n    operands: [5]\n    - name: ibm-metering-operator
     [6]\n```\n\n1. Name of the OperandRequest\n1. Namespace of the OperandRequest\n1.
-    **registry** identifies the name of the name of the OperandRegistry CR from which
+    **registry** identifies the name of the OperandRegistry CR from which
     this operand deployment is being requested.\n1. **registryNamespace** identifies
     the namespace in which the catalog CR is defined. **Note:** If the catalog name
     and namespace are not specified then it is assumed that the Request (1) is for
     a catalog in the current (requester's) namespace and (2) that only one catalog
-    exists in the namespace.\n1. **operands** in the CR is a list of `operand`. \n1.
+    exists in the namespace.\n1. **operands** in the CR is a list of `operands`. \n1.
     **name** of **operands** in the CR must match a name specification in an OperandRegistry's
     CR.\n"
   displayName: Operand Deployment Lifecycle Manager
