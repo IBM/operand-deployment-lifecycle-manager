@@ -3,7 +3,56 @@ kind: ClusterServiceVersion
 metadata:
   annotations:
     alm-examples: |-
-      [
+      [ 
+        {
+          "apiVersion": "operator.ibm.com/v1alpha1",
+          "kind": "OperandRequest",
+          "metadata": {
+            "name": "common-service"
+          },
+          "spec": {
+            "requests": [
+              {
+                "operands": [
+                  {
+                    "name": "ibm-cert-manager-operator"
+                  },
+                  {
+                    "name": "ibm-mongodb-operator"
+                  },
+                  {
+                    "name": "ibm-iam-operator"
+                  },
+                  {
+                    "name": "ibm-monitoring-exporters-operator"
+                  },
+                  {
+                    "name": "ibm-monitoring-prometheusext-operator"
+                  },
+                  {
+                    "name": "ibm-monitoring-grafana-operator"
+                  },
+                  {
+                    "name": "ibm-healthcheck-operator"
+                  },
+                  {
+                    "name": "ibm-management-ingress-operator"
+                  },
+                  {
+                    "name": "ibm-licensing-operator"
+                  },
+                  {
+                    "name": "ibm-metering-operator"
+                  },
+                  {
+                    "name": "ibm-commonui-operator"
+                  }
+                ],
+                "registry": "common-service"
+              }
+            ]
+          }
+        },
         {
           "apiVersion": "operator.ibm.com/v1alpha1",
           "kind": "OperandConfig",
@@ -309,55 +358,6 @@ metadata:
               }
             ]
           }
-        },
-        {
-          "apiVersion": "operator.ibm.com/v1alpha1",
-          "kind": "OperandRequest",
-          "metadata": {
-            "name": "common-service"
-          },
-          "spec": {
-            "requests": [
-              {
-                "operands": [
-                  {
-                    "name": "ibm-cert-manager-operator"
-                  },
-                  {
-                    "name": "ibm-mongodb-operator"
-                  },
-                  {
-                    "name": "ibm-iam-operator"
-                  },
-                  {
-                    "name": "ibm-monitoring-exporters-operator"
-                  },
-                  {
-                    "name": "ibm-monitoring-prometheusext-operator"
-                  },
-                  {
-                    "name": "ibm-monitoring-grafana-operator"
-                  },
-                  {
-                    "name": "ibm-healthcheck-operator"
-                  },
-                  {
-                    "name": "ibm-management-ingress-operator"
-                  },
-                  {
-                    "name": "ibm-licensing-operator"
-                  },
-                  {
-                    "name": "ibm-metering-operator"
-                  },
-                  {
-                    "name": "ibm-commonui-operator"
-                  }
-                ],
-                "registry": "common-service"
-              }
-            ]
-          }
         }
       ]
     capabilities: Basic Install
@@ -379,6 +379,46 @@ spec:
       displayName: OperandConfig
       kind: OperandConfig
       name: operandconfigs.operator.ibm.com
+      resources:
+      - kind: Deployment
+        name: ''
+        version: v1
+      - kind: Replicaset
+        name: ''
+        version: v1
+      - kind: Pod
+        name: ''
+        version: v1
+      - kind: Service
+        name: ''
+        version: v1
+      - kind: Configmap
+        name: ''
+        version: v1
+      - kind: Installplan
+        name: ''
+        version: v1alpha1
+      - kind: Catalogsource
+        name: ''
+        version: v1alpha1
+      - kind: Clusterserviceversion
+        name: ''
+        version: v1alpha1
+      - kind: Operatorgroup
+        name: ''
+        version: v1
+      - kind: Subscription
+        name: operators.coreos.com
+        version: v1alpha1
+      - kind: Operandconfig
+        name: ''
+        version: v1alpha1
+      - kind: Operandrequest
+        name: ''
+        version: v1alpha1
+      - kind: Operandregistry
+        name: ''
+        version: v1alpha1
       specDescriptors:
       - description: Services is a list of configuration of service
         displayName: Services
@@ -394,6 +434,46 @@ spec:
       displayName: OperandRegistry
       kind: OperandRegistry
       name: operandregistries.operator.ibm.com
+      resources:
+      - kind: Deployment
+        name: ''
+        version: v1
+      - kind: Replicaset
+        name: ''
+        version: v1
+      - kind: Pod
+        name: ''
+        version: v1
+      - kind: Service
+        name: ''
+        version: v1
+      - kind: Configmap
+        name: ''
+        version: v1
+      - kind: Installplan
+        name: ''
+        version: v1alpha1
+      - kind: Catalogsource
+        name: ''
+        version: v1alpha1
+      - kind: Clusterserviceversion
+        name: ''
+        version: v1alpha1
+      - kind: Operatorgroup
+        name: ''
+        version: v1
+      - kind: Subscription
+        name: operators.coreos.com
+        version: v1alpha1
+      - kind: Operandconfig
+        name: ''
+        version: v1alpha1
+      - kind: Operandrequest
+        name: ''
+        version: v1alpha1
+      - kind: Operandregistry
+        name: ''
+        version: v1alpha1
       specDescriptors:
       - description: Operators is a list of operator OLM definition
         displayName: Operators
@@ -409,6 +489,49 @@ spec:
       displayName: OperandRequest
       kind: OperandRequest
       name: operandrequests.operator.ibm.com
+      resources:
+      - kind: Namespace
+        name: ''
+        version: v1
+      - kind: Deployment
+        name: ''
+        version: v1
+      - kind: Replicaset
+        name: ''
+        version: v1
+      - kind: Pod
+        name: ''
+        version: v1
+      - kind: Service
+        name: ''
+        version: v1
+      - kind: Configmap
+        name: ''
+        version: v1
+      - kind: Installplan
+        name: ''
+        version: v1alpha1
+      - kind: Catalogsource
+        name: ''
+        version: v1alpha1
+      - kind: Clusterserviceversion
+        name: ''
+        version: v1alpha1
+      - kind: Operatorgroup
+        name: ''
+        version: v1
+      - kind: Subscription
+        name: operators.coreos.com
+        version: v1alpha1
+      - kind: Operandconfig
+        name: ''
+        version: v1alpha1
+      - kind: Operandrequest
+        name: ''
+        version: v1alpha1
+      - kind: Operandregistry
+        name: ''
+        version: v1alpha1
       specDescriptors:
       - description: Requests defines a list of operands installation
         displayName: Requests

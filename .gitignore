@@ -9,6 +9,7 @@ build/_test
 build/_generate
 .vscode
 env
+bundle
 # Test binary, built with `go test -c`
 *.test
 
