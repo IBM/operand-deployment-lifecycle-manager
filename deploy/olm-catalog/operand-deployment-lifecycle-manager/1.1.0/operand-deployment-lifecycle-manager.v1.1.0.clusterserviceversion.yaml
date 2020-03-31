@@ -3,56 +3,7 @@ kind: ClusterServiceVersion
 metadata:
   annotations:
     alm-examples: |-
-      [ 
-        {
-          "apiVersion": "operator.ibm.com/v1alpha1",
-          "kind": "OperandRequest",
-          "metadata": {
-            "name": "common-service"
-          },
-          "spec": {
-            "requests": [
-              {
-                "operands": [
-                  {
-                    "name": "ibm-cert-manager-operator"
-                  },
-                  {
-                    "name": "ibm-mongodb-operator"
-                  },
-                  {
-                    "name": "ibm-iam-operator"
-                  },
-                  {
-                    "name": "ibm-monitoring-exporters-operator"
-                  },
-                  {
-                    "name": "ibm-monitoring-prometheusext-operator"
-                  },
-                  {
-                    "name": "ibm-monitoring-grafana-operator"
-                  },
-                  {
-                    "name": "ibm-healthcheck-operator"
-                  },
-                  {
-                    "name": "ibm-management-ingress-operator"
-                  },
-                  {
-                    "name": "ibm-licensing-operator"
-                  },
-                  {
-                    "name": "ibm-metering-operator"
-                  },
-                  {
-                    "name": "ibm-commonui-operator"
-                  }
-                ],
-                "registry": "common-service"
-              }
-            ]
-          }
-        },
+      [
         {
           "apiVersion": "operator.ibm.com/v1alpha1",
           "kind": "OperandConfig",
@@ -358,6 +309,55 @@ metadata:
               }
             ]
           }
+        },
+        {
+          "apiVersion": "operator.ibm.com/v1alpha1",
+          "kind": "OperandRequest",
+          "metadata": {
+            "name": "common-service"
+          },
+          "spec": {
+            "requests": [
+              {
+                "operands": [
+                  {
+                    "name": "ibm-cert-manager-operator"
+                  },
+                  {
+                    "name": "ibm-mongodb-operator"
+                  },
+                  {
+                    "name": "ibm-iam-operator"
+                  },
+                  {
+                    "name": "ibm-monitoring-exporters-operator"
+                  },
+                  {
+                    "name": "ibm-monitoring-prometheusext-operator"
+                  },
+                  {
+                    "name": "ibm-monitoring-grafana-operator"
+                  },
+                  {
+                    "name": "ibm-healthcheck-operator"
+                  },
+                  {
+                    "name": "ibm-management-ingress-operator"
+                  },
+                  {
+                    "name": "ibm-licensing-operator"
+                  },
+                  {
+                    "name": "ibm-metering-operator"
+                  },
+                  {
+                    "name": "ibm-commonui-operator"
+                  }
+                ],
+                "registry": "common-service"
+              }
+            ]
+          }
         }
       ]
     capabilities: Basic Install
@@ -380,44 +380,44 @@ spec:
       kind: OperandConfig
       name: operandconfigs.operator.ibm.com
       resources:
-      - kind: Deployment
-        name: ''
-        version: v1
-      - kind: Replicaset
-        name: ''
-        version: v1
-      - kind: Pod
-        name: ''
-        version: v1
-      - kind: Service
-        name: ''
-        version: v1
-      - kind: Configmap
-        name: ''
-        version: v1
-      - kind: Installplan
-        name: ''
-        version: v1alpha1
       - kind: Catalogsource
-        name: ''
+        name: ""
         version: v1alpha1
       - kind: Clusterserviceversion
-        name: ''
+        name: ""
         version: v1alpha1
-      - kind: Operatorgroup
-        name: ''
+      - kind: Configmap
+        name: ""
         version: v1
-      - kind: Subscription
-        name: operators.coreos.com
+      - kind: Deployment
+        name: ""
+        version: v1
+      - kind: Installplan
+        name: ""
         version: v1alpha1
       - kind: Operandconfig
-        name: ''
-        version: v1alpha1
-      - kind: Operandrequest
-        name: ''
+        name: ""
         version: v1alpha1
       - kind: Operandregistry
-        name: ''
+        name: ""
+        version: v1alpha1
+      - kind: Operandrequest
+        name: ""
+        version: v1alpha1
+      - kind: Operatorgroup
+        name: ""
+        version: v1
+      - kind: Pod
+        name: ""
+        version: v1
+      - kind: ReplicaSet
+        name: ""
+        version: v1
+      - kind: Service
+        name: ""
+        version: v1
+      - kind: Subscription
+        name: ""
         version: v1alpha1
       specDescriptors:
       - description: Services is a list of configuration of service
@@ -435,44 +435,44 @@ spec:
       kind: OperandRegistry
       name: operandregistries.operator.ibm.com
       resources:
-      - kind: Deployment
-        name: ''
-        version: v1
-      - kind: Replicaset
-        name: ''
-        version: v1
-      - kind: Pod
-        name: ''
-        version: v1
-      - kind: Service
-        name: ''
-        version: v1
-      - kind: Configmap
-        name: ''
-        version: v1
-      - kind: Installplan
-        name: ''
-        version: v1alpha1
       - kind: Catalogsource
-        name: ''
+        name: ""
         version: v1alpha1
       - kind: Clusterserviceversion
-        name: ''
+        name: ""
         version: v1alpha1
-      - kind: Operatorgroup
-        name: ''
+      - kind: Configmap
+        name: ""
         version: v1
-      - kind: Subscription
-        name: operators.coreos.com
+      - kind: Deployment
+        name: ""
+        version: v1
+      - kind: Installplan
+        name: ""
         version: v1alpha1
       - kind: Operandconfig
-        name: ''
-        version: v1alpha1
-      - kind: Operandrequest
-        name: ''
+        name: ""
         version: v1alpha1
       - kind: Operandregistry
-        name: ''
+        name: ""
+        version: v1alpha1
+      - kind: Operandrequest
+        name: ""
+        version: v1alpha1
+      - kind: Operatorgroup
+        name: ""
+        version: v1
+      - kind: Pod
+        name: ""
+        version: v1
+      - kind: ReplicaSet
+        name: ""
+        version: v1
+      - kind: Service
+        name: ""
+        version: v1
+      - kind: Subscription
+        name: ""
         version: v1alpha1
       specDescriptors:
       - description: Operators is a list of operator OLM definition
@@ -490,47 +490,47 @@ spec:
       kind: OperandRequest
       name: operandrequests.operator.ibm.com
       resources:
-      - kind: Namespace
-        name: ''
-        version: v1
-      - kind: Deployment
-        name: ''
-        version: v1
-      - kind: Replicaset
-        name: ''
-        version: v1
-      - kind: Pod
-        name: ''
-        version: v1
-      - kind: Service
-        name: ''
-        version: v1
-      - kind: Configmap
-        name: ''
-        version: v1
-      - kind: Installplan
-        name: ''
-        version: v1alpha1
       - kind: Catalogsource
-        name: ''
+        name: ""
         version: v1alpha1
       - kind: Clusterserviceversion
-        name: ''
+        name: ""
         version: v1alpha1
-      - kind: Operatorgroup
-        name: ''
+      - kind: Configmap
+        name: ""
         version: v1
-      - kind: Subscription
-        name: operators.coreos.com
+      - kind: Deployment
+        name: ""
+        version: v1
+      - kind: Installplan
+        name: ""
         version: v1alpha1
+      - kind: Namespace
+        name: ""
+        version: v1
       - kind: Operandconfig
-        name: ''
-        version: v1alpha1
-      - kind: Operandrequest
-        name: ''
+        name: ""
         version: v1alpha1
       - kind: Operandregistry
-        name: ''
+        name: ""
+        version: v1alpha1
+      - kind: Operandrequest
+        name: ""
+        version: v1alpha1
+      - kind: Operatorgroup
+        name: ""
+        version: v1
+      - kind: Pod
+        name: ""
+        version: v1
+      - kind: ReplicaSet
+        name: ""
+        version: v1
+      - kind: Service
+        name: ""
+        version: v1
+      - kind: Subscription
+        name: ""
         version: v1alpha1
       specDescriptors:
       - description: Requests defines a list of operands installation
@@ -548,39 +548,44 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.phase
       version: v1alpha1
-  description: "Operand is the instance that is managed by the operator. Operand Deployment Lifecycle Manager (ODLM) is used to manage the lifecycle of a group of operands. Compared with operator lifecycle manager (OLM), ODLM focuses on the management of operands but not the operators. \n\n - A single entrypoint
-    to manage a group of operands\n - User can select a set of operands to install\n
-    - The install can be invoked either through the OCP UI or CLI\n\n# Use ODLM to manage
-    Operators and Operands\n\nThe ODLM has three CRDs:\n\n* **OperandRegistry** that
-    defines the individual operand deployment info.\n* **OperandConfigs** that defines the
-    individual operand deployment config\n* **OperandRequests** that defines which operator/operand
-    you want to install in the cluster\n\n**NOTE:** The ODLM-managed operator subscriptions have a label **\"operator.ibm.com/opreq-control\": \"true\"**. We use this
-    label to distinguish if an operator is managed by ODLM or not.\n\n## OperandRegistry\n\nOperandRegistry
-    defines the individual service state. For example, an individual service should
-    be present or absent.\n\n**NOTE:** When the ODLM operator is deployed, it generates
-    a default OperandRegistry instance. You can edit the instance as required. \n\nFollowing is an
-    example of the OperandRegistry CR: \n\n **NOTE:**The \"name\" parameter must
-    be unique for each entry.\n\n```yaml\napiVersion: odlm.ibm.com/v1alpha1\nkind:
-    OperandRegistry\nmetadata:\n  name: common-service [1]\n  namespace: ibm-common-services
-    [2]\nspec:\n  operators:\n  - name: ibm-metering-operator [3]\n    namespace:
-    ibm-common-services [4]\n    channel: alpha [5]\n    packageName: ibm-metering-operator-app
-    [6]\n    sourceName: opencloud-operators [7]\n    sourceNamespace: openshift-marketplace
-    [8]\n    description: The service used to meter workloads in a kubernetes cluster
-    [9]\n```\n\nThe Operand (Deployment) Registry Custom Resource (CR) lists OLM Operator
-    information for operands that may be requested for installation and/or access
-    by an application that runs in a namespace.  The registry CR specifies:\n\n1. Name
-    of the OperandRegistry\n1. Namespace of the OperandRegistry\n1. **name** is the
-    name of the operator, which should be the same as the services name in the OperandConfig
-    and OperandRequest.\n1. **namespace** is the namespace where the operator will be deployed.\n1. **channel** is the name of OLM channel that is subscribed for the operator.\n1.
-    **packageName** is the name of the package in CatalogSource that is subscribed
-    for the operator.\n1. **sourceName** is the name of the CatalogSource.\n1. **sourceNamespace**
-    is the namespace of the CatalogSource.\n1. **description** is used to add a detailed
-    description of a  service.\n\n\n## OperandConfig\n\nOperandConfig defines the individual
-    operand deployment configuration.\nThe Operand Config Custom Resource (CR) defines
-    the parameters for each operator that is listed in the OperandRegistry that should be used
-    to install the operator instance by specifying an installation CR.\n\n**NOTE:**
-    When ODLM operator is deployed, it generates a default OperandConfig instance.
-    You can edit the instance as required. \n\n\n```yaml\napiVersion: operator.ibm.com/v1alpha1\nKind:
+  description: "Operand is the instance that is managed by the operator. Operand Deployment
+    Lifecycle Manager (ODLM) is used to manage the lifecycle of a group of operands.
+    Compared with operator lifecycle manager (OLM), ODLM focuses on the management
+    of operands but not the operators. \n\n - A single entrypoint to manage a group
+    of operands\n - User can select a set of operands to install\n - The install can
+    be invoked either through the OCP UI or CLI\n\n# Use ODLM to manage Operators
+    and Operands\n\nThe ODLM has three CRDs:\n\n* **OperandRegistry** that defines
+    the individual operand deployment info.\n* **OperandConfigs** that defines the
+    individual operand deployment config\n* **OperandRequests** that defines which
+    operator/operand you want to install in the cluster\n\n**NOTE:** The ODLM-managed
+    operator subscriptions have a label **\"operator.ibm.com/opreq-control\": \"true\"**.
+    We use this label to distinguish if an operator is managed by ODLM or not.\n\n##
+    OperandRegistry\n\nOperandRegistry defines the individual service state. For example,
+    an individual service should be present or absent.\n\n**NOTE:** When the ODLM
+    operator is deployed, it generates a default OperandRegistry instance. You can
+    edit the instance as required. \n\nFollowing is an example of the OperandRegistry
+    CR: \n\n **NOTE:**The \"name\" parameter must be unique for each entry.\n\n```yaml\napiVersion:
+    odlm.ibm.com/v1alpha1\nkind: OperandRegistry\nmetadata:\n  name: common-service
+    [1]\n  namespace: ibm-common-services [2]\nspec:\n  operators:\n  - name: ibm-metering-operator
+    [3]\n    namespace: ibm-common-services [4]\n    channel: alpha [5]\n    packageName:
+    ibm-metering-operator-app [6]\n    sourceName: opencloud-operators [7]\n    sourceNamespace:
+    openshift-marketplace [8]\n    description: The service used to meter workloads
+    in a kubernetes cluster [9]\n```\n\nThe Operand (Deployment) Registry Custom Resource
+    (CR) lists OLM Operator information for operands that may be requested for installation
+    and/or access by an application that runs in a namespace.  The registry CR specifies:\n\n1.
+    Name of the OperandRegistry\n1. Namespace of the OperandRegistry\n1. **name**
+    is the name of the operator, which should be the same as the services name in
+    the OperandConfig and OperandRequest.\n1. **namespace** is the namespace where
+    the operator will be deployed.\n1. **channel** is the name of OLM channel that
+    is subscribed for the operator.\n1. **packageName** is the name of the package
+    in CatalogSource that is subscribed for the operator.\n1. **sourceName** is the
+    name of the CatalogSource.\n1. **sourceNamespace** is the namespace of the CatalogSource.\n1.
+    **description** is used to add a detailed description of a  service.\n\n\n## OperandConfig\n\nOperandConfig
+    defines the individual operand deployment configuration.\nThe Operand Config Custom
+    Resource (CR) defines the parameters for each operator that is listed in the OperandRegistry
+    that should be used to install the operator instance by specifying an installation
+    CR.\n\n**NOTE:** When ODLM operator is deployed, it generates a default OperandConfig
+    instance. You can edit the instance as required. \n\n\n```yaml\napiVersion: operator.ibm.com/v1alpha1\nKind:
     OperandConfigs\nmetadata:\n  name: common-service [1]\n  namespace: ibm-common-services
     [2]\nspec:\n  services:\n  # suppose metering has three CRDs\n  - name: ibm-metering-operator
     [3]\n    spec: [4]\n      reader:\n        key: value\n        nested:\n          key:
@@ -590,8 +595,8 @@ spec:
     Name of the OperandConfig\n1. Namespace of the OperandConfig\n1. **name** is the
     name of the operator, which should be the same as the services name in the OperandRegistry
     and OperandRequest.\n1. **spec** defines a map. Its key is the kind name of the
-    custom resource. Its value is merged to the spec field of custom resource.
-    For more details, you can check the following topic *How does ODLM create the individual
+    custom resource. Its value is merged to the spec field of custom resource. For
+    more details, you can check the following topic *How does ODLM create the individual
     operator CR?*\n\n### How does ODLM create the individual operator CR?\n\nSuppose
     IAM Operator has two CRDs: Apikey and Identity:\n\n- The OperandConfig CR has\n```yaml\n-
     name: iam\n  spec:\n    apikey:\n      key: value\n      nested:\n        key:
@@ -611,19 +616,19 @@ spec:
     users update the individual operator CR for day2 operations, but OperandConfig
     still provides the ability for individual operator/operand day2 operation.\n\n\n##
     OperandRequest\n\nOperandRequest defines which operator/operand you want to install
-    in the cluster.\n\n**NOTE:** OperandRequest custom resource is used to trigger a
-    deployment for Operators and Operands. \n\n```yaml\napiVersion: operator.ibm.com/v1alpha1\nKind:
+    in the cluster.\n\n**NOTE:** OperandRequest custom resource is used to trigger
+    a deployment for Operators and Operands. \n\n```yaml\napiVersion: operator.ibm.com/v1alpha1\nKind:
     OperandRequest\nmetadata:\n  name: common-service [1]\n  namespace: ibm-common-services
     [2]\nspec:\n  requests:\n  - registry: common-service [3]\n    registryNamespace:
     ibm-common-services [4]\n    operands: [5]\n    - name: ibm-metering-operator
     [6]\n```\n\n1. Name of the OperandRequest\n1. Namespace of the OperandRequest\n1.
-    **registry** identifies the name of the OperandRegistry CR from which
-    this operand deployment is being requested.\n1. **registryNamespace** identifies
-    the namespace in which the catalog CR is defined. **Note:** If the catalog name
-    and namespace are not specified then it is assumed that the Request (1) is for
-    a catalog in the current (requester's) namespace and (2) that only one catalog
-    exists in the namespace.\n1. **operands** in the CR is a list of `operands`. \n1.
-    **name** of **operands** in the CR must match a name specification in an OperandRegistry's
+    **registry** identifies the name of the OperandRegistry CR from which this operand
+    deployment is being requested.\n1. **registryNamespace** identifies the namespace
+    in which the catalog CR is defined. **Note:** If the catalog name and namespace
+    are not specified then it is assumed that the Request (1) is for a catalog in
+    the current (requester's) namespace and (2) that only one catalog exists in the
+    namespace.\n1. **operands** in the CR is a list of `operands`. \n1. **name** of
+    **operands** in the CR must match a name specification in an OperandRegistry's
     CR.\n"
   displayName: Operand Deployment Lifecycle Manager
   icon:
