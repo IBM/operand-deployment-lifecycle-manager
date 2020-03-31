@@ -17,11 +17,11 @@ spec:
     - name: ibm-licensing-operator
     - name: ibm-metering-operator
     - name: ibm-commonui-operator
+    - name: ibm-platform-api-operator
     # - name: ibm-elastic-stack-operator
     # - name: ibm-ingress-nginx-operator
     # - name: ibm-commonui-operator
     # - name: ibm-auditlogging-operator
-    # - name: ibm-platform-api-operator
     # - name: ibm-helm-api-operator
     # - name: ibm-helm-repo-operator
     # - name: ibm-catalog-ui-operator
