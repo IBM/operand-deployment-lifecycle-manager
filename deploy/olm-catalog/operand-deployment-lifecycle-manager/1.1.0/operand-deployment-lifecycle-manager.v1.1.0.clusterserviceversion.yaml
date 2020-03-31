@@ -46,7 +46,10 @@ metadata:
                   },
                   {
                     "name": "ibm-commonui-operator"
-                  }
+                  },
+                  {
+                    "name": "ibm-platform-api-operator"
+                  }        
                 ],
                 "registry": "common-service"
               }
