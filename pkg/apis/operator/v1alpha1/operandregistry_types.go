@@ -116,6 +116,19 @@ type ReconcileRequest struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=operandregistries,shortName=opreg,scope=Namespaced
 // +operator-sdk:gen-csv:customresourcedefinitions.displayName="OperandRegistry"
+// +operator-sdk:gen-csv:customresourcedefinitions.resources=`Deployment,v1,""`
+// +operator-sdk:gen-csv:customresourcedefinitions.resources=`ReplicaSet,v1,""`
+// +operator-sdk:gen-csv:customresourcedefinitions.resources=`Service,v1,""`
+// +operator-sdk:gen-csv:customresourcedefinitions.resources=`Pod,v1,""`
+// +operator-sdk:gen-csv:customresourcedefinitions.resources=`Configmap,v1,""`
+// +operator-sdk:gen-csv:customresourcedefinitions.resources=`Installplan,v1alpha1,""`
+// +operator-sdk:gen-csv:customresourcedefinitions.resources=`Catalogsource,v1alpha1,""`
+// +operator-sdk:gen-csv:customresourcedefinitions.resources=`Clusterserviceversion,v1alpha1,""`
+// +operator-sdk:gen-csv:customresourcedefinitions.resources=`Operatorgroup,v1,""`
+// +operator-sdk:gen-csv:customresourcedefinitions.resources=`Subscription,v1alpha1,""`
+// +operator-sdk:gen-csv:customresourcedefinitions.resources=`Operandconfig,v1alpha1,""`
+// +operator-sdk:gen-csv:customresourcedefinitions.resources=`Operandrequest,v1alpha1,""`
+// +operator-sdk:gen-csv:customresourcedefinitions.resources=`Operandregistry,v1alpha1,""`
 type OperandRegistry struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
