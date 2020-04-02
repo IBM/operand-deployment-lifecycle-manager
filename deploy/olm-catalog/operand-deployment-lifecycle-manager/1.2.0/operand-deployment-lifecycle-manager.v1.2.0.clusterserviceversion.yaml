@@ -397,6 +397,11 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
+    - description: OperandBindInfo is the Schema for the operandbindinfos API
+      displayName: OperandBindInfo
+      kind: OperandBindInfo
+      name: operandbindinfos.operator.ibm.com
+      version: v1alpha1
     - description: OperandConfig is the Schema for the operandconfigs API
       displayName: OperandConfig
       kind: OperandConfig
@@ -713,6 +718,7 @@ spec:
           - operandregistries
           - operandconfigs
           - operandrequests
+          - operandbindinfos
           verbs:
           - '*'
         - apiGroups:

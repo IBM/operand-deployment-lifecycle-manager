@@ -51,33 +51,6 @@ type Request struct {
 type Operand struct {
 	// Name of the operand to be deployed
 	Name string `json:"name"`
-	// Specify a Binding list
-	// +listType=set
-	// +optional
-	Bindings []Binding `json:"bindings,omitempty"`
-}
-
-// Binding defines the scope of the operand, and the resources, like Secret, ConfigMap and ServiceAccount
-type Binding struct {
-	// A scope indicator, either public or private
-	// Valid values are:
-	// - "private" (default): deployment only request from the containing names;
-	// - "public": deployment can be requested from other namespaces;
-	// +optional
-	Scope scope `json:"scope,omitempty"`
-	// Specifies that name of a secret that should contain information shared
-	// from the deployed operand if it shares secrets with requesters.
-	// +optional
-	Secret string `json:"secret,omitempty"`
-	// Specifies the name of a configmap that should contain information shared
-	// from the deployed operand if it shares configmaps with requesters.
-	// +optional
-	ConfigMap string `json:"configMap,omitempty"`
-	// Specifies the name of the service account that needs to access the created secret
-	// and/or configmap (e.g. the service account being used by running pods),
-	// so that ODLM can sure that the access rights are set correctly, if needed.
-	// +optional
-	ServiceAccount string `json:"serviceAccount,omitempty"`
 }
 
 // ConditionType is the condition of a service

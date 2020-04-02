@@ -49,41 +49,6 @@ spec:
                       description: Operand defines the name and binding information
                         for one operator
                       properties:
-                        bindings:
-                          description: Specify a Binding list
-                          items:
-                            description: Binding defines the scope of the operand,
-                              and the resources, like Secret, ConfigMap and ServiceAccount
-                            properties:
-                              configMap:
-                                description: Specifies the name of a configmap that
-                                  should contain information shared from the deployed
-                                  operand if it shares configmaps with requesters.
-                                type: string
-                              scope:
-                                description: 'A scope indicator, either public or
-                                  private Valid values are: - "private" (default):
-                                  deployment only request from the containing names;
-                                  - "public": deployment can be requested from other
-                                  namespaces;'
-                                enum:
-                                - public
-                                - private
-                                type: string
-                              secret:
-                                description: Specifies that name of a secret that
-                                  should contain information shared from the deployed
-                                  operand if it shares secrets with requesters.
-                                type: string
-                              serviceAccount:
-                                description: Specifies the name of the service account
-                                  that needs to access the created secret and/or configmap
-                                  (e.g. the service account being used by running
-                                  pods), so that ODLM can sure that the access rights
-                                  are set correctly, if needed.
-                                type: string
-                            type: object
-                          type: array
                         name:
                           description: Name of the operand to be deployed
                           type: string

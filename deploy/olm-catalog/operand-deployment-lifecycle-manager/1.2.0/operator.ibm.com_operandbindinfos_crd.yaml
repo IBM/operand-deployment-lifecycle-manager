@@ -1,0 +1,84 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: operandbindinfos.operator.ibm.com
+spec:
+  group: operator.ibm.com
+  names:
+    kind: OperandBindInfo
+    listKind: OperandBindInfoList
+    plural: operandbindinfos
+    shortNames:
+    - opbi
+    singular: operandbindinfo
+  scope: Namespaced
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      description: OperandBindInfo is the Schema for the operandbindinfos API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: OperandBindInfoSpec defines the desired state of OperandBindInfo
+          properties:
+            bindings:
+              description: The bindings section is used to specify information about
+                the access/configuration data that is to be shared.
+              items:
+                properties:
+                  configmap:
+                    description: The configmap field identifies a configmap object,
+                      if any, that should be shared with the adopter/requestor
+                    type: string
+                  scope:
+                    description: The scope identifier determines whether the referenced
+                      information can be shared with requests in other namespaces
+                      (pubic) or only in this namespace (private). An OperandBindInfo
+                      CR can have at MOST one public scoped binding and one private
+                      scope binding.
+                    enum:
+                    - public
+                    - private
+                    type: string
+                  secret:
+                    description: The secret field names an existing secret, if any,
+                      that has been created and holds information that is to be shared
+                      with the adopter.
+                    type: string
+                type: object
+              type: array
+            description:
+              type: string
+            operand:
+              description: The deployed service identifies itself with its operand.
+                This must match the name in the OperandRegistry in the current namespace.
+              type: string
+            registry:
+              description: The registry identifies the name of the name of the OperandRegistry
+                CR from which this operand deployment is being requested.
+              type: string
+          required:
+          - operand
+          - registry
+          type: object
+        status:
+          description: OperandBindInfoStatus defines the observed state of OperandBindInfo
+          type: object
+      type: object
+  version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
