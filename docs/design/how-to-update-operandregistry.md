@@ -5,6 +5,9 @@
 - [How to update OperandRegistry instance](#how-to-update-operandregistry-instance)
   - [OperandRegistry Overview](#operandregistry-overview)
   - [Example](#example)
+    - [1. ODLM has been deployed and OperandConfig, OperandRegistry and OperandRequest instances have been created](#1-odlm-has-been-deployed-and-operandconfig-operandregistry-and-operandrequest-instances-have-been-created)
+    - [2. Etcd operator and operands has been created](#2-etcd-operator-and-operands-has-been-created)
+    - [3. Update OperandRegistry](#3-update-operandregistry)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -57,7 +60,7 @@ The Operand (Deployment) Registry Custom Resource (CR) lists OLM Operator inform
 
 Taking etcd operator as an example
 
-1. ODLM has been deployed and OperandConfig, OperandRegistry and OperandRequest instances have been created
+### 1. ODLM has been deployed and OperandConfig, OperandRegistry and OperandRequest instances have been created
 
 OperandConfig:
 
@@ -112,8 +115,7 @@ spec:
       registryNamespace: ibm-common-services
 ```
 
-
-2. Etcd operator and operands has been created
+### 2. Etcd operator and operands has been created
 
 ![Etcd Operator and ODLM Operator](../images/before-update.png)
 
@@ -127,8 +129,7 @@ Etcd operator custom resource `etcdcluster/example` is created
 
 The Channel of etcd subscription is `singlenamespace-alpha`.
 
-
-3. Update OperandRegistry
+### 3. Update OperandRegistry
 
 OperandConfig:
 

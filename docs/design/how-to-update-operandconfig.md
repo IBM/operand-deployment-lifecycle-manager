@@ -6,6 +6,9 @@
   - [OperandConfig Overview](#operandconfig-overview)
     - [How does ODLM create the individual operator CR?](#how-does-odlm-create-the-individual-operator-cr)
   - [Example](#example)
+    - [1. ODLM has been deployed and OperandConfig, OperandRegistry and OperandRequest instances have been created](#1-odlm-has-been-deployed-and-operandconfig-operandregistry-and-operandrequest-instances-have-been-created)
+    - [2. Etcd operator and operands has been created](#2-etcd-operator-and-operands-has-been-created)
+    - [3. Update OperandConfig](#3-update-operandconfig)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -129,7 +132,7 @@ Typically, users update the individual operator CR for day2 operations, but Oper
 
 Taking etcd operator as an example
 
-1. ODLM has been deployed and OperandConfig, OperandRegistry and OperandRequest instances have been created
+### 1. ODLM has been deployed and OperandConfig, OperandRegistry and OperandRequest instances have been created
 
 OperandConfig:
 
@@ -184,8 +187,7 @@ spec:
       registryNamespace: ibm-common-services
 ```
 
-
-2. Etcd operator and operands has been created
+### 2. Etcd operator and operands has been created
 
 ![Etcd Operator and ODLM Operator](../images/before-update.png)
 
@@ -199,8 +201,7 @@ Etcd operator custom resource `etcdcluster/example` is created
 
 There is one etcd pod.
 
-
-3. Update OperandConfig
+### 3. Update OperandConfig
 
 OperandConfig:
 
