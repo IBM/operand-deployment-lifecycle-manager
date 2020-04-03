@@ -46,10 +46,10 @@ spec:
 
 OperandConfig defines the individual operand deployment config:
 
-    1. Name of the OperandConfig
-    2. Namespace of the OperandConfig
-    3. **name** is the name of the operator, which should be the same as the services name in the OperandRegistry and OperandRequest.
-    4. **spec** defines a map. Its key is the kind name of the custom resource. Its value is merged to the spec field of custom resource. For more details, you can check the following topic
+  1. Name of the OperandConfig
+  2. Namespace of the OperandConfig
+  3. **name** is the name of the operator, which should be the same as the services name in the OperandRegistry and OperandRequest.
+  4. **spec** defines a map. Its key is the kind name of the custom resource. Its value is merged to the spec field of custom resource. For more details, you can check the following topic
 
 ### How does ODLM create the individual operator CR?
 

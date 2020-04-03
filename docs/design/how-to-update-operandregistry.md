@@ -40,12 +40,12 @@ spec:
 
 The Operand (Deployment) Registry Custom Resource (CR) lists OLM Operator information for operands that may be requested for installation and/or access by an application that runs in a namespace. The registry CR specifies:
 
-    1. Name of the OperandRegistry
-    2. Namespace of the OperandRegistry
-    3. **name** is the name of the operator, which should be the same as the services name in the OperandConfig and OperandRequest.
-    4. **namespace** is the namespace where the operator will be deployed.
-    5. **channel** is the name of OLM channel that is subscribed for the operator.
-    6. **packageName** is the name of the package in CatalogSource that is subscribed for the operator.
-    7. **sourceName** is the name of the CatalogSource.
-    8. **sourceNamespace** is the namespace of the CatalogSource.
-    9. **description** is used to add a detailed description of a service.
+  1. Name of the OperandRegistry
+  2. Namespace of the OperandRegistry
+  3. **name** is the name of the operator, which should be the same as the services name in the OperandConfig and OperandRequest.
+  4. **namespace** is the namespace where the operator will be deployed.
+  5. **channel** is the name of OLM channel that is subscribed for the operator.
+  6. **packageName** is the name of the package in CatalogSource that is subscribed for the operator.
+  7. **sourceName** is the name of the CatalogSource.
+  8. **sourceNamespace** is the namespace of the CatalogSource.
+  9. **description** is used to add a detailed description of a service.
