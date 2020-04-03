@@ -184,7 +184,8 @@ spec:
       registryNamespace: ibm-common-services
 ```
 
-1. Etcd operator and operands has been created
+
+2. Etcd operator and operands has been created
 
 ![Etcd Operator and ODLM Operator](../images/before-update.png)
 
@@ -198,7 +199,8 @@ Etcd operator custom resource `etcdcluster/example` is created
 
 There is one etcd pod.
 
-1. Update OperandConfig
+
+3. Update OperandConfig
 
 OperandConfig:
 

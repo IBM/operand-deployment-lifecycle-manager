@@ -112,7 +112,8 @@ spec:
       registryNamespace: ibm-common-services
 ```
 
-1. Etcd operator and operands has been created
+
+2. Etcd operator and operands has been created
 
 ![Etcd Operator and ODLM Operator](../images/before-update.png)
 
@@ -126,7 +127,8 @@ Etcd operator custom resource `etcdcluster/example` is created
 
 The Channel of etcd subscription is `singlenamespace-alpha`.
 
-1. Update OperandRegistry
+
+3. Update OperandRegistry
 
 OperandConfig:
 
