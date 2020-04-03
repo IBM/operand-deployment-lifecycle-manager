@@ -88,10 +88,10 @@ So far, the ODLM operator installation is completed. Next, you can start to inst
 
 ### (Optional) Update OperandRegistry and OperandConfig instances
 
-This is an optional step to install operand deployment lifecycle manager. You can update OperandRegistry and OperandConfig instances [post installation](#post-installation) as well.
+This is an optional step to install operand deployment lifecycle manager.
 
-- You can edit `OperandRegistry` instances to update operators. For more detail, you can check [How to update OperandRegistry](../design/how-to-update-operandregistry)
-- You can edit `OperandConfig` instances to update operands. For more detail, you can check [How to update OperandConfig](../design/how-to-update-operandconfig)
+- You can edit `OperandRegistry` instances to update operators. For more details, you can check [How to update OperandRegistry](../design/how-to-update-operandregistry)
+- You can edit `OperandConfig` instances to update operands. You can update OperandConfig instances [post installation](#post-installation) as well. For more details, you can check [How to update OperandConfig](../design/how-to-update-operandconfig)
 
 ### Create Operand Request
 
@@ -138,5 +138,4 @@ After the `OperandRequest` created, you can click the left navigation tree `Inst
 
 The operators and their operands would be deployed in the cluster.
 
-- You can edit `OperandRegistry` instances to update operators. For more detail, you can check [How to update OperandRegistry](../design/how-to-update-operandregistry)
-- You can edit `OperandConfig` instances to update operands. For more detail, you can check [How to update OperandConfig](../design/how-to-update-operandconfig)
+- You can edit `OperandConfig` instances to update operands. For more details, you can check [How to update OperandConfig](../design/how-to-update-operandconfig)

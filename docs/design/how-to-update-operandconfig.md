@@ -50,12 +50,12 @@ Suppose IAM Operator has two CRDs: Apikey and Identity:
     ```yaml
     - name: iam
     spec:
-        apikey:
-            key: value
-            nested:
-                key: value
-        identity:
-            key: value
+      apikey:
+        key1: value1
+        key2:
+          nested-key: value2
+      identity:
+        key3: value3
     ```
 
 The IAM Operator CSV has
@@ -74,10 +74,7 @@ metadata:
             "name": "iam-apikey"
           },
           "spec": {
-            "key": "value",
-            "nested": {
-              "key": "value"
-            }
+            "key1": "value"
           }
         },
         {
@@ -87,16 +84,31 @@ metadata:
             "name": "iam-identity"
           },
           "spec": {
-            "key": "value",
-            "nested": {
-              "key": "value"
-            }
+            "key3": "value"
           }
         }
       ]
 ```
 
 The ODLM will deep merge the OperandConfig CR spec and IAM Operator CSV alm-examples to create the IAM CR.
+
+```yaml
+apiVersion: iam.operator.ibm.com/v1alpha1
+kind: Apikey
+metadata:
+  name: iam-apikey
+spec:
+  key1: value1
+  key2:
+    nested-key: value2
+---
+apiVersion: iam.operator.ibm.com/v1alpha1
+kind: Identity
+metadata:
+  name: iam-identity
+spec:
+  key3: value3
+```
 
 For day2 operations, the ODLM will patch the OperandConfigs CR spec to the existing IAM CR.
 
