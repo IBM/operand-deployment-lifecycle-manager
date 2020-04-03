@@ -325,7 +325,7 @@ spec:
 
 ### Edit alm-example in the operand-deployment-lifecycle-manager CSV
 
-Add the changes for operandrequest operandregistry and operandconfig in the [alm-example](https://github.com/IBM/operand-deployment-lifecycle-manager/blob/master/deploy/olm-catalog/operand-deployment-lifecycle-manager/1.1.0/operand-deployment-lifecycle-manager.v1.1.0.clusterserviceversion.yaml#L5)
+Add the changes for operandrequest operandregistry and operandconfig in the [alm-example](https://github.com/IBM/operand-deployment-lifecycle-manager/blob/master/deploy/olm-catalog/operand-deployment-lifecycle-manager/1.2.0/operand-deployment-lifecycle-manager.v1.2.0.clusterserviceversion.yaml#L5)
 
 ## 3.Make a pull request to merge the changes
 
