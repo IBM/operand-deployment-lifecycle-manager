@@ -39,18 +39,22 @@ spec:
 Click the plus button, and then copy the above operator source into the editor.
 ![Create OperatorSource](../images/create-operator-source.png)
 
-Check if all the operator packages are loaded, run command:
+Check if operator packages are loaded, run command:
 
 ```bash
-# oc -n openshift-marketplace get operatorsource opencloud-operators -o jsonpath="{.status.packages}"
-ibm-mongodb-operator-app,ibm-management-ingress-operator-app,ibm-cert-manager-operator-app,ibm-licensing-operator-app,cp4foobar-operator-app,ibm-metering-operator-app,ibm-auditlogging-operator-app,meta-operator-app,ibm-ingress-nginx-operator-app,ibm-iam-operator-app,ibm-healthcheck-operator-app,ibm-meta-operator-bridge-app,operand-deployment-lifecycle-manager-app,ibm-catalog-ui-operator-app,ibm-commonui-operator-app
+oc -n openshift-marketplace get operatorsource opencloud-operators -o jsonpath="{.status.packages}"
 ```
 
-During development, we need to update the csv package frequently, but the operator source need a long time to sync the new package, my experience is to re-create this operator source, the new package will be loaded immediately.
+The output is a list of operator
+
+```yaml
+ibm-monitoring-prometheusext-operator-app,ibm-meta-operator-bridge-app,cp4foobar-operator-app,ibm-cert-manager-operator-app,ibm-management-ingress-operator-app,ibm-mgmt-repo-operator-app,ibm-platform-api-operator-app,ibm-ingress-nginx-operator-app,ibm-commonui-operator-app-test,ibm-auditlogging-operator-app,ibm-commonui-operator-app,operand-deployment-lifecycle-manager-app,ibm-healthcheck-operator-app,ibm-monitoring-exporters-operator-app,ibm-iam-operator-app,ibm-mongodb-operator-app,ibm-monitoring-grafana-operator-app,ibm-metering-operator-app,ibm-helm-repo-operator-app,ibm-helm-api-operator-app,ibm-catalog-ui-operator-app,ibm-licensing-operator-app,ibm-elastic-stack-operator-app
+```
+
+During development, if you need to update the csv package frequently, but the operator source needs a long time to sync the new package, we can delete the catalog source to trigger a reload. Then the new packages will be updated immediately.
 
 ```bash
-oc delete -f opencloudio-source.yaml
-oc apply -f opencloudio-source.yaml
+oc delete catalogsource opencloudio -n openshift-marketplace
 ```
 
 ## 2. Create a Namespace `ibm-common-services`
@@ -123,4 +127,4 @@ After the `OperandRequest` created, we can click the left navigation tree `Insta
 
 # Post-installation
 
-The operators and their custom resource would be deployed in the cluster, and thus the installation of operands will also triggered by the CR.
+The operators and their operands would be deployed in the cluster.
