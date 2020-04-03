@@ -1,3 +1,12 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [How to update OperandRegistry instance](#how-to-update-operandregistry-instance)
+  - [OperandRegistry Overview](#operandregistry-overview)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # How to update OperandRegistry instance
 
 OperandRegistry defines the OLM information, like channel and catalog source, for each operator.

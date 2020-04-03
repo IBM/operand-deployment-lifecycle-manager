@@ -1,3 +1,13 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [How to update OperandConfig instance](#how-to-update-operandconfig-instance)
+  - [OperandConfig Overview](#operandconfig-overview)
+    - [How does ODLM create the individual operator CR?](#how-does-odlm-create-the-individual-operator-cr)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # How to update OperandConfig instance
 
 OperandRegistry defines the parameters that should be used to install the operator's operand
