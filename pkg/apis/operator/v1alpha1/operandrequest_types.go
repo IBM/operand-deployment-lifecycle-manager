@@ -95,15 +95,17 @@ const (
 	ConditionUpdating ConditionType = "Updating"
 	ConditionDeleting ConditionType = "Deleting"
 	ConditionNotFound ConditionType = "NotFound"
+	ConditionReady    ConditionType = "Ready"
 
 	ClusterPhaseNone     ClusterPhase = "Pending"
 	ClusterPhaseCreating ClusterPhase = "Creating"
 	ClusterPhaseRunning  ClusterPhase = "Running"
 	ClusterPhaseFailed   ClusterPhase = "Failed"
 
-	ResourceTypeSub     ResourceType = "subscription"
-	ResourceTypeCsv     ResourceType = "csv"
-	ResourceTypeOperand ResourceType = "operand"
+	ResourceTypeSub      ResourceType = "subscription"
+	ResourceTypeCsv      ResourceType = "csv"
+	ResourceTypeOperator ResourceType = "operator"
+	ResourceTypeOperand  ResourceType = "operands"
 )
 
 // Condition represents the current state of the Request Service
@@ -208,21 +210,32 @@ func (r *OperandRequest) SetCreatingCondition(name string, rt ResourceType, cs c
 	r.setCondition(*c)
 }
 
-// SetUpdatingCondition updates a condition status
+// SetUpdatingCondition creates an updating condition status
 func (r *OperandRequest) SetUpdatingCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
 	c := newCondition(ConditionUpdating, cs, "Updating "+string(rt), "Updating "+string(rt)+" "+name)
 	r.setCondition(*c)
 }
 
-// SetDeletingCondition delete a condition status
+// SetDeletingCondition creates a deleting condition status
 func (r *OperandRequest) SetDeletingCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
 	c := newCondition(ConditionDeleting, cs, "Deleting "+string(rt), "Deleting "+string(rt)+" "+name)
 	r.setCondition(*c)
 }
 
-// SetNotFoundCondition not found resource
+// SetNotFoundOperatorFromRegistryCondition creates a NotFoundCondition
 func (r *OperandRequest) SetNotFoundOperatorFromRegistryCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
 	c := newCondition(ConditionNotFound, cs, "Not found "+string(rt), "Not found "+string(rt)+" "+name+" from registry")
+	r.setCondition(*c)
+}
+
+// SetReadyCondition creates a Condition to claim Ready
+func (r *OperandRequest) SetReadyCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
+	c := &Condition{}
+	if rt == ResourceTypeOperator {
+		c = newCondition(ConditionReady, cs, string(rt)+" is ready", string(rt)+" "+name+" is ready")
+	} else if rt == ResourceTypeOperand {
+		c = newCondition(ConditionReady, cs, string(rt)+" are created", string(rt)+" from "+name+" are created")
+	}
 	r.setCondition(*c)
 }
 
@@ -263,12 +276,31 @@ func (r *OperandRequest) SetMemberStatus(name string, operatorPhase OperatorPhas
 	if mp != nil {
 		if m.Phase.OperatorPhase != mp.Phase.OperatorPhase {
 			r.Status.Members[pos].Phase.OperatorPhase = m.Phase.OperatorPhase
+			r.setOperatorReadyCondition(m, name)
 		}
 		if m.Phase.OperandPhase != mp.Phase.OperandPhase {
 			r.Status.Members[pos].Phase.OperandPhase = m.Phase.OperandPhase
+			r.setOperandReadyCondition(m, name)
 		}
 	} else {
 		r.Status.Members = append(r.Status.Members, m)
+		r.setOperatorReadyCondition(m, name)
+	}
+}
+
+func (r *OperandRequest) setOperatorReadyCondition(m MemberStatus, name string) {
+	if m.Phase.OperatorPhase == OperatorRunning {
+		r.SetReadyCondition(name, ResourceTypeOperator, corev1.ConditionTrue)
+	} else {
+		r.SetReadyCondition(name, ResourceTypeOperator, corev1.ConditionFalse)
+	}
+}
+
+func (r *OperandRequest) setOperandReadyCondition(m MemberStatus, name string) {
+	if m.Phase.OperandPhase == ServiceRunning {
+		r.SetReadyCondition(name, ResourceTypeOperand, corev1.ConditionTrue)
+	} else {
+		r.SetReadyCondition(name, ResourceTypeOperand, corev1.ConditionFalse)
 	}
 }
 
