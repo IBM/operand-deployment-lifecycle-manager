@@ -57,7 +57,7 @@ ibm-monitoring-prometheusext-operator-app,ibm-meta-operator-bridge-app,cp4foobar
 oc delete catalogsource opencloudio -n openshift-marketplace
 ```
 
-## 2. Create Namespace `ibm-common-services`
+## 2. Create Namespace ibm-common-services
 
 Open the `OperatorHub` page in OCP console left menu, then `Create Project`, e.g., create a project named `ibm-common-services`.
 
@@ -85,6 +85,13 @@ Sometimes, you need to refresh the webpage to check them.
 So far, the ODLM operator installation is completed. Next, you can start to install other common service operators.
 
 ## 4. Manage Other Operators with ODLM
+
+### (Optional) Update OperandRegistry and OperandConfig instances
+
+This is an optional step to install operand deployment lifecycle manager. You can update OperandRegistry and OperandConfig instances [post installation](#post-installation) as well.
+
+- You can edit `OperandRegistry` instances to update operators. For more detail, you can check [How to update OperandRegistry](../design/how-to-update-operandregistry)
+- You can edit `OperandConfig` instances to update operands. For more detail, you can check [How to update OperandConfig](../design/how-to-update-operandconfig)
 
 ### Create Operand Request
 
@@ -131,5 +138,5 @@ After the `OperandRequest` created, you can click the left navigation tree `Inst
 
 The operators and their operands would be deployed in the cluster.
 
-You can edit `OperandRegistry` instances to update operators.
-You can edit `OperandConfig` instances to update operands.
+- You can edit `OperandRegistry` instances to update operators. For more detail, you can check [How to update OperandRegistry](../design/how-to-update-operandregistry)
+- You can edit `OperandConfig` instances to update operands. For more detail, you can check [How to update OperandConfig](../design/how-to-update-operandconfig)
