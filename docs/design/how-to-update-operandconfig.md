@@ -123,3 +123,100 @@ spec:
 For day2 operations, the ODLM will patch the OperandConfigs CR spec to the existing IAM CR.
 
 Typically, users update the individual operator CR for day2 operations, but OperandConfig still provides the ability for individual operator/operand day2 operation.
+
+## Example
+
+Taking etcd operator as an example
+
+1. ODLM has been deployed and OperandConfig, OperandRegistry and OperandRequest instances have been created
+
+OperandConfig:
+
+```yaml
+apiVersion: operator.ibm.com/v1alpha1
+kind: OperandConfig
+metadata:
+  name: common-service
+  namespace: ibm-common-services
+spec:
+  services:
+    - name: etcd
+      spec:
+        etcdCluster:
+          size: 1
+```
+
+Set etcd cluster size to 1
+
+OperandRegistry:
+
+```yaml
+apiVersion: operator.ibm.com/v1alpha1
+kind: OperandRegistry
+metadata:
+  name: common-service
+  namespace: ibm-common-services
+spec:
+  operators:
+    - channel: singlenamespace-alpha
+      name: etcd
+      namespace: etcd-operator
+      packageName: etcd
+      scope: private
+      sourceName: community-operators
+      sourceNamespace: openshift-marketplace
+```
+
+OperandRequest:
+
+```yaml
+apiVersion: operator.ibm.com/v1alpha1
+kind: OperandRequest
+metadata:
+  name: common-service
+  namespace: ibm-common-services
+spec:
+  requests:
+    - operands:
+        - name: etcd
+      registry: common-service
+      registryNamespace: ibm-common-services
+```
+
+1. Etcd operator and operands has been created
+
+![Etcd Operator and ODLM Operator](../images/before-update.png)
+
+ODLM and etcd operators are deployed.
+
+![Etcd Custom Resource](../images/etcd-cluster-before.png)
+
+Etcd operator custom resource `etcdcluster/example` is created
+
+![Etcd Operands](../images/etcd-cluster-example-before.png)
+
+There is one etcd pod.
+
+1. Update OperandConfig
+
+OperandConfig:
+
+```yaml
+apiVersion: operator.ibm.com/v1alpha1
+kind: OperandConfig
+metadata:
+  name: common-service
+  namespace: ibm-common-services
+spec:
+  services:
+    - name: etcd
+      spec:
+        etcdCluster:
+          size: 3
+```
+
+Update etcd cluster size to 3.
+
+![Etcd Operands](../images/etcd-cluster-example-after.png)
+
+Etcd pods are increased to 3.
