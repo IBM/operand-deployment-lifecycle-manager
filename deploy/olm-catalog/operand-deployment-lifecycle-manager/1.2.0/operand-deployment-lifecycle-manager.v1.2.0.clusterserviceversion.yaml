@@ -384,13 +384,14 @@ metadata:
     capabilities: Seamless Upgrades
     categories: Developer Tools, Monitoring, Logging & Tracing, Security
     certified: "false"
-    containerImage: quay.io/opencloudio/odlm:1.1.0
-    createdAt: "2020-03-26T11:05:16Z"
+    containerImage: quay.io/opencloudio/odlm:1.2.0
+    createdAt: "2020-04-02T11:28:16Z"
     description: The Operand Deployment Lifecycle Manager provides a Kubernetes CRD-based
       API to manage the lifecycle of IBM Cloud Platform common services.
+    olm.skipRange: '>=1.1.0 <1.2.0'
     repository: https://github.com/IBM/operand-deployment-lifecycle-manager
     support: IBM
-  name: operand-deployment-lifecycle-manager.v1.1.0
+  name: operand-deployment-lifecycle-manager.v1.2.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -764,7 +765,7 @@ spec:
                       fieldPath: metadata.namespace
                 - name: OPERATOR_NAME
                   value: operand-deployment-lifecycle-manager
-                image: quay.io/opencloudio/odlm:1.1.0
+                image: quay.io/opencloudio/odlm:1.2.0
                 imagePullPolicy: Always
                 name: operand-deployment-lifecycle-manager
                 resources: {}
@@ -775,9 +776,9 @@ spec:
     type: OwnNamespace
   - supported: true
     type: SingleNamespace
-  - supported: false
+  - supported: true
     type: MultiNamespace
-  - supported: false
+  - supported: true
     type: AllNamespaces
   keywords:
   - IBM
@@ -793,4 +794,5 @@ spec:
   maturity: stable
   provider:
     name: IBM
-  version: 1.1.0
+  replaces: operand-deployment-lifecycle-manager.v1.1.0
+  version: 1.2.0
