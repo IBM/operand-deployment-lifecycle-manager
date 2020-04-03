@@ -4,11 +4,12 @@
 
 - [Install the operand deployment lifecycle manager On OCP 4.2+](#install-the-operand-deployment-lifecycle-manager-on-ocp-42)
   - [1. Create OperatorSource](#1-create-operatorsource)
-  - [2. Create a Namespace `ibm-common-services`](#2-create-a-namespace-ibm-common-services)
+  - [2. Create Namespace ibm-common-services](#2-create-namespace-ibm-common-services)
   - [3. Install operand deployment lifecycle manager](#3-install-operand-deployment-lifecycle-manager)
     - [Search ODLM Package in the OperatorHub](#search-odlm-package-in-the-operatorhub)
     - [Install ODLM Operator](#install-odlm-operator)
   - [4. Manage Other Operators with ODLM](#4-manage-other-operators-with-odlm)
+    - [(Optional) Update OperandRegistry and OperandConfig instances](#optional-update-operandregistry-and-operandconfig-instances)
     - [Create Operand Request](#create-operand-request)
     - [Enable or Delete an Operator](#enable-or-delete-an-operator)
 - [Post-installation](#post-installation)
