@@ -4,6 +4,7 @@
 
 - [How to update OperandRegistry instance](#how-to-update-operandregistry-instance)
   - [OperandRegistry Overview](#operandregistry-overview)
+  - [Example](#example)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 

@@ -5,6 +5,7 @@
 - [How to update OperandConfig instance](#how-to-update-operandconfig-instance)
   - [OperandConfig Overview](#operandconfig-overview)
     - [How does ODLM create the individual operator CR?](#how-does-odlm-create-the-individual-operator-cr)
+  - [Example](#example)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
