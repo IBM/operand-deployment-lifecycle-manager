@@ -4,6 +4,10 @@
 
 - [How to update OperandRegistry instance](#how-to-update-operandregistry-instance)
   - [OperandRegistry Overview](#operandregistry-overview)
+  - [Example](#example)
+    - [1. ODLM has been deployed and OperandConfig, OperandRegistry and OperandRequest instances have been created](#1-odlm-has-been-deployed-and-operandconfig-operandregistry-and-operandrequest-instances-have-been-created)
+    - [2. Etcd operator and operands has been created](#2-etcd-operator-and-operands-has-been-created)
+    - [3. Update OperandRegistry](#3-update-operandregistry)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -49,3 +53,107 @@ The Operand (Deployment) Registry Custom Resource (CR) lists OLM Operator inform
   7. **sourceName** is the name of the CatalogSource.
   8. **sourceNamespace** is the namespace of the CatalogSource.
   9. **description** is used to add a detailed description of a service.
+
+**Note:** Only the channel can be updated for day2 operations.
+
+## Example
+
+Taking etcd operator as an example
+
+### 1. ODLM has been deployed and OperandConfig, OperandRegistry and OperandRequest instances have been created
+
+OperandConfig:
+
+```yaml
+apiVersion: operator.ibm.com/v1alpha1
+kind: OperandConfig
+metadata:
+  name: common-service
+  namespace: ibm-common-services
+spec:
+  services:
+    - name: etcd
+      spec:
+        etcdCluster:
+          size: 1
+```
+
+OperandRegistry:
+
+```yaml
+apiVersion: operator.ibm.com/v1alpha1
+kind: OperandRegistry
+metadata:
+  name: common-service
+  namespace: ibm-common-services
+spec:
+  operators:
+    - channel: singlenamespace-alpha
+      name: etcd
+      namespace: etcd-operator
+      packageName: etcd
+      scope: private
+      sourceName: community-operators
+      sourceNamespace: openshift-marketplace
+```
+
+Set channel to `singlenamespace-alpha`.
+
+OperandRequest:
+
+```yaml
+apiVersion: operator.ibm.com/v1alpha1
+kind: OperandRequest
+metadata:
+  name: common-service
+  namespace: ibm-common-services
+spec:
+  requests:
+    - operands:
+        - name: etcd
+      registry: common-service
+      registryNamespace: ibm-common-services
+```
+
+### 2. Etcd operator and operands has been created
+
+![Etcd Operator and ODLM Operator](../images/before-update.png)
+
+ODLM and etcd operators are deployed.
+
+![Etcd Custom Resource](../images/etcd-cluster-before.png)
+
+Etcd operator custom resource `etcdcluster/example` is created
+
+![Etcd Channel](../images/etcd-channel-before.png)
+
+The Channel of etcd subscription is `singlenamespace-alpha`.
+
+### 3. Update OperandRegistry
+
+OperandConfig:
+
+OperandRegistry:
+
+```yaml
+apiVersion: operator.ibm.com/v1alpha1
+kind: OperandRegistry
+metadata:
+  name: common-service
+  namespace: ibm-common-services
+spec:
+  operators:
+    - channel: clusterwide-alpha
+      name: etcd
+      namespace: etcd-operator
+      packageName: etcd
+      scope: private
+      sourceName: community-operators
+      sourceNamespace: openshift-marketplace
+```
+
+Update etcd channel to `clusterwide-alpha`.
+
+![Etcd Operands](../images/etcd-channel-after.png)
+
+Etcd subscription channel is updated to `clusterwide-alpha`.
