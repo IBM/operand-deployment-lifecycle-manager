@@ -37,6 +37,8 @@ spec:
               description: The bindings section is used to specify information about
                 the access/configuration data that is to be shared.
               items:
+                description: Binding defines the scope of the operand, and the resources,
+                  like Secret and ConfigMap.
                 properties:
                   configmap:
                     description: The configmap field identifies a configmap object,

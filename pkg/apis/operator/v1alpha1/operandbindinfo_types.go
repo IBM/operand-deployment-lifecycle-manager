@@ -29,18 +29,24 @@ type OperandBindInfoSpec struct {
 	// This must match the name in the OperandRegistry in the current namespace.
 	Operand string `json:"operand"`
 	// The registry identifies the name of the name of the OperandRegistry CR from which this operand deployment is being requested.
-	Registry    string `json:"registry"`
+	Registry string `json:"registry"`
+	// +optional
 	Description string `json:"description,omitempty"`
 	// The bindings section is used to specify information about the access/configuration data that is to be shared.
+	// +optional
 	Bindings []Binding `json:"bindings,omitempty"`
 }
 
+// Binding defines the scope of the operand, and the resources, like Secret and ConfigMap.
 type Binding struct {
 	// The scope identifier determines whether the referenced information can be shared with requests in other namespaces (pubic) or only in this namespace (private). An OperandBindInfo CR can have at MOST one public scoped binding and one private scope binding.
+	// +optional
 	Scope scope `json:"scope,omitempty"`
 	// The secret field names an existing secret, if any, that has been created and holds information that is to be shared with the adopter.
+	// +optional
 	Secret string `json:"secret,omitempty"`
 	// The configmap field identifies a configmap object, if any, that should be shared with the adopter/requestor
+	// +optional
 	Configmap string `json:"configmap,omitempty"`
 }
 
