@@ -17,7 +17,19 @@
 package v1alpha1
 
 import (
+	"reflect"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+// BindInfoPhase defines the BindInfo status
+type BindInfoPhase string
+
+// BindInfo status
+const (
+	BindInfoCompleted BindInfoPhase = "Completed"
+	BindInfoFailed    BindInfoPhase = "Failed"
+	BindInfoInit      BindInfoPhase = "Initialized"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -52,9 +64,13 @@ type Binding struct {
 
 // OperandBindInfoStatus defines the observed state of OperandBindInfo
 type OperandBindInfoStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
-	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
+	// Phase describes the overall phase of OperandBindInfo
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
+	// +optional
+	Phase BindInfoPhase `json:"phase,omitempty"`
+	// RequestNamespaces defines the namespaces of OperandRequest
+	// +optional
+	RequestNamespaces []string `json:"requestNamespaces,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -82,4 +98,11 @@ type OperandBindInfoList struct {
 
 func init() {
 	SchemeBuilder.Register(&OperandBindInfo{}, &OperandBindInfoList{})
+}
+
+//InitBindInfoStatus OperandConfig status
+func (r *OperandBindInfo) InitBindInfoStatus() {
+	if (reflect.DeepEqual(r.Status, OperandConfigStatus{})) {
+		r.Status.Phase = BindInfoInit
+	}
 }

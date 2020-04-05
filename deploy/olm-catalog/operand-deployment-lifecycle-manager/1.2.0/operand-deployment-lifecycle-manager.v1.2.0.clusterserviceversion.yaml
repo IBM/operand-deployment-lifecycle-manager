@@ -401,6 +401,12 @@ spec:
       displayName: OperandBindInfo
       kind: OperandBindInfo
       name: operandbindinfos.operator.ibm.com
+      statusDescriptors:
+      - description: Phase describes the overall phase of OperandBindInfo
+        displayName: Phase
+        path: phase
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes.phase
       version: v1alpha1
     - description: OperandConfig is the Schema for the operandconfigs API
       displayName: OperandConfig
