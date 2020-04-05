@@ -18,6 +18,7 @@ package operandbindinfo
 
 import (
 	"context"
+	"reflect"
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -26,15 +27,20 @@ import (
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 )
 
-func (r *ReconcileOperandBindInfo) updateBindInfoPhase(cr *operatorv1alpha1.OperandBindInfo, phase operatorv1alpha1.BindInfoPhase) error {
+func (r *ReconcileOperandBindInfo) updateBindInfoPhase(cr *operatorv1alpha1.OperandBindInfo, phase operatorv1alpha1.BindInfoPhase, requestNamespaces []operatorv1alpha1.ReconcileRequest) error {
 	if err := wait.PollImmediate(time.Second*20, time.Minute*10, func() (done bool, err error) {
 		bindInfoInstance, err := r.getBindInfoInstance(cr.Name, cr.Namespace)
 		if err != nil {
 			return false, err
 		}
-		if bindInfoInstance.Status.Phase == phase {
+		requestNsList := make([]string, len(requestNamespaces))
+		for index, ns := range requestNamespaces {
+			requestNsList[index] = ns.Namespace
+		}
+		if bindInfoInstance.Status.Phase == phase && reflect.DeepEqual(requestNsList, bindInfoInstance.Status.RequestNamespaces) {
 			return true, nil
 		}
+		bindInfoInstance.Status.RequestNamespaces = requestNsList
 		bindInfoInstance.Status.Phase = phase
 		if err := r.client.Status().Update(context.TODO(), bindInfoInstance); err != nil {
 			klog.V(3).Info("Waiting for OperandBindInfo instance status ready ...")

@@ -122,11 +122,19 @@ func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
-	// Get the OperandRequest namespace
 	merr := &util.MultiErr{}
-	for _, bindRequest := range registryInstance.Status.OperatorsStatus[bindInfoInstance.Spec.Operand].ReconcileRequests {
+	// Get the OperandRequest namespace
+	if _, ok := registryInstance.Status.OperatorsStatus[bindInfoInstance.Spec.Operand]; !ok {
+		return reconcile.Result{}, nil
+	}
+	requestNamespaces := registryInstance.Status.OperatorsStatus[bindInfoInstance.Spec.Operand].ReconcileRequests
+	if len(requestNamespaces) == 0 {
+		return reconcile.Result{}, nil
+	}
+	// Get OperandRequest instance and Copy Secret and/or ConfigMap
+	for _, bindRequest := range requestNamespaces {
 		if request.Namespace == bindRequest.Namespace {
-			//skip the namespace of OperandBindInfo
+			// Skip the namespace of OperandBindInfo
 			continue
 		}
 		// Get the OperandRequest of operandBindInfo
@@ -224,12 +232,12 @@ func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconci
 		}
 	}
 	if len(merr.Errors) != 0 {
-		if err := r.updateBindInfoPhase(bindInfoInstance, operatorv1alpha1.BindInfoFailed); err != nil {
+		if err := r.updateBindInfoPhase(bindInfoInstance, operatorv1alpha1.BindInfoFailed, requestNamespaces); err != nil {
 			return reconcile.Result{}, err
 		}
 		return reconcile.Result{}, merr
 	}
-	if err := r.updateBindInfoPhase(bindInfoInstance, operatorv1alpha1.BindInfoCompleted); err != nil {
+	if err := r.updateBindInfoPhase(bindInfoInstance, operatorv1alpha1.BindInfoCompleted, requestNamespaces); err != nil {
 		return reconcile.Result{}, err
 	}
 	return reconcile.Result{}, nil
