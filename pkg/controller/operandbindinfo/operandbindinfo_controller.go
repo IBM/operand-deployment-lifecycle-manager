@@ -104,13 +104,21 @@ type ReconcileOperandBindInfo struct {
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	klog.V(1).Info("Reconciling OperandBindInfo: ", request)
 
 	// Fetch the OperandBindInfo instance
 	bindInfoInstance := &operatorv1alpha1.OperandBindInfo{}
 	if err := r.client.Get(context.TODO(), request.NamespacedName, bindInfoInstance); err != nil {
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, client.IgnoreNotFound(err)
+	}
+
+	klog.V(1).Infof("Reconciling OperandBindInfo %s in the namespace %s", bindInfoInstance.Name, bindInfoInstance.Namespace)
+
+	// Initialize OperandBindInfo status
+	bindInfoInstance.InitBindInfoStatus()
+	klog.V(3).Info("Initializing OperandBindInfo instance status: ", request)
+	if err := r.client.Status().Update(context.TODO(), bindInfoInstance); err != nil {
+		return reconcile.Result{}, err
 	}
 
 	// Fetch the OperandRegistry instance
@@ -172,7 +180,7 @@ func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconci
 					}
 					// Set the OperandRequest as the controller of the Secret
 					if err := controllerutil.SetControllerReference(requestInstance, secretCopy, r.scheme); err != nil {
-						klog.Errorf("Failed to set OperandRequest %s as thr Owner of Secret %s", requestInstance.GetName(), secretcm.Secret)
+						klog.Errorf("Failed to set OperandRequest %s as thr Owner of Secret %s", requestInstance.Name, secretcm.Secret)
 						merr.Add(err)
 					}
 					// Create the Secret in the OperandRequest namespace
@@ -211,7 +219,7 @@ func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconci
 					}
 					// Set the OperandRequest as the controller of the configmap
 					if err := controllerutil.SetControllerReference(requestInstance, cmCopy, r.scheme); err != nil {
-						klog.Errorf("Failed to set OperandRequest %s as thr Owner of ComfigMap %s", requestInstance.GetName(), secretcm.Configmap)
+						klog.Errorf("Failed to set OperandRequest %s as thr Owner of ComfigMap %s", requestInstance.Name, secretcm.Configmap)
 						merr.Add(err)
 					}
 					// Create the ConfigMap in the OperandRequest namespace
