@@ -53,7 +53,7 @@ func Add(mgr manager.Manager) error {
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	return &ReconcileOperandBindInfo{
 		client:   mgr.GetClient(),
-		recorder: mgr.GetEventRecorderFor("OperandRequest"),
+		recorder: mgr.GetEventRecorderFor("OperandBindInfo"),
 		scheme:   mgr.GetScheme()}
 }
 
@@ -201,7 +201,7 @@ func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconci
 				if secretcm.Configmap != "" {
 					klog.V(3).Infof("Copy config map %s to namespace %s", secretcm.Configmap, bindRequest.Namespace)
 					cm := &corev1.ConfigMap{}
-					if err := r.client.Get(context.TODO(), types.NamespacedName{Name: secretcm.Secret, Namespace: request.Namespace}, cm); err != nil {
+					if err := r.client.Get(context.TODO(), types.NamespacedName{Name: secretcm.Configmap, Namespace: request.Namespace}, cm); err != nil {
 						if errors.IsNotFound(err) {
 							r.recorder.Eventf(bindInfoInstance, corev1.EventTypeWarning, "NotFound", "No Configmap %s in the namespace %s", secretcm.Configmap, request.Namespace)
 						} else {
