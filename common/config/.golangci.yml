@@ -29,7 +29,7 @@ linters:
   enable:
     - deadcode
     - errcheck
-    - gocyclo
+    # - gocyclo
     - gofmt
     - goimports
     - golint
