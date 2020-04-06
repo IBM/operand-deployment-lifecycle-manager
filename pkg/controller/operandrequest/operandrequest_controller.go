@@ -18,7 +18,6 @@ package operandrequest
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	olmv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1"
@@ -131,22 +130,6 @@ type clusterObjects struct {
 	subscription  *olmv1alpha1.Subscription
 }
 
-// Multiple error slice
-type multiErr struct {
-	errors []string
-}
-
-func (mer *multiErr) Error() string {
-	return "Operand reconcile error list : " + strings.Join(mer.errors, " # ")
-}
-
-func (mer *multiErr) Add(err error) {
-	if mer.errors == nil {
-		mer.errors = []string{}
-	}
-	mer.errors = append(mer.errors, err.Error())
-}
-
 // Reconcile reads that state of the cluster for a OperandRequest object and makes changes based on the state read
 // and what is in the OperandRequest.Spec
 // Note:
@@ -154,14 +137,14 @@ func (mer *multiErr) Add(err error) {
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 
-	klog.V(1).Info("Reconciling OperandRequest: ", request)
-
 	// Fetch the OperandRequest instance
 	requestInstance := &operatorv1alpha1.OperandRequest{}
 	if err := r.client.Get(context.TODO(), request.NamespacedName, requestInstance); err != nil {
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
+
+	klog.V(1).Infof("Reconciling OperandRequest %s in the namespace %s", requestInstance.Name, requestInstance.Namespace)
 
 	// Set default for OperandRequest instance
 	requestInstance.SetDefaultsRequestSpec()
@@ -219,7 +202,7 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 	// Reconcile the Operand
 	merr := r.reconcileOperand(requestInstance)
 
-	if len(merr.errors) != 0 {
+	if len(merr.Errors) != 0 {
 		return reconcile.Result{}, merr
 	}
 

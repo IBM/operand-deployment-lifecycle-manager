@@ -162,7 +162,7 @@ func presentOperand(t *testing.T, r ReconcileOperandRequest, req reconcile.Reque
 	err = r.waitForInstallPlan(requestInstance, req)
 	assert.NoError(err)
 	multiErr := r.reconcileOperand(requestInstance)
-	assert.Empty(multiErr.errors, "all the operands reconcile should not be error")
+	assert.Empty(multiErr.Errors, "all the operands reconcile should not be error")
 	err = r.updateMemberStatus(requestInstance)
 	assert.NoError(err)
 	retrieveOperandRequest(t, r, req, requestInstance, 2)

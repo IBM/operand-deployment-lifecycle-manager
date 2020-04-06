@@ -36,9 +36,9 @@ import (
 
 const t = "true"
 
-func (r *ReconcileOperandRequest) reconcileOperand(requestInstance *operatorv1alpha1.OperandRequest) *multiErr {
+func (r *ReconcileOperandRequest) reconcileOperand(requestInstance *operatorv1alpha1.OperandRequest) *util.MultiErr {
 	klog.V(1).Info("Reconciling Operand")
-	merr := &multiErr{}
+	merr := &util.MultiErr{}
 
 	for _, req := range requestInstance.Spec.Requests {
 		for _, operand := range req.Operands {
@@ -77,10 +77,10 @@ func (r *ReconcileOperandRequest) reconcileOperand(requestInstance *operatorv1al
 			}
 		}
 	}
-	if len(merr.errors) != 0 {
+	if len(merr.Errors) != 0 {
 		return merr
 	}
-	return &multiErr{}
+	return &util.MultiErr{}
 }
 
 // getCSV retrieves the Cluster Service Version
@@ -133,7 +133,7 @@ func (r *ReconcileOperandRequest) reconcileCr(service *operatorv1alpha1.ConfigSe
 		return crTemplatesErr
 	}
 
-	merr := &multiErr{}
+	merr := &util.MultiErr{}
 
 	// Merge OperandConfig and Cluster Service Version alm-examples
 	for _, crTemplate := range crTemplates {
@@ -171,7 +171,7 @@ func (r *ReconcileOperandRequest) reconcileCr(service *operatorv1alpha1.ConfigSe
 			}
 		}
 	}
-	if len(merr.errors) != 0 {
+	if len(merr.Errors) != 0 {
 		return merr
 	}
 	return nil
@@ -198,7 +198,7 @@ func (r *ReconcileOperandRequest) deleteAllCustomResource(csv *olmv1alpha1.Clust
 		return crTemplatesErr
 	}
 
-	merr := &multiErr{}
+	merr := &util.MultiErr{}
 
 	// Merge OperandConfig and Cluster Service Version alm-examples
 	for _, crTemplate := range crTemplates {
@@ -245,7 +245,7 @@ func (r *ReconcileOperandRequest) deleteAllCustomResource(csv *olmv1alpha1.Clust
 
 		}
 	}
-	if len(merr.errors) != 0 {
+	if len(merr.Errors) != 0 {
 		return merr
 	}
 
