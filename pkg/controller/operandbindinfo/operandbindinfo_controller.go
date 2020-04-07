@@ -145,6 +145,7 @@ func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconci
 	for _, op := range registryInstance.Spec.Operators {
 		if op.Name == bindInfoInstance.Spec.Operand {
 			operandNamespace = op.Namespace
+			break
 		}
 	}
 
