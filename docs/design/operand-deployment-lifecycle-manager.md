@@ -26,6 +26,7 @@ The ODLM will have Three CRDs:
 | OperandRequest | opreq | It defines which operator/operand want to be installed in the cluster |
 | OperandRegistry | opreg | It defines the OLM information, like channel and catalog source, for each operator |
 | OperandConfig | opcon | It defines the parameters that should be used to install the operator's operand |
+| OperandBindInfo | opbi | It identifies secrets and/or configmaps that should be shared with requests |
 
 ## Goal
 
@@ -264,6 +265,38 @@ roleRef:
   name: ibm-mongodb-operator-info
   apiGroup: rbac.authorization.k8s.io
   ```
+
+## OperandBindInfo Spec
+
+The ODLM will use the OperandBindInfo to copy the generated secret and/or configmap to a requester's namespace when a service is requested with the OperandRequest CR.
+
+An example specification for an OperandBindInfo CR is shown below.
+
+```yaml
+apiVersion: operator.ibm.com/v1alpha1
+kind: OperandBindInfo
+metadata:
+  name: publiciambinding
+spec:
+  operand: ibm-iam-operator
+  registry: common-services
+  description: "Binding information that should be accessible to IAM adopters"
+  bindings:
+  - scope: public
+    secret: iambindsecret
+    configmap: iamconfigmap
+```
+
+Fields in this CR are described below.
+
+- The `operand` should be the the individual operator name.
+- The `registry` section must match the name in the OperandRegistry in the current namespace.
+- The `bindings` section is used to specify information about the access/configuration data that is to be shared.
+- The `scope` identifier determines whether the referenced information can be shared with requests in other namespaces (public) or only in this namespace (private). An OperandBindInfo CR can have at MOST one public scoped binding and one private scope binding.
+- The `secret` field names an existing secret, if any, that has been created and holds information that is to be shared with the adopter/requester.
+- The `configmap` field identifies a configmap object, if any, that should be shared with the adopter/requester
+
+ODLM will use the OperandBindInfo CR to pass information to an adopter when they create a OperandRequest to access the service, assuming that both have compatible scopes.  ODLM will copy the information from the shared service's "OperandBindInfo.bindinfo.secret" and/or "OperandBindInfo.bindinfo.configmap" to the requester namespace.
 
 ## E2E Use Case
 

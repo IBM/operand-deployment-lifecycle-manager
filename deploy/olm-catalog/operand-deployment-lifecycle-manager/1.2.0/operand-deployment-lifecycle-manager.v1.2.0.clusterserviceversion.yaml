@@ -587,10 +587,11 @@ spec:
     of operands but not the operators. \n\n - A single entrypoint to manage a group
     of operands\n - User can select a set of operands to install\n - The install can
     be invoked either through the OCP UI or CLI\n\n# Use ODLM to manage Operators
-    and Operands\n\nThe ODLM has three CRDs:\n\n* **OperandRegistry** that defines
-    the individual operand deployment info.\n* **OperandConfigs** that defines the
-    individual operand deployment config\n* **OperandRequests** that defines which
-    operator/operand you want to install in the cluster\n\n**NOTE:** The ODLM-managed
+    and Operands\n\nThe ODLM has four CRDs:\n* **OperandRegistry** that defines the
+    individual operand deployment info.\n* **OperandConfigs** that defines the individual
+    operand deployment config\n* **OperandRequests** that defines which operator/operand
+    you want to install in the cluster\n* **OperandBindInfo** that identifies secrets
+    and/or configmaps that should be shared with requests.\n\n**NOTE:** The ODLM-managed
     operator subscriptions have a label **\"operator.ibm.com/opreq-control\": \"true\"**.
     We use this label to distinguish if an operator is managed by ODLM or not.\n\n##
     OperandRegistry\n\nOperandRegistry defines the OLM information, like channel and
@@ -645,14 +646,14 @@ spec:
     CR spec and IAM Operator CSV alm-examples to create the IAM CR.\n\n```yaml\napiVersion:
     iam.operator.ibm.com/v1alpha1\nkind: Apikey\nmetadata:\n  name: iam-apikey\nspec:\n
     \ key1: value1\n  key2:\n    nested-key: value2\n---\napiVersion: iam.operator.ibm.com/v1alpha1\nkind:
-    Identity\nmetadata:\n  name: iam-identity\nspec:\n  key3: value3\n```\n\n\n- For
-    day2 operations, the ODLM will patch the OperandConfigs CR spec to the existing
-    IAM CR.\n\nTypically, users update the individual operator CR for day2 operations,
+    Identity\nmetadata:\n  name: iam-identity\nspec:\n  key3: value3\n```\n- For day2
+    operations, the ODLM will patch the OperandConfigs CR spec to the existing IAM
+    CR.\n\nTypically, users update the individual operator CR for day2 operations,
     but OperandConfig still provides the ability for individual operator/operand day2
-    operation.\n\n\n## OperandRequest\n\nOperandRequest defines which operator/operand
+    operation.\n\n## OperandRequest\n\nOperandRequest defines which operator/operand
     you want to install in the cluster.\n\n**NOTE:** OperandRequest custom resource
     is used to trigger a deployment for Operators and Operands. \n\n```yaml\napiVersion:
-    operator.ibm.com/v1alpha1\nKind: OperandRequest\nmetadata:\n  name: common-service
+    operator.ibm.com/v1alpha1\nkind: OperandRequest\nmetadata:\n  name: common-service
     [1]\n  namespace: ibm-common-services [2]\nspec:\n  requests:\n  - registry: common-service
     [3]\n    registryNamespace: ibm-common-services [4]\n    operands: [5]\n    -
     name: ibm-metering-operator [6]\n```\n\n1. Name of the OperandRequest\n1. Namespace
@@ -663,7 +664,31 @@ spec:
     (1) is for a catalog in the current (requester's) namespace and (2) that only
     one catalog exists in the namespace.\n1. **operands** in the CR is a list of `operands`.
     \n1. **name** of **operands** in the CR must match a name specification in an
-    OperandRegistry's CR.\n"
+    OperandRegistry's CR.\n## OperandBindInfo\nThe ODLM will use the OperandBindInfo
+    to copy the generated secret and/or configmap to a requester's namespace when
+    a service is requested with the OperandRequest CR.\nAn example specification for
+    an OperandBindInfo CR is shown below.\n\n```yaml\napiVersion: operator.ibm.com/v1alpha1\nkind:
+    OperandBindInfo\nmetadata:\n  name: publiciambinding [1]\n  namespace: ibm-common-services
+    [2]\nspec:\n  operand: ibm-iam-operator [3]\n  registry: common-services [4]\n
+    \ description: \"Binding information that should be accessible to IAM adopters\"
+    [5]\n  bindings: [6]\n  - scope: public [7]\n    secret: iambindsecret [8]\n    configmap:
+    iamconfigmap [9]\n```\n\nFields in this CR are described below.\n1. Name of the
+    OperandBindInfo\n1. Namespace of the OperandBindInfo\n1. The **operand** should
+    be the the individual operator name.\n1. The **registry** section must match the
+    name in the OperandRegistry in the current namespace.\n1. **description** is used
+    to add a detailed description of a  service.\n1. The **bindings** section is used
+    to specify information about the access/configuration data that is to be shared.\n1.
+    The **scope** identifier determines whether the referenced information can be
+    shared with requests in other namespaces (public) or only in this namespace (private).
+    An OperandBindInfo CR can have at MOST one public scoped binding and one private
+    scope binding.\n1. The **secret** field names an existing secret, if any, that
+    has been created and holds information that is to be shared with the adopter/requester.\n1.
+    The **configmap** field identifies a configmap object, if any, that should be
+    shared with the adopter/requester\n\nODLM will use the OperandBindInfo CR to pass
+    information to an adopter when they create a OperandRequest to access the service,
+    assuming that both have compatible scopes.  ODLM will copy the information from
+    the shared service's \"OperandBindInfo.bindinfo.secret\" and/or \"OperandBindInfo.bindinfo.configmap\"
+    to the requester namespace.\n"
   displayName: Operand Deployment Lifecycle Manager
   icon:
   - base64data: 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
