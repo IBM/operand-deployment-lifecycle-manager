@@ -37,9 +37,9 @@ import (
 	"github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 )
 
-// TestRequestController runs ReconcileOperandRequest.Reconcile() against a
+// TestBindInfoController runs ReconcileOperandRequest.Reconcile() against a
 // fake client that tracks a OperandRequest object.
-func TestRequestController(t *testing.T) {
+func TestBindInfoController(t *testing.T) {
 	var (
 		name             = "common-service"
 		namespace        = "ibm-common-service"
