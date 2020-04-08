@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 	util "github.com/IBM/operand-deployment-lifecycle-manager/pkg/util"
@@ -90,7 +91,7 @@ func (r *ReconcileOperandRequest) getClusterServiceVersion(subName string) (*olm
 		LabelSelector: "operator.ibm.com/opreq-control",
 	})
 	if listSubErr != nil {
-		klog.Error("Fail to list subscriptions: ", listSubErr)
+		klog.Error("Failed to list subscriptions: ", listSubErr)
 		return nil, listSubErr
 	}
 	var csvName, csvNamespace string
@@ -107,7 +108,7 @@ func (r *ReconcileOperandRequest) getClusterServiceVersion(subName string) (*olm
 				if errors.IsNotFound(getCSVErr) {
 					continue
 				}
-				klog.Error("Fail to get Cluster Service Version: ", getCSVErr)
+				klog.Error("Failed to get Cluster Service Version: ", getCSVErr)
 				return nil, getCSVErr
 			}
 			klog.V(3).Info("Get Cluster Service Version: ", csvName, " in namespace: ", csvNamespace)
@@ -129,7 +130,7 @@ func (r *ReconcileOperandRequest) reconcileCr(service *operatorv1alpha1.ConfigSe
 	// Convert CR template string to slice
 	crTemplatesErr := json.Unmarshal([]byte(almExamples), &crTemplates)
 	if crTemplatesErr != nil {
-		klog.Error("Fail to convert alm-examples to slice: ", crTemplatesErr, " Subscription: ", service.Name)
+		klog.Error("Failed to convert alm-examples to slice: ", crTemplatesErr, " Subscription: ", service.Name)
 		return crTemplatesErr
 	}
 
@@ -155,7 +156,7 @@ func (r *ReconcileOperandRequest) reconcileCr(service *operatorv1alpha1.ConfigSe
 			continue
 		} else if errors.IsNotFound(getError) {
 			// Create Custom resource
-			if createErr := r.compareConfigandExample(unstruct, service, namespace, csc); createErr != nil {
+			if createErr := r.compareConfigandExample(unstruct, service, namespace, csc, csv); createErr != nil {
 				merr.Add(createErr)
 				continue
 			}
@@ -194,7 +195,7 @@ func (r *ReconcileOperandRequest) deleteAllCustomResource(csv *olmv1alpha1.Clust
 	// Convert CR template string to slice
 	crTemplatesErr := json.Unmarshal([]byte(almExamples), &crTemplates)
 	if crTemplatesErr != nil {
-		klog.Error("Fail to convert alm-examples to slice: ", crTemplatesErr)
+		klog.Error("Failed to convert alm-examples to slice: ", crTemplatesErr)
 		return crTemplatesErr
 	}
 
@@ -272,14 +273,14 @@ func (r *ReconcileOperandRequest) getServiceFromConfigInstance(operandName strin
 	return nil
 }
 
-func (r *ReconcileOperandRequest) compareConfigandExample(unstruct unstructured.Unstructured, service *operatorv1alpha1.ConfigService, namespace string, csc *operatorv1alpha1.OperandConfig) error {
+func (r *ReconcileOperandRequest) compareConfigandExample(unstruct unstructured.Unstructured, service *operatorv1alpha1.ConfigService, namespace string, csc *operatorv1alpha1.OperandConfig, csv *olmv1alpha1.ClusterServiceVersion) error {
 	kind := unstruct.Object["kind"].(string)
 
 	for crName, crdConfig := range service.Spec {
 		// Compare the name of OperandConfig and CRD name
 		if strings.EqualFold(kind, crName) {
 			klog.V(3).Info("Found OperandConfig spec for custom resource: " + kind)
-			createErr := r.createCustomResource(unstruct, service, namespace, crName, csc, crdConfig.Raw)
+			createErr := r.createCustomResource(unstruct, service, namespace, crName, csc, crdConfig.Raw, csv)
 			if createErr != nil {
 				klog.Error("Failed to create custom resource: ", createErr)
 				return createErr
@@ -289,7 +290,7 @@ func (r *ReconcileOperandRequest) compareConfigandExample(unstruct unstructured.
 	return nil
 }
 
-func (r *ReconcileOperandRequest) createCustomResource(unstruct unstructured.Unstructured, service *operatorv1alpha1.ConfigService, namespace, crName string, csc *operatorv1alpha1.OperandConfig, crConfig []byte) error {
+func (r *ReconcileOperandRequest) createCustomResource(unstruct unstructured.Unstructured, service *operatorv1alpha1.ConfigService, namespace, crName string, csc *operatorv1alpha1.OperandConfig, crConfig []byte, csv *olmv1alpha1.ClusterServiceVersion) error {
 
 	//Convert CR template spec to string
 	specJSONString, _ := json.Marshal(unstruct.Object["spec"])
@@ -304,22 +305,31 @@ func (r *ReconcileOperandRequest) createCustomResource(unstruct unstructured.Uns
 		unstruct.Object["metadata"].(map[string]interface{})["labels"] = make(map[string]interface{})
 	}
 	unstruct.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{})["operator.ibm.com/opreq-control"] = t
-	// Creat or Update the CR
+
+	// If the CR is OperandRequest, add the CSV as the owner of the OperandRequest
+	if strings.EqualFold(unstruct.Object["kind"].(string), "OperandRequest") {
+		if setOwnerErr := controllerutil.SetControllerReference(csv, &unstruct, r.scheme); setOwnerErr != nil {
+			klog.Errorf("Failed to set CSV as the owner of the OperandRequest instance, Error message: %s", setOwnerErr)
+			return setOwnerErr
+		}
+	}
+
+	// Creat the CR
 	crCreateErr := r.client.Create(context.TODO(), &unstruct)
 	if crCreateErr != nil && !errors.IsAlreadyExists(crCreateErr) {
 		stateUpdateErr := r.updateServiceStatus(csc, service.Name, crName, operatorv1alpha1.ServiceFailed)
 		if stateUpdateErr != nil {
-			klog.Error("Fail to update status")
+			klog.Error("Failed to update status")
 			return stateUpdateErr
 		}
-		klog.Error("Fail to Create the Custom Resource: ", crName, ". Error message: ", crCreateErr)
+		klog.Error("Failed to Create the Custom Resource: ", crName, ". Error message: ", crCreateErr)
 		return crCreateErr
 	}
 
 	klog.V(2).Info("Finish creating the Custom Resource: ", crName)
 	stateUpdateErr := r.updateServiceStatus(csc, service.Name, crName, operatorv1alpha1.ServiceRunning)
 	if stateUpdateErr != nil {
-		klog.Error("Fail to update status")
+		klog.Error("Failed to update status")
 		return stateUpdateErr
 	}
 
@@ -375,10 +385,10 @@ func (r *ReconcileOperandRequest) updateCustomResource(unstruct unstructured.Uns
 	if crGetErr != nil {
 		stateUpdateErr := r.updateServiceStatus(csc, service.Name, crName, operatorv1alpha1.ServiceFailed)
 		if stateUpdateErr != nil {
-			klog.Error("Fail to update status")
+			klog.Error("Failed to update status")
 			return stateUpdateErr
 		}
-		klog.Error("Fail to Get the Custom Resource: ", crName, ". Error message: ", crGetErr)
+		klog.Error("Failed to Get the Custom Resource: ", crName, ". Error message: ", crGetErr)
 		return crGetErr
 	}
 
@@ -393,16 +403,16 @@ func (r *ReconcileOperandRequest) updateCustomResource(unstruct unstructured.Uns
 		if crUpdateErr := r.client.Update(context.TODO(), &existingCR); crUpdateErr != nil {
 			stateUpdateErr := r.updateServiceStatus(csc, service.Name, crName, operatorv1alpha1.ServiceFailed)
 			if stateUpdateErr != nil {
-				klog.Error("Fail to update status")
+				klog.Error("Failed to update status")
 				return stateUpdateErr
 			}
-			klog.Error("Fail to Update the Custom Resource ", crName, ". Error message: ", crUpdateErr)
+			klog.Error("Failed to Update the Custom Resource ", crName, ". Error message: ", crUpdateErr)
 			return crUpdateErr
 		}
 		klog.V(2).Info("Finish updating the Custom Resource: ", crName)
 		stateUpdateErr := r.updateServiceStatus(csc, service.Name, crName, operatorv1alpha1.ServiceRunning)
 		if stateUpdateErr != nil {
-			klog.Error("Fail to update status")
+			klog.Error("Failed to update status")
 			return stateUpdateErr
 		}
 	}
