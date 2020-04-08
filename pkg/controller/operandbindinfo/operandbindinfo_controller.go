@@ -99,8 +99,6 @@ type ReconcileOperandBindInfo struct {
 
 // Reconcile reads that state of the cluster for a OperandBindInfo object and makes changes based on the state read
 // and what is in the OperandBindInfo.Spec
-// TODO(user): Modify this Reconcile function to implement your Controller logic.  This example creates
-// a Pod as an example
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
@@ -133,22 +131,13 @@ func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconci
 
 	merr := &util.MultiErr{}
 	// Get the OperandRequest namespace
-	if _, ok := registryInstance.Status.OperatorsStatus[bindInfoInstance.Spec.Operand]; !ok {
-		return reconcile.Result{}, nil
-	}
 	requestNamespaces := registryInstance.Status.OperatorsStatus[bindInfoInstance.Spec.Operand].ReconcileRequests
 	if len(requestNamespaces) == 0 {
+		// There is no operand depend on the current bind info, nothing to do.
 		return reconcile.Result{}, nil
 	}
 	// Get the operand namespace
-	var operandNamespace string
-	for _, op := range registryInstance.Spec.Operators {
-		if op.Name == bindInfoInstance.Spec.Operand {
-			operandNamespace = op.Namespace
-			break
-		}
-	}
-
+	operandNamespace := registryInstance.GetOperator(bindInfoInstance.Spec.Operand).Namespace
 	if operandNamespace == "" {
 		klog.Errorf("Not found operator %s in the OperandRegistry %s", bindInfoInstance.Spec.Operand, registryInstance.Name)
 		return reconcile.Result{}, errors.New("not found operator in the OperandRegistry")
