@@ -224,6 +224,16 @@ func (r *OperandRegistry) CleanOperatorStatus(name string, request reconcile.Req
 	r.UpdateOperatorPhase()
 }
 
+// GetOperator obtain the operator definition with the operand name
+func (r *OperandRegistry) GetOperator(operandName string) *Operator {
+	for _, o := range r.Spec.Operators {
+		if o.Name == operandName {
+			return &o
+		}
+	}
+	return nil
+}
+
 func init() {
 	SchemeBuilder.Register(&OperandRegistry{}, &OperandRegistryList{})
 }
