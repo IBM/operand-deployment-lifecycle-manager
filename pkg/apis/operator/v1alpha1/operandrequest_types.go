@@ -145,6 +145,9 @@ type MemberStatus struct {
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=operandrequests,shortName=opreq,scope=Namespaced
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=.metadata.creationTimestamp
+// +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=.status.phase,description="Current Phase"
+// +kubebuilder:printcolumn:name="Created At",type=string,JSONPath=.metadata.creationTimestamp
 // +operator-sdk:gen-csv:customresourcedefinitions.displayName="OperandRequest"
 // +operator-sdk:gen-csv:customresourcedefinitions.resources=`Namespace,v1,""`
 // +operator-sdk:gen-csv:customresourcedefinitions.resources=`Deployment,v1,""`
