@@ -72,16 +72,21 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// TODO(user): Modify this to be the types you create that are owned by the primary resource
-	// Watch for changes to secondary resource Pods and requeue the owner OperandBindInfo
-	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &operatorv1alpha1.OperandBindInfo{},
+	// Watch for changes to secondary resource Secret and requeue the owner OperandBindInfo
+	err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, &handler.EnqueueRequestForOwner{
+		OwnerType: &operatorv1alpha1.OperandBindInfo{},
 	})
 	if err != nil {
 		return err
 	}
 
+	// Watch for changes to secondary resource ConfigMap and requeue the owner OperandBindInfo
+	err = c.Watch(&source.Kind{Type: &corev1.ConfigMap{}}, &handler.EnqueueRequestForOwner{
+		OwnerType: &operatorv1alpha1.OperandBindInfo{},
+	})
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -182,6 +187,7 @@ func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconci
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      secretcm.Secret,
 							Namespace: bindRequest.Namespace,
+							Labels:    secret.Labels,
 						},
 						Type:       secret.Type,
 						Data:       secret.Data,
@@ -208,6 +214,18 @@ func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconci
 							continue
 						}
 					}
+					// Set the OperandBindInfo as the controller of the operand Secret
+					if err := controllerutil.SetOwnerReference(bindInfoInstance, secret, r.scheme); err != nil {
+						klog.Errorf("Failed to set OperandRequest %s as thr Owner of Secret %s : %s", secret.Name, secretcm.Secret, err)
+						merr.Add(err)
+						continue
+					}
+					// Update the operand Secret
+					if err := r.client.Update(context.TODO(), secret); err != nil {
+						klog.Errorf("Failed to update Secret %s in the namespace %s : %s", secret.Name, secret.Namespace, err)
+						merr.Add(err)
+						continue
+					}
 				}
 				// Copy ConfigMap
 				if secretcm.Configmap != "" {
@@ -229,6 +247,7 @@ func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconci
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      secretcm.Configmap,
 							Namespace: bindRequest.Namespace,
+							Labels:    cm.Labels,
 						},
 						Data: cm.Data,
 					}
@@ -252,6 +271,18 @@ func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconci
 							merr.Add(err)
 							continue
 						}
+					}
+					// Set the OperandBindInfo as the controller of the operand Configmap
+					if err := controllerutil.SetOwnerReference(bindInfoInstance, cm, r.scheme); err != nil {
+						klog.Errorf("Failed to set OperandRequest %s as thr Owner of Configmap %s : %s", bindInfoInstance.Name, secretcm.Configmap, err)
+						merr.Add(err)
+						continue
+					}
+					// Update the operand Configmap
+					if err := r.client.Update(context.TODO(), cm); err != nil {
+						klog.Errorf("Failed to update Configmap %s in the namespace %s : %s", cm.Name, cm.Namespace, err)
+						merr.Add(err)
+						continue
 					}
 				}
 			}
