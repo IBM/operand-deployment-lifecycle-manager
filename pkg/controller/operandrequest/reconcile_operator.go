@@ -47,7 +47,7 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1a
 		}
 		for _, operand := range req.Operands {
 			// Check the requested Operand if exist in specific OperandRegistry
-			opt := r.getOperatorFromRegistryInstance(operand.Name, registryInstance)
+			opt := registryInstance.GetOperator(operand.Name)
 			if opt != nil {
 				// Check subscription if exist
 				found, err := r.olmClient.OperatorsV1alpha1().Subscriptions(opt.Namespace).Get(opt.Name, metav1.GetOptions{})
@@ -226,8 +226,6 @@ func (r *ReconcileOperandRequest) deleteSubscription(operandName string, request
 		return nil
 	}
 
-	opt := r.getOperatorFromRegistryInstance(operandName, registryInstance)
-
 	csv, err := r.getClusterServiceVersion(operandName)
 	// If can't get CSV, requeue the request
 	if err != nil {
@@ -257,6 +255,7 @@ func (r *ReconcileOperandRequest) deleteSubscription(operandName string, request
 		}
 	}
 
+	opt := registryInstance.GetOperator(operandName)
 	if opt != nil {
 		klog.V(2).Info("Deleting the Subscription")
 		requestInstance.SetDeletingCondition(opt.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionTrue)
@@ -406,14 +405,4 @@ func (r *ReconcileOperandRequest) getRegistryInstance(name, namespace string) (*
 		return nil, err
 	}
 	return reg, nil
-}
-
-func (r *ReconcileOperandRequest) getOperatorFromRegistryInstance(operandName string, registryInstance *operatorv1alpha1.OperandRegistry) *operatorv1alpha1.Operator {
-	klog.V(3).Info("Get Operators from the OperandRegistry instance: ", registryInstance.ObjectMeta.Name, " and operand name: ", operandName)
-	for _, o := range registryInstance.Spec.Operators {
-		if o.Name == operandName {
-			return &o
-		}
-	}
-	return nil
 }

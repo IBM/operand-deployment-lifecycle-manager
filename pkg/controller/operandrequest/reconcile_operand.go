@@ -50,7 +50,7 @@ func (r *ReconcileOperandRequest) reconcileOperand(requestInstance *operatorv1al
 				continue
 			}
 			// Check the requested Service Config if exist in specific OperandConfig
-			svc := r.getServiceFromConfigInstance(operand.Name, configInstance)
+			svc := configInstance.GetService(operand.Name)
 			if svc != nil {
 				klog.V(3).Info("Reconciling custom resource: ", svc.Name)
 				// Looking for the CSV
@@ -181,7 +181,7 @@ func (r *ReconcileOperandRequest) reconcileCr(service *operatorv1alpha1.ConfigSe
 // deleteAllCustomResource remove custome resource base on OperandConfig and CSV alm-examples
 func (r *ReconcileOperandRequest) deleteAllCustomResource(csv *olmv1alpha1.ClusterServiceVersion, csc *operatorv1alpha1.OperandConfig, operandName string) error {
 
-	service := r.getServiceFromConfigInstance(operandName, csc)
+	service := csc.GetService(operandName)
 	if service == nil {
 		return nil
 	}
@@ -261,16 +261,6 @@ func (r *ReconcileOperandRequest) getConfigInstance(name, namespace string) (*op
 		return nil, err
 	}
 	return config, nil
-}
-
-func (r *ReconcileOperandRequest) getServiceFromConfigInstance(operandName string, configInstance *operatorv1alpha1.OperandConfig) *operatorv1alpha1.ConfigService {
-	klog.V(3).Info("Get ConfigService from the OperandConfig instance: ", configInstance.ObjectMeta.Name, " and operand name: ", operandName)
-	for _, s := range configInstance.Spec.Services {
-		if s.Name == operandName {
-			return &s
-		}
-	}
-	return nil
 }
 
 func (r *ReconcileOperandRequest) compareConfigandExample(unstruct unstructured.Unstructured, service *operatorv1alpha1.ConfigService, namespace string, csc *operatorv1alpha1.OperandConfig, csv *olmv1alpha1.ClusterServiceVersion) error {

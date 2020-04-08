@@ -116,6 +116,16 @@ func init() {
 	SchemeBuilder.Register(&OperandConfig{}, &OperandConfigList{})
 }
 
+// GetService obtain the service definition with the operand name
+func (r *OperandConfig) GetService(operandName string) *ConfigService {
+	for _, s := range r.Spec.Services {
+		if s.Name == operandName {
+			return &s
+		}
+	}
+	return nil
+}
+
 //InitConfigStatus OperandConfig status
 func (r *OperandConfig) InitConfigStatus() {
 	if (reflect.DeepEqual(r.Status, OperandConfigStatus{})) {

@@ -233,7 +233,7 @@ func (r *ReconcileOperandRequest) waitForInstallPlan(requestInstance *operatorv1
 			}
 			for _, operand := range req.Operands {
 				// Check the requested Operand if exist in specific OperandRegistry
-				opt := r.getOperatorFromRegistryInstance(operand.Name, registryInstance)
+				opt := registryInstance.GetOperator(operand.Name)
 				if opt != nil {
 					// Check subscription if exist
 					found, err := r.olmClient.OperatorsV1alpha1().Subscriptions(opt.Namespace).Get(opt.Name, metav1.GetOptions{})
