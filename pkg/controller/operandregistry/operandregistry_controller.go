@@ -18,7 +18,6 @@ package operandregistry
 
 import (
 	"context"
-	"os"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
@@ -31,7 +30,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
-	"github.com/IBM/operand-deployment-lifecycle-manager/pkg/util"
 )
 
 /**
@@ -66,13 +64,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	if err != nil {
 		return err
 	}
-
-	deployDirectory := os.Getenv("DEPLOY_DIR")
-	klog.V(2).Info("Initializing default operandregistry instance")
-	if err = util.InitInstance(deployDirectory+"/operator.ibm.com_v1alpha1_operandregistry_cr.yaml", mgr); err != nil {
-		klog.Error("Error creating CR, please create it manually: ", err)
-	}
-
 	return nil
 }
 
@@ -90,7 +81,6 @@ type ReconcileOperandRegistry struct {
 
 // Reconcile reads that state of the cluster for a OperandRegistry object and makes changes based on the state read
 // and what is in the OperandRegistry.Spec
-// TODO(user): Modify this Reconcile function to implement your Controller logic.
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
@@ -101,6 +91,9 @@ func (r *ReconcileOperandRegistry) Reconcile(request reconcile.Request) (reconci
 	if err := r.client.Get(context.TODO(), request.NamespacedName, instance); err != nil {
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
+
+	klog.V(1).Infof("Reconciling OperandRegistry %s", request.NamespacedName)
+
 	// Set the default scope for OperandRegistry instance
 	instance.SetDefaultsRegistry()
 	if err := r.client.Update(context.TODO(), instance); err != nil {

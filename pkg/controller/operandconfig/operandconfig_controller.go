@@ -18,9 +18,7 @@ package operandconfig
 
 import (
 	"context"
-	"os"
 
-	olmclient "github.com/operator-framework/operator-lifecycle-manager/pkg/api/client/clientset/versioned"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -31,7 +29,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
-	"github.com/IBM/operand-deployment-lifecycle-manager/pkg/util"
 )
 
 /**
@@ -47,12 +44,7 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	olmClientset, err := olmclient.NewForConfig(mgr.GetConfig())
-	if err != nil {
-		klog.Error("Initialize the OLM client failed: ", err)
-		return nil
-	}
-	return &ReconcileOperandConfig{client: mgr.GetClient(), scheme: mgr.GetScheme(), olmClient: olmClientset}
+	return &ReconcileOperandConfig{client: mgr.GetClient(), scheme: mgr.GetScheme()}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -68,14 +60,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	if err != nil {
 		return err
 	}
-
-	// Create an example OperandConfig CR
-	deployDirectory := os.Getenv("DEPLOY_DIR")
-	klog.V(2).Info("Initializing default operandconfig instance")
-	if err = util.InitInstance(deployDirectory+"/operator.ibm.com_v1alpha1_operandconfig_cr.yaml", mgr); err != nil {
-		klog.Error("Error creating CR, please create it manually: ", err)
-	}
-
 	return nil
 }
 
@@ -86,15 +70,12 @@ var _ reconcile.Reconciler = &ReconcileOperandConfig{}
 type ReconcileOperandConfig struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
-	client    client.Client
-	scheme    *runtime.Scheme
-	olmClient *olmclient.Clientset
+	client client.Client
+	scheme *runtime.Scheme
 }
 
 // Reconcile reads that state of the cluster for a OperandConfig object and makes changes based on the state read
 // and what is in the OperandConfig.Spec
-// TODO(user): Modify this Reconcile function to implement your Controller logic.  This example creates
-// a Pod as an example
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
@@ -105,6 +86,9 @@ func (r *ReconcileOperandConfig) Reconcile(request reconcile.Request) (reconcile
 	if err := r.client.Get(context.TODO(), request.NamespacedName, instance); err != nil {
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
+
+	klog.V(1).Infof("Reconciling OperandConfig %s", request.NamespacedName)
+
 	// Set the default status for OperandConfig instance
 	instance.InitConfigStatus()
 	klog.V(3).Info("Initializing OperandConfig instance status: ", request)

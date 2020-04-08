@@ -31,13 +31,11 @@ LABEL org.label-schema.vendor="IBM" \
   summary="Manager the lifecycle of the operands"
 
 ENV OPERATOR=/usr/local/bin/odlm \
-  DEPLOY_DIR=/deploy \
   USER_UID=1001 \
   USER_NAME=odlm
 
 # install operator binary
 COPY build/_output/bin/odlm ${OPERATOR}
-COPY deploy/crds ${DEPLOY_DIR}
 
 COPY build/bin /usr/local/bin
 RUN  /usr/local/bin/user_setup
