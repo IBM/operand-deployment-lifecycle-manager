@@ -19,6 +19,7 @@ package operandrequest
 import (
 	"context"
 	"encoding/json"
+	"reflect"
 	"strings"
 	"time"
 
@@ -379,6 +380,10 @@ func (r *ReconcileOperandRequest) updateCustomResource(unstruct unstructured.Uns
 
 		// Merge CR template spec and OperandConfig spec
 		mergedCR := util.MergeCR(specJSONString, crConfig)
+
+		if reflect.DeepEqual(existingCR.Object["spec"], mergedCR) {
+			return nil
+		}
 
 		existingCR.Object["spec"] = mergedCR
 		if crUpdateErr := r.client.Update(context.TODO(), &existingCR); crUpdateErr != nil {
