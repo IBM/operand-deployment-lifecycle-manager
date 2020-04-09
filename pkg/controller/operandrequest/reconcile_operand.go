@@ -155,7 +155,7 @@ func (r *ReconcileOperandRequest) reconcileCr(service *operatorv1alpha1.ConfigSe
 			continue
 		} else if errors.IsNotFound(getError) {
 			// Create Custom resource
-			if createErr := r.compareConfigandExample(unstruct, service, namespace, csc, csv); createErr != nil {
+			if createErr := r.compareConfigandExample(unstruct, service, namespace, csc); createErr != nil {
 				merr.Add(createErr)
 				continue
 			}
@@ -262,14 +262,14 @@ func (r *ReconcileOperandRequest) getConfigInstance(name, namespace string) (*op
 	return config, nil
 }
 
-func (r *ReconcileOperandRequest) compareConfigandExample(unstruct unstructured.Unstructured, service *operatorv1alpha1.ConfigService, namespace string, csc *operatorv1alpha1.OperandConfig, csv *olmv1alpha1.ClusterServiceVersion) error {
+func (r *ReconcileOperandRequest) compareConfigandExample(unstruct unstructured.Unstructured, service *operatorv1alpha1.ConfigService, namespace string, csc *operatorv1alpha1.OperandConfig) error {
 	kind := unstruct.Object["kind"].(string)
 
 	for crName, crdConfig := range service.Spec {
 		// Compare the name of OperandConfig and CRD name
 		if strings.EqualFold(kind, crName) {
 			klog.V(3).Info("Found OperandConfig spec for custom resource: " + kind)
-			createErr := r.createCustomResource(unstruct, service, namespace, crName, csc, crdConfig.Raw, csv)
+			createErr := r.createCustomResource(unstruct, service, namespace, crName, csc, crdConfig.Raw)
 			if createErr != nil {
 				klog.Error("Failed to create custom resource: ", createErr)
 				return createErr
@@ -279,7 +279,7 @@ func (r *ReconcileOperandRequest) compareConfigandExample(unstruct unstructured.
 	return nil
 }
 
-func (r *ReconcileOperandRequest) createCustomResource(unstruct unstructured.Unstructured, service *operatorv1alpha1.ConfigService, namespace, crName string, csc *operatorv1alpha1.OperandConfig, crConfig []byte, csv *olmv1alpha1.ClusterServiceVersion) error {
+func (r *ReconcileOperandRequest) createCustomResource(unstruct unstructured.Unstructured, service *operatorv1alpha1.ConfigService, namespace, crName string, csc *operatorv1alpha1.OperandConfig, crConfig []byte) error {
 
 	//Convert CR template spec to string
 	specJSONString, _ := json.Marshal(unstruct.Object["spec"])
@@ -432,7 +432,7 @@ func (r *ReconcileOperandRequest) deleteCustomResource(unstruct unstructured.Uns
 				klog.Error("Failed to delete the custom resource should be deleted: ", deleteErr)
 				return deleteErr
 			}
-			if !strings.EqualFold(kind, "OperandRequest"){
+			if !strings.EqualFold(kind, "OperandRequest") {
 				klog.V(3).Info("Waiting for CR: " + kind + " is deleted")
 				err := wait.PollImmediate(time.Second*20, time.Minute*10, func() (bool, error) {
 					klog.V(3).Info("Checking for CR: " + kind + " is deleted")
