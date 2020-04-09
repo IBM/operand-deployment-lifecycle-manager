@@ -39,7 +39,7 @@ OperandBindInfo makes ODLM can support creating an operator service in one names
       - name: foo
     ```
 
-2.  operator `Foo` creates an `OperandBindInfo` in the `foo-namespace` namespace to share its secret with operator `Bar`.
+2.  Operator `Foo` creates an `OperandBindInfo` in the `foo-namespace` namespace to share its secret with operator `Bar`.
 
     ```yaml
     apiVersion: odlm.ibm.com/v1alpha1
@@ -56,7 +56,7 @@ OperandBindInfo makes ODLM can support creating an operator service in one names
         secret: fooToken
     ```
 
-    when ODLM reconcile `OperandRequest`, it will find the `OperandBindInfo` in the namespace set in the corresponding `OperandRegistry` and add a `requestNamespace` list in the `OperandBindInfo` status.
+    When ODLM reconcile `OperandRequest`, it will find the `OperandBindInfo` in the namespace set in the corresponding `OperandRegistry` and add a `requestNamespace` list in the `OperandBindInfo` status.
 
     ```yaml
     apiVersion: odlm.ibm.com/v1alpha1
