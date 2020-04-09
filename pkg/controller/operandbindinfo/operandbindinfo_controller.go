@@ -206,10 +206,9 @@ func (r *ReconcileOperandBindInfo) copySecret(secName, sourceNs, targetNs string
 			klog.Errorf("Secret %s is not found from the namespace %s", secName, sourceNs)
 			r.recorder.Eventf(bindInfoInstance, corev1.EventTypeWarning, "NotFound", "No Secret %s in the namespace %s", secName, sourceNs)
 			return nil
-		} else {
-			klog.Errorf("Failed to get Secret %s from the namespace %s : %s", secName, sourceNs, err)
-			return err
 		}
+		klog.Errorf("Failed to get Secret %s from the namespace %s : %s", secName, sourceNs, err)
+		return err
 	}
 	// Create the Secret to the OperandRequest namespace
 	secretCopy := &corev1.Secret{
@@ -268,10 +267,9 @@ func (r *ReconcileOperandBindInfo) copyConfigmap(cmName, sourceNs, targetNs stri
 			klog.Errorf("Configmap %s is not found from the namespace %s", cmName, sourceNs)
 			r.recorder.Eventf(bindInfoInstance, corev1.EventTypeWarning, "NotFound", "No Configmap %s in the namespace %s", cmName, sourceNs)
 			return nil
-		} else {
-			klog.Errorf("Failed tp get Configmap %s from the namespace %s : %s", cmName, sourceNs, err)
-			return err
 		}
+		klog.Errorf("Failed tp get Configmap %s from the namespace %s : %s", cmName, sourceNs, err)
+		return err
 	}
 	// Create the ConfigMap to the OperandRequest namespace
 	cmCopy := &corev1.ConfigMap{
