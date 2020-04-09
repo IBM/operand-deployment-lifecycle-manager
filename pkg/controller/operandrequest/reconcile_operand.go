@@ -29,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 	util "github.com/IBM/operand-deployment-lifecycle-manager/pkg/util"
@@ -156,7 +155,7 @@ func (r *ReconcileOperandRequest) reconcileCr(service *operatorv1alpha1.ConfigSe
 			continue
 		} else if errors.IsNotFound(getError) {
 			// Create Custom resource
-			if createErr := r.compareConfigandExample(unstruct, service, namespace, csc, csv); createErr != nil {
+			if createErr := r.compareConfigandExample(unstruct, service, namespace, csc); createErr != nil {
 				merr.Add(createErr)
 				continue
 			}
@@ -263,14 +262,14 @@ func (r *ReconcileOperandRequest) getConfigInstance(name, namespace string) (*op
 	return config, nil
 }
 
-func (r *ReconcileOperandRequest) compareConfigandExample(unstruct unstructured.Unstructured, service *operatorv1alpha1.ConfigService, namespace string, csc *operatorv1alpha1.OperandConfig, csv *olmv1alpha1.ClusterServiceVersion) error {
+func (r *ReconcileOperandRequest) compareConfigandExample(unstruct unstructured.Unstructured, service *operatorv1alpha1.ConfigService, namespace string, csc *operatorv1alpha1.OperandConfig) error {
 	kind := unstruct.Object["kind"].(string)
 
 	for crName, crdConfig := range service.Spec {
 		// Compare the name of OperandConfig and CRD name
 		if strings.EqualFold(kind, crName) {
 			klog.V(3).Info("Found OperandConfig spec for custom resource: " + kind)
-			createErr := r.createCustomResource(unstruct, service, namespace, crName, csc, crdConfig.Raw, csv)
+			createErr := r.createCustomResource(unstruct, service, namespace, crName, csc, crdConfig.Raw)
 			if createErr != nil {
 				klog.Error("Failed to create custom resource: ", createErr)
 				return createErr
@@ -280,7 +279,7 @@ func (r *ReconcileOperandRequest) compareConfigandExample(unstruct unstructured.
 	return nil
 }
 
-func (r *ReconcileOperandRequest) createCustomResource(unstruct unstructured.Unstructured, service *operatorv1alpha1.ConfigService, namespace, crName string, csc *operatorv1alpha1.OperandConfig, crConfig []byte, csv *olmv1alpha1.ClusterServiceVersion) error {
+func (r *ReconcileOperandRequest) createCustomResource(unstruct unstructured.Unstructured, service *operatorv1alpha1.ConfigService, namespace, crName string, csc *operatorv1alpha1.OperandConfig, crConfig []byte) error {
 
 	//Convert CR template spec to string
 	specJSONString, _ := json.Marshal(unstruct.Object["spec"])
@@ -295,14 +294,6 @@ func (r *ReconcileOperandRequest) createCustomResource(unstruct unstructured.Uns
 		unstruct.Object["metadata"].(map[string]interface{})["labels"] = make(map[string]interface{})
 	}
 	unstruct.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{})["operator.ibm.com/opreq-control"] = t
-
-	// If the CR is OperandRequest, add the CSV as the owner of the OperandRequest
-	if strings.EqualFold(unstruct.Object["kind"].(string), "OperandRequest") {
-		if setOwnerErr := controllerutil.SetControllerReference(csv, &unstruct, r.scheme); setOwnerErr != nil {
-			klog.Errorf("Failed to set CSV as the owner of the OperandRequest instance, Error message: %s", setOwnerErr)
-			return setOwnerErr
-		}
-	}
 
 	// Creat the CR
 	crCreateErr := r.client.Create(context.TODO(), &unstruct)
@@ -441,33 +432,35 @@ func (r *ReconcileOperandRequest) deleteCustomResource(unstruct unstructured.Uns
 				klog.Error("Failed to delete the custom resource should be deleted: ", deleteErr)
 				return deleteErr
 			}
-			klog.V(3).Info("Waiting for CR: " + kind + " is deleted")
-			err := wait.PollImmediate(time.Second*20, time.Minute*10, func() (bool, error) {
-				klog.V(3).Info("Checking for CR: " + kind + " is deleted")
-				err := r.client.Get(context.TODO(), types.NamespacedName{
-					Name:      name,
-					Namespace: namespace,
-				},
-					&unstruct)
-				if errors.IsNotFound(err) {
-					return true, nil
-				}
+			if !strings.EqualFold(kind, "OperandRequest") {
+				klog.V(3).Info("Waiting for CR: " + kind + " is deleted")
+				err := wait.PollImmediate(time.Second*20, time.Minute*10, func() (bool, error) {
+					klog.V(3).Info("Checking for CR: " + kind + " is deleted")
+					err := r.client.Get(context.TODO(), types.NamespacedName{
+						Name:      name,
+						Namespace: namespace,
+					},
+						&unstruct)
+					if errors.IsNotFound(err) {
+						return true, nil
+					}
+					if err != nil {
+						klog.Error("Failed to get the custom resource: ", err)
+						return false, err
+					}
+					return false, nil
+				})
 				if err != nil {
-					klog.Error("Failed to get the custom resource: ", err)
-					return false, err
+					klog.Error("Failed to delete the custom resource should be deleted: ", err)
+					return err
 				}
-				return false, nil
-			})
-			if err != nil {
-				klog.Error("Failed to delete the custom resource should be deleted: ", err)
-				return err
+				stateDeleteErr := r.deleteServiceStatus(csc, service.Name, kind)
+				if stateDeleteErr != nil {
+					klog.Error("Failed to clean up the deleted service status in the operand config: ", stateDeleteErr)
+					return stateDeleteErr
+				}
+				klog.V(2).Infof("Finish deleting custom resource: %s from custom resource definition: %s", name, kind)
 			}
-			stateDeleteErr := r.deleteServiceStatus(csc, service.Name, kind)
-			if stateDeleteErr != nil {
-				klog.Error("Failed to clean up the deleted service status in the operand config: ", stateDeleteErr)
-				return stateDeleteErr
-			}
-			klog.V(2).Infof("Finish deleting custom resource: %s from custom resource definition: %s", name, kind)
 		}
 	}
 	return nil
