@@ -60,6 +60,34 @@ spec:
                       description: Operand defines the name and binding information
                         for one operator
                       properties:
+                        bindings:
+                          description: Specify a Binding list
+                          items:
+                            description: Binding defines the scope of the operand,
+                              and the resources, like Secret and ConfigMap.
+                            properties:
+                              configmap:
+                                description: The configmap field identifies a configmap
+                                  object, if any, that should be shared with the adopter/requestor
+                                type: string
+                              scope:
+                                description: The scope identifier determines whether
+                                  the referenced information can be shared with requests
+                                  in other namespaces (pubic) or only in this namespace
+                                  (private). An OperandBindInfo CR can have at MOST
+                                  one public scoped binding and one private scope
+                                  binding.
+                                enum:
+                                - public
+                                - private
+                                type: string
+                              secret:
+                                description: The secret field names an existing secret,
+                                  if any, that has been created and holds information
+                                  that is to be shared with the adopter.
+                                type: string
+                            type: object
+                          type: array
                         name:
                           description: Name of the operand to be deployed
                           type: string
