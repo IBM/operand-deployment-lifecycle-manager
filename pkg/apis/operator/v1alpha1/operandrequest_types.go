@@ -322,6 +322,8 @@ func (r *OperandRequest) SetUpdatingClusterPhase() {
 	r.Status.Phase = ClusterPhaseUpdating
 }
 
+// UpdateClusterPhase will collect the phase of all the operators and operands.
+// Then summarize the cluster phase of the OperandRequest.
 func (r *OperandRequest) UpdateClusterPhase() {
 	clusterStatusStat := struct {
 		creatingNum int
@@ -384,6 +386,7 @@ func (r *OperandRequest) SetDefaultRequestStatus() {
 	}
 }
 
+// AddLabels set the labels for the OperandConfig and OperandRegistry used by this OperandRequest
 func (r *OperandRequest) AddLabels() {
 	if r.Labels == nil {
 		r.Labels = make(map[string]string)
@@ -391,11 +394,6 @@ func (r *OperandRequest) AddLabels() {
 	for _, req := range r.Spec.Requests {
 		r.Labels[req.RegistryNamespace+"."+req.Registry+"/registry"] = "true"
 		r.Labels[req.RegistryNamespace+"."+req.Registry+"/config"] = "true"
-		for _, operand := range req.Operands {
-			if len(operand.Bindings) != 0 {
-				r.Labels[req.RegistryNamespace+"."+req.Registry+"/bindinfo"] = "true"
-			}
-		}
 	}
 }
 

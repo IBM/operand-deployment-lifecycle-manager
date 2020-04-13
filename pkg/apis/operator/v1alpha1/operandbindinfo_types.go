@@ -43,6 +43,10 @@ type OperandBindInfoSpec struct {
 	Operand string `json:"operand"`
 	// The registry identifies the name of the name of the OperandRegistry CR from which this operand deployment is being requested.
 	Registry string `json:"registry"`
+	// Specifies the namespace in which the OperandRegistry reside.
+	// The default is the current namespace in which the request is defined.
+	// +optional
+	RegistryNamespace string `json:"registryNamespace,omitempty"`
 	// +optional
 	Description string `json:"description,omitempty"`
 	// The bindings section is used to specify information about the access/configuration data that is to be shared.
@@ -114,4 +118,11 @@ func (r *OperandBindInfo) InitBindInfoStatus() {
 // SetUpdatingBindInfoPhase sets the Phase status as Updating
 func (r *OperandBindInfo) SetUpdatingBindInfoPhase() {
 	r.Status.Phase = BindInfoUpdating
+}
+
+// SetDefaultsRequestSpec Set the default value for OperandBindInfo spec
+func (r *OperandBindInfo) SetDefaultsRequestSpec() {
+	if r.Spec.RegistryNamespace == "" {
+		r.Spec.RegistryNamespace = r.Namespace
+	}
 }
