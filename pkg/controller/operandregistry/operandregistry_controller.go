@@ -113,7 +113,9 @@ func (r *ReconcileOperandRegistry) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
-	r.updateOperandRequestStatus(request)
+	if err := r.updateOperandRequestStatus(request); err != nil {
+		return reconcile.Result{}, err
+	}
 
 	return reconcile.Result{}, nil
 }
