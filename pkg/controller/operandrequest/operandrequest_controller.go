@@ -78,18 +78,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// Watch for changes to primary resource OperandRegistry
-	err = c.Watch(&source.Kind{Type: &operatorv1alpha1.OperandRegistry{}}, &handler.EnqueueRequestForObject{})
-	if err != nil {
-		return err
-	}
-
-	// Watch for changes to primary resource OperandConfig
-	err = c.Watch(&source.Kind{Type: &operatorv1alpha1.OperandConfig{}}, &handler.EnqueueRequestForObject{})
-	if err != nil {
-		return err
-	}
-
 	// TODO(user): Modify this to be the types you create that are owned by the primary resource
 	// Watch for changes to secondary resource Pods and requeue the owner OperandRequest
 	err = c.Watch(&source.Kind{Type: &olmv1alpha1.Subscription{}}, &handler.EnqueueRequestForOwner{
@@ -148,6 +136,8 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 
 	// Set default for OperandRequest instance
 	requestInstance.SetDefaultsRequestSpec()
+	// Add labels for the request
+	requestInstance.AddLabels()
 	if err := r.client.Update(context.TODO(), requestInstance); err != nil {
 		return reconcile.Result{}, err
 	}

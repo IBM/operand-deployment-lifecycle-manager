@@ -76,6 +76,7 @@ const (
 
 	ClusterPhaseNone     ClusterPhase = "Pending"
 	ClusterPhaseCreating ClusterPhase = "Creating"
+	ClusterPhaseUpdating ClusterPhase = "Updating"
 	ClusterPhaseRunning  ClusterPhase = "Running"
 	ClusterPhaseFailed   ClusterPhase = "Failed"
 
@@ -316,6 +317,11 @@ func (r *OperandRequest) SetClusterPhase(p ClusterPhase) {
 	r.Status.Phase = p
 }
 
+// SetUpdatingClusterPhase sets the cluster Phase status as Creating
+func (r *OperandRequest) SetUpdatingClusterPhase() {
+	r.Status.Phase = ClusterPhaseUpdating
+}
+
 func (r *OperandRequest) UpdateClusterPhase() {
 	clusterStatusStat := struct {
 		creatingNum int
@@ -375,6 +381,21 @@ func (r *OperandRequest) SetDefaultsRequestSpec() {
 func (r *OperandRequest) SetDefaultRequestStatus() {
 	if r.Status.Phase == "" {
 		r.Status.Phase = ClusterPhaseNone
+	}
+}
+
+func (r *OperandRequest) AddLabels() {
+	if r.Labels == nil {
+		r.Labels = make(map[string]string)
+	}
+	for _, req := range r.Spec.Requests {
+		r.Labels[req.RegistryNamespace+"."+req.Registry+"/registry"] = "true"
+		r.Labels[req.RegistryNamespace+"."+req.Registry+"/config"] = "true"
+		for _, operand := range req.Operands {
+			if len(operand.Bindings) != 0 {
+				r.Labels[operand.Name+"/bindinfo"] = "true"
+			}
+		}
 	}
 }
 
