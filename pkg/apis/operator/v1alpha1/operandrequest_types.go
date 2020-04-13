@@ -51,6 +51,10 @@ type Request struct {
 type Operand struct {
 	// Name of the operand to be deployed
 	Name string `json:"name"`
+	// Specify a Binding list
+	// +listType=set
+	// +optional
+	Bindings []Binding `json:"bindings,omitempty"`
 }
 
 // ConditionType is the condition of a service

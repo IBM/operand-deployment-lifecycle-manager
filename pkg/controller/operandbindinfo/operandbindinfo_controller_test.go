@@ -191,6 +191,13 @@ func operandRequest(name, namespace string) *v1alpha1.OperandRequest {
 						},
 						{
 							Name: "jenkins",
+							Bindings: []v1alpha1.Binding{
+								{
+									Scope:     v1alpha1.ScopePublic,
+									Secret:    "secret1",
+									Configmap: "cm1",
+								},
+							},
 						},
 					},
 				},

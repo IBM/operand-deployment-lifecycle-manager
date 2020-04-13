@@ -162,18 +162,20 @@ func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconci
 			klog.Errorf("Not found OperandRequest %s in the namespace %s : %s", bindRequest.Name, bindRequest.Namespace, err)
 			return reconcile.Result{}, client.IgnoreNotFound(err)
 		}
+		// Get binding information from OperandRequest
+		secretReq, cmReq := getBindingInfofromRequest(bindInfoInstance, requestInstance)
 		// Copy Secret and/or ConfigMap to the OperandRequest namespace
 		klog.V(2).Infof("Copy secret and/or configmap to namespace %s", bindRequest.Namespace)
 		for _, binding := range bindInfoInstance.Spec.Bindings {
 			// Only copy the public bindInfo
 			if binding.Scope == operatorv1alpha1.ScopePublic {
 				// Copy Secret
-				if err := r.copySecret(binding.Secret, operandNamespace, bindRequest.Namespace, bindInfoInstance, requestInstance); err != nil {
+				if err := r.copySecret(binding.Secret, secretReq, operandNamespace, bindRequest.Namespace, bindInfoInstance, requestInstance); err != nil {
 					merr.Add(err)
 					continue
 				}
 				// Copy ConfigMap
-				if err := r.copyConfigmap(binding.Configmap, operandNamespace, bindRequest.Namespace, bindInfoInstance, requestInstance); err != nil {
+				if err := r.copyConfigmap(binding.Configmap, cmReq, operandNamespace, bindRequest.Namespace, bindInfoInstance, requestInstance); err != nil {
 					merr.Add(err)
 					continue
 				}
@@ -193,13 +195,13 @@ func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconci
 }
 
 // Copy secret `secName` from source namespace `sourceNs` to target namespace `targetNs`
-func (r *ReconcileOperandBindInfo) copySecret(secName, sourceNs, targetNs string,
+func (r *ReconcileOperandBindInfo) copySecret(secName, secNameReq, sourceNs, targetNs string,
 	bindInfoInstance *operatorv1alpha1.OperandBindInfo, requestInstance *operatorv1alpha1.OperandRequest) error {
-	if secName == "" || sourceNs == "" || targetNs == "" {
+	if secName == "" || sourceNs == "" || targetNs == "" || secNameReq == "" {
 		return nil
 	}
 
-	klog.V(3).Infof("Copy secret %s from namespace %s to namespace %s", secName, sourceNs, targetNs)
+	klog.V(3).Infof("Copy secret %s from namespace %s to secret %s in the namespace %s", secName, sourceNs, secNameReq, targetNs)
 	secret := &corev1.Secret{}
 	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: secName, Namespace: sourceNs}, secret); err != nil {
 		if k8serr.IsNotFound(err) {
@@ -213,7 +215,7 @@ func (r *ReconcileOperandBindInfo) copySecret(secName, sourceNs, targetNs string
 	// Create the Secret to the OperandRequest namespace
 	secretCopy := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      secName,
+			Name:      secNameReq,
 			Namespace: targetNs,
 			Labels:    secret.Labels,
 		},
@@ -223,7 +225,7 @@ func (r *ReconcileOperandBindInfo) copySecret(secName, sourceNs, targetNs string
 	}
 	// Set the OperandRequest as the controller of the Secret
 	if err := controllerutil.SetControllerReference(requestInstance, secretCopy, r.scheme); err != nil {
-		klog.Errorf("Failed to set OperandRequest %s as thr Owner of Secret %s : %s", requestInstance.Name, secName, err)
+		klog.Errorf("Failed to set OperandRequest %s as thr Owner of Secret %s : %s", requestInstance.Name, secNameReq, err)
 		return err
 	}
 	// Create the Secret in the OperandRequest namespace
@@ -231,11 +233,11 @@ func (r *ReconcileOperandBindInfo) copySecret(secName, sourceNs, targetNs string
 		if k8serr.IsAlreadyExists(err) {
 			// If already exist, update the Secret
 			if err := r.client.Update(context.TODO(), secretCopy); err != nil {
-				klog.Errorf("Failed to update Secret %s in the namespace %s : %s", secName, targetNs, err)
+				klog.Errorf("Failed to update Secret %s in the namespace %s : %s", secNameReq, targetNs, err)
 				return err
 			}
 		} else {
-			klog.Errorf("Failed to create Secret %s in the namespace %s : %s", secName, targetNs, err)
+			klog.Errorf("Failed to create Secret %s in the namespace %s : %s", secNameReq, targetNs, err)
 			return err
 		}
 	}
@@ -254,9 +256,9 @@ func (r *ReconcileOperandBindInfo) copySecret(secName, sourceNs, targetNs string
 }
 
 // Copy configmap `cmName` from source namespace `sourceNs` to target namespace `targetNs`
-func (r *ReconcileOperandBindInfo) copyConfigmap(cmName, sourceNs, targetNs string,
+func (r *ReconcileOperandBindInfo) copyConfigmap(cmName, cmNameReq, sourceNs, targetNs string,
 	bindInfoInstance *operatorv1alpha1.OperandBindInfo, requestInstance *operatorv1alpha1.OperandRequest) error {
-	if cmName == "" || sourceNs == "" || targetNs == "" {
+	if cmName == "" || sourceNs == "" || targetNs == "" || cmNameReq == "" {
 		return nil
 	}
 
@@ -322,4 +324,26 @@ func (r *ReconcileOperandBindInfo) getBindInfoInstance(name, namespace string) (
 		return nil, err
 	}
 	return bindInfo, nil
+}
+
+func getBindingInfofromRequest(bindInfoInstance *operatorv1alpha1.OperandBindInfo, requestInstance *operatorv1alpha1.OperandRequest) (string, string) {
+	for _, req := range requestInstance.Spec.Requests {
+		if req.Registry != bindInfoInstance.Spec.Registry {
+			continue
+		}
+		for _, operand := range req.Operands {
+			if operand.Name != bindInfoInstance.Spec.Operand {
+				continue
+			}
+			if len(operand.Bindings) == 0 {
+				continue
+			}
+			for _, bindinfo := range operand.Bindings {
+				if bindinfo.Scope == operatorv1alpha1.ScopePublic {
+					return bindinfo.Secret, bindinfo.Configmap
+				}
+			}
+		}
+	}
+	return "", ""
 }
