@@ -78,7 +78,7 @@ func TestConfigController(t *testing.T) {
 
 	// Register operator types with the runtime scheme.
 	s := scheme.Scheme
-	s.AddKnownTypes(v1alpha1.SchemeGroupVersion, config)
+	v1alpha1.SchemeBuilder.AddToScheme(s)
 	// Create a fake client to mock API calls.
 	cl := fake.NewFakeClient(objs...)
 	// Create a ReconcileOperandConfig object with the scheme and fake client.

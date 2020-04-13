@@ -30,6 +30,7 @@ const (
 	BindInfoCompleted BindInfoPhase = "Completed"
 	BindInfoFailed    BindInfoPhase = "Failed"
 	BindInfoInit      BindInfoPhase = "Initialized"
+	BindInfoUpdating  BindInfoPhase = "Updating"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -108,4 +109,9 @@ func (r *OperandBindInfo) InitBindInfoStatus() {
 	if (reflect.DeepEqual(r.Status, OperandConfigStatus{})) {
 		r.Status.Phase = BindInfoInit
 	}
+}
+
+// SetUpdatingBindInfoPhase sets the Phase status as Updating
+func (r *OperandBindInfo) SetUpdatingBindInfoPhase() {
+	r.Status.Phase = BindInfoUpdating
 }

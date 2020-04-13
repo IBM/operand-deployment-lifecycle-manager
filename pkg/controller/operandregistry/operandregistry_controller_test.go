@@ -82,7 +82,7 @@ func TestRegistryController(t *testing.T) {
 
 	// Register operator types with the runtime scheme.
 	s := scheme.Scheme
-	s.AddKnownTypes(v1alpha1.SchemeGroupVersion, registry)
+	v1alpha1.SchemeBuilder.AddToScheme(s)
 	// Create a fake client to mock API calls.
 	cl := fake.NewFakeClient(objs...)
 	// Create a ReconcileOperandRegistry object with the scheme and fake client.
