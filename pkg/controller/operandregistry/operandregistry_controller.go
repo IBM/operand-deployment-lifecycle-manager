@@ -117,6 +117,10 @@ func (r *ReconcileOperandRegistry) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
+	if err := r.updateOperandBindInfoStatus(request); err != nil {
+		return reconcile.Result{}, err
+	}
+
 	return reconcile.Result{}, nil
 }
 
@@ -137,6 +141,29 @@ func (r *ReconcileOperandRegistry) updateOperandRequestStatus(request reconcile.
 	for _, req := range requestList.Items {
 		req.SetUpdatingClusterPhase()
 		if err := r.client.Status().Update(context.TODO(), &req); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// updateOperandBindInfoStatus update the phase of OperandBindInfo
+// When the registry changed, query all the OperandBindInfo that use it, and then
+// update these OperandBindInfo's Phase to Updating, to trigger reconcile of these OperandBindInfo.
+func (r *ReconcileOperandRegistry) updateOperandBindInfoStatus(request reconcile.Request) error {
+	// Get the bindinfos related with current registry
+	bindInfoList := &operatorv1alpha1.OperandBindInfoList{}
+
+	opts := []client.ListOption{
+		client.MatchingLabels(map[string]string{request.Namespace + "." + request.Name + "/bindinfo": "true"}),
+	}
+	if err := r.client.List(context.TODO(), bindInfoList, opts...); err != nil {
+		return err
+	}
+
+	for _, binding := range bindInfoList.Items {
+		binding.SetUpdatingBindInfoPhase()
+		if err := r.client.Status().Update(context.TODO(), &binding); err != nil {
 			return err
 		}
 	}

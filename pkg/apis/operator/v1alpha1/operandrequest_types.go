@@ -393,7 +393,7 @@ func (r *OperandRequest) AddLabels() {
 		r.Labels[req.RegistryNamespace+"."+req.Registry+"/config"] = "true"
 		for _, operand := range req.Operands {
 			if len(operand.Bindings) != 0 {
-				r.Labels[operand.Name+"/bindinfo"] = "true"
+				r.Labels[req.RegistryNamespace+"."+req.Registry+"/bindinfo"] = "true"
 			}
 		}
 	}
