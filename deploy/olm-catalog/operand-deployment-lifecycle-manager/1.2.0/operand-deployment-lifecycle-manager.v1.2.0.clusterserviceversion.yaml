@@ -803,7 +803,7 @@ spec:
                       fieldPath: metadata.namespace
                 - name: OPERATOR_NAME
                   value: operand-deployment-lifecycle-manager
-                image: quay.io/opencloudio/odlm:1.2.0
+                image: quay.io/opencloudio/odlm:latest
                 imagePullPolicy: Always
                 name: operand-deployment-lifecycle-manager
                 resources: {}
