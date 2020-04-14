@@ -155,7 +155,7 @@ func (r *ReconcileOperandRegistry) updateOperandBindInfoStatus(request reconcile
 	bindInfoList := &operatorv1alpha1.OperandBindInfoList{}
 
 	opts := []client.ListOption{
-		client.MatchingLabels(map[string]string{request.Namespace + "." + request.Name + "/bindinfo": "true"}),
+		client.MatchingLabels(map[string]string{request.Namespace + "." + request.Name + "/registry": "true"}),
 	}
 	if err := r.client.List(context.TODO(), bindInfoList, opts...); err != nil {
 		return err

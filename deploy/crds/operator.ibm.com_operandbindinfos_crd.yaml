@@ -82,6 +82,10 @@ spec:
               description: The registry identifies the name of the name of the OperandRegistry
                 CR from which this operand deployment is being requested.
               type: string
+            registryNamespace:
+              description: Specifies the namespace in which the OperandRegistry reside.
+                The default is the current namespace in which the request is defined.
+              type: string
           required:
           - operand
           - registry

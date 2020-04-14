@@ -118,6 +118,14 @@ func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconci
 
 	klog.V(1).Infof("Reconciling OperandBindInfo %s in the namespace %s", bindInfoInstance.Name, bindInfoInstance.Namespace)
 
+	// Set default for OperandBindInfo instance
+	bindInfoInstance.SetDefaultsRequestSpec()
+	// Add labels for the reqistry
+	bindInfoInstance.AddLabels()
+	if err := r.client.Update(context.TODO(), bindInfoInstance); err != nil {
+		return reconcile.Result{}, err
+	}
+
 	// Initialize OperandBindInfo status
 	bindInfoInstance.InitBindInfoStatus()
 	klog.V(3).Info("Initializing OperandBindInfo instance status: ", request)
@@ -127,9 +135,9 @@ func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconci
 
 	// Fetch the OperandRegistry instance
 	registryInstance := &operatorv1alpha1.OperandRegistry{}
-	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: bindInfoInstance.Spec.Registry, Namespace: request.Namespace}, registryInstance); err != nil {
+	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: bindInfoInstance.Spec.Registry, Namespace: bindInfoInstance.Spec.RegistryNamespace}, registryInstance); err != nil {
 		if k8serr.IsNotFound(err) {
-			r.recorder.Eventf(bindInfoInstance, corev1.EventTypeWarning, "NotFound", "NotFound OperandRegistry %s from the namespace %s", bindInfoInstance.Spec.Registry, request.Namespace)
+			r.recorder.Eventf(bindInfoInstance, corev1.EventTypeWarning, "NotFound", "NotFound OperandRegistry %s from the namespace %s", bindInfoInstance.Spec.Registry, bindInfoInstance.Spec.RegistryNamespace)
 		}
 		return reconcile.Result{}, err
 	}
