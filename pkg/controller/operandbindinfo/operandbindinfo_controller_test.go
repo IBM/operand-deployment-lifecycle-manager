@@ -64,11 +64,11 @@ func initReconcile(t *testing.T, r ReconcileOperandBindInfo, req reconcile.Reque
 
 	// Retrieve configmap and secret
 	configmap1 := &corev1.ConfigMap{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{Name: "cm1", Namespace: requestNamespace}, configmap1)
+	err = r.client.Get(context.TODO(), types.NamespacedName{Name: "cm3", Namespace: requestNamespace}, configmap1)
 	assert.NoError(err)
 
 	secret1 := &corev1.Secret{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{Name: "secret1", Namespace: requestNamespace}, secret1)
+	err = r.client.Get(context.TODO(), types.NamespacedName{Name: "secret3", Namespace: requestNamespace}, secret1)
 	assert.NoError(err)
 
 	configmap2 := &corev1.ConfigMap{}
@@ -194,8 +194,8 @@ func operandRequest(name, namespace string) *v1alpha1.OperandRequest {
 							Bindings: []v1alpha1.Binding{
 								{
 									Scope:     v1alpha1.ScopePublic,
-									Secret:    "secret1",
-									Configmap: "cm1",
+									Secret:    "secret3",
+									Configmap: "cm3",
 								},
 							},
 						},
