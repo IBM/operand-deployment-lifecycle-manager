@@ -129,8 +129,6 @@ func (r *OperandBindInfo) SetDefaultsRequestSpec() {
 
 // AddLabels set the labels for the OperandConfig and OperandRegistry used by this OperandRequest
 func (r *OperandBindInfo) AddLabels() {
-	if r.Labels == nil {
-		r.Labels = make(map[string]string)
-	}
+	r.Labels = make(map[string]string)
 	r.Labels[r.Spec.RegistryNamespace+"."+r.Spec.Registry+"/registry"] = "true"
 }

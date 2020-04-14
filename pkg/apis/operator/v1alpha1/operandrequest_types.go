@@ -388,9 +388,7 @@ func (r *OperandRequest) SetDefaultRequestStatus() {
 
 // AddLabels set the labels for the OperandConfig and OperandRegistry used by this OperandRequest
 func (r *OperandRequest) AddLabels() {
-	if r.Labels == nil {
-		r.Labels = make(map[string]string)
-	}
+	r.Labels = make(map[string]string)
 	for _, req := range r.Spec.Requests {
 		r.Labels[req.RegistryNamespace+"."+req.Registry+"/registry"] = "true"
 		r.Labels[req.RegistryNamespace+"."+req.Registry+"/config"] = "true"
