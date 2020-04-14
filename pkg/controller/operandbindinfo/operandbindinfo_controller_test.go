@@ -37,23 +37,26 @@ import (
 	"github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 )
 
-// TestBindInfoController runs ReconcileOperandRequest.Reconcile() against a
-// fake client that tracks a OperandRequest object.
+// TestBindInfoController runs ReconcileOperandBindInfo.Reconcile() against a
+// fake client that tracks a OperandBindInfo object.
 func TestBindInfoController(t *testing.T) {
 	var (
-		name             = "common-service"
-		namespace        = "ibm-common-service"
-		requestNamespace = "ibm-cloudpak"
+		name              = "ibm-operators-bindinfo"
+		namespace         = "ibm-operators"
+		requestName       = "ibm-cloudpak-name"
+		requestNamespace  = "ibm-cloudpak"
+		registryName      = "common-service"
+		registryNamespace = "ibm-common-services"
 	)
 
 	req := getReconcileRequest(name, namespace)
-	r := getReconciler(name, namespace, requestNamespace)
+	r := getReconciler(name, namespace, registryName, registryNamespace, requestName, requestNamespace)
 
 	initReconcile(t, r, req, requestNamespace)
 
 }
 
-// Init reconcile the OperandRequest
+// Init reconcile the OperandBindInfo
 func initReconcile(t *testing.T, r ReconcileOperandBindInfo, req reconcile.Request, requestNamespace string) {
 	assert := assert.New(t)
 	res, err := r.Reconcile(req)
@@ -80,7 +83,7 @@ func initReconcile(t *testing.T, r ReconcileOperandBindInfo, req reconcile.Reque
 	assert.True(errors.IsNotFound(err))
 }
 
-func getReconciler(name, namespace, requestNamespace string) ReconcileOperandBindInfo {
+func getReconciler(name, namespace, registryName, registryNamespace, requestName, requestNamespace string) ReconcileOperandBindInfo {
 	s := scheme.Scheme
 	v1alpha1.SchemeBuilder.AddToScheme(s)
 	corev1.SchemeBuilder.AddToScheme(s)
@@ -89,12 +92,12 @@ func getReconciler(name, namespace, requestNamespace string) ReconcileOperandBin
 	v1beta2.SchemeBuilder.AddToScheme(s)
 	v1alpha2.SchemeBuilder.AddToScheme(s)
 
-	initData := initClientData(name, namespace, requestNamespace)
+	initData := initClientData(name, namespace, registryName, registryNamespace, requestName, requestNamespace)
 
 	// Create a fake client to mock API calls.
 	client := fake.NewFakeClient(initData.objs...)
 
-	// Return a ReconcileOperandRequest object with the scheme and fake client.
+	// Return a ReconcileOperandBindInfo object with the scheme and fake client.
 	return ReconcileOperandBindInfo{
 		scheme: s,
 		client: client,
@@ -115,12 +118,12 @@ type DataObj struct {
 	objs []runtime.Object
 }
 
-func initClientData(name, namespace, requestNamespace string) *DataObj {
+func initClientData(name, namespace, registryName, registryNamespace, requestName, requestNamespace string) *DataObj {
 	return &DataObj{
 		objs: []runtime.Object{
-			operandRegistry(name, namespace, requestNamespace),
-			operandRequest(name, requestNamespace),
-			operandBindInfo(name, namespace),
+			operandRegistry(namespace, registryName, registryNamespace, requestName, requestNamespace),
+			operandRequest(registryName, registryNamespace, requestName, requestNamespace),
+			operandBindInfo(name, namespace, registryName, registryNamespace),
 			configmap1("cm1", namespace),
 			configmap2("cm2", namespace),
 			secret1("secret1", namespace),
@@ -130,11 +133,11 @@ func initClientData(name, namespace, requestNamespace string) *DataObj {
 }
 
 // Return OperandRegistry obj
-func operandRegistry(name, namespace, requestNamespace string) *v1alpha1.OperandRegistry {
+func operandRegistry(namespace, registryName, registryNamespace, requestName, requestNamespace string) *v1alpha1.OperandRegistry {
 	return &v1alpha1.OperandRegistry{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
+			Name:      registryName,
+			Namespace: registryNamespace,
 		},
 		Spec: v1alpha1.OperandRegistrySpec{
 			Operators: []v1alpha1.Operator{
@@ -163,7 +166,7 @@ func operandRegistry(name, namespace, requestNamespace string) *v1alpha1.Operand
 					Phase: v1alpha1.OperatorRunning,
 					ReconcileRequests: []v1alpha1.ReconcileRequest{
 						{
-							Name:      name,
+							Name:      requestName,
 							Namespace: requestNamespace,
 						},
 					},
@@ -174,17 +177,17 @@ func operandRegistry(name, namespace, requestNamespace string) *v1alpha1.Operand
 }
 
 // Return OperandRequest obj
-func operandRequest(name, namespace string) *v1alpha1.OperandRequest {
+func operandRequest(registryName, registryNamespace, requestName, requestNamespace string) *v1alpha1.OperandRequest {
 	return &v1alpha1.OperandRequest{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
+			Name:      requestName,
+			Namespace: requestNamespace,
 		},
 		Spec: v1alpha1.OperandRequestSpec{
 			Requests: []v1alpha1.Request{
 				{
-					Registry:          name,
-					RegistryNamespace: namespace,
+					Registry:          registryName,
+					RegistryNamespace: registryNamespace,
 					Operands: []v1alpha1.Operand{
 						{
 							Name: "etcd",
@@ -207,15 +210,16 @@ func operandRequest(name, namespace string) *v1alpha1.OperandRequest {
 }
 
 // Return OperandBindInfo obj
-func operandBindInfo(name, namespace string) *v1alpha1.OperandBindInfo {
+func operandBindInfo(name, namespace, registryName, registryNamespace string) *v1alpha1.OperandBindInfo {
 	return &v1alpha1.OperandBindInfo{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
 		Spec: v1alpha1.OperandBindInfoSpec{
-			Operand:  "jenkins",
-			Registry: name,
+			Operand:           "jenkins",
+			Registry:          registryName,
+			RegistryNamespace: registryNamespace,
 			Bindings: []v1alpha1.Binding{
 				{
 					Scope:     v1alpha1.ScopePublic,
