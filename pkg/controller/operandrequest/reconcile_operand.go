@@ -383,6 +383,11 @@ func (r *ReconcileOperandRequest) updateCustomResource(unstruct unstructured.Uns
 
 		// If there is no change between custom resource specs, skip the update
 		if reflect.DeepEqual(existingCR.Object["spec"], mergedCR) {
+			stateUpdateErr := r.updateServiceStatus(csc, service.Name, crName, operatorv1alpha1.ServiceRunning)
+			if stateUpdateErr != nil {
+				klog.Error("Failed to update status")
+				return stateUpdateErr
+			}
 			return nil
 		}
 
