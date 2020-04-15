@@ -208,8 +208,12 @@ func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconci
 // Copy secret `sourceName` from source namespace `sourceNs` to target namespace `targetNs`
 func (r *ReconcileOperandBindInfo) copySecret(sourceName, targetName, sourceNs, targetNs string,
 	bindInfoInstance *operatorv1alpha1.OperandBindInfo, requestInstance *operatorv1alpha1.OperandRequest) error {
-	if sourceName == "" || sourceNs == "" || targetNs == "" || targetName == "" {
+	if sourceName == "" || sourceNs == "" || targetNs == "" {
 		return nil
+	}
+
+	if targetName == "" {
+		targetName = sourceName + "-" + bindInfoInstance.Name
 	}
 
 	klog.V(3).Infof("Copy secret %s from namespace %s to secret %s in the namespace %s", sourceName, sourceNs, targetName, targetNs)
@@ -270,8 +274,12 @@ func (r *ReconcileOperandBindInfo) copySecret(sourceName, targetName, sourceNs, 
 // and rename it to `targetName`
 func (r *ReconcileOperandBindInfo) copyConfigmap(sourceName, targetName, sourceNs, targetNs string,
 	bindInfoInstance *operatorv1alpha1.OperandBindInfo, requestInstance *operatorv1alpha1.OperandRequest) error {
-	if sourceName == "" || sourceNs == "" || targetNs == "" || targetName == "" {
+	if sourceName == "" || sourceNs == "" || targetNs == "" {
 		return nil
+	}
+
+	if targetName == "" {
+		targetName = sourceName + "-" + bindInfoInstance.Name
 	}
 
 	klog.V(3).Infof("Copy configmap %s from namespace %s to namespace %s", sourceName, sourceNs, targetNs)
