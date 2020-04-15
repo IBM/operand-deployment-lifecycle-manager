@@ -19,7 +19,6 @@ package operandrequest
 import (
 	"context"
 	"encoding/json"
-	"reflect"
 	"strings"
 	"time"
 
@@ -38,7 +37,7 @@ import (
 const t = "true"
 
 func (r *ReconcileOperandRequest) reconcileOperand(requestInstance *operatorv1alpha1.OperandRequest) *util.MultiErr {
-	klog.V(1).Info("Reconciling Operand")
+	klog.V(1).Info("Reconciling Operands")
 	merr := &util.MultiErr{}
 
 	for _, req := range requestInstance.Spec.Requests {
@@ -81,6 +80,7 @@ func (r *ReconcileOperandRequest) reconcileOperand(requestInstance *operatorv1al
 	if len(merr.Errors) != 0 {
 		return merr
 	}
+	klog.V(1).Info("Finished reconciling Operands")
 	return &util.MultiErr{}
 }
 
@@ -351,7 +351,6 @@ func (r *ReconcileOperandRequest) updateCustomResource(unstruct unstructured.Uns
 	name := unstruct.Object["metadata"].(map[string]interface{})["name"].(string)
 
 	// Update the CR
-
 	existingCR := unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": apiversion,
@@ -380,17 +379,7 @@ func (r *ReconcileOperandRequest) updateCustomResource(unstruct unstructured.Uns
 
 		// Merge CR template spec and OperandConfig spec
 		mergedCR := util.MergeCR(specJSONString, crConfig)
-
-		// If there is no change between custom resource specs, skip the update
-		if reflect.DeepEqual(existingCR.Object["spec"], mergedCR) {
-			stateUpdateErr := r.updateServiceStatus(csc, service.Name, crName, operatorv1alpha1.ServiceRunning)
-			if stateUpdateErr != nil {
-				klog.Error("Failed to update status")
-				return stateUpdateErr
-			}
-			return nil
-		}
-
+		CRgeneration := existingCR.Object["metadata"].(map[string]interface{})["generation"]
 		existingCR.Object["spec"] = mergedCR
 		if crUpdateErr := r.client.Update(context.TODO(), &existingCR); crUpdateErr != nil {
 			stateUpdateErr := r.updateServiceStatus(csc, service.Name, crName, operatorv1alpha1.ServiceFailed)
@@ -401,7 +390,30 @@ func (r *ReconcileOperandRequest) updateCustomResource(unstruct unstructured.Uns
 			klog.Error("Failed to Update the Custom Resource ", crName, ". Error message: ", crUpdateErr)
 			return crUpdateErr
 		}
-		klog.V(2).Info("Finish updating the Custom Resource: ", crName)
+		UpdatedCR := unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"apiVersion": apiversion,
+				"kind":       kind,
+			},
+		}
+
+		crGetErr = r.client.Get(context.TODO(), types.NamespacedName{
+			Name:      name,
+			Namespace: namespace,
+		}, &UpdatedCR)
+
+		if crGetErr != nil {
+			stateUpdateErr := r.updateServiceStatus(csc, service.Name, crName, operatorv1alpha1.ServiceFailed)
+			if stateUpdateErr != nil {
+				klog.Error("Failed to update status")
+				return stateUpdateErr
+			}
+			klog.Error("Failed to Get the Custom Resource: ", crName, ". Error message: ", crGetErr)
+			return crGetErr
+		}
+		if UpdatedCR.Object["metadata"].(map[string]interface{})["generation"] != CRgeneration {
+			klog.V(2).Info("Finish updating the Custom Resource: ", crName)
+		}
 		stateUpdateErr := r.updateServiceStatus(csc, service.Name, crName, operatorv1alpha1.ServiceRunning)
 		if stateUpdateErr != nil {
 			klog.Error("Failed to update status")

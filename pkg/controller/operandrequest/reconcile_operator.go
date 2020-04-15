@@ -36,7 +36,7 @@ import (
 )
 
 func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1alpha1.OperandRequest, reconcileReq reconcile.Request) error {
-	klog.V(1).Info("Reconciling Operator")
+	klog.V(1).Info("Reconciling Operators")
 	for _, req := range requestInstance.Spec.Requests {
 		registryInstance, err := r.getRegistryInstance(req.Registry, req.RegistryNamespace)
 		if err != nil {
@@ -106,6 +106,7 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1a
 			}
 		}
 	}
+	klog.V(1).Info("Finished reconciling Operators")
 
 	return nil
 }
