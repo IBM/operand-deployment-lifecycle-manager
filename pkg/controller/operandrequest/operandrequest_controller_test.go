@@ -42,31 +42,34 @@ import (
 // fake client that tracks a OperandRequest object.
 func TestRequestController(t *testing.T) {
 	var (
-		name      = "common-service"
-		namespace = "ibm-common-service"
+		name              = "ibm-cloudpak-name"
+		namespace         = "ibm-cloudpak"
+		registryName      = "common-service"
+		registryNamespace = "ibm-common-service"
+		operatorNamespace = "ibm-operators"
 	)
 
 	req := getReconcileRequest(name, namespace)
-	r := getReconciler(name, namespace)
+	r := getReconciler(name, namespace, registryName, registryNamespace, operatorNamespace)
 	requestInstance := &v1alpha1.OperandRequest{}
 
-	initReconcile(t, r, req, requestInstance)
+	initReconcile(t, r, req, requestInstance, registryName, registryNamespace, operatorNamespace)
 
-	absentOperand(t, r, req, requestInstance)
+	absentOperand(t, r, req, requestInstance, operatorNamespace)
 
-	presentOperand(t, r, req, requestInstance)
+	presentOperand(t, r, req, requestInstance, operatorNamespace)
 
-	updateOperandCustomResource(t, r, req)
+	updateOperandCustomResource(t, r, req, registryName, registryNamespace)
 
-	absentOperandCustomResource(t, r, req)
+	absentOperandCustomResource(t, r, req, registryName, registryNamespace)
 
-	presentOperandCustomResource(t, r, req)
+	presentOperandCustomResource(t, r, req, registryName, registryNamespace)
 
-	deleteOperandRequest(t, r, req, requestInstance)
+	deleteOperandRequest(t, r, req, requestInstance, operatorNamespace)
 }
 
 // Init reconcile the OperandRequest
-func initReconcile(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, requestInstance *v1alpha1.OperandRequest) {
+func initReconcile(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, requestInstance *v1alpha1.OperandRequest, registryName, registryNamespace, operatorNamespace string) {
 	assert := assert.New(t)
 	res, err := r.Reconcile(req)
 	if res.Requeue {
@@ -75,7 +78,7 @@ func initReconcile(t *testing.T, r ReconcileOperandRequest, req reconcile.Reques
 	assert.NoError(err)
 
 	// Retrieve OperandRegistry
-	registryInstance, err := r.getRegistryInstance(req.Name, req.Namespace)
+	registryInstance, err := r.getRegistryInstance(registryName, registryNamespace)
 	assert.NoError(err)
 	for k, v := range registryInstance.Status.OperatorsStatus {
 		assert.Equalf(v1alpha1.OperatorRunning, v.Phase, "operator(%s) phase should be Running", k)
@@ -84,7 +87,7 @@ func initReconcile(t *testing.T, r ReconcileOperandRequest, req reconcile.Reques
 	assert.Equalf(v1alpha1.OperatorRunning, registryInstance.Status.Phase, "registry(%s/%s) phase should be Running", registryInstance.Namespace, registryInstance.Name)
 
 	// Retrieve OperandConfig
-	configInstance, err := r.getConfigInstance(req.Name, req.Namespace)
+	configInstance, err := r.getConfigInstance(registryName, registryNamespace)
 	assert.NoError(err)
 	for k, v := range configInstance.Status.ServiceStatus {
 		for crK, crV := range v.CrStatus {
@@ -94,24 +97,24 @@ func initReconcile(t *testing.T, r ReconcileOperandRequest, req reconcile.Reques
 	assert.Equalf(v1alpha1.ServiceRunning, configInstance.Status.Phase, "config(%s/%s) phase should be Running", configInstance.Namespace, configInstance.Name)
 
 	// Retrieve OperandRequest
-	retrieveOperandRequest(t, r, req, requestInstance, 2)
+	retrieveOperandRequest(t, r, req, requestInstance, 2, operatorNamespace)
 
 	err = checkOperandCustomResource(t, r, registryInstance, 3, 8081, "3.2.13")
 	assert.NoError(err)
 }
 
 // Retrieve OperandRequest instance
-func retrieveOperandRequest(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, requestInstance *v1alpha1.OperandRequest, expectedMemNum int) {
+func retrieveOperandRequest(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, requestInstance *v1alpha1.OperandRequest, expectedMemNum int, operatorNamespace string) {
 	assert := assert.New(t)
 	err := r.client.Get(context.TODO(), req.NamespacedName, requestInstance)
 	assert.NoError(err)
 	assert.Equal(expectedMemNum, len(requestInstance.Status.Members), "operandrequest member list should have two elements")
 
-	subs, err := r.olmClient.OperatorsV1alpha1().Subscriptions(req.Namespace).List(metav1.ListOptions{})
+	subs, err := r.olmClient.OperatorsV1alpha1().Subscriptions(operatorNamespace).List(metav1.ListOptions{})
 	assert.NoError(err)
 	assert.Equalf(expectedMemNum, len(subs.Items), "subscription list should have %s Subscriptions", expectedMemNum)
 
-	csvs, err := r.olmClient.OperatorsV1alpha1().ClusterServiceVersions(req.Namespace).List(metav1.ListOptions{})
+	csvs, err := r.olmClient.OperatorsV1alpha1().ClusterServiceVersions(operatorNamespace).List(metav1.ListOptions{})
 	assert.NoError(err)
 	assert.Equalf(expectedMemNum, len(csvs.Items), "csv list should have %s ClusterServiceVersions", expectedMemNum)
 
@@ -123,7 +126,7 @@ func retrieveOperandRequest(t *testing.T, r ReconcileOperandRequest, req reconci
 }
 
 // Absent an operator from request
-func absentOperand(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, requestInstance *v1alpha1.OperandRequest) {
+func absentOperand(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, requestInstance *v1alpha1.OperandRequest, operatorNamespace string) {
 	assert := assert.New(t)
 	requestInstance.Spec.Requests[0].Operands = requestInstance.Spec.Requests[0].Operands[1:]
 	err := r.client.Update(context.TODO(), requestInstance)
@@ -133,11 +136,11 @@ func absentOperand(t *testing.T, r ReconcileOperandRequest, req reconcile.Reques
 		t.Error("Reconcile requeued request as not expected")
 	}
 	assert.NoError(err)
-	retrieveOperandRequest(t, r, req, requestInstance, 1)
+	retrieveOperandRequest(t, r, req, requestInstance, 1, operatorNamespace)
 }
 
 // Present an operator from request
-func presentOperand(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, requestInstance *v1alpha1.OperandRequest) {
+func presentOperand(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, requestInstance *v1alpha1.OperandRequest, operatorNamespace string) {
 	assert := assert.New(t)
 	// Present an operator into request
 	requestInstance.Spec.Requests[0].Operands = append(requestInstance.Spec.Requests[0].Operands, v1alpha1.Operand{Name: "etcd"})
@@ -146,7 +149,7 @@ func presentOperand(t *testing.T, r ReconcileOperandRequest, req reconcile.Reque
 
 	err = r.createSubscription(requestInstance, &v1alpha1.Operator{
 		Name:            "etcd",
-		Namespace:       req.Namespace,
+		Namespace:       operatorNamespace,
 		SourceName:      "community-operators",
 		SourceNamespace: "openshift-marketplace",
 		PackageName:     "etcd",
@@ -155,9 +158,9 @@ func presentOperand(t *testing.T, r ReconcileOperandRequest, req reconcile.Reque
 	assert.NoError(err)
 	err = r.reconcileOperator(requestInstance, req)
 	assert.NoError(err)
-	_, err = r.olmClient.OperatorsV1alpha1().Subscriptions(req.Namespace).UpdateStatus(sub("etcd", req.Namespace, "0.0.1"))
+	_, err = r.olmClient.OperatorsV1alpha1().Subscriptions(operatorNamespace).UpdateStatus(sub("etcd", operatorNamespace, "0.0.1"))
 	assert.NoError(err)
-	_, err = r.olmClient.OperatorsV1alpha1().ClusterServiceVersions(req.Namespace).Create(csv("etcd-csv.v0.0.1", req.Namespace, etcdExample))
+	_, err = r.olmClient.OperatorsV1alpha1().ClusterServiceVersions(operatorNamespace).Create(csv("etcd-csv.v0.0.1", operatorNamespace, etcdExample))
 	assert.NoError(err)
 	err = r.waitForInstallPlan(requestInstance, req)
 	assert.NoError(err)
@@ -165,11 +168,11 @@ func presentOperand(t *testing.T, r ReconcileOperandRequest, req reconcile.Reque
 	assert.Empty(multiErr.Errors, "all the operands reconcile should not be error")
 	err = r.updateMemberStatus(requestInstance)
 	assert.NoError(err)
-	retrieveOperandRequest(t, r, req, requestInstance, 2)
+	retrieveOperandRequest(t, r, req, requestInstance, 2, operatorNamespace)
 }
 
 // Mock delete OperandRequest instance, mark OperandRequest instance as delete state
-func deleteOperandRequest(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, requestInstance *v1alpha1.OperandRequest) {
+func deleteOperandRequest(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, requestInstance *v1alpha1.OperandRequest, operatorNamespace string) {
 	assert := assert.New(t)
 	deleteTime := metav1.NewTime(time.Now())
 	requestInstance.SetDeletionTimestamp(&deleteTime)
@@ -180,11 +183,11 @@ func deleteOperandRequest(t *testing.T, r ReconcileOperandRequest, req reconcile
 		t.Error("Reconcile requeued request as not expected")
 	}
 	assert.NoError(err)
-	subs, err := r.olmClient.OperatorsV1alpha1().Subscriptions(req.Namespace).List(metav1.ListOptions{})
+	subs, err := r.olmClient.OperatorsV1alpha1().Subscriptions(operatorNamespace).List(metav1.ListOptions{})
 	assert.NoError(err)
 	assert.Empty(subs.Items, "all the Subscriptions should be deleted")
 
-	csvs, err := r.olmClient.OperatorsV1alpha1().ClusterServiceVersions(req.Namespace).List(metav1.ListOptions{})
+	csvs, err := r.olmClient.OperatorsV1alpha1().ClusterServiceVersions(operatorNamespace).List(metav1.ListOptions{})
 	assert.NoError(err)
 	assert.Empty(csvs.Items, "all the ClusterServiceVersions should be deleted")
 
@@ -195,7 +198,7 @@ func deleteOperandRequest(t *testing.T, r ReconcileOperandRequest, req reconcile
 	assert.True(errors.IsNotFound(err), "retrieve operand request should be return an error of type is 'NotFound'")
 }
 
-func getReconciler(name, namespace string) ReconcileOperandRequest {
+func getReconciler(name, namespace, registryName, registryNamespace, operatorNamespace string) ReconcileOperandRequest {
 	s := scheme.Scheme
 	v1alpha1.SchemeBuilder.AddToScheme(s)
 	olmv1.SchemeBuilder.AddToScheme(s)
@@ -203,7 +206,7 @@ func getReconciler(name, namespace string) ReconcileOperandRequest {
 	v1beta2.SchemeBuilder.AddToScheme(s)
 	v1alpha2.SchemeBuilder.AddToScheme(s)
 
-	initData := initClientData(name, namespace)
+	initData := initClientData(name, namespace, registryName, registryNamespace, operatorNamespace)
 
 	// Create a fake client to mock API calls.
 	client := fake.NewFakeClient(initData.odlmObjs...)
@@ -230,10 +233,10 @@ func getReconcileRequest(name, namespace string) reconcile.Request {
 }
 
 // Update an operand custom resource from config
-func updateOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req reconcile.Request) {
+func updateOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, registryName, registryNamespace string) {
 	assert := assert.New(t)
 	// Retrieve OperandConfig
-	configInstance, err := r.getConfigInstance(req.Name, req.Namespace)
+	configInstance, err := r.getConfigInstance(registryName, registryNamespace)
 	assert.NoError(err)
 	for id, operator := range configInstance.Spec.Services {
 		if operator.Name == "etcd" {
@@ -249,7 +252,7 @@ func updateOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req re
 		t.Error("Reconcile requeued request as not expected")
 	}
 	assert.NoError(err)
-	configInstance, err = r.getConfigInstance(req.Name, req.Namespace)
+	configInstance, err = r.getConfigInstance(registryName, registryNamespace)
 	assert.NoError(err)
 	assert.Equal(v1alpha1.ServiceRunning, configInstance.Status.ServiceStatus["etcd"].CrStatus["etcdCluster"], "The status of etcdCluster should be running in the OperandConfig")
 	updatedRequestInstance := &v1alpha1.OperandRequest{}
@@ -262,17 +265,17 @@ func updateOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req re
 	}
 	assert.Equal(v1alpha1.ClusterPhaseRunning, updatedRequestInstance.Status.Phase, "The cluster phase status should be running in the OperandRequest")
 
-	registryInstance, err := r.getRegistryInstance(req.Name, req.Namespace)
+	registryInstance, err := r.getRegistryInstance(registryName, registryNamespace)
 	assert.NoError(err)
 	err = checkOperandCustomResource(t, r, registryInstance, 1, 8081, "3.2.13")
 	assert.NoError(err)
 }
 
 // Absent an operand custom resource from config
-func absentOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req reconcile.Request) {
+func absentOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, registryName, registryNamespace string) {
 	assert := assert.New(t)
 	// Retrieve OperandConfig
-	configInstance, err := r.getConfigInstance(req.Name, req.Namespace)
+	configInstance, err := r.getConfigInstance(registryName, registryNamespace)
 	assert.NoError(err)
 	for id, operator := range configInstance.Spec.Services {
 		if operator.Name == "etcd" {
@@ -286,7 +289,7 @@ func absentOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req re
 		t.Error("Reconcile requeued request as not expected")
 	}
 	assert.NoError(err)
-	configInstance, err = r.getConfigInstance(req.Name, req.Namespace)
+	configInstance, err = r.getConfigInstance(registryName, registryNamespace)
 	assert.NoError(err)
 	assert.Equal(v1alpha1.ServiceNone, configInstance.Status.ServiceStatus["etcd"].CrStatus["etcdCluster"], "The status of etcdCluster should be cleaned up in the OperandConfig")
 	updatedRequestInstance := &v1alpha1.OperandRequest{}
@@ -301,10 +304,10 @@ func absentOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req re
 }
 
 // Present an operand custom resource from config
-func presentOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req reconcile.Request) {
+func presentOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, registryName, registryNamespace string) {
 	assert := assert.New(t)
 	// Retrieve OperandConfig
-	configInstance := operandConfig(req.Name, req.Namespace)
+	configInstance := operandConfig(registryName, registryNamespace)
 	err := r.client.Update(context.TODO(), configInstance)
 	assert.NoError(err)
 	res, err := r.Reconcile(req)
@@ -312,7 +315,7 @@ func presentOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req r
 		t.Error("Reconcile requeued request as not expected")
 	}
 	assert.NoError(err)
-	configInstance, err = r.getConfigInstance(req.Name, req.Namespace)
+	configInstance, err = r.getConfigInstance(registryName, registryNamespace)
 	assert.NoError(err)
 	assert.Equal(v1alpha1.ServiceRunning, configInstance.Status.ServiceStatus["etcd"].CrStatus["etcdCluster"], "The status of etcdCluster should be running in the OperandConfig")
 	updatedRequestInstance := &v1alpha1.OperandRequest{}
@@ -361,34 +364,34 @@ type DataObj struct {
 	olmObjs  []runtime.Object
 }
 
-func initClientData(name, namespace string) *DataObj {
+func initClientData(name, namespace, registryName, registryNamespace, operatorNamespace string) *DataObj {
 	return &DataObj{
 		odlmObjs: []runtime.Object{
-			operandRegistry(name, namespace),
-			operandRequest(name, namespace),
-			operandConfig(name, namespace)},
+			operandRegistry(registryName, registryNamespace, operatorNamespace),
+			operandRequest(name, namespace, registryName, registryNamespace),
+			operandConfig(registryName, registryNamespace)},
 		olmObjs: []runtime.Object{
-			sub("etcd", namespace, "0.0.1"),
-			sub("jenkins", namespace, "0.0.1"),
-			csv("etcd-csv.v0.0.1", namespace, etcdExample),
-			csv("jenkins-csv.v0.0.1", namespace, jenkinsExample),
-			ip("etcd-install-plan", namespace),
-			ip("jenkins-install-plan", namespace)},
+			sub("etcd", operatorNamespace, "0.0.1"),
+			sub("jenkins", operatorNamespace, "0.0.1"),
+			csv("etcd-csv.v0.0.1", operatorNamespace, etcdExample),
+			csv("jenkins-csv.v0.0.1", operatorNamespace, jenkinsExample),
+			ip("etcd-install-plan", operatorNamespace),
+			ip("jenkins-install-plan", operatorNamespace)},
 	}
 }
 
 // Return OperandRegistry obj
-func operandRegistry(name, namespace string) *v1alpha1.OperandRegistry {
+func operandRegistry(registryName, registryNamespace, operatorNamespace string) *v1alpha1.OperandRegistry {
 	return &v1alpha1.OperandRegistry{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
+			Name:      registryName,
+			Namespace: registryNamespace,
 		},
 		Spec: v1alpha1.OperandRegistrySpec{
 			Operators: []v1alpha1.Operator{
 				{
 					Name:            "etcd",
-					Namespace:       namespace,
+					Namespace:       operatorNamespace,
 					SourceName:      "community-operators",
 					SourceNamespace: "openshift-marketplace",
 					PackageName:     "etcd",
@@ -396,7 +399,7 @@ func operandRegistry(name, namespace string) *v1alpha1.OperandRegistry {
 				},
 				{
 					Name:            "jenkins",
-					Namespace:       namespace,
+					Namespace:       operatorNamespace,
 					SourceName:      "community-operators",
 					SourceNamespace: "openshift-marketplace",
 					PackageName:     "jenkins-operator",
@@ -408,11 +411,11 @@ func operandRegistry(name, namespace string) *v1alpha1.OperandRegistry {
 }
 
 // Return OperandConfig obj
-func operandConfig(name, namespace string) *v1alpha1.OperandConfig {
+func operandConfig(configName, configNamespace string) *v1alpha1.OperandConfig {
 	return &v1alpha1.OperandConfig{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
+			Name:      configName,
+			Namespace: configNamespace,
 		},
 		Spec: v1alpha1.OperandConfigSpec{
 			Services: []v1alpha1.ConfigService{
@@ -434,7 +437,7 @@ func operandConfig(name, namespace string) *v1alpha1.OperandConfig {
 }
 
 // Return OperandRequest obj
-func operandRequest(name, namespace string) *v1alpha1.OperandRequest {
+func operandRequest(name, namespace, registryName, registryNamespace string) *v1alpha1.OperandRequest {
 	return &v1alpha1.OperandRequest{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -443,8 +446,8 @@ func operandRequest(name, namespace string) *v1alpha1.OperandRequest {
 		Spec: v1alpha1.OperandRequestSpec{
 			Requests: []v1alpha1.Request{
 				{
-					Registry:          name,
-					RegistryNamespace: namespace,
+					Registry:          registryName,
+					RegistryNamespace: registryNamespace,
 					Operands: []v1alpha1.Operand{
 						{
 							Name: "etcd",

@@ -19,78 +19,46 @@ import (
 	"context"
 	"testing"
 
+	v1beta2 "github.com/coreos/etcd-operator/pkg/apis/etcd/v1beta2"
+	v1alpha2 "github.com/jenkinsci/kubernetes-operator/pkg/apis/jenkins/v1alpha2"
 	"github.com/stretchr/testify/assert"
-
-	v1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
-
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	v1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 )
 
 // TestRegistryController runs ReconcileOperandRegistry.Reconcile() against a
 // fake client that tracks a OperandRegistry object.
 func TestRegistryController(t *testing.T) {
-	assert := assert.New(t)
 	var (
-		name      = "cs-registry"
-		namespace = "ibm-common-service"
+		name              = "common-service"
+		namespace         = "ibm-common-service"
+		requestName       = "ibm-cloudpak-name"
+		requestNamespace  = "ibm-cloudpak"
+		operatorName      = "ibm-operator-name"
+		operatorNamespace = "ibm-operators"
 	)
-	// Mock request to simulate Reconcile() being called on an event for a
-	// watched resource .
-	req := reconcile.Request{
-		NamespacedName: types.NamespacedName{
-			Name:      name,
-			Namespace: namespace,
-		},
-	}
 
-	// A operandregistry resource with metadata and spec.
-	registry := &v1alpha1.OperandRegistry{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Spec: v1alpha1.OperandRegistrySpec{
-			Operators: []v1alpha1.Operator{
-				{
-					Name:            "etcd",
-					Namespace:       "etcd-operator",
-					SourceName:      "community-operators",
-					SourceNamespace: "openshift-marketplace",
-					PackageName:     "etcd",
-					Channel:         "singlenamespace-alpha",
-				},
-				{
-					Name:            "jenkins",
-					Namespace:       "jenkins-operator",
-					SourceName:      "community-operators",
-					SourceNamespace: "openshift-marketplace",
-					PackageName:     "jenkins-operator",
-					Channel:         "alpha",
-				},
-			},
-		},
-	}
-	// Objects to track in the fake client.
-	objs := []runtime.Object{
-		registry,
-	}
+	req := getReconcileRequest(name, namespace)
+	r := getReconciler(name, namespace, requestName, requestNamespace, operatorName, operatorNamespace)
 
-	// Register operator types with the runtime scheme.
-	s := scheme.Scheme
-	v1alpha1.SchemeBuilder.AddToScheme(s)
-	// Create a fake client to mock API calls.
-	cl := fake.NewFakeClient(objs...)
-	// Create a ReconcileOperandRegistry object with the scheme and fake client.
-	r := &ReconcileOperandRegistry{client: cl, scheme: s}
+	initReconcile(t, r, req, requestName, requestNamespace, operatorName, operatorNamespace)
+
+}
+
+func initReconcile(t *testing.T, r ReconcileOperandRegistry, req reconcile.Request, requestName, requestNamespace, operatorName, operatorNamespace string) {
+	assert := assert.New(t)
 
 	_, err := r.Reconcile(req)
 	assert.NoError(err)
 
+	registry := &v1alpha1.OperandRegistry{}
 	err = r.client.Get(context.TODO(), req.NamespacedName, registry)
 	assert.NoError(err)
 	// Check the default value
@@ -99,14 +67,180 @@ func TestRegistryController(t *testing.T) {
 	}
 	// Check the registry init status
 	assert.NotNil(registry.Status, "init operator status should not be empty")
-	assert.Equalf(v1alpha1.OperatorInit, registry.Status.Phase, "Overall OperandRegistry phase should be 'Ready for Deployment'")
+	assert.Equalf(v1alpha1.OperatorInit, registry.Status.Phase, "Overall OperandRegistry phase should be 'Initialized'")
 
-	// Create a fake client to mock instance not found.
-	cl = fake.NewFakeClient()
-	// Create a ReconcileOperandRegistry object with the scheme and fake client.
-	r = &ReconcileOperandRegistry{client: cl, scheme: s}
-
-	_, err = r.Reconcile(req)
+	bindInfo := &v1alpha1.OperandBindInfo{}
+	err = r.client.Get(context.TODO(), types.NamespacedName{Name: operatorName, Namespace: operatorNamespace}, bindInfo)
 	assert.NoError(err)
 
+	// Check the OperandBindInfo status
+	assert.NotNil(bindInfo.Status, "init OperandBindInfo status should not be empty")
+	assert.Equalf(v1alpha1.BindInfoUpdating, bindInfo.Status.Phase, "Overall OperandBindInfo phase should be 'Updating'")
+
+	request := &v1alpha1.OperandRequest{}
+	err = r.client.Get(context.TODO(), types.NamespacedName{Name: requestName, Namespace: requestNamespace}, request)
+	assert.NoError(err)
+
+	// Check the OperandRequest status
+	assert.NotNil(request.Status, "init OperandRequest status should not be empty")
+	assert.Equalf(v1alpha1.ClusterPhaseUpdating, request.Status.Phase, "Overall OperandRequest phase should be 'Updating'")
+}
+
+func getReconciler(name, namespace, requestName, requestNamespace, operatorName, operatorNamespace string) ReconcileOperandRegistry {
+	s := scheme.Scheme
+	v1alpha1.SchemeBuilder.AddToScheme(s)
+	corev1.SchemeBuilder.AddToScheme(s)
+	v1beta2.SchemeBuilder.AddToScheme(s)
+	v1alpha2.SchemeBuilder.AddToScheme(s)
+
+	initData := initClientData(name, namespace, requestName, requestNamespace, operatorName, operatorNamespace)
+
+	// Create a fake client to mock API calls.
+	client := fake.NewFakeClient(initData.objs...)
+
+	// Return a ReconcileOperandRegistry object with the scheme and fake client.
+	return ReconcileOperandRegistry{
+		scheme: s,
+		client: client,
+	}
+}
+
+// Mock request to simulate Reconcile() being called on an event for a watched resource
+func getReconcileRequest(name, namespace string) reconcile.Request {
+	return reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+}
+
+type DataObj struct {
+	objs []runtime.Object
+}
+
+func initClientData(name, namespace, requestName, requestNamespace, operatorName, operatorNamespace string) *DataObj {
+	return &DataObj{
+		objs: []runtime.Object{
+			operandRegistry(name, namespace, operatorNamespace),
+			operandRequest(name, namespace, requestName, requestNamespace),
+			operandBindInfo(name, namespace, operatorName, operatorNamespace),
+			configmap("cm", operatorNamespace),
+			secret("secret", operatorNamespace),
+		},
+	}
+}
+
+// Return OperandRegistry obj
+func operandRegistry(name, namespace, operatorNamespace string) *v1alpha1.OperandRegistry {
+	return &v1alpha1.OperandRegistry{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: v1alpha1.OperandRegistrySpec{
+			Operators: []v1alpha1.Operator{
+				{
+					Name:            "etcd",
+					Namespace:       operatorNamespace,
+					SourceName:      "community-operators",
+					SourceNamespace: "openshift-marketplace",
+					PackageName:     "etcd",
+					Channel:         "singlenamespace-alpha",
+				},
+				{
+					Name:            "jenkins",
+					Namespace:       operatorNamespace,
+					SourceName:      "community-operators",
+					SourceNamespace: "openshift-marketplace",
+					PackageName:     "jenkins-operator",
+					Channel:         "alpha",
+				},
+			},
+		},
+	}
+}
+
+// Return OperandRequest obj
+func operandRequest(name, namespace, requestName, requestNamespace string) *v1alpha1.OperandRequest {
+	return &v1alpha1.OperandRequest{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      requestName,
+			Namespace: requestNamespace,
+			Labels: map[string]string{
+				namespace + "." + name + "/registry": "true",
+			},
+		},
+		Spec: v1alpha1.OperandRequestSpec{
+			Requests: []v1alpha1.Request{
+				{
+					Registry:          name,
+					RegistryNamespace: namespace,
+					Operands: []v1alpha1.Operand{
+						{
+							Name: "etcd",
+						},
+						{
+							Name: "jenkins",
+							Bindings: []v1alpha1.Binding{
+								{
+									Scope:     v1alpha1.ScopePublic,
+									Secret:    "secret3",
+									Configmap: "cm3",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+// Return OperandBindInfo obj
+func operandBindInfo(name, namespace, operatorName, operatorNamespace string) *v1alpha1.OperandBindInfo {
+	return &v1alpha1.OperandBindInfo{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      operatorName,
+			Namespace: operatorNamespace,
+			Labels: map[string]string{
+				namespace + "." + name + "/registry": "true",
+			},
+		},
+		Spec: v1alpha1.OperandBindInfoSpec{
+			Operand:  "jenkins",
+			Registry: name,
+			Bindings: []v1alpha1.Binding{
+				{
+					Scope:     v1alpha1.ScopePublic,
+					Secret:    "secret",
+					Configmap: "cm",
+				},
+			},
+		},
+	}
+}
+
+func configmap(name, namespace string) *corev1.ConfigMap {
+	return &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Data: map[string]string{
+			"test": "configmap",
+		},
+	}
+}
+
+func secret(name, namespace string) *corev1.Secret {
+	return &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		StringData: map[string]string{
+			"test": "secret",
+		},
+	}
 }
