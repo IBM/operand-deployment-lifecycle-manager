@@ -68,11 +68,12 @@ type ResourceType string
 
 // Constants are used for state
 const (
-	ConditionCreating ConditionType = "Creating"
-	ConditionUpdating ConditionType = "Updating"
-	ConditionDeleting ConditionType = "Deleting"
-	ConditionNotFound ConditionType = "NotFound"
-	ConditionReady    ConditionType = "Ready"
+	ConditionCreating   ConditionType = "Creating"
+	ConditionUpdating   ConditionType = "Updating"
+	ConditionDeleting   ConditionType = "Deleting"
+	ConditionNotFound   ConditionType = "NotFound"
+	ConditionOutofScope ConditionType = "OutofScope"
+	ConditionReady      ConditionType = "Ready"
 
 	ClusterPhaseNone     ClusterPhase = "Pending"
 	ClusterPhaseCreating ClusterPhase = "Creating"
@@ -206,6 +207,12 @@ func (r *OperandRequest) SetDeletingCondition(name string, rt ResourceType, cs c
 // SetNotFoundOperatorFromRegistryCondition creates a NotFoundCondition
 func (r *OperandRequest) SetNotFoundOperatorFromRegistryCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
 	c := newCondition(ConditionNotFound, cs, "Not found "+string(rt), "Not found "+string(rt)+" "+name+" from registry")
+	r.setCondition(*c)
+}
+
+// SetOutofScopeCondition creates a NotFoundCondition
+func (r *OperandRequest) SetOutofScopeCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
+	c := newCondition(ConditionOutofScope, cs, string(rt)+" "+name+" is a private operator", string(rt)+" "+name+" is a private operator. It can only be request within the OperandRegistry namespace")
 	r.setCondition(*c)
 }
 
