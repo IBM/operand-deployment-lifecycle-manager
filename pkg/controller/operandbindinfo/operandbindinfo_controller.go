@@ -213,7 +213,7 @@ func (r *ReconcileOperandBindInfo) copySecret(sourceName, targetName, sourceNs, 
 	}
 
 	if targetName == "" {
-		targetName = sourceName + "-" + bindInfoInstance.Name
+		targetName = bindInfoInstance.Name + "-" + sourceName
 	}
 
 	klog.V(3).Infof("Copy secret %s from namespace %s to secret %s in the namespace %s", sourceName, sourceNs, targetName, targetNs)
@@ -279,7 +279,7 @@ func (r *ReconcileOperandBindInfo) copyConfigmap(sourceName, targetName, sourceN
 	}
 
 	if targetName == "" {
-		targetName = sourceName + "-" + bindInfoInstance.Name
+		targetName = bindInfoInstance.Name + "-" + sourceName
 	}
 
 	klog.V(3).Infof("Copy configmap %s from namespace %s to namespace %s", sourceName, sourceNs, targetNs)
