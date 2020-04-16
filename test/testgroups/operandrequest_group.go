@@ -29,7 +29,7 @@ func TestOperandRequest(t *testing.T) {
 	t.Run("TestOperandRequestCRUD", TestOperandRequestCRUD)
 }
 
-// TestOperandRequest is for testing the OperandRequest
+// TestOperandRequestCRUD is for testing the OperandRequest
 func TestOperandRequestCRUD(t *testing.T) {
 
 	ctx := test.NewTestCtx(t)

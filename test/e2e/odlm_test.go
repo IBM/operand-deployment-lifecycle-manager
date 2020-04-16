@@ -33,6 +33,7 @@ func TestODLM(t *testing.T) {
 	requestList := &operator.OperandRequestList{}
 	registryList := &operator.OperandRegistryList{}
 	configList := &operator.OperandConfigList{}
+	bindinfoList := &operator.OperandBindInfoList{}
 	if err := framework.AddToFrameworkScheme(apis.AddToScheme, requestList); err != nil {
 		t.Fatalf("failed to add custom resource scheme to framework: %v", err)
 	}
@@ -40,6 +41,9 @@ func TestODLM(t *testing.T) {
 		t.Fatalf("failed to add custom resource scheme to framework: %v", err)
 	}
 	if err := framework.AddToFrameworkScheme(apis.AddToScheme, configList); err != nil {
+		t.Fatalf("failed to add custom resource scheme to framework: %v", err)
+	}
+	if err := framework.AddToFrameworkScheme(apis.AddToScheme, bindinfoList); err != nil {
 		t.Fatalf("failed to add custom resource scheme to framework: %v", err)
 	}
 	t.Parallel()
@@ -54,7 +58,7 @@ func TestODLM(t *testing.T) {
 	t.Run("TestOperandRegistry", testgroups.TestOperandRegistry)
 	t.Run("TestOperandConfig", testgroups.TestOperandConfig)
 	t.Run("TestOperandRequest", testgroups.TestOperandRequest)
-
+	t.Run("TestOperandBindInfo", testgroups.TestOperandBindInfo)
 }
 
 func deployOperator(t *testing.T, ctx *test.TestCtx) error {
