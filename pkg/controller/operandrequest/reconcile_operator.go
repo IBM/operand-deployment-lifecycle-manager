@@ -50,7 +50,7 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1a
 			opt := registryInstance.GetOperator(operand.Name)
 			if opt != nil {
 				if opt.Scope == operatorv1alpha1.ScopePrivate && requestInstance.Namespace != registryInstance.Namespace {
-					klog.V(2).Infof("Operator %s is a private. It can't be requested from namespace %s", operand.Name, requestInstance.Namespace)
+					klog.Warningf("Operator %s is private. It can't be requested from namespace %s", operand.Name, requestInstance.Namespace)
 					requestInstance.SetOutofScopeCondition(operand.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionTrue)
 					if updateErr := r.client.Status().Update(context.TODO(), requestInstance); updateErr != nil {
 						return updateErr
