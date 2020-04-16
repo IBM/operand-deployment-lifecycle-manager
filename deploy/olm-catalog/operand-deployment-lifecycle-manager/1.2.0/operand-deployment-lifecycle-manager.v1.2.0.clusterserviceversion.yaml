@@ -22,7 +22,9 @@ metadata:
               {
                 "name": "ibm-licensing-operator",
                 "spec": {
-                  "IBMLicensing": {}
+                  "IBMLicensing": {},
+                  "OperandBindInfo": {},
+                  "OperandRequest": {}
                 }
               },
               {
