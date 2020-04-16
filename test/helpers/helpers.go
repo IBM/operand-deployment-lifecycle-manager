@@ -26,7 +26,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 	operator "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
@@ -120,7 +119,7 @@ func PresentOperandFormRequest(f *framework.Framework, ctx *framework.TestCtx) e
 	return nil
 }
 
-// Checking Cluster phase is running
+// CheckingClusterState checking cluster phase if running
 func CheckingClusterState(f *framework.Framework, ctx *framework.TestCtx) error {
 	fmt.Println("--- CHECKING: Cluster Phase")
 	if err := utilwait.PollImmediate(time.Second*10, time.Minute*5, func() (bool, error) {
@@ -286,6 +285,80 @@ func AssertNoError(t *testing.T, err error) {
 	}
 }
 
+// CreateOperandBindInfo creates a OperandBindInfo instance
+func CreateOperandBindInfo(f *framework.Framework, ctx *framework.TestCtx) (*operator.OperandBindInfo, error) {
+	namespace, err := ctx.GetNamespace()
+	if err != nil {
+		return nil, fmt.Errorf("could not get namespace: %v", err)
+	}
+
+	// Create OperandBindInfo instance
+	fmt.Println("--- CREATE: OperandBindInfo Instance")
+	bi := newOperandBindInfoCR(config.OperandBindInfoCrName, namespace)
+	err = f.Client.Create(goctx.TODO(), bi, &framework.CleanupOptions{TestContext: ctx, Timeout: config.CleanupTimeout, RetryInterval: config.CleanupRetry})
+	if err != nil {
+		return nil, err
+	}
+	// Get OperandBindInfo instance
+	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandBindInfoCrName, Namespace: namespace}, bi)
+	if err != nil {
+		return nil, err
+	}
+
+	return bi, nil
+}
+
+// RetrieveOperandBindInfo get and update a OperandBindInfo instance
+func RetrieveOperandBindInfo(f *framework.Framework, ctx *framework.TestCtx) (*operator.OperandBindInfo, error) {
+	namespace, err := ctx.GetNamespace()
+	if err != nil {
+		return nil, fmt.Errorf("could not get namespace: %v", err)
+	}
+	bi := &operator.OperandBindInfo{}
+	fmt.Println("--- GET: OperandBindInfo Instance")
+
+	// Get OperandBindInfo instance
+	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandBindInfoCrName, Namespace: namespace}, bi)
+	if err != nil {
+		return nil, err
+	}
+
+	return bi, nil
+}
+
+// UpdateOperandBindInfo update a OperandBindInfo instance
+func UpdateOperandBindInfo(f *framework.Framework, ctx *framework.TestCtx) (*operator.OperandBindInfo, error) {
+	fmt.Println("--- UPDATE: OperandBindInfo Instance")
+	bi := &operator.OperandBindInfo{}
+	if err := utilwait.PollImmediate(config.WaitForRetry, config.WaitForTimeout, func() (done bool, err error) {
+		bi, err = RetrieveOperandBindInfo(f, ctx)
+		if err != nil {
+			return false, err
+		}
+		bi.Spec.Bindings[0].Configmap = "jenkins-operator-base-configuration-example"
+		if err := f.Client.Update(goctx.TODO(), bi); err != nil {
+			fmt.Println("    --- Waiting for OperandBindInfo instance stable ...")
+			return false, nil
+		}
+		return true, nil
+	}); err != nil {
+		return nil, err
+	}
+	return bi, nil
+}
+
+// DeleteOperandBindInfo delete a OperandBindInfo instance
+func DeleteOperandBindInfo(f *framework.Framework, bi *operator.OperandBindInfo) error {
+	fmt.Println("--- DELETE: OperandBindInfo Instance")
+
+	// Delete OperandBindInfo instance
+	if err := f.Client.Delete(goctx.TODO(), bi); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 //OperandConfig instance
 func newOperandConfigCR(name, namespace string) *operator.OperandConfig {
 	return &operator.OperandConfig{
@@ -367,11 +440,24 @@ func newOperandRequestCR(name, namespace string) *operator.OperandRequest {
 	}
 }
 
-func GetReconcileRequest(name, namespace string) reconcile.Request {
-	return reconcile.Request{
-		NamespacedName: types.NamespacedName{
+func newOperandBindInfoCR(name, namespace string) *operator.OperandBindInfo {
+	return &operator.OperandBindInfo{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
+		},
+		Spec: v1alpha1.OperandBindInfoSpec{
+			Operand:           "jenkins-operator",
+			Registry:          "common-service",
+			RegistryNamespace: namespace,
+
+			Bindings: []v1alpha1.Binding{
+				{
+					Scope:     "public",
+					Secret:    "jenkins-operator-credentials-example",
+					Configmap: "jenkins-operator-init-configuration-example",
+				},
+			},
 		},
 	}
 }

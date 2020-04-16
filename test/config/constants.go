@@ -52,4 +52,7 @@ const (
 
 	// OperandConfigCrName specifies the name of the custom resource of the OperandConfig
 	OperandConfigCrName = "common-service"
+
+	// OperandBindInfoCrName specifies the name of the custom resource of the OperandBindInfo
+	OperandBindInfoCrName = "jenkins-public-bindinfo"
 )
