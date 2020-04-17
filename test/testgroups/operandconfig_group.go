@@ -20,7 +20,10 @@ import (
 	"testing"
 
 	"github.com/operator-framework/operator-sdk/pkg/test"
+	"github.com/stretchr/testify/assert"
 
+	operator "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
+	"github.com/IBM/operand-deployment-lifecycle-manager/test/config"
 	"github.com/IBM/operand-deployment-lifecycle-manager/test/helpers"
 )
 
@@ -31,27 +34,32 @@ func TestOperandConfig(t *testing.T) {
 
 // TestOperandConfigCRUD is for testing OperandConfig
 func TestOperandConfigCRUD(t *testing.T) {
-
+	assert := assert.New(t)
 	ctx := test.NewTestCtx(t)
 	defer ctx.Cleanup()
 
 	// get global framework variables
 	f := test.Global
 
-	if err := helpers.CreateOperandConfig(f, ctx); err != nil {
-		t.Fatal(err)
-	}
+	// Create namespace for test
+	err := helpers.CreateNamespace(f, ctx, config.TestNamespace1)
+	assert.NoError(err)
 
-	conCr, err := helpers.RetrieveOperandConfig(f, ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
+	con, err := helpers.CreateOperandConfig(f, ctx, config.TestNamespace1)
+	assert.NoError(err)
+	assert.NotNilf(con, "config %s should be created in namespace %s", config.OperandConfigCrName, config.TestNamespace1)
 
-	if err = helpers.UpdateOperandConfig(f, ctx); err != nil {
-		t.Fatal(err)
-	}
+	con, err = helpers.WaitConfigStatus(f, ctx, operator.ServiceInit, config.TestNamespace1)
+	assert.NoError(err)
+	assert.Equalf(operator.ServiceInit, con.Status.Phase, "config(%s/%s) phase should be Initialized", con.Namespace, con.Name)
 
-	if err = helpers.DeleteOperandConfig(f, conCr); err != nil {
-		t.Fatal(err)
-	}
+	err = helpers.UpdateOperandConfig(f, ctx, config.TestNamespace1)
+	assert.NoError(err)
+
+	err = helpers.DeleteOperandConfig(f, con)
+	assert.NoError(err)
+
+	// Delete namespace for test
+	err = helpers.DeleteNamespace(f, ctx, config.TestNamespace1)
+	assert.NoError(err)
 }

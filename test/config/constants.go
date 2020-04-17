@@ -27,7 +27,7 @@ const (
 
 	// APITimeout defines the amount of time we should spend querying the k8s api
 	// when waiting for a specific condition to be true.
-	APITimeout = time.Minute * 60
+	APITimeout = time.Minute * 5
 
 	// CleanupRetry is the interval at which test framework attempts cleanup
 	CleanupRetry = time.Second * 10
@@ -42,7 +42,13 @@ const (
 	WaitForRetry = time.Second * 10
 
 	// TestOperatorName specifies the name of the operator being tested
-	TestOperatorName = "openshift-pipelines-operator"
+	TestOperatorName = "operand-deployment-lifecycle-manager"
+
+	// Registry, Config, and first Request and Bindinfo will create into this namespace
+	TestNamespace1 = "e2e-test-ns-1"
+
+	// Use to create second Request
+	TestNamespace2 = "e2e-test-ns-2"
 
 	// OperandRequestCrName specifies the name of the custom resource of the OperandRequest
 	OperandRequestCrName = "common-service"
