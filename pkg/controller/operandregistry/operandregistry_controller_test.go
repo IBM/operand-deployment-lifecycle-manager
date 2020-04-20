@@ -182,9 +182,8 @@ func operandRequest(name, namespace, requestName, requestNamespace string) *v1al
 						},
 						{
 							Name: "jenkins",
-							Bindings: []v1alpha1.Binding{
-								{
-									Scope:     v1alpha1.ScopePublic,
+							Bindings: v1alpha1.Binding{
+								Public: v1alpha1.SecretConfigmap{
 									Secret:    "secret3",
 									Configmap: "cm3",
 								},
@@ -210,11 +209,14 @@ func operandBindInfo(name, namespace, operatorName, operatorNamespace string) *v
 		Spec: v1alpha1.OperandBindInfoSpec{
 			Operand:  "jenkins",
 			Registry: name,
-			Bindings: []v1alpha1.Binding{
-				{
-					Scope:     v1alpha1.ScopePublic,
-					Secret:    "secret",
-					Configmap: "cm",
+			Bindings: v1alpha1.Binding{
+				Public: v1alpha1.SecretConfigmap{
+					Secret:    "secret1",
+					Configmap: "cm1",
+				},
+				Private: v1alpha1.SecretConfigmap{
+					Secret:    "secret2",
+					Configmap: "cm2",
 				},
 			},
 		},
