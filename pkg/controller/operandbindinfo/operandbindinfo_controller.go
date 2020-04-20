@@ -146,7 +146,7 @@ func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconci
 	merr := &util.MultiErr{}
 	// Get the OperandRequest namespace
 	requestNamespaces := registryInstance.Status.OperatorsStatus[bindInfoInstance.Spec.Operand].ReconcileRequests
-	if len(requestNamespaces) == 0 {
+	if len(requestNamespaces) < 2 {
 		// There is no operand depend on the current bind info, nothing to do.
 		return reconcile.Result{}, nil
 	}
