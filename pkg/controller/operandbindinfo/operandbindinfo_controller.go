@@ -159,7 +159,7 @@ func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, nil
 	}
 
-	// If Secret or Comfig not found, reconcile will requeue after 1 min 
+	// If Secret or Comfig not found, reconcile will requeue after 1 min
 	var requeue bool
 
 	// Get OperandRequest instance and Copy Secret and/or ConfigMap
