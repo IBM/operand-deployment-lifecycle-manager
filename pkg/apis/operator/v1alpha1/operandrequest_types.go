@@ -17,8 +17,8 @@
 package v1alpha1
 
 import (
-	"time"
 	"regexp"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -389,14 +389,15 @@ func (r *OperandRequest) SetDefaultRequestStatus() {
 
 // AddLabels set the labels for the OperandConfig and OperandRegistry used by this OperandRequest
 func (r *OperandRequest) AddLabels() {
-	if r.Labels == nil{
+	if r.Labels == nil {
 		r.Labels = make(map[string]string)
-	}else {
+	} else {
+		reg, _ := regexp.Compile(`^(.*)\.(.*)\/registry|^(.*)\.(.*)\/config`)
 		for label := range r.Labels {
-			if match, _ := regexp.MatchString(`^(.*)\.(.*)\/registry|^(.*)\.(.*)\/config`, label); match {
+			if reg.MatchString(label) {
 				delete(r.Labels, label)
 			}
-		} 
+		}
 	}
 
 	for _, req := range r.Spec.Requests {
