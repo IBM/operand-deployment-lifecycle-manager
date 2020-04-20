@@ -110,7 +110,7 @@ func init() {
 
 //InitBindInfoStatus OperandConfig status
 func (r *OperandBindInfo) InitBindInfoStatus() {
-	if (reflect.DeepEqual(r.Status, OperandConfigStatus{})) {
+	if (reflect.DeepEqual(r.Status, OperandBindInfoStatus{})) {
 		r.Status.Phase = BindInfoInit
 	}
 }
