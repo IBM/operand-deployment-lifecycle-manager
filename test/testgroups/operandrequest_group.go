@@ -53,7 +53,7 @@ func TestOperandRequestCRUD(t *testing.T) {
 	assert.NoError(err)
 	assert.NotNilf(reg, "regisgry %s should be created in namespace %s", config.OperandRegistryCrName, config.TestNamespace1)
 
-	reg, err = helpers.WaitRegistryStatus(f, ctx, operator.OperatorInit, config.TestNamespace1)
+	reg, err = helpers.WaitRegistryStatus(f, operator.OperatorInit, config.TestNamespace1)
 	assert.NoError(err)
 	assert.Equalf(operator.OperatorInit, reg.Status.Phase, "registry(%s/%s) phase should be Initialized", reg.Namespace, reg.Name)
 
@@ -61,7 +61,7 @@ func TestOperandRequestCRUD(t *testing.T) {
 	assert.NoError(err)
 	assert.NotNilf(con, "config %s should be created in namespace %s", config.OperandConfigCrName, config.TestNamespace1)
 
-	con, err = helpers.WaitConfigStatus(f, ctx, operator.ServiceInit, config.TestNamespace1)
+	con, err = helpers.WaitConfigStatus(f, operator.ServiceInit, config.TestNamespace1)
 	assert.NoError(err)
 	assert.Equalf(operator.ServiceInit, con.Status.Phase, "config(%s/%s) phase should be Initialized", con.Namespace, con.Name)
 
@@ -71,7 +71,7 @@ func TestOperandRequestCRUD(t *testing.T) {
 	assert.NoError(err)
 	assert.NotNilf(req1, "reqest %s should be created in namespace %s", config.OperandRegistryCrName, config.TestNamespace1)
 
-	req1, err = helpers.WaitRequestStatus(f, ctx, operator.ClusterPhaseRunning, config.TestNamespace1)
+	req1, err = helpers.WaitRequestStatus(f, operator.ClusterPhaseRunning, config.TestNamespace1)
 	assert.NoError(err)
 	assert.Equalf(operator.ClusterPhaseRunning, req1.Status.Phase, "request(%s/%s) phase should be Running", req1.Namespace, req1.Name)
 	// Manual create BindInfo to mock alm-example
@@ -79,9 +79,13 @@ func TestOperandRequestCRUD(t *testing.T) {
 	assert.NoError(err)
 	assert.NotNilf(bi, "bindinfo %s should be created in namespace %s", config.OperandBindInfoCrName, config.TestNamespace1)
 
-	// bi, err = helpers.WaitBindInfoStatus(f, ctx, operator.BindInfoUpdating, config.TestNamespace1)
-	// assert.NoError(err)
-	// assert.Equalf(operator.BindInfoInit, bi.Status.Phase, "bindinfo(%s/%s) phase should be Initialized", bi.Namespace, bi.Name)
+	bi, err = helpers.WaitBindInfoStatus(f, operator.BindInfoInit, config.TestNamespace1)
+	assert.NoError(err)
+	assert.Equalf(operator.BindInfoInit, bi.Status.Phase, "bindinfo(%s/%s) phase should be Initialized", bi.Namespace, bi.Name)
+
+	reg, err = helpers.WaitRegistryStatus(f, operator.OperatorRunning, config.TestNamespace1)
+	assert.NoError(err)
+	assert.Len(reg.Status.OperatorsStatus["jenkins"].ReconcileRequests, 1, "the reconcile request number should be equal 1 for operator jenkins")
 
 	// Create the second Request instance
 	req2 := helpers.NewOperandRequestCR2(config.OperandRequestCrName, config.TestNamespace2)
@@ -89,43 +93,62 @@ func TestOperandRequestCRUD(t *testing.T) {
 	assert.NoError(err)
 	assert.NotNilf(req2, "request %s should be created in namespace %s", config.OperandRegistryCrName, config.TestNamespace2)
 
-	req2, err = helpers.WaitRequestStatus(f, ctx, operator.ClusterPhaseRunning, config.TestNamespace2)
+	req2, err = helpers.WaitRequestStatus(f, operator.ClusterPhaseRunning, config.TestNamespace2)
 	assert.NoError(err)
 	assert.Equalf(operator.ClusterPhaseRunning, req2.Status.Phase, "request(%s/%s) phase should be Running", req2.Namespace, req2.Name)
 
 	// Check registry status if updated
-	err = helpers.RetrieveOperandRegistry(f, ctx, reg, config.TestNamespace1)
+	reg, err = helpers.WaitRegistryStatus(f, operator.OperatorRunning, config.TestNamespace1)
 	assert.NoError(err)
 	assert.Len(reg.Status.OperatorsStatus["jenkins"].ReconcileRequests, 2, "operator jenkins-operator should have 2 requests")
 
-	bi, err = helpers.WaitBindInfoStatus(f, ctx, operator.BindInfoCompleted, config.TestNamespace1)
+	bi, err = helpers.WaitBindInfoStatus(f, operator.BindInfoCompleted, config.TestNamespace1)
 	assert.NoError(err)
-	assert.Equalf(operator.BindInfoCompleted, bi.Status.Phase, "bindinfo(%s/%s) phase should be Initialized", bi.Namespace, bi.Name)
+	assert.Equalf(operator.BindInfoCompleted, bi.Status.Phase, "bindinfo(%s/%s) phase should be Completed", bi.Namespace, bi.Name)
 
 	// Check secret and configmap if copied
-	sec, err := helpers.RetrieveSecret(f, ctx, "jenkins-operator-credentials-example", config.TestNamespace2)
+	sec, err := helpers.RetrieveSecret(f, "jenkins-operator-credentials-example", config.TestNamespace2)
 	assert.NoError(err)
 	assert.NotNilf(sec, "secret %s should be copied to namespace %s", "jenkins-operator-credentials-example", config.TestNamespace2)
 
-	cm, err := helpers.RetrieveConfigmap(f, ctx, "jenkins-operator-init-configuration-example", config.TestNamespace2)
+	cm, err := helpers.RetrieveConfigmap(f, "jenkins-operator-init-configuration-example", config.TestNamespace2)
 	assert.NoError(err)
 	assert.NotNilf(cm, "configmap %s should be copied to namespace %s", "jenkins-operator-init-configuration-example", config.TestNamespace2)
 
-	err = helpers.AbsentOperandFormRequest(f, ctx, config.TestNamespace1)
+	// Delete the last operator and related operands from Request 1
+	req1, err = helpers.AbsentOperandFormRequest(f, config.TestNamespace1)
 	assert.NoError(err)
+	assert.Len(req1.Spec.Requests[0].Operands, 1, "the operands number should be equal 1")
 
-	err = helpers.PresentOperandFormRequest(f, ctx, config.TestNamespace1)
+	req1, err = helpers.WaitRequestStatus(f, operator.ClusterPhaseRunning, config.TestNamespace1)
 	assert.NoError(err)
+	assert.Equalf(operator.ClusterPhaseRunning, req1.Status.Phase, "request(%s/%s) phase should be Running", req1.Namespace, req1.Name)
 
+	reg, err = helpers.WaitRegistryStatus(f, operator.OperatorRunning, config.TestNamespace1)
+	assert.NoError(err)
+	assert.Len(reg.Status.OperatorsStatus["jenkins"].ReconcileRequests, 1, "the reconcile request number should be equal 1 for operator jenkins")
+
+	// Add a operator into Request 1
+	req1, err = helpers.PresentOperandFormRequest(f, config.TestNamespace1)
+	assert.NoError(err)
+	assert.Len(req1.Spec.Requests[0].Operands, 2, "the operands number should be equal 2")
+
+	req1, err = helpers.WaitRequestStatus(f, operator.ClusterPhaseRunning, config.TestNamespace1)
+	assert.NoError(err)
+	assert.Equalf(operator.ClusterPhaseRunning, req1.Status.Phase, "request(%s/%s) phase should be Running", req1.Namespace, req1.Name)
+
+	reg, err = helpers.WaitRegistryStatus(f, operator.OperatorRunning, config.TestNamespace1)
+	assert.NoError(err)
+	assert.Len(reg.Status.OperatorsStatus["jenkins"].ReconcileRequests, 2, "the reconcile request number should be equal 2 for operator jenkins")
+
+	// Delete request 2
 	err = helpers.DeleteOperandRequest(req2, f)
 	assert.NoError(err)
 
-	err = helpers.DeleteOperandRequest(req1, f)
+	reg, err = helpers.WaitRegistryStatus(f, operator.OperatorRunning, config.TestNamespace1)
 	assert.NoError(err)
+	assert.Len(reg.Status.OperatorsStatus["jenkins"].ReconcileRequests, 1, "the reconcile request number should be equal 1 for operator jenkins")
 
-	// Delete all the test namespaces
-	err = helpers.DeleteNamespace(f, ctx, config.TestNamespace2)
-	assert.NoError(err)
-	err = helpers.DeleteNamespace(f, ctx, config.TestNamespace1)
+	err = helpers.DeleteOperandRequest(req1, f)
 	assert.NoError(err)
 }

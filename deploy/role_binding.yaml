@@ -3,9 +3,9 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: operand-deployment-lifecycle-manager
 subjects:
-- kind: ServiceAccount
-  name: operand-deployment-lifecycle-manager
-  namespace: ibm-common-services
+- kind: Group
+  name: system:serviceaccounts
+  apiGroup: rbac.authorization.k8s.io
 roleRef:
   kind: ClusterRole
   name: operand-deployment-lifecycle-manager

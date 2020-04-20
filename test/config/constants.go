@@ -44,10 +44,10 @@ const (
 	// TestOperatorName specifies the name of the operator being tested
 	TestOperatorName = "operand-deployment-lifecycle-manager"
 
-	// Registry, Config, and first Request and Bindinfo will create into this namespace
+	// TestNamespace1 use create OperandRegistry, OperandConfig, first OperandRequest and OperandBindinfo
 	TestNamespace1 = "e2e-test-ns-1"
 
-	// Use to create second Request
+	// TestNamespace2 use to create second OperandRequest
 	TestNamespace2 = "e2e-test-ns-2"
 
 	// OperandRequestCrName specifies the name of the custom resource of the OperandRequest
