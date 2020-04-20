@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	"reflect"
+	"regexp"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -129,6 +130,15 @@ func (r *OperandBindInfo) SetDefaultsRequestSpec() {
 
 // AddLabels set the labels for the OperandConfig and OperandRegistry used by this OperandRequest
 func (r *OperandBindInfo) AddLabels() {
+	if r.Labels == nil{
+		r.Labels = make(map[string]string)
+	} else {
+		for label := range r.Labels {
+			if match, _ := regexp.MatchString(`^(.*)\.(.*)$\/registry`, label); match {
+				delete(r.Labels, label)
+			}
+		} 
+	}
 	r.Labels = make(map[string]string)
 	r.Labels[r.Spec.RegistryNamespace+"."+r.Spec.Registry+"/registry"] = "true"
 }
