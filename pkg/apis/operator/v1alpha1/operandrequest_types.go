@@ -54,7 +54,7 @@ type Operand struct {
 	// Specify a Binding list
 	// +listType=set
 	// +optional
-	Bindings []Binding `json:"bindings,omitempty"`
+	Bindings Binding `json:"bindings,omitempty"`
 }
 
 // ConditionType is the condition of a service
