@@ -29,7 +29,6 @@ import (
 	"github.com/IBM/operand-deployment-lifecycle-manager/pkg/controller"
 	"github.com/IBM/operand-deployment-lifecycle-manager/version"
 
-	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/operator-framework/operator-sdk/pkg/leader"
 	"github.com/operator-framework/operator-sdk/pkg/log/zap"
 	sdkVersion "github.com/operator-framework/operator-sdk/version"
@@ -65,12 +64,6 @@ func main() {
 
 	printVersion()
 
-	namespace, err := k8sutil.GetWatchNamespace()
-	if err != nil {
-		klog.Error("Failed to get watch namespace: ", err)
-		os.Exit(1)
-	}
-
 	// Get a config to talk to the apiserver
 	cfg, err := config.GetConfig()
 	if err != nil {
@@ -87,9 +80,7 @@ func main() {
 	}
 
 	// Create a new Cmd to provide shared dependencies and start components
-	mgr, err := manager.New(cfg, manager.Options{
-		Namespace: namespace,
-	})
+	mgr, err := manager.New(cfg, manager.Options{})
 	if err != nil {
 		klog.Error(err)
 		os.Exit(1)

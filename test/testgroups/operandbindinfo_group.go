@@ -50,7 +50,7 @@ func TestOperandBindInfoCRUD(t *testing.T) {
 	assert.NoError(err)
 	assert.NotNilf(reg, "regisgry %s should be created in namespace %s", config.OperandRegistryCrName, config.TestNamespace1)
 
-	reg, err = helpers.WaitRegistryStatus(f, ctx, operator.OperatorInit, config.TestNamespace1)
+	reg, err = helpers.WaitRegistryStatus(f, operator.OperatorInit, config.TestNamespace1)
 	assert.NoError(err)
 	assert.Equalf(operator.OperatorInit, reg.Status.Phase, "registry(%s/%s) phase should be Initialized", reg.Namespace, reg.Name)
 
@@ -59,20 +59,16 @@ func TestOperandBindInfoCRUD(t *testing.T) {
 	assert.NoError(err)
 	assert.NotNilf(bi, "bindinfo %s should be created in namespace %s", config.OperandBindInfoCrName, config.TestNamespace1)
 
-	bi, err = helpers.WaitBindInfoStatus(f, ctx, operator.BindInfoInit, config.TestNamespace1)
+	bi, err = helpers.WaitBindInfoStatus(f, operator.BindInfoInit, config.TestNamespace1)
 	assert.NoError(err)
 	assert.Equalf(operator.BindInfoInit, bi.Status.Phase, "bindinfo(%s/%s) phase should be Initialized", bi.Namespace, bi.Name)
 
 	// test update bindinfo instance
-	bi, err = helpers.UpdateOperandBindInfo(f, ctx, config.TestNamespace1)
+	bi, err = helpers.UpdateOperandBindInfo(f, config.TestNamespace1)
 	assert.NoError(err)
 	assert.Equalf("jenkins-operator-base-configuration-example", bi.Spec.Bindings["public"].Configmap, "bindinfo(%s/%s) Configmap name should be jenkins-operator-base-configuration-example", bi.Namespace, bi.Name)
 
 	// test delete a bindinfo instance
 	err = helpers.DeleteOperandBindInfo(f, bi)
-	assert.NoError(err)
-
-	// Delete namespace for test
-	err = helpers.DeleteNamespace(f, ctx, config.TestNamespace1)
 	assert.NoError(err)
 }

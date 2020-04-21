@@ -49,17 +49,13 @@ func TestOperandConfigCRUD(t *testing.T) {
 	assert.NoError(err)
 	assert.NotNilf(con, "config %s should be created in namespace %s", config.OperandConfigCrName, config.TestNamespace1)
 
-	con, err = helpers.WaitConfigStatus(f, ctx, operator.ServiceInit, config.TestNamespace1)
+	con, err = helpers.WaitConfigStatus(f, operator.ServiceInit, config.TestNamespace1)
 	assert.NoError(err)
 	assert.Equalf(operator.ServiceInit, con.Status.Phase, "config(%s/%s) phase should be Initialized", con.Namespace, con.Name)
 
-	err = helpers.UpdateOperandConfig(f, ctx, config.TestNamespace1)
+	err = helpers.UpdateOperandConfig(f, config.TestNamespace1)
 	assert.NoError(err)
 
 	err = helpers.DeleteOperandConfig(f, con)
-	assert.NoError(err)
-
-	// Delete namespace for test
-	err = helpers.DeleteNamespace(f, ctx, config.TestNamespace1)
 	assert.NoError(err)
 }

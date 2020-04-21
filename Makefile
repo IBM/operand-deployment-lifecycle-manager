@@ -87,7 +87,6 @@ install: ## Install all resources (CR/CRD's, RBAC and Operator)
 	@echo ....... Creating the Instances .......
 	- kubectl apply -f deploy/crds/operator.ibm.com_v1alpha1_operandregistry_cr.yaml -n ${NAMESPACE}
 	- kubectl apply -f deploy/crds/operator.ibm.com_v1alpha1_operandconfig_cr.yaml -n ${NAMESPACE}
-	- kubectl apply -f deploy/crds/operator.ibm.com_v1alpha1_operandrequest_cr.yaml -n ${NAMESPACE}
 uninstall: ## Uninstall all that all performed in the $ make install
 	@echo ....... Uninstalling .......
 	@echo ....... Deleting the Instances .......
@@ -125,7 +124,7 @@ code-dev: ## Run the default dev commands which are the go tidy, fmt, vet then e
 
 run: ## Run against the configured Kubernetes cluster in ~/.kube/config
 	@echo ....... Start Operator locally with go run ......
-	WATCH_NAMESPACE= DEPLOY_DIR=${PWD}/deploy/crds go run ./cmd/manager/main.go -v=2 --zap-encoder=console
+	WATCH_NAMESPACE= go run ./cmd/manager/main.go -v=3 --zap-encoder=console
 
 ifeq ($(BUILD_LOCALLY),0)
     export CONFIG_DOCKER_TARGET = config-docker
@@ -156,11 +155,11 @@ test: ## Run unit test
 
 test-e2e: ## Run integration e2e tests with different options.
 	@echo ....... Creating namespace .......
-	- kubectl create namespace e2e-test-ns
+	- kubectl create namespace e2e-test-op-ns
 	@echo ... Running e2e tests on locally ...
-	- operator-sdk test local ./test/e2e --verbose --up-local --namespace=e2e-test-ns
+	- operator-sdk test local ./test/e2e --verbose --up-local --namespace=e2e-test-op-ns
 	@echo ....... Deleting namespace .......
-	- kubectl delete namespace e2e-test-ns
+	- kubectl delete namespace e2e-test-op-ns
 
 coverage: ## Run code coverage test
 	@common/scripts/codecov.sh ${BUILD_LOCALLY} "pkg/controller"

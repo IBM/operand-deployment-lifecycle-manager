@@ -49,17 +49,13 @@ func TestOperandRegistryCRUD(t *testing.T) {
 	assert.NoError(err)
 	assert.NotNilf(reg, "regisgry %s should be created in namespace %s", config.OperandRegistryCrName, config.TestNamespace1)
 
-	reg, err = helpers.WaitRegistryStatus(f, ctx, operator.OperatorInit, config.TestNamespace1)
+	reg, err = helpers.WaitRegistryStatus(f, operator.OperatorInit, config.TestNamespace1)
 	assert.NoError(err)
 	assert.Equalf(operator.OperatorInit, reg.Status.Phase, "registry(%s/%s) phase should be Initialized", reg.Namespace, reg.Name)
 
-	err = helpers.UpdateOperandRegistry(f, ctx, config.TestNamespace1)
+	err = helpers.UpdateOperandRegistry(f, config.TestNamespace1)
 	assert.NoError(err)
 
 	err = helpers.DeleteOperandRegistry(f, reg)
-	assert.NoError(err)
-
-	// Delete namespace for test
-	err = helpers.DeleteNamespace(f, ctx, config.TestNamespace1)
 	assert.NoError(err)
 }
