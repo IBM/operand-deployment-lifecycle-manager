@@ -182,25 +182,22 @@ func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconci
 		secretReq, cmReq := getBindingInfofromRequest(bindInfoInstance, requestInstance)
 		// Copy Secret and/or ConfigMap to the OperandRequest namespace
 		klog.V(3).Infof("Start to copy secret and/or configmap to namespace %s", bindRequest.Namespace)
-		for _, binding := range bindInfoInstance.Spec.Bindings {
-			// Only copy the public bindInfo
-			if binding.Scope == operatorv1alpha1.ScopePublic {
-				// Copy Secret
-				requeueSec, err := r.copySecret(binding.Secret, secretReq, operandNamespace, bindRequest.Namespace, bindInfoInstance, requestInstance)
-				if err != nil {
-					merr.Add(err)
-					continue
-				}
-				requeue = requeue || requeueSec
-				// Copy ConfigMap
-				requeueCm, err := r.copyConfigmap(binding.Configmap, cmReq, operandNamespace, bindRequest.Namespace, bindInfoInstance, requestInstance)
-				if err != nil {
-					merr.Add(err)
-					continue
-				}
-				requeue = requeue || requeueCm
-			}
+		// Only copy the public bindInfo
+		bindingPub := bindInfoInstance.Spec.Bindings["public"]
+		// Copy Secret
+		requeueSec, err := r.copySecret(bindingPub.Secret, secretReq, operandNamespace, bindRequest.Namespace, bindInfoInstance, requestInstance)
+		if err != nil {
+			merr.Add(err)
+			continue
 		}
+		requeue = requeue || requeueSec
+		// Copy ConfigMap
+		requeueCm, err := r.copyConfigmap(bindingPub.Configmap, cmReq, operandNamespace, bindRequest.Namespace, bindInfoInstance, requestInstance)
+		if err != nil {
+			merr.Add(err)
+			continue
+		}
+		requeue = requeue || requeueCm
 	}
 	if len(merr.Errors) != 0 {
 		if err := r.updateBindInfoPhase(bindInfoInstance, operatorv1alpha1.BindInfoFailed, requestNamespaces); err != nil {
@@ -403,11 +400,7 @@ func getBindingInfofromRequest(bindInfoInstance *operatorv1alpha1.OperandBindInf
 			if len(operand.Bindings) == 0 {
 				continue
 			}
-			for _, bindinfo := range operand.Bindings {
-				if bindinfo.Scope == operatorv1alpha1.ScopePublic {
-					return bindinfo.Secret, bindinfo.Configmap
-				}
-			}
+			return operand.Bindings["public"].Secret, operand.Bindings["public"].Configmap
 		}
 	}
 	return "", ""

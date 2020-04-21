@@ -330,7 +330,9 @@ func UpdateOperandBindInfo(f *framework.Framework, ctx *framework.TestCtx, ns st
 		if err != nil {
 			return false, err
 		}
-		bi.Spec.Bindings[0].Configmap = "jenkins-operator-base-configuration-example"
+		secretCm := bi.Spec.Bindings["public"]
+		secretCm.Configmap = "jenkins-operator-base-configuration-example"
+		bi.Spec.Bindings["public"] = secretCm
 		if err := f.Client.Update(goctx.TODO(), bi); err != nil {
 			fmt.Println("    --- Waiting for OperandBindInfo instance stable ...")
 			return false, nil
@@ -512,9 +514,8 @@ func NewOperandRequestCR2(name, namespace string) *v1alpha1.OperandRequest {
 					Operands: []v1alpha1.Operand{
 						{
 							Name: "jenkins",
-							Bindings: []v1alpha1.Binding{
-								{
-									Scope:     "public",
+							Bindings: map[string]v1alpha1.SecretConfigmap{
+								"public": {
 									Secret:    "jenkins-operator-credentials-example",
 									Configmap: "jenkins-operator-init-configuration-example",
 								},
@@ -538,9 +539,8 @@ func newOperandBindInfoCR(name, namespace string) *v1alpha1.OperandBindInfo {
 			Registry:          "common-service",
 			RegistryNamespace: namespace,
 
-			Bindings: []v1alpha1.Binding{
-				{
-					Scope:     "public",
+			Bindings: map[string]v1alpha1.SecretConfigmap{
+				"public": {
 					Secret:    "jenkins-operator-credentials-example",
 					Configmap: "jenkins-operator-init-configuration-example",
 				},
