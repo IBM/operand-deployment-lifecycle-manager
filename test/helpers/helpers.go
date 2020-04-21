@@ -77,8 +77,8 @@ func DeleteOperandRequest(req *v1alpha1.OperandRequest, f *framework.Framework) 
 	return nil
 }
 
-// AbsentOperandFormRequest is used to delete an operator and operand from OperandRequest
-func AbsentOperandFormRequest(f *framework.Framework, ns string) (*v1alpha1.OperandRequest, error) {
+// AbsentOperandFromRequest is used to delete an operator and operand from OperandRequest
+func AbsentOperandFromRequest(f *framework.Framework, ns, opName string) (*v1alpha1.OperandRequest, error) {
 	fmt.Println("--- ABSENT: Operator and Operand")
 	// Delete the last operator and related operand
 	req := &v1alpha1.OperandRequest{}
@@ -86,11 +86,24 @@ func AbsentOperandFormRequest(f *framework.Framework, ns string) (*v1alpha1.Oper
 		if err := RetrieveOperandRquest(f, req, ns); err != nil {
 			return false, err
 		}
-		operandNum := len(req.Spec.Requests[0].Operands)
-		req.Spec.Requests[0].Operands = req.Spec.Requests[0].Operands[:operandNum-1]
+
+		for index, op := range req.Spec.Requests[0].Operands {
+			if op.Name == opName {
+				req.Spec.Requests[0].Operands = append(req.Spec.Requests[0].Operands[:index], req.Spec.Requests[0].Operands[index+1:]...)
+				break
+			}
+		}
 		if err := f.Client.Update(goctx.TODO(), req); err != nil {
 			fmt.Println("    --- Waiting for OperandRequest instance stable ...")
 			return false, nil
+		}
+		if err := RetrieveOperandRquest(f, req, ns); err != nil {
+			return false, err
+		}
+		for _, opstatus := range req.Status.Members {
+			if opstatus.Name == opName {
+				return false, nil
+			}
 		}
 		return true, nil
 	}); err != nil {
@@ -99,8 +112,8 @@ func AbsentOperandFormRequest(f *framework.Framework, ns string) (*v1alpha1.Oper
 	return req, nil
 }
 
-// PresentOperandFormRequest is used to add an operator and operand into OperandRequest
-func PresentOperandFormRequest(f *framework.Framework, ns string) (*v1alpha1.OperandRequest, error) {
+// PresentOperandFromRequest is used to add an operator and operand into OperandRequest
+func PresentOperandFromRequest(f *framework.Framework, ns, opName string) (*v1alpha1.OperandRequest, error) {
 	fmt.Println("--- PRESENT: Operator and Operand")
 	// Add an operator and related operand
 	req := &v1alpha1.OperandRequest{}
@@ -108,12 +121,29 @@ func PresentOperandFormRequest(f *framework.Framework, ns string) (*v1alpha1.Ope
 		if err := RetrieveOperandRquest(f, req, ns); err != nil {
 			return false, err
 		}
-		req.Spec.Requests[0].Operands = append(req.Spec.Requests[0].Operands, v1alpha1.Operand{Name: "jenkins"})
-		if err := f.Client.Update(goctx.TODO(), req); err != nil {
-			fmt.Println("    --- Waiting for OperandRequest instance stable ...")
-			return false, nil
+		createOp := true
+		for _, op := range req.Spec.Requests[0].Operands {
+			if op.Name == opName {
+				createOp = false
+				break
+			}
 		}
-		return true, nil
+		if createOp {
+			req.Spec.Requests[0].Operands = append(req.Spec.Requests[0].Operands, v1alpha1.Operand{Name: opName})
+			if err := f.Client.Update(goctx.TODO(), req); err != nil {
+				fmt.Println("    --- Waiting for OperandRequest instance stable ...")
+				return false, nil
+			}
+		}
+		if err := RetrieveOperandRquest(f, req, ns); err != nil {
+			return false, err
+		}
+		for _, opstatus := range req.Status.Members {
+			if opstatus.Name == opName {
+				return true, nil
+			}
+		}
+		return false, nil
 	}); err != nil {
 		return nil, err
 	}
