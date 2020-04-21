@@ -194,8 +194,8 @@ func operandRequest(registryName, registryNamespace, requestName, requestNamespa
 						},
 						{
 							Name: "jenkins",
-							Bindings: v1alpha1.Binding{
-								Public: v1alpha1.SecretConfigmap{
+							Bindings: map[string]v1alpha1.SecretConfigmap{
+								"public": {
 									Secret:    "secret3",
 									Configmap: "cm3",
 								},
@@ -219,12 +219,12 @@ func operandBindInfo(name, namespace, registryName, registryNamespace string) *v
 			Operand:           "jenkins",
 			Registry:          registryName,
 			RegistryNamespace: registryNamespace,
-			Bindings: v1alpha1.Binding{
-				Public: v1alpha1.SecretConfigmap{
+			Bindings: map[string]v1alpha1.SecretConfigmap{
+				"public": {
 					Secret:    "secret1",
 					Configmap: "cm1",
 				},
-				Private: v1alpha1.SecretConfigmap{
+				"private": {
 					Secret:    "secret2",
 					Configmap: "cm2",
 				},

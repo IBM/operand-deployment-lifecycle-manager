@@ -66,7 +66,7 @@ func TestOperandBindInfoCRUD(t *testing.T) {
 	// test update bindinfo instance
 	bi, err = helpers.UpdateOperandBindInfo(f, ctx, config.TestNamespace1)
 	assert.NoError(err)
-	assert.Equalf("jenkins-operator-base-configuration-example", bi.Spec.Bindings.Public.Configmap, "bindinfo(%s/%s) Configmap name should be jenkins-operator-base-configuration-example", bi.Namespace, bi.Name)
+	assert.Equalf("jenkins-operator-base-configuration-example", bi.Spec.Bindings["public"].Configmap, "bindinfo(%s/%s) Configmap name should be jenkins-operator-base-configuration-example", bi.Namespace, bi.Name)
 
 	// test delete a bindinfo instance
 	err = helpers.DeleteOperandBindInfo(f, bi)

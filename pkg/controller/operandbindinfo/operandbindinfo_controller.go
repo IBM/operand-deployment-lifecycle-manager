@@ -179,7 +179,7 @@ func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconci
 		// Copy Secret and/or ConfigMap to the OperandRequest namespace
 		klog.V(3).Infof("Start to copy secret and/or configmap to namespace %s", bindRequest.Namespace)
 		// Only copy the public bindInfo
-		bindingPub := bindInfoInstance.Spec.Bindings.Public
+		bindingPub := bindInfoInstance.Spec.Bindings["public"]
 		// Copy Secret
 		if err := r.copySecret(bindingPub.Secret, secretReq, operandNamespace, bindRequest.Namespace, bindInfoInstance, requestInstance); err != nil {
 			merr.Add(err)
@@ -381,10 +381,10 @@ func getBindingInfofromRequest(bindInfoInstance *operatorv1alpha1.OperandBindInf
 			if operand.Name != bindInfoInstance.Spec.Operand {
 				continue
 			}
-			if operand.Bindings == (operatorv1alpha1.Binding{}) {
+			if len(operand.Bindings) == 0 {
 				continue
 			}
-			return operand.Bindings.Public.Secret, operand.Bindings.Public.Configmap
+			return operand.Bindings["public"].Secret, operand.Bindings["public"].Configmap
 		}
 	}
 	return "", ""

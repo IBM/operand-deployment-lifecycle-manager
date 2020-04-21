@@ -51,16 +51,7 @@ type OperandBindInfoSpec struct {
 	Description string `json:"description,omitempty"`
 	// The bindings section is used to specify information about the access/configuration data that is to be shared.
 	// +optional
-	Bindings Binding `json:"bindings,omitempty"`
-}
-
-// Binding defines the scope of the operand, and the resources, like Secret and ConfigMap.
-type Binding struct {
-	// The scope identifier determines whether the referenced information can be shared with requests in other namespaces (pubic) or only in this namespace (private). An OperandBindInfo CR can have at MOST one public scoped binding and one private scope binding.
-	// +optional
-	Public SecretConfigmap `json:"public,omitempty"`
-	// +optional
-	Private SecretConfigmap `json:"private,omitempty"`
+	Bindings map[string]SecretConfigmap `json:"bindings,omitempty"`
 }
 
 // SecretConfigmap is a pair of Secret and/or Configmap
