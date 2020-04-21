@@ -166,6 +166,10 @@ func operandRegistry(namespace, registryName, registryNamespace, requestName, re
 					Phase: v1alpha1.OperatorRunning,
 					ReconcileRequests: []v1alpha1.ReconcileRequest{
 						{
+							Name:      "request1",
+							Namespace: namespace,
+						},
+						{
 							Name:      requestName,
 							Namespace: requestNamespace,
 						},

@@ -31,6 +31,7 @@ const (
 	BindInfoFailed    BindInfoPhase = "Failed"
 	BindInfoInit      BindInfoPhase = "Initialized"
 	BindInfoUpdating  BindInfoPhase = "Updating"
+	BindInfoWaiting   BindInfoPhase = "Waiting for Secret and/or Configmap from provider"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
