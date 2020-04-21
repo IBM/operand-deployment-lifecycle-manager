@@ -140,6 +140,5 @@ func (r *OperandBindInfo) AddLabels() {
 			}
 		}
 	}
-	r.Labels = make(map[string]string)
 	r.Labels[r.Spec.RegistryNamespace+"."+r.Spec.Registry+"/registry"] = "true"
 }
