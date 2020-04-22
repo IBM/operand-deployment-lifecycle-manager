@@ -18,6 +18,8 @@ package operandrequest
 
 import (
 	"context"
+	"regexp"
+	"strings"
 	"time"
 
 	olmv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1"
@@ -26,13 +28,16 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
@@ -78,20 +83,55 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// TODO(user): Modify this to be the types you create that are owned by the primary resource
-	// Watch for changes to secondary resource Pods and requeue the owner OperandRequest
-	err = c.Watch(&source.Kind{Type: &olmv1alpha1.Subscription{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &operatorv1alpha1.OperandRequest{},
-	})
-	if err != nil {
-		return err
+	mapSubtoReq := handler.ToRequestsFunc(
+		func(a handler.MapObject) []reconcile.Request {
+			reg, _ := regexp.Compile(`^(.*)\.(.*)\/request`)
+			labels := a.Meta.GetLabels()
+			var reqName, reqNamespace string
+			for label := range labels {
+				if reg.MatchString(label) {
+					lablelist := strings.Split(label, ".")
+					reqNamespace = lablelist[0]
+					klog.Info(reqNamespace)
+					reqName = strings.Split(lablelist[1], "/")[0]
+					klog.Info(reqName)
+				}
+			}
+			if reqNamespace == "" || reqName == "" {
+				return []reconcile.Request{}
+			}
+			return []reconcile.Request{
+				{NamespacedName: types.NamespacedName{
+					Name:      reqName,
+					Namespace: reqNamespace,
+				}},
+			}
+		})
+
+	predicateCSV := predicate.Funcs{
+		CreateFunc: func(e event.CreateEvent) bool {
+			return false
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return false
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			oldObject := e.ObjectOld.(*olmv1alpha1.Subscription)
+			newObject := e.ObjectNew.(*olmv1alpha1.Subscription)
+			if oldObject.Labels != nil && oldObject.Labels["operator.ibm.com/opreq-control"] == "true" {
+				return (oldObject.Status.InstalledCSV != "" && newObject.Status.InstalledCSV != "" && oldObject.Status.InstalledCSV != newObject.Status.InstalledCSV)
+			}
+			return false
+		},
+		GenericFunc: func(e event.GenericEvent) bool {
+			return false
+		},
 	}
 
-	err = c.Watch(&source.Kind{Type: &olmv1.OperatorGroup{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &operatorv1alpha1.OperandRequest{},
-	})
+	// Watch for changes to secondary resource Pods and requeue the owner OperandRequest
+	err = c.Watch(&source.Kind{Type: &olmv1alpha1.Subscription{}}, &handler.EnqueueRequestsFromMapFunc{
+		ToRequests: mapSubtoReq,
+	}, predicateCSV)
 	if err != nil {
 		return err
 	}

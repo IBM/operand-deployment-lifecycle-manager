@@ -113,7 +113,7 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1a
 
 func (r *ReconcileOperandRequest) createSubscription(cr *operatorv1alpha1.OperandRequest, opt *operatorv1alpha1.Operator) error {
 	klog.V(3).Info("Subscription Namespace: ", opt.Namespace)
-	co := generateClusterObjects(opt)
+	co := generateClusterObjects(opt, cr)
 
 	// Create required namespace
 	ns := co.namespace
@@ -288,7 +288,7 @@ func (r *ReconcileOperandRequest) deleteSubscription(operandName string, request
 }
 
 func (r *ReconcileOperandRequest) getNeedDeletedOperands(requestInstance *operatorv1alpha1.OperandRequest, reconcileReq reconcile.Request) (gset.Set, error) {
-	klog.V(3).Info("Getting the operater need to be delete")
+	klog.V(3).Info("Getting the operater need to be deleted")
 	requestOperands := gset.NewSet()
 	for _, req := range requestInstance.Spec.Requests {
 		for _, o := range req.Operands {
@@ -325,12 +325,10 @@ func (r *ReconcileOperandRequest) getDeployedOperands(requestInstance *operatorv
 	return deployedOperands, nil
 }
 
-func generateClusterObjects(o *operatorv1alpha1.Operator) *clusterObjects {
-	klog.V(3).Info("Generating Cluster Objects")
+func generateClusterObjects(o *operatorv1alpha1.Operator, req *operatorv1alpha1.OperandRequest) *clusterObjects {
+	klog.V(1).Info("Generating Cluster Objects")
 	co := &clusterObjects{}
-	labels := map[string]string{
-		"operator.ibm.com/opreq-control": "true",
-	}
+	labels := map[string]string{"operator.ibm.com/opreq-control": "true", req.Namespace + "." + req.Name + "/request": "true"}
 
 	klog.V(3).Info("Generating Namespace: ", o.Namespace)
 	// Namespace Object
