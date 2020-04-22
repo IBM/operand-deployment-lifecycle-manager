@@ -70,6 +70,9 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1a
 							return err
 						}
 					}
+					if err = r.updateSubscriptionLabel(requestInstance, found); err != nil {
+						return err
+					}
 				} else {
 					// Subscription existing and not managed by OperandRequest controller
 					klog.V(2).Info("Subscription has created by other user, ignore update/delete it.", " Subscription.Namespace: ", found.Namespace, "Subscription.Name: ", found.Name)
@@ -323,6 +326,22 @@ func (r *ReconcileOperandRequest) getDeployedOperands(requestInstance *operatorv
 	}
 
 	return deployedOperands, nil
+}
+
+// Add OperandRequest label to the existing subscriptions
+func (r *ReconcileOperandRequest) updateSubscriptionLabel(req *operatorv1alpha1.OperandRequest, sub *olmv1alpha1.Subscription) error {
+	if _, ok := sub.Labels[req.Namespace+"."+req.Name+"/request"]; ok {
+		return nil
+	}
+	sublatest, err := r.olmClient.OperatorsV1alpha1().Subscriptions(sub.Namespace).Get(sub.Name, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	sublatest.Labels[req.Namespace+"."+req.Name+"/request"] = "true"
+	if _, err := r.olmClient.OperatorsV1alpha1().Subscriptions(sub.Namespace).Update(sub); err != nil {
+		return err
+	}
+	return nil
 }
 
 func generateClusterObjects(o *operatorv1alpha1.Operator, req *operatorv1alpha1.OperandRequest) *clusterObjects {
