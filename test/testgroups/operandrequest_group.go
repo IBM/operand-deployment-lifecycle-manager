@@ -116,7 +116,7 @@ func TestOperandRequestCRUD(t *testing.T) {
 	assert.NotNilf(cm, "configmap %s should be copied to namespace %s", "jenkins-operator-init-configuration-example", config.TestNamespace2)
 
 	// Delete the last operator and related operands from Request 1
-	req1, err = helpers.AbsentOperandFormRequest(f, config.TestNamespace1)
+	req1, err = helpers.AbsentOperandFromRequest(f, config.TestNamespace1, "jenkins")
 	assert.NoError(err)
 	assert.Len(req1.Spec.Requests[0].Operands, 1, "the operands number should be equal 1")
 
@@ -129,7 +129,7 @@ func TestOperandRequestCRUD(t *testing.T) {
 	assert.Len(reg.Status.OperatorsStatus["jenkins"].ReconcileRequests, 1, "the reconcile request number should be equal 1 for operator jenkins")
 
 	// Add a operator into Request 1
-	req1, err = helpers.PresentOperandFormRequest(f, config.TestNamespace1)
+	req1, err = helpers.PresentOperandFromRequest(f, config.TestNamespace1, "jenkins")
 	assert.NoError(err)
 	assert.Len(req1.Spec.Requests[0].Operands, 2, "the operands number should be equal 2")
 
