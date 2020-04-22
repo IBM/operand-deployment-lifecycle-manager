@@ -45,15 +45,6 @@ func TestOperandBindInfoCRUD(t *testing.T) {
 	err := helpers.CreateNamespace(f, ctx, config.TestNamespace1)
 	assert.NoError(err)
 
-	// create a registry instance for bindinfo
-	reg, err := helpers.CreateOperandRegistry(f, ctx, config.TestNamespace1)
-	assert.NoError(err)
-	assert.NotNilf(reg, "regisgry %s should be created in namespace %s", config.OperandRegistryCrName, config.TestNamespace1)
-
-	reg, err = helpers.WaitRegistryStatus(f, operator.OperatorInit, config.TestNamespace1)
-	assert.NoError(err)
-	assert.Equalf(operator.OperatorInit, reg.Status.Phase, "registry(%s/%s) phase should be Initialized", reg.Namespace, reg.Name)
-
 	// test create a bindinfo instance
 	bi, err := helpers.CreateOperandBindInfo(f, ctx, config.TestNamespace1)
 	assert.NoError(err)
