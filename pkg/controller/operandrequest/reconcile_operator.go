@@ -326,7 +326,7 @@ func (r *ReconcileOperandRequest) getDeployedOperands(requestInstance *operatorv
 }
 
 func generateClusterObjects(o *operatorv1alpha1.Operator, req *operatorv1alpha1.OperandRequest) *clusterObjects {
-	klog.V(1).Info("Generating Cluster Objects")
+	klog.V(3).Info("Generating Cluster Objects")
 	co := &clusterObjects{}
 	labels := map[string]string{"operator.ibm.com/opreq-control": "true", req.Namespace + "." + req.Name + "/request": "true"}
 
