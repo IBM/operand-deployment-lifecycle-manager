@@ -35,7 +35,6 @@ spec:
   - name: ibm-commonui-operator
     spec:
       commonWebUI: {}
-      legacyHeader: {}
   - name: ibm-management-ingress-operator
     spec:
       managementIngress: {}
