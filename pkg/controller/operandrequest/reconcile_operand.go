@@ -163,6 +163,7 @@ func (r *ReconcileOperandRequest) reconcileCr(service *operatorv1alpha1.ConfigSe
 		} else {
 			if unstruct.Object["metadata"].(map[string]interface{})["labels"] != nil && unstruct.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{})["operator.ibm.com/opreq-control"] == t {
 				// Update or Delete Custom resource
+				unstruct.Object = crTemplate.(map[string]interface{})
 				if updateDeleteErr := r.existingCustomResource(unstruct, service, namespace, csc); updateDeleteErr != nil {
 					merr.Add(updateDeleteErr)
 					continue
@@ -376,7 +377,6 @@ func (r *ReconcileOperandRequest) updateCustomResource(unstruct unstructured.Uns
 	if existingCR.Object["metadata"].(map[string]interface{})["labels"] != nil && existingCR.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{})["operator.ibm.com/opreq-control"] == t {
 
 		specJSONString, _ := json.Marshal(unstruct.Object["spec"])
-
 		// Merge CR template spec and OperandConfig spec
 		mergedCR := util.MergeCR(specJSONString, crConfig)
 		CRgeneration := existingCR.Object["metadata"].(map[string]interface{})["generation"]

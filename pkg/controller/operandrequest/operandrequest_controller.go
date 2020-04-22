@@ -92,9 +92,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 				if reg.MatchString(label) {
 					lablelist := strings.Split(label, ".")
 					reqNamespace = lablelist[0]
-					klog.Info(reqNamespace)
 					reqName = strings.Split(lablelist[1], "/")[0]
-					klog.Info(reqName)
 				}
 			}
 			if reqNamespace == "" || reqName == "" {
