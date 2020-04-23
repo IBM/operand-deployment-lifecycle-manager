@@ -25,11 +25,11 @@
 
 ## Overview
 
-**Note:** Documents in this repo are in pre-release version. For the released version, you can refer to [IBM Knowledge Center](https://www.ibm.com/support/knowledgecenter/SSHKN6/installer/1.x.x/index.html)
+**Note:** Documents in this repo are in active development. For the official documentation, see [IBM Knowledge Center](https://www.ibm.com/support/knowledgecenter/SSHKN6/installer/1.x.x/index.html).
 
-Operand Deployment Lifecycle Manager is used to manage the lifecycle of a group of operands. Checkout design document at [here](./docs/design/operand-deployment-lifecycle-manager.md).
+Operand Deployment Lifecycle Manager is used to manage the lifecycle of a group of operands. Check the design document [here](./docs/design/operand-deployment-lifecycle-manager.md).
 
-Operand Deployment Lifecycle Manager has Three CRDs:
+Operand Deployment Lifecycle Manager has three CRDs:
 
 | Resource                 | Short Name | Description                                                                                |
 |--------------------------|------------|--------------------------------------------------------------------------------------------|
