@@ -61,8 +61,7 @@ metadata:
               {
                 "name": "ibm-commonui-operator",
                 "spec": {
-                  "commonWebUI": {},
-                  "legacyHeader": {}
+                  "commonWebUI": {}
                 }
               },
               {
