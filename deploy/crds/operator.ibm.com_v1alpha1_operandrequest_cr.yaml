@@ -1,7 +1,7 @@
 apiVersion: operator.ibm.com/v1alpha1
 kind: OperandRequest
 metadata:
-  name: example-service-request
+  name: example-service
 spec:
   requests:
   - registry: example-service
