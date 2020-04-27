@@ -69,7 +69,6 @@ include common/Makefile.common.mk
 
 install: ## Install all resources (CR/CRD's, RBAC and Operator)
 	@echo ....... Set environment variables ......
-	- export DEPLOY_DIR=deploy/crds
 	- export WATCH_NAMESPACE=${NAMESPACE}
 	@echo ....... Creating namespace .......
 	- kubectl create namespace ${NAMESPACE}
