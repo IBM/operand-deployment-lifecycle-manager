@@ -13,37 +13,42 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+
 package helpers
 
 import (
 	goctx "context"
 	"fmt"
-	"testing"
 	"time"
 
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
-	operator "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 	"github.com/IBM/operand-deployment-lifecycle-manager/test/config"
 )
 
-// CreateOperandRequest creates a OperandRequest instance
-func CreateOperandRequest(f *framework.Framework, ctx *framework.TestCtx) error {
-	namespace, err := ctx.GetNamespace()
+// CreateOperandRequest  is used to create an OperandRequest instance
+func CreateOperandRequest(f *framework.Framework, ctx *framework.TestCtx, req *v1alpha1.OperandRequest) (*v1alpha1.OperandRequest, error) {
+	fmt.Println("--- CREATE: OperandRequest Instance")
+	// use TestCtx's create helper to create the object and add a cleanup function for the new object
+	err := f.Client.Create(goctx.TODO(), req, &framework.CleanupOptions{TestContext: ctx, Timeout: config.CleanupTimeout, RetryInterval: config.CleanupRetry})
 	if err != nil {
-		return fmt.Errorf("could not get namespace: %v", err)
+		return nil, err
 	}
 
-	fmt.Println("--- CREATE: OperandRequest Instance")
-	requestInstance := newOperandRequestCR(config.OperandRequestCrName, namespace)
-	// use TestCtx's create helper to create the object and add a cleanup function for the new object
-	err = f.Client.Create(goctx.TODO(), requestInstance, &framework.CleanupOptions{TestContext: ctx, Timeout: config.CleanupTimeout, RetryInterval: config.CleanupRetry})
+	return req, nil
+}
+
+// RetrieveOperandRquest is used to get an OperandRquest instance
+func RetrieveOperandRquest(f *framework.Framework, obj runtime.Object, ns string) error {
+	// Get OperandRquest instance
+	err := f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandRequestCrName, Namespace: ns}, obj)
 	if err != nil {
 		return err
 	}
@@ -51,121 +56,185 @@ func CreateOperandRequest(f *framework.Framework, ctx *framework.TestCtx) error 
 	return nil
 }
 
-// RetrieveOperandRequest gets an OperandRequest instance
-func RetrieveOperandRequest(f *framework.Framework, ctx *framework.TestCtx) (*operator.OperandRequest, error) {
-	namespace, err := ctx.GetNamespace()
-	if err != nil {
-		return nil, err
-	}
-	reqCr := &operator.OperandRequest{}
-	fmt.Println("--- GET: OperandRequest Instance")
-	// Get OperandRequest instance
-	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandRequestCrName, Namespace: namespace}, reqCr)
-	if err != nil {
-		return nil, err
-	}
-
-	return reqCr, nil
-}
-
-// DeleteOperandRequest delete a OperandRequest instance
-func DeleteOperandRequest(reqCr *operator.OperandRequest, f *framework.Framework) error {
+// DeleteOperandRequest is used to delete an OperandRequest instance
+func DeleteOperandRequest(req *v1alpha1.OperandRequest, f *framework.Framework) error {
 	fmt.Println("--- DELETE: OperandRequest Instance")
 	// Delete OperandRequest instance
-	if err := f.Client.Delete(goctx.TODO(), reqCr); err != nil {
+	if err := f.Client.Delete(goctx.TODO(), req); err != nil {
 		return err
 	}
-	return nil
-}
 
-// AbsentOperandFormRequest delete an operator and operand from OperandRequest
-func AbsentOperandFormRequest(f *framework.Framework, ctx *framework.TestCtx) error {
-	fmt.Println("--- ABSENT: Operator and Operand")
-	// Delete first operator and related operand
 	if err := utilwait.PollImmediate(config.WaitForRetry, config.WaitForTimeout, func() (done bool, err error) {
-		reqCr, err := RetrieveOperandRequest(f, ctx)
-		if err != nil {
+		err = RetrieveOperandRquest(f, req, req.Namespace)
+		if err != nil && errors.IsNotFound(err) {
+			return true, nil
+		}
+		fmt.Println("    --- Waiting for OperandRequest deleted ...")
+		return false, err
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+// AbsentOperandFromRequest is used to delete an operator and operand from OperandRequest
+func AbsentOperandFromRequest(f *framework.Framework, ns, opName string) (*v1alpha1.OperandRequest, error) {
+	fmt.Println("--- ABSENT: Operator and Operand")
+	// Delete the last operator and related operand
+	req := &v1alpha1.OperandRequest{}
+	if err := utilwait.PollImmediate(config.WaitForRetry, config.WaitForTimeout, func() (done bool, err error) {
+		if err := RetrieveOperandRquest(f, req, ns); err != nil {
 			return false, err
 		}
-		reqCr.Spec.Requests[0].Operands = reqCr.Spec.Requests[0].Operands[1:]
-		if err := f.Client.Update(goctx.TODO(), reqCr); err != nil {
+
+		for index, op := range req.Spec.Requests[0].Operands {
+			if op.Name == opName {
+				req.Spec.Requests[0].Operands = append(req.Spec.Requests[0].Operands[:index], req.Spec.Requests[0].Operands[index+1:]...)
+				break
+			}
+		}
+		if err := f.Client.Update(goctx.TODO(), req); err != nil {
 			fmt.Println("    --- Waiting for OperandRequest instance stable ...")
 			return false, nil
 		}
-		return true, nil
-	}); err != nil {
-		return err
-	}
-	return nil
-}
-
-// PresentOperandFormRequest add an operator and operand into OperandRequest
-func PresentOperandFormRequest(f *framework.Framework, ctx *framework.TestCtx) error {
-	fmt.Println("--- PRESENT: Operator and Operand [etcd]")
-	// Add an operator and related operand
-	if err := utilwait.PollImmediate(time.Second*10, time.Minute*5, func() (done bool, err error) {
-		reqCr, err := RetrieveOperandRequest(f, ctx)
-		if err != nil {
+		if err := RetrieveOperandRquest(f, req, ns); err != nil {
 			return false, err
 		}
-		reqCr.Spec.Requests[0].Operands = append(reqCr.Spec.Requests[0].Operands, operator.Operand{Name: "etcd"})
-		if err := f.Client.Update(goctx.TODO(), reqCr); err != nil {
-			fmt.Println("    --- Waiting for OperandRequest instance stable ...")
-			return false, nil
+		for _, opstatus := range req.Status.Members {
+			if opstatus.Name == opName {
+				return false, nil
+			}
 		}
 		return true, nil
 	}); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Checking Cluster phase is running
-func CheckingClusterState(f *framework.Framework, ctx *framework.TestCtx) error {
-	fmt.Println("--- CHECKING: Cluster Phase")
-	if err := utilwait.PollImmediate(time.Second*10, time.Minute*5, func() (bool, error) {
-		reqCr, err := RetrieveOperandRequest(f, ctx)
-		if err != nil {
-			return false, err
-		}
-		if reqCr.Status.Phase != operator.ClusterPhaseRunning {
-			fmt.Println("    --- Waiting for cluster ready ...")
-			return false, nil
-		}
-		return true, nil
-	}); err != nil {
-		return err
-	}
-	return nil
-}
-
-// CreateOperandConfig creates a OperandConfig instance
-func CreateOperandConfig(f *framework.Framework, ctx *framework.TestCtx) error {
-	namespace, err := ctx.GetNamespace()
-	if err != nil {
-		return fmt.Errorf("could not get namespace: %v", err)
-	}
-
-	// Create OperandConfig instance
-	fmt.Println("--- CREATE: OperandConfig Instance")
-	ci := newOperandConfigCR(config.OperandConfigCrName, namespace)
-	err = f.Client.Create(goctx.TODO(), ci, &framework.CleanupOptions{TestContext: ctx, Timeout: config.CleanupTimeout, RetryInterval: config.CleanupRetry})
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// RetrieveOperandConfig gets a OperandConfig instance
-func RetrieveOperandConfig(f *framework.Framework, ctx *framework.TestCtx) (*operator.OperandConfig, error) {
-	namespace, err := ctx.GetNamespace()
-	if err != nil {
 		return nil, err
 	}
-	ci := &operator.OperandConfig{}
-	fmt.Println("--- GET: OperandConfig Instance")
-	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandConfigCrName, Namespace: namespace}, ci)
+	return req, nil
+}
+
+// PresentOperandFromRequest is used to add an operator and operand into OperandRequest
+func PresentOperandFromRequest(f *framework.Framework, ns, opName string) (*v1alpha1.OperandRequest, error) {
+	fmt.Println("--- PRESENT: Operator and Operand")
+	// Add an operator and related operand
+	req := &v1alpha1.OperandRequest{}
+	if err := utilwait.PollImmediate(time.Second*10, time.Minute*5, func() (done bool, err error) {
+		if err := RetrieveOperandRquest(f, req, ns); err != nil {
+			return false, err
+		}
+		createOp := true
+		for _, op := range req.Spec.Requests[0].Operands {
+			if op.Name == opName {
+				createOp = false
+				break
+			}
+		}
+		if createOp {
+			req.Spec.Requests[0].Operands = append(req.Spec.Requests[0].Operands, v1alpha1.Operand{Name: opName})
+			if err := f.Client.Update(goctx.TODO(), req); err != nil {
+				fmt.Println("    --- Waiting for OperandRequest instance stable ...")
+				return false, nil
+			}
+		}
+		if err := RetrieveOperandRquest(f, req, ns); err != nil {
+			return false, err
+		}
+		for _, opstatus := range req.Status.Members {
+			if opstatus.Name == opName {
+				return true, nil
+			}
+		}
+		return false, nil
+	}); err != nil {
+		return nil, err
+	}
+	return req, nil
+}
+
+// WaitRequestStatus is wait for request phase become to expected phase
+func WaitRequestStatus(f *framework.Framework, expectedPhase v1alpha1.ClusterPhase, ns string) (*v1alpha1.OperandRequest, error) {
+	fmt.Println("--- WAITING: OperandRequest")
+	req := &v1alpha1.OperandRequest{}
+	if err := utilwait.PollImmediate(time.Second*10, time.Minute*5, func() (bool, error) {
+		if err := RetrieveOperandRquest(f, req, ns); err != nil {
+			return false, err
+		}
+		if req.Status.Phase != expectedPhase {
+			fmt.Println("    --- Waiting for request phase " + expectedPhase)
+			return false, nil
+		}
+		return true, nil
+	}); err != nil {
+		return nil, err
+	}
+	return req, nil
+}
+
+// WaitRegistryStatus is wait for registry phase become to expected phase
+func WaitRegistryStatus(f *framework.Framework, expectedPhase v1alpha1.OperatorPhase, ns string) (*v1alpha1.OperandRegistry, error) {
+	fmt.Println("--- WAITING: OperandRegistry")
+	reg := &v1alpha1.OperandRegistry{}
+	if err := utilwait.PollImmediate(time.Second*10, time.Minute*5, func() (bool, error) {
+		err := RetrieveOperandRegistry(f, reg, ns)
+		if err != nil {
+			return false, err
+		}
+		if reg.Status.Phase != expectedPhase {
+			fmt.Println("    --- Waiting for registry phase " + expectedPhase)
+			return false, nil
+		}
+		return true, nil
+	}); err != nil {
+		return nil, err
+	}
+	return reg, nil
+}
+
+// WaitConfigStatus is wait for config phase become to expected phase
+func WaitConfigStatus(f *framework.Framework, expectedPhase v1alpha1.ServicePhase, ns string) (*v1alpha1.OperandConfig, error) {
+	fmt.Println("--- WAITING: OperandConfig")
+	con := &v1alpha1.OperandConfig{}
+	if err := utilwait.PollImmediate(time.Second*10, time.Minute*5, func() (bool, error) {
+		err := RetrieveOperandConfig(f, con, ns)
+		if err != nil {
+			return false, err
+		}
+		if con.Status.Phase != expectedPhase {
+			fmt.Println("    --- Waiting for config phase " + expectedPhase)
+			return false, nil
+		}
+		return true, nil
+	}); err != nil {
+		return nil, err
+	}
+	return con, nil
+}
+
+// WaitBindInfoStatus is wait for bindinfo phase become to expected phase
+func WaitBindInfoStatus(f *framework.Framework, expectedPhase v1alpha1.BindInfoPhase, ns string) (*v1alpha1.OperandBindInfo, error) {
+	fmt.Println("--- WAITING: OperandBindInfo")
+	bi := &v1alpha1.OperandBindInfo{}
+	if err := utilwait.PollImmediate(time.Second*10, time.Minute*5, func() (bool, error) {
+		err := RetrieveOperandBindInfo(f, bi, ns)
+		if err != nil {
+			return false, err
+		}
+		if bi.Status.Phase != expectedPhase {
+			fmt.Println("    --- Waiting for bindinfo phase " + expectedPhase)
+			return false, nil
+		}
+		return true, nil
+	}); err != nil {
+		return nil, err
+	}
+	return bi, nil
+}
+
+// CreateOperandConfig is used to create an OperandConfig instance
+func CreateOperandConfig(f *framework.Framework, ctx *framework.TestCtx, ns string) (*v1alpha1.OperandConfig, error) {
+	// Create OperandConfig instance
+	fmt.Println("--- CREATE: OperandConfig Instance")
+	ci := newOperandConfigCR(config.OperandConfigCrName, ns)
+	err := f.Client.Create(goctx.TODO(), ci, &framework.CleanupOptions{TestContext: ctx, Timeout: config.CleanupTimeout, RetryInterval: config.CleanupRetry})
 	if err != nil {
 		return nil, err
 	}
@@ -173,18 +242,29 @@ func RetrieveOperandConfig(f *framework.Framework, ctx *framework.TestCtx) (*ope
 	return ci, nil
 }
 
-// UpdateOperandConfig updates a OperandConfig instance
-func UpdateOperandConfig(f *framework.Framework, ctx *framework.TestCtx) error {
+// RetrieveOperandConfig is used to get an OperandConfig instance
+func RetrieveOperandConfig(f *framework.Framework, obj runtime.Object, ns string) error {
+	err := f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandConfigCrName, Namespace: ns}, obj)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// UpdateOperandConfig is used to update an OperandConfig instance
+func UpdateOperandConfig(f *framework.Framework, ns string) error {
 	fmt.Println("--- UPDATE: OperandConfig Instance")
+	con := &v1alpha1.OperandConfig{}
 	if err := utilwait.PollImmediate(config.WaitForRetry, config.WaitForTimeout, func() (done bool, err error) {
-		conCr, err := RetrieveOperandConfig(f, ctx)
+		err = RetrieveOperandConfig(f, con, ns)
 		if err != nil {
 			return false, err
 		}
-		conCr.Spec.Services[0].Spec = map[string]runtime.RawExtension{
+		con.Spec.Services[0].Spec = map[string]runtime.RawExtension{
 			"etcdCluster": {Raw: []byte(`{"size": 3}`)},
 		}
-		if err := f.Client.Update(goctx.TODO(), conCr); err != nil {
+		if err := f.Client.Update(goctx.TODO(), con); err != nil {
 			fmt.Println("    --- Waiting for OperandConfig instance stable ...")
 			return false, nil
 		}
@@ -195,8 +275,8 @@ func UpdateOperandConfig(f *framework.Framework, ctx *framework.TestCtx) error {
 	return nil
 }
 
-// DeleteOperandConfig deletes a OperandConfig instance
-func DeleteOperandConfig(f *framework.Framework, ci *operator.OperandConfig) error {
+// DeleteOperandConfig is used to delete an OperandConfig instance
+func DeleteOperandConfig(f *framework.Framework, ci *v1alpha1.OperandConfig) error {
 	fmt.Println("--- DELETE: OperandConfig Instance")
 	if err := f.Client.Delete(goctx.TODO(), ci); err != nil {
 		return err
@@ -204,40 +284,17 @@ func DeleteOperandConfig(f *framework.Framework, ci *operator.OperandConfig) err
 	return nil
 }
 
-// CreateOperandRegistry creates a OperandRegistry instance
-func CreateOperandRegistry(f *framework.Framework, ctx *framework.TestCtx) error {
-	namespace, err := ctx.GetNamespace()
-	if err != nil {
-		return fmt.Errorf("could not get namespace: %v", err)
-	}
-
+// CreateOperandRegistry is used to create an OperandRegistry instance
+func CreateOperandRegistry(f *framework.Framework, ctx *framework.TestCtx, ns string) (*v1alpha1.OperandRegistry, error) {
 	// Create OperandRegistry instance
 	fmt.Println("--- CREATE: OperandRegistry Instance")
-	ri := newOperandRegistryCR(config.OperandRegistryCrName, namespace)
-	err = f.Client.Create(goctx.TODO(), ri, &framework.CleanupOptions{TestContext: ctx, Timeout: config.CleanupTimeout, RetryInterval: config.CleanupRetry})
+	ri := newOperandRegistryCR(config.OperandRegistryCrName, ns)
+	err := f.Client.Create(goctx.TODO(), ri, &framework.CleanupOptions{TestContext: ctx, Timeout: config.CleanupTimeout, RetryInterval: config.CleanupRetry})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// Get OperandRegistry instance
-	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandRegistryCrName, Namespace: namespace}, ri)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// RetrieveOperandRegistry get and update a OperandRegistry instance
-func RetrieveOperandRegistry(f *framework.Framework, ctx *framework.TestCtx) (*operator.OperandRegistry, error) {
-	namespace, err := ctx.GetNamespace()
-	if err != nil {
-		return nil, fmt.Errorf("could not get namespace: %v", err)
-	}
-	ri := &operator.OperandRegistry{}
-	fmt.Println("--- GET: OperandRegistry Instance")
-
-	// Get OperandRegistry instance
-	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandRegistryCrName, Namespace: namespace}, ri)
+	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandRegistryCrName, Namespace: ns}, ri)
 	if err != nil {
 		return nil, err
 	}
@@ -245,16 +302,28 @@ func RetrieveOperandRegistry(f *framework.Framework, ctx *framework.TestCtx) (*o
 	return ri, nil
 }
 
-// UpdateOperandRegistry update a OperandRegistry instance
-func UpdateOperandRegistry(f *framework.Framework, ctx *framework.TestCtx) error {
+// RetrieveOperandRegistry is used to get an OperandRegistry instance
+func RetrieveOperandRegistry(f *framework.Framework, obj runtime.Object, ns string) error {
+	// Get OperandRegistry instance
+	err := f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandRegistryCrName, Namespace: ns}, obj)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// UpdateOperandRegistry is used to update an OperandRegistry instance
+func UpdateOperandRegistry(f *framework.Framework, ns string) error {
 	fmt.Println("--- UPDATE: OperandRegistry Instance")
+	reg := &v1alpha1.OperandRegistry{}
 	if err := utilwait.PollImmediate(config.WaitForRetry, config.WaitForTimeout, func() (done bool, err error) {
-		regCr, err := RetrieveOperandRegistry(f, ctx)
+		err = RetrieveOperandRegistry(f, reg, ns)
 		if err != nil {
 			return false, err
 		}
-		regCr.Spec.Operators[0].Channel = "clusterwide-alpha"
-		if err := f.Client.Update(goctx.TODO(), regCr); err != nil {
+		reg.Spec.Operators[0].Channel = "clusterwide-alpha"
+		if err := f.Client.Update(goctx.TODO(), reg); err != nil {
 			fmt.Println("    --- Waiting for OperandRegistry instance stable ...")
 			return false, nil
 		}
@@ -265,12 +334,12 @@ func UpdateOperandRegistry(f *framework.Framework, ctx *framework.TestCtx) error
 	return nil
 }
 
-// DeleteOperandRegistry delete a OperandRegistry instance
-func DeleteOperandRegistry(f *framework.Framework, regCr *operator.OperandRegistry) error {
+// DeleteOperandRegistry is used to delete an OperandRegistry instance
+func DeleteOperandRegistry(f *framework.Framework, reg *v1alpha1.OperandRegistry) error {
 	fmt.Println("--- DELETE: OperandRegistry Instance")
 
 	// Delete OperandRegistry instance
-	err := f.Client.Delete(goctx.TODO(), regCr)
+	err := f.Client.Delete(goctx.TODO(), reg)
 	if err != nil {
 		return err
 	}
@@ -278,23 +347,156 @@ func DeleteOperandRegistry(f *framework.Framework, regCr *operator.OperandRegist
 	return nil
 }
 
-// AssertNoError confirms the error returned is nil
-func AssertNoError(t *testing.T, err error) {
-	t.Helper()
+// CreateOperandBindInfo is used to create an OperandBindInfo instance
+func CreateOperandBindInfo(f *framework.Framework, ctx *framework.TestCtx, ns string) (*v1alpha1.OperandBindInfo, error) {
+	// Create OperandBindInfo instance
+	fmt.Println("--- CREATE: OperandBindInfo Instance")
+	bi := newOperandBindInfoCR(config.OperandBindInfoCrName, ns)
+	err := f.Client.Create(goctx.TODO(), bi, &framework.CleanupOptions{TestContext: ctx, Timeout: config.CleanupTimeout, RetryInterval: config.CleanupRetry})
 	if err != nil {
-		t.Fatal(err)
+		return nil, err
 	}
+	// Get OperandBindInfo instance
+	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandBindInfoCrName, Namespace: ns}, bi)
+	if err != nil {
+		return nil, err
+	}
+
+	return bi, nil
 }
 
-//OperandConfig instance
-func newOperandConfigCR(name, namespace string) *operator.OperandConfig {
-	return &operator.OperandConfig{
+// RetrieveOperandBindInfo is used to get an OperandBindInfo instance
+func RetrieveOperandBindInfo(f *framework.Framework, obj runtime.Object, ns string) error {
+	// Get OperandBindInfo instance
+	err := f.Client.Get(goctx.TODO(), types.NamespacedName{Name: config.OperandBindInfoCrName, Namespace: ns}, obj)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// UpdateOperandBindInfo is used to update an OperandBindInfo instance
+func UpdateOperandBindInfo(f *framework.Framework, ns string) (*v1alpha1.OperandBindInfo, error) {
+	fmt.Println("--- UPDATE: OperandBindInfo Instance")
+	bi := &v1alpha1.OperandBindInfo{}
+	if err := utilwait.PollImmediate(config.WaitForRetry, config.WaitForTimeout, func() (done bool, err error) {
+		err = RetrieveOperandBindInfo(f, bi, ns)
+		if err != nil {
+			return false, err
+		}
+		secretCm := bi.Spec.Bindings["public"]
+		secretCm.Configmap = "jenkins-operator-base-configuration-example"
+		bi.Spec.Bindings["public"] = secretCm
+		if err := f.Client.Update(goctx.TODO(), bi); err != nil {
+			fmt.Println("    --- Waiting for OperandBindInfo instance stable ...")
+			return false, nil
+		}
+		return true, nil
+	}); err != nil {
+		return nil, err
+	}
+	return bi, nil
+}
+
+// DeleteOperandBindInfo is used to delete an OperandBindInfo instance
+func DeleteOperandBindInfo(f *framework.Framework, bi *v1alpha1.OperandBindInfo) error {
+	fmt.Println("--- DELETE: OperandBindInfo Instance")
+
+	// Delete OperandBindInfo instance
+	if err := f.Client.Delete(goctx.TODO(), bi); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// CreateNamespace is used to create a new namespace for test
+func CreateNamespace(f *framework.Framework, ctx *framework.TestCtx, name string) error {
+	obj := &corev1.Namespace{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Namespace",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+
+	err := f.Client.Create(goctx.TODO(), obj, &framework.CleanupOptions{TestContext: ctx, Timeout: config.CleanupTimeout, RetryInterval: config.CleanupRetry})
+	if err != nil && !errors.IsAlreadyExists(err) {
+		return err
+	}
+
+	return nil
+}
+
+// DeleteNamespace is delete the test namespace
+func DeleteNamespace(f *framework.Framework, name string) error {
+	obj := &corev1.Namespace{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Namespace",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+
+	if err := f.Client.Delete(goctx.TODO(), obj); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// RetrieveSecret is get a secret
+func RetrieveSecret(f *framework.Framework, name, namespace string) (*corev1.Secret, error) {
+	obj := &corev1.Secret{}
+	// Get Secret
+	if err := utilwait.PollImmediate(config.WaitForRetry, config.WaitForTimeout, func() (done bool, err error) {
+		if err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, obj); err != nil {
+			if errors.IsNotFound(err) {
+				fmt.Println("    --- Waiting for Secret copied ...")
+				return false, nil
+			}
+			return false, err
+		}
+		return true, nil
+	}); err != nil {
+		return nil, err
+	}
+	return obj, nil
+}
+
+// RetrieveConfigmap is get a configmap
+func RetrieveConfigmap(f *framework.Framework, name, namespace string) (*corev1.ConfigMap, error) {
+	obj := &corev1.ConfigMap{}
+	// Get ConfigMap
+	if err := utilwait.PollImmediate(config.WaitForRetry, config.WaitForTimeout, func() (done bool, err error) {
+		if err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, obj); err != nil {
+			if errors.IsNotFound(err) {
+				fmt.Println("    --- Waiting for ConfigMap copied ...")
+				return false, nil
+			}
+			return false, err
+		}
+		return true, nil
+	}); err != nil {
+		return nil, err
+	}
+	return obj, nil
+}
+
+// newOperandConfigCR is return an OperandConfig CR object
+func newOperandConfigCR(name, namespace string) *v1alpha1.OperandConfig {
+	return &v1alpha1.OperandConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: operator.OperandConfigSpec{
-			Services: []operator.ConfigService{
+		Spec: v1alpha1.OperandConfigSpec{
+			Services: []v1alpha1.ConfigService{
 				{
 					Name: "etcd",
 					Spec: map[string]runtime.RawExtension{
@@ -312,18 +514,18 @@ func newOperandConfigCR(name, namespace string) *operator.OperandConfig {
 	}
 }
 
-// OperandRegistry instance
-func newOperandRegistryCR(name, namespace string) *operator.OperandRegistry {
-	return &operator.OperandRegistry{
+// newOperandConfigCR is return an OperandRegistry CR object
+func newOperandRegistryCR(name, namespace string) *v1alpha1.OperandRegistry {
+	return &v1alpha1.OperandRegistry{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: operator.OperandRegistrySpec{
-			Operators: []operator.Operator{
+		Spec: v1alpha1.OperandRegistrySpec{
+			Operators: []v1alpha1.Operator{
 				{
 					Name:            "etcd",
-					Namespace:       namespace,
+					Namespace:       config.TestNamespace1,
 					SourceName:      "community-operators",
 					SourceNamespace: "openshift-marketplace",
 					PackageName:     "etcd",
@@ -331,7 +533,7 @@ func newOperandRegistryCR(name, namespace string) *operator.OperandRegistry {
 				},
 				{
 					Name:            "jenkins",
-					Namespace:       namespace,
+					Namespace:       config.TestNamespace1,
 					SourceName:      "community-operators",
 					SourceNamespace: "openshift-marketplace",
 					PackageName:     "jenkins-operator",
@@ -342,8 +544,9 @@ func newOperandRegistryCR(name, namespace string) *operator.OperandRegistry {
 	}
 }
 
-func newOperandRequestCR(name, namespace string) *operator.OperandRequest {
-	return &operator.OperandRequest{
+// NewOperandRequestCR1 is return an OperandRequest CR object
+func NewOperandRequestCR1(name, namespace string) *v1alpha1.OperandRequest {
+	return &v1alpha1.OperandRequest{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
@@ -351,8 +554,8 @@ func newOperandRequestCR(name, namespace string) *operator.OperandRequest {
 		Spec: v1alpha1.OperandRequestSpec{
 			Requests: []v1alpha1.Request{
 				{
-					Registry:          "common-service",
-					RegistryNamespace: namespace,
+					Registry:          config.OperandRegistryCrName,
+					RegistryNamespace: config.TestNamespace1,
 					Operands: []v1alpha1.Operand{
 						{
 							Name: "etcd",
@@ -367,11 +570,53 @@ func newOperandRequestCR(name, namespace string) *operator.OperandRequest {
 	}
 }
 
-func GetReconcileRequest(name, namespace string) reconcile.Request {
-	return reconcile.Request{
-		NamespacedName: types.NamespacedName{
+// NewOperandRequestCR2 is return an OperandRequest CR object
+func NewOperandRequestCR2(name, namespace string) *v1alpha1.OperandRequest {
+	return &v1alpha1.OperandRequest{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
+		},
+		Spec: v1alpha1.OperandRequestSpec{
+			Requests: []v1alpha1.Request{
+				{
+					Registry:          config.OperandRegistryCrName,
+					RegistryNamespace: config.TestNamespace1,
+					Operands: []v1alpha1.Operand{
+						{
+							Name: "jenkins",
+							Bindings: map[string]v1alpha1.SecretConfigmap{
+								"public": {
+									Secret:    "jenkins-operator-credentials-example",
+									Configmap: "jenkins-operator-init-configuration-example",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+// newOperandBindInfoCR is return an OperandBindInfo CR object
+func newOperandBindInfoCR(name, namespace string) *v1alpha1.OperandBindInfo {
+	return &v1alpha1.OperandBindInfo{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: v1alpha1.OperandBindInfoSpec{
+			Operand:           "jenkins",
+			Registry:          config.OperandRegistryCrName,
+			RegistryNamespace: config.TestNamespace1,
+
+			Bindings: map[string]v1alpha1.SecretConfigmap{
+				"public": {
+					Secret:    "jenkins-operator-credentials-example",
+					Configmap: "jenkins-operator-init-configuration-example",
+				},
+			},
 		},
 	}
 }

@@ -20,7 +20,10 @@ import (
 	"testing"
 
 	"github.com/operator-framework/operator-sdk/pkg/test"
+	"github.com/stretchr/testify/assert"
 
+	operator "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
+	"github.com/IBM/operand-deployment-lifecycle-manager/test/config"
 	"github.com/IBM/operand-deployment-lifecycle-manager/test/helpers"
 )
 
@@ -31,27 +34,28 @@ func TestOperandRegistry(t *testing.T) {
 
 // TestOperandRegistryCRUD is for testing OperandRegistry
 func TestOperandRegistryCRUD(t *testing.T) {
-
+	assert := assert.New(t)
 	ctx := test.NewTestCtx(t)
 	defer ctx.Cleanup()
 
 	// get global framework variables
 	f := test.Global
 
-	if err := helpers.CreateOperandRegistry(f, ctx); err != nil {
-		t.Fatal(err)
-	}
+	// Create namespace for test
+	err := helpers.CreateNamespace(f, ctx, config.TestNamespace1)
+	assert.NoError(err)
 
-	regCr, err := helpers.RetrieveOperandRegistry(f, ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
+	reg, err := helpers.CreateOperandRegistry(f, ctx, config.TestNamespace1)
+	assert.NoError(err)
+	assert.NotNilf(reg, "regisgry %s should be created in namespace %s", config.OperandRegistryCrName, config.TestNamespace1)
 
-	if err := helpers.UpdateOperandRegistry(f, ctx); err != nil {
-		t.Fatal(err)
-	}
+	reg, err = helpers.WaitRegistryStatus(f, operator.OperatorInit, config.TestNamespace1)
+	assert.NoError(err)
+	assert.Equalf(operator.OperatorInit, reg.Status.Phase, "registry(%s/%s) phase should be Initialized", reg.Namespace, reg.Name)
 
-	if err = helpers.DeleteOperandRegistry(f, regCr); err != nil {
-		t.Fatal(err)
-	}
+	err = helpers.UpdateOperandRegistry(f, config.TestNamespace1)
+	assert.NoError(err)
+
+	err = helpers.DeleteOperandRegistry(f, reg)
+	assert.NoError(err)
 }

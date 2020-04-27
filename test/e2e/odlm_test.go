@@ -21,18 +21,20 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/test"
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
 	"github.com/operator-framework/operator-sdk/pkg/test/e2eutil"
+	"github.com/stretchr/testify/assert"
 
 	apis "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis"
 	operator "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 	"github.com/IBM/operand-deployment-lifecycle-manager/test/config"
-	"github.com/IBM/operand-deployment-lifecycle-manager/test/helpers"
 	"github.com/IBM/operand-deployment-lifecycle-manager/test/testgroups"
 )
 
 func TestODLM(t *testing.T) {
+	assert := assert.New(t)
 	requestList := &operator.OperandRequestList{}
 	registryList := &operator.OperandRegistryList{}
 	configList := &operator.OperandConfigList{}
+	bindinfoList := &operator.OperandBindInfoList{}
 	if err := framework.AddToFrameworkScheme(apis.AddToScheme, requestList); err != nil {
 		t.Fatalf("failed to add custom resource scheme to framework: %v", err)
 	}
@@ -42,19 +44,21 @@ func TestODLM(t *testing.T) {
 	if err := framework.AddToFrameworkScheme(apis.AddToScheme, configList); err != nil {
 		t.Fatalf("failed to add custom resource scheme to framework: %v", err)
 	}
+	if err := framework.AddToFrameworkScheme(apis.AddToScheme, bindinfoList); err != nil {
+		t.Fatalf("failed to add custom resource scheme to framework: %v", err)
+	}
 	t.Parallel()
 	ctx := framework.NewTestCtx(t)
 	defer ctx.Cleanup()
 
-	if err := deployOperator(t, ctx); err != nil {
-		helpers.AssertNoError(t, err)
-	}
+	err := deployOperator(t, ctx)
+	assert.NoError(err)
 
 	// Run group test
 	t.Run("TestOperandRegistry", testgroups.TestOperandRegistry)
 	t.Run("TestOperandConfig", testgroups.TestOperandConfig)
+	t.Run("TestOperandBindInfo", testgroups.TestOperandBindInfo)
 	t.Run("TestOperandRequest", testgroups.TestOperandRequest)
-
 }
 
 func deployOperator(t *testing.T, ctx *test.TestCtx) error {

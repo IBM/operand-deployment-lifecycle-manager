@@ -17,6 +17,7 @@
 package v1alpha1
 
 import (
+	"regexp"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -51,6 +52,9 @@ type Request struct {
 type Operand struct {
 	// Name of the operand to be deployed
 	Name string `json:"name"`
+	// The bindings section is used to specify names of secret and/or configmap.
+	// +optional
+	Bindings map[string]SecretConfigmap `json:"bindings,omitempty"`
 }
 
 // ConditionType is the condition of a service
@@ -72,6 +76,7 @@ const (
 
 	ClusterPhaseNone     ClusterPhase = "Pending"
 	ClusterPhaseCreating ClusterPhase = "Creating"
+	ClusterPhaseUpdating ClusterPhase = "Updating"
 	ClusterPhaseRunning  ClusterPhase = "Running"
 	ClusterPhaseFailed   ClusterPhase = "Failed"
 
@@ -145,6 +150,9 @@ type MemberStatus struct {
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=operandrequests,shortName=opreq,scope=Namespaced
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=.metadata.creationTimestamp
+// +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=.status.phase,description="Current Phase"
+// +kubebuilder:printcolumn:name="Created At",type=string,JSONPath=.metadata.creationTimestamp
 // +operator-sdk:gen-csv:customresourcedefinitions.displayName="OperandRequest"
 // +operator-sdk:gen-csv:customresourcedefinitions.resources=`Namespace,v1,""`
 // +operator-sdk:gen-csv:customresourcedefinitions.resources=`Deployment,v1,""`
@@ -309,6 +317,13 @@ func (r *OperandRequest) SetClusterPhase(p ClusterPhase) {
 	r.Status.Phase = p
 }
 
+// SetUpdatingClusterPhase sets the cluster Phase status as Creating
+func (r *OperandRequest) SetUpdatingClusterPhase() {
+	r.Status.Phase = ClusterPhaseUpdating
+}
+
+// UpdateClusterPhase will collect the phase of all the operators and operands.
+// Then summarize the cluster phase of the OperandRequest.
 func (r *OperandRequest) UpdateClusterPhase() {
 	clusterStatusStat := struct {
 		creatingNum int
@@ -368,6 +383,25 @@ func (r *OperandRequest) SetDefaultsRequestSpec() {
 func (r *OperandRequest) SetDefaultRequestStatus() {
 	if r.Status.Phase == "" {
 		r.Status.Phase = ClusterPhaseNone
+	}
+}
+
+// AddLabels set the labels for the OperandConfig and OperandRegistry used by this OperandRequest
+func (r *OperandRequest) AddLabels() {
+	if r.Labels == nil {
+		r.Labels = make(map[string]string)
+	} else {
+		reg, _ := regexp.Compile(`^(.*)\.(.*)\/registry|^(.*)\.(.*)\/config`)
+		for label := range r.Labels {
+			if reg.MatchString(label) {
+				delete(r.Labels, label)
+			}
+		}
+	}
+
+	for _, req := range r.Spec.Requests {
+		r.Labels[req.RegistryNamespace+"."+req.Registry+"/registry"] = "true"
+		r.Labels[req.RegistryNamespace+"."+req.Registry+"/config"] = "true"
 	}
 }
 

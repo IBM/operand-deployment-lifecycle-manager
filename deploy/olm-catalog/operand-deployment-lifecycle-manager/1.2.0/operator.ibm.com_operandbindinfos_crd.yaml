@@ -3,6 +3,17 @@ kind: CustomResourceDefinition
 metadata:
   name: operandbindinfos.operator.ibm.com
 spec:
+  additionalPrinterColumns:
+  - JSONPath: .metadata.creationTimestamp
+    name: Age
+    type: date
+  - JSONPath: .status.phase
+    description: Current Phase
+    name: Phase
+    type: string
+  - JSONPath: .metadata.creationTimestamp
+    name: Created At
+    type: string
   group: operator.ibm.com
   names:
     kind: OperandBindInfo
@@ -34,25 +45,12 @@ spec:
           description: OperandBindInfoSpec defines the desired state of OperandBindInfo
           properties:
             bindings:
-              description: The bindings section is used to specify information about
-                the access/configuration data that is to be shared.
-              items:
-                description: Binding defines the scope of the operand, and the resources,
-                  like Secret and ConfigMap.
+              additionalProperties:
+                description: SecretConfigmap is a pair of Secret and/or Configmap
                 properties:
                   configmap:
                     description: The configmap field identifies a configmap object,
                       if any, that should be shared with the adopter/requestor
-                    type: string
-                  scope:
-                    description: The scope identifier determines whether the referenced
-                      information can be shared with requests in other namespaces
-                      (pubic) or only in this namespace (private). An OperandBindInfo
-                      CR can have at MOST one public scoped binding and one private
-                      scope binding.
-                    enum:
-                    - public
-                    - private
                     type: string
                   secret:
                     description: The secret field names an existing secret, if any,
@@ -60,7 +58,9 @@ spec:
                       with the adopter.
                     type: string
                 type: object
-              type: array
+              description: The bindings section is used to specify information about
+                the access/configuration data that is to be shared.
+              type: object
             description:
               type: string
             operand:
@@ -70,6 +70,10 @@ spec:
             registry:
               description: The registry identifies the name of the name of the OperandRegistry
                 CR from which this operand deployment is being requested.
+              type: string
+            registryNamespace:
+              description: Specifies the namespace in which the OperandRegistry reside.
+                The default is the current namespace in which the request is defined.
               type: string
           required:
           - operand

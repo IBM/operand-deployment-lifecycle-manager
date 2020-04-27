@@ -27,13 +27,13 @@ import (
 	"github.com/IBM/operand-deployment-lifecycle-manager/test/helpers"
 )
 
-// TestOperandConfig is the test group for testing Operand Config
-func TestOperandConfig(t *testing.T) {
-	t.Run("TestOperandConfigCRUD", TestOperandConfigCRUD)
+// TestOperandBindInfo is the test group for testing Operand BindInfo
+func TestOperandBindInfo(t *testing.T) {
+	t.Run("TestOperandBindInfoCRUD", TestOperandBindInfoCRUD)
 }
 
-// TestOperandConfigCRUD is for testing OperandConfig
-func TestOperandConfigCRUD(t *testing.T) {
+// TestOperandBindInfoCRUD is for testing OperandBindInfo
+func TestOperandBindInfoCRUD(t *testing.T) {
 	assert := assert.New(t)
 	ctx := test.NewTestCtx(t)
 	defer ctx.Cleanup()
@@ -45,17 +45,21 @@ func TestOperandConfigCRUD(t *testing.T) {
 	err := helpers.CreateNamespace(f, ctx, config.TestNamespace1)
 	assert.NoError(err)
 
-	con, err := helpers.CreateOperandConfig(f, ctx, config.TestNamespace1)
+	// test create a bindinfo instance
+	bi, err := helpers.CreateOperandBindInfo(f, ctx, config.TestNamespace1)
 	assert.NoError(err)
-	assert.NotNilf(con, "config %s should be created in namespace %s", config.OperandConfigCrName, config.TestNamespace1)
+	assert.NotNilf(bi, "bindinfo %s should be created in namespace %s", config.OperandBindInfoCrName, config.TestNamespace1)
 
-	con, err = helpers.WaitConfigStatus(f, operator.ServiceInit, config.TestNamespace1)
+	bi, err = helpers.WaitBindInfoStatus(f, operator.BindInfoInit, config.TestNamespace1)
 	assert.NoError(err)
-	assert.Equalf(operator.ServiceInit, con.Status.Phase, "config(%s/%s) phase should be Initialized", con.Namespace, con.Name)
+	assert.Equalf(operator.BindInfoInit, bi.Status.Phase, "bindinfo(%s/%s) phase should be Initialized", bi.Namespace, bi.Name)
 
-	err = helpers.UpdateOperandConfig(f, config.TestNamespace1)
+	// test update bindinfo instance
+	bi, err = helpers.UpdateOperandBindInfo(f, config.TestNamespace1)
 	assert.NoError(err)
+	assert.Equalf("jenkins-operator-base-configuration-example", bi.Spec.Bindings["public"].Configmap, "bindinfo(%s/%s) Configmap name should be jenkins-operator-base-configuration-example", bi.Namespace, bi.Name)
 
-	err = helpers.DeleteOperandConfig(f, con)
+	// test delete a bindinfo instance
+	err = helpers.DeleteOperandBindInfo(f, bi)
 	assert.NoError(err)
 }

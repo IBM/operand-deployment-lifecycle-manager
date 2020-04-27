@@ -3,6 +3,17 @@ kind: CustomResourceDefinition
 metadata:
   name: operandrequests.operator.ibm.com
 spec:
+  additionalPrinterColumns:
+  - JSONPath: .metadata.creationTimestamp
+    name: Age
+    type: date
+  - JSONPath: .status.phase
+    description: Current Phase
+    name: Phase
+    type: string
+  - JSONPath: .metadata.creationTimestamp
+    name: Created At
+    type: string
   group: operator.ibm.com
   names:
     kind: OperandRequest
@@ -49,6 +60,24 @@ spec:
                       description: Operand defines the name and binding information
                         for one operator
                       properties:
+                        bindings:
+                          additionalProperties:
+                            description: SecretConfigmap is a pair of Secret and/or
+                              Configmap
+                            properties:
+                              configmap:
+                                description: The configmap field identifies a configmap
+                                  object, if any, that should be shared with the adopter/requestor
+                                type: string
+                              secret:
+                                description: The secret field names an existing secret,
+                                  if any, that has been created and holds information
+                                  that is to be shared with the adopter.
+                                type: string
+                            type: object
+                          description: The bindings section is used to specify names
+                            of secret and/or configmap.
+                          type: object
                         name:
                           description: Name of the operand to be deployed
                           type: string

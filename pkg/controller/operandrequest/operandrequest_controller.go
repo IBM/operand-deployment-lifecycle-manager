@@ -78,18 +78,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// Watch for changes to primary resource OperandRegistry
-	err = c.Watch(&source.Kind{Type: &operatorv1alpha1.OperandRegistry{}}, &handler.EnqueueRequestForObject{})
-	if err != nil {
-		return err
-	}
-
-	// Watch for changes to primary resource OperandConfig
-	err = c.Watch(&source.Kind{Type: &operatorv1alpha1.OperandConfig{}}, &handler.EnqueueRequestForObject{})
-	if err != nil {
-		return err
-	}
-
 	// TODO(user): Modify this to be the types you create that are owned by the primary resource
 	// Watch for changes to secondary resource Pods and requeue the owner OperandRequest
 	err = c.Watch(&source.Kind{Type: &olmv1alpha1.Subscription{}}, &handler.EnqueueRequestForOwner{
@@ -148,6 +136,8 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 
 	// Set default for OperandRequest instance
 	requestInstance.SetDefaultsRequestSpec()
+	// Add labels for the request
+	requestInstance.AddLabels()
 	if err := r.client.Update(context.TODO(), requestInstance); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -214,7 +204,7 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 	// Check if all csv deploy successed
 	if requestInstance.Status.Phase != operatorv1alpha1.ClusterPhaseRunning {
 		klog.V(2).Info("Waiting for all the operands deploy successed")
-		return reconcile.Result{RequeueAfter: 5}, nil
+		return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
 	return reconcile.Result{}, nil
@@ -233,7 +223,7 @@ func (r *ReconcileOperandRequest) waitForInstallPlan(requestInstance *operatorv1
 			}
 			for _, operand := range req.Operands {
 				// Check the requested Operand if exist in specific OperandRegistry
-				opt := r.getOperatorFromRegistryInstance(operand.Name, registryInstance)
+				opt := registryInstance.GetOperator(operand.Name)
 				if opt != nil {
 					// Check subscription if exist
 					found, err := r.olmClient.OperatorsV1alpha1().Subscriptions(opt.Namespace).Get(opt.Name, metav1.GetOptions{})

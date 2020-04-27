@@ -19,37 +19,103 @@ import (
 	"context"
 	"testing"
 
+	v1beta2 "github.com/coreos/etcd-operator/pkg/apis/etcd/v1beta2"
+	v1alpha2 "github.com/jenkinsci/kubernetes-operator/pkg/apis/jenkins/v1alpha2"
 	"github.com/stretchr/testify/assert"
-
-	v1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
-
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	v1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 )
 
 // TestConfigController runs ReconcileOperandConfig.Reconcile() against a
 // fake client that tracks a OperandConfig object.
 func TestConfigController(t *testing.T) {
-	assert := assert.New(t)
 	var (
-		name      = "cs-config"
-		namespace = "ibm-common-service"
+		name             = "common-service"
+		namespace        = "ibm-common-service"
+		requestName      = "ibm-cloudpak-name"
+		requestNamespace = "ibm-cloudpak"
 	)
-	// Mock request to simulate Reconcile() being called on an event for a
-	// watched resource .
-	req := reconcile.Request{
+
+	req := getReconcileRequest(name, namespace)
+	r := getReconciler(name, namespace, requestName, requestNamespace)
+
+	initReconcile(t, r, req, requestName, requestNamespace)
+
+}
+
+func initReconcile(t *testing.T, r ReconcileOperandConfig, req reconcile.Request, requestName, requestNamespace string) {
+	assert := assert.New(t)
+
+	_, err := r.Reconcile(req)
+	assert.NoError(err)
+
+	config := &v1alpha1.OperandConfig{}
+	err = r.client.Get(context.TODO(), req.NamespacedName, config)
+	assert.NoError(err)
+	// Check the config init status
+	assert.NotNil(config.Status, "init operator status should not be empty")
+	assert.Equal(v1alpha1.ServiceInit, config.Status.Phase, "Overall OperandConfig phase should be 'Initialized'")
+
+	request := &v1alpha1.OperandRequest{}
+	err = r.client.Get(context.TODO(), types.NamespacedName{Name: requestName, Namespace: requestNamespace}, request)
+	assert.NoError(err)
+
+	// Check the OperandRequest status
+	assert.NotNil(request.Status, "init OperandRequest status should not be empty")
+	assert.Equalf(v1alpha1.ClusterPhaseUpdating, request.Status.Phase, "Overall OperandRequest phase should be 'Updating'")
+}
+
+func getReconciler(name, namespace, requestName, requestNamespace string) ReconcileOperandConfig {
+	s := scheme.Scheme
+	v1alpha1.SchemeBuilder.AddToScheme(s)
+	corev1.SchemeBuilder.AddToScheme(s)
+	v1beta2.SchemeBuilder.AddToScheme(s)
+	v1alpha2.SchemeBuilder.AddToScheme(s)
+
+	initData := initClientData(name, namespace, requestName, requestNamespace)
+
+	// Create a fake client to mock API calls.
+	client := fake.NewFakeClient(initData.objs...)
+
+	// Return a ReconcileOperandConfig object with the scheme and fake client.
+	return ReconcileOperandConfig{
+		scheme: s,
+		client: client,
+	}
+}
+
+type DataObj struct {
+	objs []runtime.Object
+}
+
+func initClientData(name, namespace, requestName, requestNamespace string) *DataObj {
+	return &DataObj{
+		objs: []runtime.Object{
+			operandRequest(name, namespace, requestName, requestNamespace),
+			operandConfig(name, namespace)},
+	}
+}
+
+// Mock request to simulate Reconcile() being called on an event for a watched resource
+func getReconcileRequest(name, namespace string) reconcile.Request {
+	return reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      name,
 			Namespace: namespace,
 		},
 	}
+}
 
-	// A operandconfig resource with metadata and spec.
-	config := &v1alpha1.OperandConfig{
+// Return OperandConfig obj
+func operandConfig(name, namespace string) *v1alpha1.OperandConfig {
+	return &v1alpha1.OperandConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
@@ -57,46 +123,47 @@ func TestConfigController(t *testing.T) {
 		Spec: v1alpha1.OperandConfigSpec{
 			Services: []v1alpha1.ConfigService{
 				{
+					Name: "etcd",
+					Spec: map[string]runtime.RawExtension{
+						"etcdCluster": {Raw: []byte(`{"size": 3}`)},
+					},
+				},
+				{
 					Name: "jenkins",
 					Spec: map[string]runtime.RawExtension{
 						"jenkins": {Raw: []byte(`{"service":{"port": 8081}}`)},
 					},
 				},
+			},
+		},
+	}
+}
+
+// Return OperandRequest obj
+func operandRequest(name, namespace, requestName, requestNamespace string) *v1alpha1.OperandRequest {
+	return &v1alpha1.OperandRequest{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      requestName,
+			Namespace: requestNamespace,
+			Labels: map[string]string{
+				namespace + "." + name + "/config": "true",
+			},
+		},
+		Spec: v1alpha1.OperandRequestSpec{
+			Requests: []v1alpha1.Request{
 				{
-					Name: "etcd",
-					Spec: map[string]runtime.RawExtension{
-						"etcdCluster": {Raw: []byte(`{"size": 1}`)},
+					Registry:          name,
+					RegistryNamespace: namespace,
+					Operands: []v1alpha1.Operand{
+						{
+							Name: "etcd",
+						},
+						{
+							Name: "jenkins",
+						},
 					},
 				},
 			},
 		},
 	}
-	// Objects to track in the fake client.
-	objs := []runtime.Object{
-		config,
-	}
-
-	// Register operator types with the runtime scheme.
-	s := scheme.Scheme
-	s.AddKnownTypes(v1alpha1.SchemeGroupVersion, config)
-	// Create a fake client to mock API calls.
-	cl := fake.NewFakeClient(objs...)
-	// Create a ReconcileOperandConfig object with the scheme and fake client.
-	r := &ReconcileOperandConfig{client: cl, scheme: s}
-
-	_, err := r.Reconcile(req)
-	assert.NoError(err)
-
-	err = r.client.Get(context.TODO(), req.NamespacedName, config)
-	assert.NoError(err)
-	// Check the config init status
-	assert.NotNil(config.Status, "init operator status should not be empty")
-	assert.Equal(v1alpha1.ServiceInit, config.Status.Phase, "Overall OperandConfig phase should be 'Ready for Deployment'")
-
-	// Create a fake client to mock instance not found.
-	cl = fake.NewFakeClient()
-	// Create a ReconcileOperandConfig object with the scheme and fake client.
-	r = &ReconcileOperandConfig{client: cl, scheme: s}
-	_, err = r.Reconcile(req)
-	assert.NoError(err)
 }

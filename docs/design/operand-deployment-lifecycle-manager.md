@@ -10,6 +10,7 @@
     - [How does Operator create the individual operator CR?](#how-does-operator-create-the-individual-operator-cr)
   - [OperandRequests Spec](#operandrequests-spec)
     - [Data Sharing Between Different Operands](#data-sharing-between-different-operands)
+  - [OperandBindInfo Spec](#operandbindinfo-spec)
   - [E2E Use Case](#e2e-use-case)
   - [Operator/Operand Upgrade](#operatoroperand-upgrade)
 
