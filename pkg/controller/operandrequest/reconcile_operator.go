@@ -49,6 +49,14 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1a
 			// Check the requested Operand if exist in specific OperandRegistry
 			opt := registryInstance.GetOperator(operand.Name)
 			if opt != nil {
+				if opt.Scope == operatorv1alpha1.ScopePrivate && requestInstance.Namespace != registryInstance.Namespace {
+					klog.Warningf("Operator %s is private. It can't be requested from namespace %s", operand.Name, requestInstance.Namespace)
+					requestInstance.SetOutofScopeCondition(operand.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionTrue)
+					if updateErr := r.client.Status().Update(context.TODO(), requestInstance); updateErr != nil {
+						return updateErr
+					}
+					continue
+				}
 				// Check subscription if exist
 				found, err := r.olmClient.OperatorsV1alpha1().Subscriptions(opt.Namespace).Get(opt.Name, metav1.GetOptions{})
 				if err != nil {
