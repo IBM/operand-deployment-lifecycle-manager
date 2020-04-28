@@ -86,8 +86,18 @@ spec:
               type: object
           type: object
       type: object
-  version: v1alpha1
   versions:
+  - name: v1
+    # Each version can be enabled/disabled by Served flag.
+    served: true
+    # One and only one version must be marked as the storage version.
+    storage: true
   - name: v1alpha1
     served: true
-    storage: true
+    storage: false
+  # The conversion section is introduced in Kubernetes 1.13+ with a default value of
+  # None conversion (strategy sub-field set to None).
+  conversion:
+    # None conversion assumes the same schema for all versions and only sets the apiVersion
+    # field of custom resources to the proper value
+    strategy: None
