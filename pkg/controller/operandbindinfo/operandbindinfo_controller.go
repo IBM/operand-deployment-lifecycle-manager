@@ -19,6 +19,7 @@ package operandbindinfo
 import (
 	"context"
 	"reflect"
+	"regexp"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -159,7 +160,7 @@ func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, nil
 	}
 
-	// If Secret or Comfig not found, reconcile will requeue after 1 min
+	// If Secret or ConfigMap not found, reconcile will requeue after 1 min
 	var requeue bool
 
 	// Get OperandRequest instance and Copy Secret and/or ConfigMap
@@ -183,21 +184,26 @@ func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconci
 		// Copy Secret and/or ConfigMap to the OperandRequest namespace
 		klog.V(3).Infof("Start to copy secret and/or configmap to namespace %s", bindRequest.Namespace)
 		// Only copy the public bindInfo
-		bindingPub := bindInfoInstance.Spec.Bindings["public"]
-		// Copy Secret
-		requeueSec, err := r.copySecret(bindingPub.Secret, secretReq, operandNamespace, bindRequest.Namespace, bindInfoInstance, requestInstance)
-		if err != nil {
-			merr.Add(err)
-			continue
+		for key, binding := range bindInfoInstance.Spec.Bindings {
+			reg, _ := regexp.Compile(`^public(.*)$`)
+			if !reg.MatchString(key) {
+				continue
+			}
+			// Copy Secret
+			requeueSec, err := r.copySecret(binding.Secret, secretReq[key], operandNamespace, bindRequest.Namespace, bindInfoInstance, requestInstance)
+			if err != nil {
+				merr.Add(err)
+				continue
+			}
+			requeue = requeue || requeueSec
+			// Copy ConfigMap
+			requeueCm, err := r.copyConfigmap(binding.Configmap, cmReq[key], operandNamespace, bindRequest.Namespace, bindInfoInstance, requestInstance)
+			if err != nil {
+				merr.Add(err)
+				continue
+			}
+			requeue = requeue || requeueCm
 		}
-		requeue = requeue || requeueSec
-		// Copy ConfigMap
-		requeueCm, err := r.copyConfigmap(bindingPub.Configmap, cmReq, operandNamespace, bindRequest.Namespace, bindInfoInstance, requestInstance)
-		if err != nil {
-			merr.Add(err)
-			continue
-		}
-		requeue = requeue || requeueCm
 	}
 	if len(merr.Errors) != 0 {
 		if err := r.updateBindInfoPhase(bindInfoInstance, operatorv1alpha1.BindInfoFailed, requestNamespaces); err != nil {
@@ -331,7 +337,7 @@ func (r *ReconcileOperandBindInfo) copyConfigmap(sourceName, targetName, sourceN
 	}
 	// Set the OperandRequest as the controller of the configmap
 	if err := controllerutil.SetControllerReference(requestInstance, cmCopy, r.scheme); err != nil {
-		klog.Errorf("Failed to set OperandRequest %s as thr Owner of ComfigMap %s : %s", requestInstance.Name, sourceName, err)
+		klog.Errorf("Failed to set OperandRequest %s as thr Owner of ConfigMap %s : %s", requestInstance.Name, sourceName, err)
 		return false, err
 	}
 	// Create the ConfigMap in the OperandRequest namespace
@@ -343,21 +349,21 @@ func (r *ReconcileOperandBindInfo) copyConfigmap(sourceName, targetName, sourceN
 				Name:      targetName,
 				Namespace: targetNs,
 			}, existingCm); err != nil {
-				klog.Errorf("Failed to get the existing ComfigMap %s in the namespace %s : %s", sourceName, targetNs, err)
+				klog.Errorf("Failed to get the existing ConfigMap %s in the namespace %s : %s", sourceName, targetNs, err)
 				return false, err
 			}
 			if reflect.DeepEqual(existingCm.Data, cmCopy.Data) && reflect.DeepEqual(existingCm.BinaryData, cmCopy.BinaryData) {
-				klog.V(3).Infof("There is no change in ComfigMap %s in the namespace %s. Skip the update", targetName, targetNs)
+				klog.V(3).Infof("There is no change in ConfigMap %s in the namespace %s. Skip the update", targetName, targetNs)
 				return false, nil
 			}
 			existingCm.Data, existingCm.BinaryData = cmCopy.Data, cmCopy.BinaryData
 			if err := r.client.Update(context.TODO(), existingCm); err != nil {
-				klog.Errorf("Failed to update ComfigMap %s in the namespace %s : %s", sourceName, targetNs, err)
+				klog.Errorf("Failed to update ConfigMap %s in the namespace %s : %s", sourceName, targetNs, err)
 				return false, err
 			}
 			return false, nil
 		}
-		klog.Errorf("Failed to create ComfigMap %s in the namespace %s : %s", sourceName, targetNs, err)
+		klog.Errorf("Failed to create ConfigMap %s in the namespace %s : %s", sourceName, targetNs, err)
 		return false, err
 
 	}
@@ -388,7 +394,8 @@ func (r *ReconcileOperandBindInfo) getBindInfoInstance(name, namespace string) (
 	return bindInfo, nil
 }
 
-func getBindingInfofromRequest(bindInfoInstance *operatorv1alpha1.OperandBindInfo, requestInstance *operatorv1alpha1.OperandRequest) (string, string) {
+func getBindingInfofromRequest(bindInfoInstance *operatorv1alpha1.OperandBindInfo, requestInstance *operatorv1alpha1.OperandRequest) (map[string]string, map[string]string) {
+	secretReq, cmReq := make(map[string]string), make(map[string]string)
 	for _, req := range requestInstance.Spec.Requests {
 		if req.Registry != bindInfoInstance.Spec.Registry {
 			continue
@@ -400,8 +407,15 @@ func getBindingInfofromRequest(bindInfoInstance *operatorv1alpha1.OperandBindInf
 			if len(operand.Bindings) == 0 {
 				continue
 			}
-			return operand.Bindings["public"].Secret, operand.Bindings["public"].Configmap
+			for key, binding := range operand.Bindings {
+				reg, _ := regexp.Compile(`^public(.*)$`)
+				if !reg.MatchString(key) {
+					continue
+				}
+				secretReq[key] = binding.Secret
+				cmReq[key] = binding.Configmap
+			}
 		}
 	}
-	return "", ""
+	return secretReq, cmReq
 }
