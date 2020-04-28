@@ -48,7 +48,7 @@ func TestODLM(t *testing.T) {
 		t.Fatalf("failed to add custom resource scheme to framework: %v", err)
 	}
 	t.Parallel()
-	ctx := framework.NewTestCtx(t)
+	ctx := framework.NewContext(t)
 	defer ctx.Cleanup()
 
 	err := deployOperator(t, ctx)
@@ -61,7 +61,7 @@ func TestODLM(t *testing.T) {
 	t.Run("TestOperandRequest", testgroups.TestOperandRequest)
 }
 
-func deployOperator(t *testing.T, ctx *test.TestCtx) error {
+func deployOperator(t *testing.T, ctx *test.Context) error {
 	err := ctx.InitializeClusterResources(
 		&test.CleanupOptions{
 			TestContext:   ctx,
@@ -74,7 +74,7 @@ func deployOperator(t *testing.T, ctx *test.TestCtx) error {
 		return err
 	}
 
-	namespace, err := ctx.GetNamespace()
+	namespace, err := ctx.GetOperatorNamespace()
 	if err != nil {
 		t.Fatalf("failed to get the namespace")
 		return err

@@ -98,6 +98,7 @@ spec:
                 - registry
                 type: object
               type: array
+              x-kubernetes-list-type: set
           required:
           - requests
           type: object
@@ -136,6 +137,7 @@ spec:
                 - type
                 type: object
               type: array
+              x-kubernetes-list-type: set
             members:
               description: Members represnets the current operand status of the set
               items:
@@ -161,6 +163,7 @@ spec:
                 - name
                 type: object
               type: array
+              x-kubernetes-list-type: set
             phase:
               description: Phase is the cluster running phase
               type: string

@@ -35,7 +35,7 @@ func TestOperandRegistry(t *testing.T) {
 // TestOperandRegistryCRUD is for testing OperandRegistry
 func TestOperandRegistryCRUD(t *testing.T) {
 	assert := assert.New(t)
-	ctx := test.NewTestCtx(t)
+	ctx := test.NewContext(t)
 	defer ctx.Cleanup()
 
 	// get global framework variables

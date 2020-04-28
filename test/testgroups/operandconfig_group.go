@@ -35,7 +35,7 @@ func TestOperandConfig(t *testing.T) {
 // TestOperandConfigCRUD is for testing OperandConfig
 func TestOperandConfigCRUD(t *testing.T) {
 	assert := assert.New(t)
-	ctx := test.NewTestCtx(t)
+	ctx := test.NewContext(t)
 	defer ctx.Cleanup()
 
 	// get global framework variables

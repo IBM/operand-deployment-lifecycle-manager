@@ -36,7 +36,7 @@ func TestOperandRequest(t *testing.T) {
 // TestOperandRequestCRUD is for testing the OperandRequest
 func TestOperandRequestCRUD(t *testing.T) {
 	assert := assert.New(t)
-	ctx := test.NewTestCtx(t)
+	ctx := test.NewContext(t)
 	defer ctx.Cleanup()
 
 	// get global framework variables
@@ -79,9 +79,9 @@ func TestOperandRequestCRUD(t *testing.T) {
 	assert.NoError(err)
 	assert.NotNilf(bi, "bindinfo %s should be created in namespace %s", config.OperandBindInfoCrName, config.TestNamespace1)
 
-	bi, err = helpers.WaitBindInfoStatus(f, operator.BindInfoInit, config.TestNamespace1)
+	bi, err = helpers.WaitBindInfoStatus(f, operator.BindInfoCompleted, config.TestNamespace1)
 	assert.NoError(err)
-	assert.Equalf(operator.BindInfoInit, bi.Status.Phase, "bindinfo(%s/%s) phase should be Initialized", bi.Namespace, bi.Name)
+	assert.Equalf(operator.BindInfoCompleted, bi.Status.Phase, "bindinfo(%s/%s) phase should be Initialized", bi.Namespace, bi.Name)
 
 	reg, err = helpers.WaitRegistryStatus(f, operator.OperatorRunning, config.TestNamespace1)
 	assert.NoError(err)

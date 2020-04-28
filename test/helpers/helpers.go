@@ -34,9 +34,9 @@ import (
 )
 
 // CreateOperandRequest  is used to create an OperandRequest instance
-func CreateOperandRequest(f *framework.Framework, ctx *framework.TestCtx, req *v1alpha1.OperandRequest) (*v1alpha1.OperandRequest, error) {
+func CreateOperandRequest(f *framework.Framework, ctx *framework.Context, req *v1alpha1.OperandRequest) (*v1alpha1.OperandRequest, error) {
 	fmt.Println("--- CREATE: OperandRequest Instance")
-	// use TestCtx's create helper to create the object and add a cleanup function for the new object
+	// use Context's create helper to create the object and add a cleanup function for the new object
 	err := f.Client.Create(goctx.TODO(), req, &framework.CleanupOptions{TestContext: ctx, Timeout: config.CleanupTimeout, RetryInterval: config.CleanupRetry})
 	if err != nil {
 		return nil, err
@@ -230,7 +230,7 @@ func WaitBindInfoStatus(f *framework.Framework, expectedPhase v1alpha1.BindInfoP
 }
 
 // CreateOperandConfig is used to create an OperandConfig instance
-func CreateOperandConfig(f *framework.Framework, ctx *framework.TestCtx, ns string) (*v1alpha1.OperandConfig, error) {
+func CreateOperandConfig(f *framework.Framework, ctx *framework.Context, ns string) (*v1alpha1.OperandConfig, error) {
 	// Create OperandConfig instance
 	fmt.Println("--- CREATE: OperandConfig Instance")
 	ci := newOperandConfigCR(config.OperandConfigCrName, ns)
@@ -285,7 +285,7 @@ func DeleteOperandConfig(f *framework.Framework, ci *v1alpha1.OperandConfig) err
 }
 
 // CreateOperandRegistry is used to create an OperandRegistry instance
-func CreateOperandRegistry(f *framework.Framework, ctx *framework.TestCtx, ns string) (*v1alpha1.OperandRegistry, error) {
+func CreateOperandRegistry(f *framework.Framework, ctx *framework.Context, ns string) (*v1alpha1.OperandRegistry, error) {
 	// Create OperandRegistry instance
 	fmt.Println("--- CREATE: OperandRegistry Instance")
 	ri := newOperandRegistryCR(config.OperandRegistryCrName, ns)
@@ -348,7 +348,7 @@ func DeleteOperandRegistry(f *framework.Framework, reg *v1alpha1.OperandRegistry
 }
 
 // CreateOperandBindInfo is used to create an OperandBindInfo instance
-func CreateOperandBindInfo(f *framework.Framework, ctx *framework.TestCtx, ns string) (*v1alpha1.OperandBindInfo, error) {
+func CreateOperandBindInfo(f *framework.Framework, ctx *framework.Context, ns string) (*v1alpha1.OperandBindInfo, error) {
 	// Create OperandBindInfo instance
 	fmt.Println("--- CREATE: OperandBindInfo Instance")
 	bi := newOperandBindInfoCR(config.OperandBindInfoCrName, ns)
@@ -412,7 +412,7 @@ func DeleteOperandBindInfo(f *framework.Framework, bi *v1alpha1.OperandBindInfo)
 }
 
 // CreateNamespace is used to create a new namespace for test
-func CreateNamespace(f *framework.Framework, ctx *framework.TestCtx, name string) error {
+func CreateNamespace(f *framework.Framework, ctx *framework.Context, name string) error {
 	obj := &corev1.Namespace{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Namespace",
@@ -530,6 +530,7 @@ func newOperandRegistryCR(name, namespace string) *v1alpha1.OperandRegistry {
 					SourceNamespace: "openshift-marketplace",
 					PackageName:     "etcd",
 					Channel:         "singlenamespace-alpha",
+					Scope: v1alpha1.ScopePublic,
 				},
 				{
 					Name:            "jenkins",
@@ -538,6 +539,7 @@ func newOperandRegistryCR(name, namespace string) *v1alpha1.OperandRegistry {
 					SourceNamespace: "openshift-marketplace",
 					PackageName:     "jenkins-operator",
 					Channel:         "alpha",
+					Scope: v1alpha1.ScopePublic,
 				},
 			},
 		},

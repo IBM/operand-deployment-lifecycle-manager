@@ -71,7 +71,7 @@ code-gen:
 	@echo Updating the CRD files with the OpenAPI validations
 	operator-sdk generate crds
 	@echo Updating/Generating a ClusterServiceVersion YAML manifest for the operator
-	operator-sdk generate csv --csv-version ${CSV_VERSION} --update-crds
+	operator-sdk generate csv --csv-version ${CSV_VERSION} --update-crds --make-manifests=false
 
 bundle:
 	@common/scripts/create_bundle.sh ${CSV_VERSION}

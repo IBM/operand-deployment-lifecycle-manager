@@ -65,6 +65,7 @@ spec:
                 - spec
                 type: object
               type: array
+              x-kubernetes-list-type: set
           type: object
         status:
           description: OperandConfigStatus defines the observed state of OperandConfig

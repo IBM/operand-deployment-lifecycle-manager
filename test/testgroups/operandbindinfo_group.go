@@ -35,7 +35,7 @@ func TestOperandBindInfo(t *testing.T) {
 // TestOperandBindInfoCRUD is for testing OperandBindInfo
 func TestOperandBindInfoCRUD(t *testing.T) {
 	assert := assert.New(t)
-	ctx := test.NewTestCtx(t)
+	ctx := test.NewContext(t)
 	defer ctx.Cleanup()
 
 	// get global framework variables
