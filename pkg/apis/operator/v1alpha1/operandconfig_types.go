@@ -69,9 +69,6 @@ type CrStatus struct {
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=operandconfigs,shortName=opcon,scope=Namespaced
-// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=.metadata.creationTimestamp
-// +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=.status.phase,description="Current Phase"
-// +kubebuilder:printcolumn:name="Created At",type=string,JSONPath=.metadata.creationTimestamp
 // +operator-sdk:gen-csv:customresourcedefinitions.displayName="OperandConfig"
 // +operator-sdk:gen-csv:customresourcedefinitions.resources=`Deployment,v1,""`
 // +operator-sdk:gen-csv:customresourcedefinitions.resources=`ReplicaSet,v1,""`
@@ -117,16 +114,6 @@ const (
 
 func init() {
 	SchemeBuilder.Register(&OperandConfig{}, &OperandConfigList{})
-}
-
-// GetService obtain the service definition with the operand name
-func (r *OperandConfig) GetService(operandName string) *ConfigService {
-	for _, s := range r.Spec.Services {
-		if s.Name == operandName {
-			return &s
-		}
-	}
-	return nil
 }
 
 //InitConfigStatus OperandConfig status

@@ -81,7 +81,7 @@ spec:
   customresourcedefinitions:
     owned:
     - description: OperandBindInfo is the Schema for the operandbindinfos API
-      displayName: OperandBindInfo
+      displayName: OperandBindInfo v1
       kind: OperandBindInfo
       name: operandbindinfos.operator.ibm.com
       statusDescriptors:
@@ -91,19 +91,8 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.phase
       version: v1
-    - description: OperandBindInfo is the Schema for the operandbindinfos API
-      displayName: OperandBindInfo
-      kind: OperandBindInfo
-      name: operandbindinfos.operator.ibm.com
-      statusDescriptors:
-      - description: Phase describes the overall phase of OperandBindInfo
-        displayName: Phase
-        path: phase
-        x-descriptors:
-        - urn:alm:descriptor:io.kubernetes.phase
-      version: v1alpha1
     - description: OperandConfig is the Schema for the operandconfigs API
-      displayName: OperandConfig
+      displayName: OperandConfig v1
       kind: OperandConfig
       name: operandconfigs.operator.ibm.com
       resources:
@@ -213,7 +202,7 @@ spec:
         - urn:alm:descriptor:io.kubernetes.phase
       version: v1alpha1
     - description: OperandRegistry is the Schema for the operandregistries API
-      displayName: OperandRegistry
+      displayName: OperandRegistry v1
       kind: OperandRegistry
       name: operandregistries.operator.ibm.com
       resources:
@@ -323,7 +312,7 @@ spec:
         - urn:alm:descriptor:io.kubernetes.phase
       version: v1alpha1
     - description: OperandRequest is the Schema for the operandrequests API
-      displayName: OperandRequest
+      displayName: OperandRequest v1
       kind: OperandRequest
       name: operandrequests.operator.ibm.com
       resources:

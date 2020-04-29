@@ -97,6 +97,3 @@ spec:
   - name: v1
     served: true
     storage: true
-  - name: v1alpha1
-    served: true
-    storage: false
