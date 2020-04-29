@@ -81,6 +81,7 @@ type OperandBindInfoStatus struct {
 
 // OperandBindInfo is the Schema for the operandbindinfos API
 // +kubebuilder:subresource:status
+// +kubebuilder:storageversion
 // +kubebuilder:resource:path=operandbindinfos,shortName=opbi,scope=Namespaced
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=.metadata.creationTimestamp
 // +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=.status.phase,description="Current Phase"
