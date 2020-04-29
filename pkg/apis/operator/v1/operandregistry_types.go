@@ -119,7 +119,7 @@ type ReconcileRequest struct {
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=.metadata.creationTimestamp
 // +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=.status.phase,description="Current Phase"
 // +kubebuilder:printcolumn:name="Created At",type=string,JSONPath=.metadata.creationTimestamp
-// +operator-sdk:gen-csv:customresourcedefinitions.displayName="OperandRegistry v1"
+// +operator-sdk:gen-csv:customresourcedefinitions.displayName="OperandRegistry"
 // +operator-sdk:gen-csv:customresourcedefinitions.resources=`Deployment,v1,""`
 // +operator-sdk:gen-csv:customresourcedefinitions.resources=`ReplicaSet,v1,""`
 // +operator-sdk:gen-csv:customresourcedefinitions.resources=`Service,v1,""`

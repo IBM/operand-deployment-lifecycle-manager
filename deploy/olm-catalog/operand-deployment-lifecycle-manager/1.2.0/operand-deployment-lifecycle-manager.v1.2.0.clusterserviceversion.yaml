@@ -81,66 +81,11 @@ spec:
   customresourcedefinitions:
     owned:
     - description: OperandBindInfo is the Schema for the operandbindinfos API
-      displayName: OperandBindInfo v1
+      displayName: OperandBindInfo
       kind: OperandBindInfo
       name: operandbindinfos.operator.ibm.com
       statusDescriptors:
       - description: Phase describes the overall phase of OperandBindInfo
-        displayName: Phase
-        path: phase
-        x-descriptors:
-        - urn:alm:descriptor:io.kubernetes.phase
-      version: v1
-    - description: OperandConfig is the Schema for the operandconfigs API
-      displayName: OperandConfig v1
-      kind: OperandConfig
-      name: operandconfigs.operator.ibm.com
-      resources:
-      - kind: Catalogsource
-        name: ""
-        version: v1alpha1
-      - kind: Clusterserviceversion
-        name: ""
-        version: v1alpha1
-      - kind: Configmap
-        name: ""
-        version: v1
-      - kind: Deployment
-        name: ""
-        version: v1
-      - kind: Installplan
-        name: ""
-        version: v1alpha1
-      - kind: Operandconfig
-        name: ""
-        version: v1alpha1
-      - kind: Operandregistry
-        name: ""
-        version: v1alpha1
-      - kind: Operandrequest
-        name: ""
-        version: v1alpha1
-      - kind: Operatorgroup
-        name: ""
-        version: v1
-      - kind: Pod
-        name: ""
-        version: v1
-      - kind: ReplicaSet
-        name: ""
-        version: v1
-      - kind: Service
-        name: ""
-        version: v1
-      - kind: Subscription
-        name: ""
-        version: v1alpha1
-      specDescriptors:
-      - description: Services is a list of configuration of service
-        displayName: Services
-        path: services
-      statusDescriptors:
-      - description: Phase describes the overall phase of operands in the OperandConfig
         displayName: Phase
         path: phase
         x-descriptors:
@@ -200,61 +145,6 @@ spec:
         path: phase
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.phase
-      version: v1alpha1
-    - description: OperandRegistry is the Schema for the operandregistries API
-      displayName: OperandRegistry v1
-      kind: OperandRegistry
-      name: operandregistries.operator.ibm.com
-      resources:
-      - kind: Catalogsource
-        name: ""
-        version: v1alpha1
-      - kind: Clusterserviceversion
-        name: ""
-        version: v1alpha1
-      - kind: Configmap
-        name: ""
-        version: v1
-      - kind: Deployment
-        name: ""
-        version: v1
-      - kind: Installplan
-        name: ""
-        version: v1alpha1
-      - kind: Operandconfig
-        name: ""
-        version: v1alpha1
-      - kind: Operandregistry
-        name: ""
-        version: v1alpha1
-      - kind: Operandrequest
-        name: ""
-        version: v1alpha1
-      - kind: Operatorgroup
-        name: ""
-        version: v1
-      - kind: Pod
-        name: ""
-        version: v1
-      - kind: ReplicaSet
-        name: ""
-        version: v1
-      - kind: Service
-        name: ""
-        version: v1
-      - kind: Subscription
-        name: ""
-        version: v1alpha1
-      specDescriptors:
-      - description: Operators is a list of operator OLM definition
-        displayName: Operators
-        path: operators
-      statusDescriptors:
-      - description: Phase describes the overall phase of operators in the OperandRegistry
-        displayName: Phase
-        path: phase
-        x-descriptors:
-        - urn:alm:descriptor:io.kubernetes.phase
       version: v1
     - description: OperandRegistry is the Schema for the operandregistries API
       displayName: OperandRegistry
@@ -306,69 +196,6 @@ spec:
         path: operators
       statusDescriptors:
       - description: Phase describes the overall phase of operators in the OperandRegistry
-        displayName: Phase
-        path: phase
-        x-descriptors:
-        - urn:alm:descriptor:io.kubernetes.phase
-      version: v1alpha1
-    - description: OperandRequest is the Schema for the operandrequests API
-      displayName: OperandRequest v1
-      kind: OperandRequest
-      name: operandrequests.operator.ibm.com
-      resources:
-      - kind: Catalogsource
-        name: ""
-        version: v1alpha1
-      - kind: Clusterserviceversion
-        name: ""
-        version: v1alpha1
-      - kind: Configmap
-        name: ""
-        version: v1
-      - kind: Deployment
-        name: ""
-        version: v1
-      - kind: Installplan
-        name: ""
-        version: v1alpha1
-      - kind: Namespace
-        name: ""
-        version: v1
-      - kind: Operandconfig
-        name: ""
-        version: v1alpha1
-      - kind: Operandregistry
-        name: ""
-        version: v1alpha1
-      - kind: Operandrequest
-        name: ""
-        version: v1alpha1
-      - kind: Operatorgroup
-        name: ""
-        version: v1
-      - kind: Pod
-        name: ""
-        version: v1
-      - kind: ReplicaSet
-        name: ""
-        version: v1
-      - kind: Service
-        name: ""
-        version: v1
-      - kind: Subscription
-        name: ""
-        version: v1alpha1
-      specDescriptors:
-      - description: Requests defines a list of operands installation
-        displayName: Requests
-        path: requests
-      statusDescriptors:
-      - description: Conditions represents the current state of the Request Service
-        displayName: Conditions
-        path: conditions
-        x-descriptors:
-        - urn:alm:descriptor:io.kubernetes.conditions
-      - description: Phase is the cluster running phase
         displayName: Phase
         path: phase
         x-descriptors:
@@ -436,7 +263,7 @@ spec:
         path: phase
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.phase
-      version: v1alpha1
+      version: v1
   description: "Operand is the instance that is managed by the operator. Operand Deployment
     Lifecycle Manager (ODLM) is used to manage the lifecycle of a group of operands.
     Compared with operator lifecycle manager (OLM), ODLM focuses on the management
