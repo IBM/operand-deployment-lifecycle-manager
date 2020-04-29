@@ -29,7 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
+	operatorv1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1"
 )
 
 /**
@@ -57,7 +57,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to primary resource OperandConfig
-	err = c.Watch(&source.Kind{Type: &operatorv1alpha1.OperandConfig{}}, &handler.EnqueueRequestForObject{}, predicate.GenerationChangedPredicate{})
+	err = c.Watch(&source.Kind{Type: &operatorv1.OperandConfig{}}, &handler.EnqueueRequestForObject{}, predicate.GenerationChangedPredicate{})
 	if err != nil {
 		return err
 	}
@@ -83,7 +83,7 @@ type ReconcileOperandConfig struct {
 func (r *ReconcileOperandConfig) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 
 	// Fetch the OperandConfig instance
-	instance := &operatorv1alpha1.OperandConfig{}
+	instance := &operatorv1.OperandConfig{}
 	if err := r.client.Get(context.TODO(), request.NamespacedName, instance); err != nil {
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
@@ -109,7 +109,7 @@ func (r *ReconcileOperandConfig) Reconcile(request reconcile.Request) (reconcile
 // update these OperandRequest's Phase to Updating, to trigger reconcile of these OperandRequests.
 func (r *ReconcileOperandConfig) updateOperandRequestStatus(request reconcile.Request) error {
 	// Get the requests related with current config
-	requestList := &operatorv1alpha1.OperandRequestList{}
+	requestList := &operatorv1.OperandRequestList{}
 
 	opts := []client.ListOption{
 		client.MatchingLabels(map[string]string{request.Namespace + "." + request.Name + "/config": "true"}),

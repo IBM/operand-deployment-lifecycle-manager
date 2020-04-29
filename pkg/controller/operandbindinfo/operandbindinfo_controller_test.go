@@ -34,7 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	"github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
+	v1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1"
 )
 
 // TestBindInfoController runs ReconcileOperandBindInfo.Reconcile() against a
@@ -85,7 +85,7 @@ func initReconcile(t *testing.T, r ReconcileOperandBindInfo, req reconcile.Reque
 
 func getReconciler(name, namespace, registryName, registryNamespace, requestName, requestNamespace string) ReconcileOperandBindInfo {
 	s := scheme.Scheme
-	v1alpha1.SchemeBuilder.AddToScheme(s)
+	v1.SchemeBuilder.AddToScheme(s)
 	corev1.SchemeBuilder.AddToScheme(s)
 	olmv1.SchemeBuilder.AddToScheme(s)
 	olmv1alpha1.SchemeBuilder.AddToScheme(s)
@@ -133,14 +133,14 @@ func initClientData(name, namespace, registryName, registryNamespace, requestNam
 }
 
 // Return OperandRegistry obj
-func operandRegistry(namespace, registryName, registryNamespace, requestName, requestNamespace string) *v1alpha1.OperandRegistry {
-	return &v1alpha1.OperandRegistry{
+func operandRegistry(namespace, registryName, registryNamespace, requestName, requestNamespace string) *v1.OperandRegistry {
+	return &v1.OperandRegistry{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      registryName,
 			Namespace: registryNamespace,
 		},
-		Spec: v1alpha1.OperandRegistrySpec{
-			Operators: []v1alpha1.Operator{
+		Spec: v1.OperandRegistrySpec{
+			Operators: []v1.Operator{
 				{
 					Name:            "etcd",
 					Namespace:       namespace,
@@ -159,12 +159,12 @@ func operandRegistry(namespace, registryName, registryNamespace, requestName, re
 				},
 			},
 		},
-		Status: v1alpha1.OperandRegistryStatus{
-			Phase: v1alpha1.OperatorRunning,
-			OperatorsStatus: map[string]v1alpha1.OperatorStatus{
+		Status: v1.OperandRegistryStatus{
+			Phase: v1.OperatorRunning,
+			OperatorsStatus: map[string]v1.OperatorStatus{
 				"jenkins": {
-					Phase: v1alpha1.OperatorRunning,
-					ReconcileRequests: []v1alpha1.ReconcileRequest{
+					Phase: v1.OperatorRunning,
+					ReconcileRequests: []v1.ReconcileRequest{
 						{
 							Name:      requestName,
 							Namespace: requestNamespace,
@@ -177,24 +177,24 @@ func operandRegistry(namespace, registryName, registryNamespace, requestName, re
 }
 
 // Return OperandRequest obj
-func operandRequest(registryName, registryNamespace, requestName, requestNamespace string) *v1alpha1.OperandRequest {
-	return &v1alpha1.OperandRequest{
+func operandRequest(registryName, registryNamespace, requestName, requestNamespace string) *v1.OperandRequest {
+	return &v1.OperandRequest{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      requestName,
 			Namespace: requestNamespace,
 		},
-		Spec: v1alpha1.OperandRequestSpec{
-			Requests: []v1alpha1.Request{
+		Spec: v1.OperandRequestSpec{
+			Requests: []v1.Request{
 				{
 					Registry:          registryName,
 					RegistryNamespace: registryNamespace,
-					Operands: []v1alpha1.Operand{
+					Operands: []v1.Operand{
 						{
 							Name: "etcd",
 						},
 						{
 							Name: "jenkins",
-							Bindings: map[string]v1alpha1.SecretConfigmap{
+							Bindings: map[string]v1.SecretConfigmap{
 								"public": {
 									Secret:    "secret3",
 									Configmap: "cm3",
@@ -209,17 +209,17 @@ func operandRequest(registryName, registryNamespace, requestName, requestNamespa
 }
 
 // Return OperandBindInfo obj
-func operandBindInfo(name, namespace, registryName, registryNamespace string) *v1alpha1.OperandBindInfo {
-	return &v1alpha1.OperandBindInfo{
+func operandBindInfo(name, namespace, registryName, registryNamespace string) *v1.OperandBindInfo {
+	return &v1.OperandBindInfo{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: v1alpha1.OperandBindInfoSpec{
+		Spec: v1.OperandBindInfoSpec{
 			Operand:           "jenkins",
 			Registry:          registryName,
 			RegistryNamespace: registryNamespace,
-			Bindings: map[string]v1alpha1.SecretConfigmap{
+			Bindings: map[string]v1.SecretConfigmap{
 				"public": {
 					Secret:    "secret1",
 					Configmap: "cm1",

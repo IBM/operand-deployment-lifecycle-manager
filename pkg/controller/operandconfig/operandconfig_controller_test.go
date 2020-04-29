@@ -30,7 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	v1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
+	v1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1"
 )
 
 // TestConfigController runs ReconcileOperandConfig.Reconcile() against a
@@ -56,25 +56,25 @@ func initReconcile(t *testing.T, r ReconcileOperandConfig, req reconcile.Request
 	_, err := r.Reconcile(req)
 	assert.NoError(err)
 
-	config := &v1alpha1.OperandConfig{}
+	config := &v1.OperandConfig{}
 	err = r.client.Get(context.TODO(), req.NamespacedName, config)
 	assert.NoError(err)
 	// Check the config init status
 	assert.NotNil(config.Status, "init operator status should not be empty")
-	assert.Equal(v1alpha1.ServiceInit, config.Status.Phase, "Overall OperandConfig phase should be 'Initialized'")
+	assert.Equal(v1.ServiceInit, config.Status.Phase, "Overall OperandConfig phase should be 'Initialized'")
 
-	request := &v1alpha1.OperandRequest{}
+	request := &v1.OperandRequest{}
 	err = r.client.Get(context.TODO(), types.NamespacedName{Name: requestName, Namespace: requestNamespace}, request)
 	assert.NoError(err)
 
 	// Check the OperandRequest status
 	assert.NotNil(request.Status, "init OperandRequest status should not be empty")
-	assert.Equalf(v1alpha1.ClusterPhaseUpdating, request.Status.Phase, "Overall OperandRequest phase should be 'Updating'")
+	assert.Equalf(v1.ClusterPhaseUpdating, request.Status.Phase, "Overall OperandRequest phase should be 'Updating'")
 }
 
 func getReconciler(name, namespace, requestName, requestNamespace string) ReconcileOperandConfig {
 	s := scheme.Scheme
-	v1alpha1.SchemeBuilder.AddToScheme(s)
+	v1.SchemeBuilder.AddToScheme(s)
 	corev1.SchemeBuilder.AddToScheme(s)
 	v1beta2.SchemeBuilder.AddToScheme(s)
 	v1alpha2.SchemeBuilder.AddToScheme(s)
@@ -114,14 +114,14 @@ func getReconcileRequest(name, namespace string) reconcile.Request {
 }
 
 // Return OperandConfig obj
-func operandConfig(name, namespace string) *v1alpha1.OperandConfig {
-	return &v1alpha1.OperandConfig{
+func operandConfig(name, namespace string) *v1.OperandConfig {
+	return &v1.OperandConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: v1alpha1.OperandConfigSpec{
-			Services: []v1alpha1.ConfigService{
+		Spec: v1.OperandConfigSpec{
+			Services: []v1.ConfigService{
 				{
 					Name: "etcd",
 					Spec: map[string]runtime.RawExtension{
@@ -140,8 +140,8 @@ func operandConfig(name, namespace string) *v1alpha1.OperandConfig {
 }
 
 // Return OperandRequest obj
-func operandRequest(name, namespace, requestName, requestNamespace string) *v1alpha1.OperandRequest {
-	return &v1alpha1.OperandRequest{
+func operandRequest(name, namespace, requestName, requestNamespace string) *v1.OperandRequest {
+	return &v1.OperandRequest{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      requestName,
 			Namespace: requestNamespace,
@@ -149,12 +149,12 @@ func operandRequest(name, namespace, requestName, requestNamespace string) *v1al
 				namespace + "." + name + "/config": "true",
 			},
 		},
-		Spec: v1alpha1.OperandRequestSpec{
-			Requests: []v1alpha1.Request{
+		Spec: v1.OperandRequestSpec{
+			Requests: []v1.Request{
 				{
 					Registry:          name,
 					RegistryNamespace: namespace,
-					Operands: []v1alpha1.Operand{
+					Operands: []v1.Operand{
 						{
 							Name: "etcd",
 						},

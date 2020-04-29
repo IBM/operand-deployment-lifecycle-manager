@@ -22,7 +22,7 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/test"
 	"github.com/stretchr/testify/assert"
 
-	operator "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
+	operator "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1"
 	"github.com/IBM/operand-deployment-lifecycle-manager/test/config"
 	"github.com/IBM/operand-deployment-lifecycle-manager/test/helpers"
 )

@@ -1,7 +1,0 @@
-apiVersion: operator.ibm.com/v1
-kind: OperandBindInfo
-metadata:
-  name: example-operandbindinfo
-spec:
-  # Add fields here
-  size: 3
