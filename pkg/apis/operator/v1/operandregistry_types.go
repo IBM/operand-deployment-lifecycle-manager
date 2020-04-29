@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-package v1alpha1
+package v1
 
 import (
 	"reflect"
@@ -114,8 +114,12 @@ type ReconcileRequest struct {
 // OperandRegistry is the Schema for the operandregistries API
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
+// +kubebuilder:storageversion
 // +kubebuilder:resource:path=operandregistries,shortName=opreg,scope=Namespaced
-// +operator-sdk:gen-csv:customresourcedefinitions.displayName="OperandRegistry"
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=.metadata.creationTimestamp
+// +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=.status.phase,description="Current Phase"
+// +kubebuilder:printcolumn:name="Created At",type=string,JSONPath=.metadata.creationTimestamp
+// +operator-sdk:gen-csv:customresourcedefinitions.displayName="OperandRegistry v1"
 // +operator-sdk:gen-csv:customresourcedefinitions.resources=`Deployment,v1,""`
 // +operator-sdk:gen-csv:customresourcedefinitions.resources=`ReplicaSet,v1,""`
 // +operator-sdk:gen-csv:customresourcedefinitions.resources=`Service,v1,""`
@@ -222,6 +226,16 @@ func (r *OperandRegistry) CleanOperatorStatus(name string, request reconcile.Req
 	}
 	r.Status.OperatorsStatus[name] = s
 	r.UpdateOperatorPhase()
+}
+
+// GetOperator obtain the operator definition with the operand name
+func (r *OperandRegistry) GetOperator(operandName string) *Operator {
+	for _, o := range r.Spec.Operators {
+		if o.Name == operandName {
+			return &o
+		}
+	}
+	return nil
 }
 
 func init() {

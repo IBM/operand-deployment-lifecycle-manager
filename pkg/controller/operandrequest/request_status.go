@@ -21,10 +21,10 @@ import (
 
 	"k8s.io/klog"
 
-	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
+	operatorv1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1"
 )
 
-func (r *ReconcileOperandRequest) updateMemberStatus(requestInstance *operatorv1alpha1.OperandRequest) error {
+func (r *ReconcileOperandRequest) updateMemberStatus(requestInstance *operatorv1.OperandRequest) error {
 	klog.V(3).Info("Updating OperandRequest member status")
 	for _, req := range requestInstance.Spec.Requests {
 		registryInstance, err := r.getRegistryInstance(req.Registry, req.RegistryNamespace)
@@ -49,7 +49,7 @@ func (r *ReconcileOperandRequest) updateMemberStatus(requestInstance *operatorv1
 	return nil
 }
 
-func getOperandPhase(sp map[string]operatorv1alpha1.ServicePhase) operatorv1alpha1.ServicePhase {
+func getOperandPhase(sp map[string]operatorv1.ServicePhase) operatorv1.ServicePhase {
 	klog.V(3).Info("Get OperandPhase for OperandRequest member status")
 	operandStatusStat := struct {
 		readyNum   int
@@ -62,22 +62,22 @@ func getOperandPhase(sp map[string]operatorv1alpha1.ServicePhase) operatorv1alph
 	}
 	for _, v := range sp {
 		switch v {
-		case operatorv1alpha1.ServiceReady:
+		case operatorv1.ServiceReady:
 			operandStatusStat.readyNum++
-		case operatorv1alpha1.ServiceRunning:
+		case operatorv1.ServiceRunning:
 			operandStatusStat.runningNum++
-		case operatorv1alpha1.ServiceFailed:
+		case operatorv1.ServiceFailed:
 			operandStatusStat.failedNum++
 		default:
 		}
 	}
-	operandPhase := operatorv1alpha1.ServiceNone
+	operandPhase := operatorv1.ServiceNone
 	if operandStatusStat.failedNum > 0 {
-		operandPhase = operatorv1alpha1.ServiceFailed
+		operandPhase = operatorv1.ServiceFailed
 	} else if operandStatusStat.readyNum > 0 {
-		operandPhase = operatorv1alpha1.ServiceReady
+		operandPhase = operatorv1.ServiceReady
 	} else if operandStatusStat.runningNum > 0 {
-		operandPhase = operatorv1alpha1.ServiceRunning
+		operandPhase = operatorv1.ServiceRunning
 	}
 	return operandPhase
 }

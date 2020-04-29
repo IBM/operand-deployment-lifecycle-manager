@@ -24,10 +24,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog"
 
-	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
+	operatorv1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1"
 )
 
-func (r *ReconcileOperandBindInfo) updateBindInfoPhase(cr *operatorv1alpha1.OperandBindInfo, phase operatorv1alpha1.BindInfoPhase, requestNamespaces []operatorv1alpha1.ReconcileRequest) error {
+func (r *ReconcileOperandBindInfo) updateBindInfoPhase(cr *operatorv1.OperandBindInfo, phase operatorv1.BindInfoPhase, requestNamespaces []operatorv1.ReconcileRequest) error {
 	if err := wait.PollImmediate(time.Second*20, time.Minute*10, func() (done bool, err error) {
 		bindInfoInstance, err := r.getBindInfoInstance(cr.Name, cr.Namespace)
 		if err != nil {

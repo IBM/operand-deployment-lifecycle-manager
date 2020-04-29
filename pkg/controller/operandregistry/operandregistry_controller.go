@@ -29,7 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
+	operatorv1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1"
 )
 
 /**
@@ -60,7 +60,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to primary resource OperandRegistry
-	err = c.Watch(&source.Kind{Type: &operatorv1alpha1.OperandRegistry{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &operatorv1.OperandRegistry{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -87,7 +87,7 @@ type ReconcileOperandRegistry struct {
 func (r *ReconcileOperandRegistry) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 
 	// Fetch the OperandRegistry instance
-	instance := &operatorv1alpha1.OperandRegistry{}
+	instance := &operatorv1.OperandRegistry{}
 	if err := r.client.Get(context.TODO(), request.NamespacedName, instance); err != nil {
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
@@ -122,7 +122,7 @@ func (r *ReconcileOperandRegistry) Reconcile(request reconcile.Request) (reconci
 // update these OperandRequest's Phase to Updating, to trigger reconcile of these OperandRequests.
 func (r *ReconcileOperandRegistry) updateOperandRequestStatus(request reconcile.Request) error {
 	// Get the requests related with current registry
-	requestList := &operatorv1alpha1.OperandRequestList{}
+	requestList := &operatorv1.OperandRequestList{}
 
 	opts := []client.ListOption{
 		client.MatchingLabels(map[string]string{request.Namespace + "." + request.Name + "/registry": "true"}),
@@ -145,7 +145,7 @@ func (r *ReconcileOperandRegistry) updateOperandRequestStatus(request reconcile.
 // update these OperandBindInfo's Phase to Updating, to trigger reconcile of these OperandBindInfo.
 func (r *ReconcileOperandRegistry) updateOperandBindInfoStatus(request reconcile.Request) error {
 	// Get the bindinfos related with current registry
-	bindInfoList := &operatorv1alpha1.OperandBindInfoList{}
+	bindInfoList := &operatorv1.OperandBindInfoList{}
 
 	opts := []client.ListOption{
 		client.MatchingLabels(map[string]string{request.Namespace + "." + request.Name + "/registry": "true"}),

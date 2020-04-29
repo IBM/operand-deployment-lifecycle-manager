@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-package v1alpha1
+package v1
 
 import (
 	"reflect"
@@ -68,8 +68,12 @@ type CrStatus struct {
 // OperandConfig is the Schema for the operandconfigs API
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
+// +kubebuilder:storageversion
 // +kubebuilder:resource:path=operandconfigs,shortName=opcon,scope=Namespaced
-// +operator-sdk:gen-csv:customresourcedefinitions.displayName="OperandConfig"
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=.metadata.creationTimestamp
+// +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=.status.phase,description="Current Phase"
+// +kubebuilder:printcolumn:name="Created At",type=string,JSONPath=.metadata.creationTimestamp
+// +operator-sdk:gen-csv:customresourcedefinitions.displayName="OperandConfig v1"
 // +operator-sdk:gen-csv:customresourcedefinitions.resources=`Deployment,v1,""`
 // +operator-sdk:gen-csv:customresourcedefinitions.resources=`ReplicaSet,v1,""`
 // +operator-sdk:gen-csv:customresourcedefinitions.resources=`Service,v1,""`
@@ -114,6 +118,16 @@ const (
 
 func init() {
 	SchemeBuilder.Register(&OperandConfig{}, &OperandConfigList{})
+}
+
+// GetService obtain the service definition with the operand name
+func (r *OperandConfig) GetService(operandName string) *ConfigService {
+	for _, s := range r.Spec.Services {
+		if s.Name == operandName {
+			return &s
+		}
+	}
+	return nil
 }
 
 //InitConfigStatus OperandConfig status
