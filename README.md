@@ -29,7 +29,7 @@
 
 Operand Deployment Lifecycle Manager is used to manage the lifecycle of a group of operands. Check the design document [here](./docs/design/operand-deployment-lifecycle-manager.md).
 
-Operand Deployment Lifecycle Manager has three CRDs:
+Operand Deployment Lifecycle Manager has four CRDs:
 
 | Resource                 | Short Name | Description                                                                                |
 |--------------------------|------------|--------------------------------------------------------------------------------------------|
