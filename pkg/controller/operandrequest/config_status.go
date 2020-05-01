@@ -24,10 +24,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog"
 
-	operatorv1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1"
+	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 )
 
-func (r *ReconcileOperandRequest) updateServiceStatus(configInstance *operatorv1.OperandConfig, operatorName, serviceName string, serviceStatus operatorv1.ServicePhase) error {
+func (r *ReconcileOperandRequest) updateServiceStatus(configInstance *operatorv1alpha1.OperandConfig, operatorName, serviceName string, serviceStatus operatorv1alpha1.ServicePhase) error {
 	if configInstance.Status.ServiceStatus == nil {
 		klog.V(3).Info("Initializing OperandConfig status")
 		configInstance.InitConfigServiceStatus()
@@ -40,12 +40,12 @@ func (r *ReconcileOperandRequest) updateServiceStatus(configInstance *operatorv1
 		_, ok := configInstance.Status.ServiceStatus[operatorName]
 
 		if !ok {
-			configInstance.Status.ServiceStatus[operatorName] = operatorv1.CrStatus{}
+			configInstance.Status.ServiceStatus[operatorName] = operatorv1alpha1.CrStatus{}
 		}
 
 		if configInstance.Status.ServiceStatus[operatorName].CrStatus == nil {
 			tmp := configInstance.Status.ServiceStatus[operatorName]
-			tmp.CrStatus = make(map[string]operatorv1.ServicePhase)
+			tmp.CrStatus = make(map[string]operatorv1alpha1.ServicePhase)
 			configInstance.Status.ServiceStatus[operatorName] = tmp
 		}
 
@@ -65,7 +65,7 @@ func (r *ReconcileOperandRequest) updateServiceStatus(configInstance *operatorv1
 	return nil
 }
 
-func (r *ReconcileOperandRequest) deleteServiceStatus(cr *operatorv1.OperandConfig, operatorName, serviceName string) error {
+func (r *ReconcileOperandRequest) deleteServiceStatus(cr *operatorv1alpha1.OperandConfig, operatorName, serviceName string) error {
 	klog.V(3).Infof("Deleting custom resource %s from OperandConfig status", serviceName)
 
 	if err := wait.PollImmediate(time.Second*20, time.Minute*10, func() (done bool, err error) {

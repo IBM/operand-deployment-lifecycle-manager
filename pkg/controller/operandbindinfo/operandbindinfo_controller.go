@@ -37,7 +37,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	operatorv1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1"
+	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 	util "github.com/IBM/operand-deployment-lifecycle-manager/pkg/util"
 )
 
@@ -69,14 +69,14 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to primary resource OperandBindInfo
-	err = c.Watch(&source.Kind{Type: &operatorv1.OperandBindInfo{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &operatorv1alpha1.OperandBindInfo{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
 
 	// Watch for changes to secondary resource Secret and requeue the owner OperandBindInfo
 	err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, &handler.EnqueueRequestForOwner{
-		OwnerType: &operatorv1.OperandBindInfo{},
+		OwnerType: &operatorv1alpha1.OperandBindInfo{},
 	})
 	if err != nil {
 		return err
@@ -84,7 +84,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	// Watch for changes to secondary resource ConfigMap and requeue the owner OperandBindInfo
 	err = c.Watch(&source.Kind{Type: &corev1.ConfigMap{}}, &handler.EnqueueRequestForOwner{
-		OwnerType: &operatorv1.OperandBindInfo{},
+		OwnerType: &operatorv1alpha1.OperandBindInfo{},
 	})
 	if err != nil {
 		return err
@@ -112,7 +112,7 @@ type ReconcileOperandBindInfo struct {
 func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 
 	// Fetch the OperandBindInfo instance
-	bindInfoInstance := &operatorv1.OperandBindInfo{}
+	bindInfoInstance := &operatorv1alpha1.OperandBindInfo{}
 	if err := r.client.Get(context.TODO(), request.NamespacedName, bindInfoInstance); err != nil {
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, client.IgnoreNotFound(err)
@@ -136,7 +136,7 @@ func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconci
 	}
 
 	// Fetch the OperandRegistry instance
-	registryInstance := &operatorv1.OperandRegistry{}
+	registryInstance := &operatorv1alpha1.OperandRegistry{}
 	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: bindInfoInstance.Spec.Registry, Namespace: bindInfoInstance.Spec.RegistryNamespace}, registryInstance); err != nil {
 		if k8serr.IsNotFound(err) {
 			klog.Errorf("NotFound OperandRegistry %s from the namespace %s", bindInfoInstance.Spec.Registry, bindInfoInstance.Spec.RegistryNamespace)
@@ -171,7 +171,7 @@ func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconci
 			continue
 		}
 		// Get the OperandRequest of operandBindInfo
-		requestInstance := &operatorv1.OperandRequest{}
+		requestInstance := &operatorv1alpha1.OperandRequest{}
 		if err := r.client.Get(context.TODO(), types.NamespacedName{Name: bindRequest.Name, Namespace: bindRequest.Namespace}, requestInstance); err != nil {
 			if k8serr.IsNotFound(err) {
 				klog.Errorf("Not found OperandRequest %s in the namespace %s : %s", bindRequest.Name, bindRequest.Namespace, err)
@@ -206,20 +206,20 @@ func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconci
 		}
 	}
 	if len(merr.Errors) != 0 {
-		if err := r.updateBindInfoPhase(bindInfoInstance, operatorv1.BindInfoFailed, requestNamespaces); err != nil {
+		if err := r.updateBindInfoPhase(bindInfoInstance, operatorv1alpha1.BindInfoFailed, requestNamespaces); err != nil {
 			return reconcile.Result{}, err
 		}
 		return reconcile.Result{}, merr
 	}
 
 	if requeue {
-		if err := r.updateBindInfoPhase(bindInfoInstance, operatorv1.BindInfoWaiting, requestNamespaces); err != nil {
+		if err := r.updateBindInfoPhase(bindInfoInstance, operatorv1alpha1.BindInfoWaiting, requestNamespaces); err != nil {
 			return reconcile.Result{}, err
 		}
 		return reconcile.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
-	if err := r.updateBindInfoPhase(bindInfoInstance, operatorv1.BindInfoCompleted, requestNamespaces); err != nil {
+	if err := r.updateBindInfoPhase(bindInfoInstance, operatorv1alpha1.BindInfoCompleted, requestNamespaces); err != nil {
 		return reconcile.Result{}, err
 	}
 	return reconcile.Result{}, nil
@@ -227,7 +227,7 @@ func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconci
 
 // Copy secret `sourceName` from source namespace `sourceNs` to target namespace `targetNs`
 func (r *ReconcileOperandBindInfo) copySecret(sourceName, targetName, sourceNs, targetNs string,
-	bindInfoInstance *operatorv1.OperandBindInfo, requestInstance *operatorv1.OperandRequest) (bool, error) {
+	bindInfoInstance *operatorv1alpha1.OperandBindInfo, requestInstance *operatorv1alpha1.OperandRequest) (bool, error) {
 	if sourceName == "" || sourceNs == "" || targetNs == "" {
 		return false, nil
 	}
@@ -306,7 +306,7 @@ func (r *ReconcileOperandBindInfo) copySecret(sourceName, targetName, sourceNs, 
 // Copy configmap `sourceName` from namespace `sourceNs` to namespace `targetNs`
 // and rename it to `targetName`
 func (r *ReconcileOperandBindInfo) copyConfigmap(sourceName, targetName, sourceNs, targetNs string,
-	bindInfoInstance *operatorv1.OperandBindInfo, requestInstance *operatorv1.OperandRequest) (bool, error) {
+	bindInfoInstance *operatorv1alpha1.OperandBindInfo, requestInstance *operatorv1alpha1.OperandRequest) (bool, error) {
 	if sourceName == "" || sourceNs == "" || targetNs == "" {
 		return false, nil
 	}
@@ -383,10 +383,10 @@ func (r *ReconcileOperandBindInfo) copyConfigmap(sourceName, targetName, sourceN
 }
 
 // Get the OperandBindInfo instance with the name and namespace
-func (r *ReconcileOperandBindInfo) getBindInfoInstance(name, namespace string) (*operatorv1.OperandBindInfo, error) {
+func (r *ReconcileOperandBindInfo) getBindInfoInstance(name, namespace string) (*operatorv1alpha1.OperandBindInfo, error) {
 	klog.V(3).Info("Get the OperandBindInfo instance from the name: ", name, " namespace: ", namespace)
 	// Fetch the OperandBindInfo instance
-	bindInfo := &operatorv1.OperandBindInfo{}
+	bindInfo := &operatorv1alpha1.OperandBindInfo{}
 	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, bindInfo); err != nil {
 		// Error reading the object - requeue the request.
 		return nil, err
@@ -394,7 +394,7 @@ func (r *ReconcileOperandBindInfo) getBindInfoInstance(name, namespace string) (
 	return bindInfo, nil
 }
 
-func getBindingInfofromRequest(bindInfoInstance *operatorv1.OperandBindInfo, requestInstance *operatorv1.OperandRequest) (map[string]string, map[string]string) {
+func getBindingInfofromRequest(bindInfoInstance *operatorv1alpha1.OperandBindInfo, requestInstance *operatorv1alpha1.OperandRequest) (map[string]string, map[string]string) {
 	secretReq, cmReq := make(map[string]string), make(map[string]string)
 	for _, req := range requestInstance.Spec.Requests {
 		if req.Registry != bindInfoInstance.Spec.Registry {

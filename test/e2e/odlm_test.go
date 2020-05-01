@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	apis "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis"
-	operator "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1"
+	operator "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 	"github.com/IBM/operand-deployment-lifecycle-manager/test/config"
 	"github.com/IBM/operand-deployment-lifecycle-manager/test/testgroups"
 )
