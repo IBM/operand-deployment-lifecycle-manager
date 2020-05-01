@@ -35,7 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	v1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1"
+	"github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 )
 
 // TestRequestController runs ReconcileOperandRequest.Reconcile() against a
@@ -51,7 +51,7 @@ func TestRequestController(t *testing.T) {
 
 	req := getReconcileRequest(name, namespace)
 	r := getReconciler(name, namespace, registryName, registryNamespace, operatorNamespace)
-	requestInstance := &v1.OperandRequest{}
+	requestInstance := &v1alpha1.OperandRequest{}
 
 	initReconcile(t, r, req, requestInstance, registryName, registryNamespace, operatorNamespace)
 
@@ -69,7 +69,7 @@ func TestRequestController(t *testing.T) {
 }
 
 // Init reconcile the OperandRequest
-func initReconcile(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, requestInstance *v1.OperandRequest, registryName, registryNamespace, operatorNamespace string) {
+func initReconcile(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, requestInstance *v1alpha1.OperandRequest, registryName, registryNamespace, operatorNamespace string) {
 	assert := assert.New(t)
 	res, err := r.Reconcile(req)
 	if res.Requeue {
@@ -81,20 +81,20 @@ func initReconcile(t *testing.T, r ReconcileOperandRequest, req reconcile.Reques
 	registryInstance, err := r.getRegistryInstance(registryName, registryNamespace)
 	assert.NoError(err)
 	for k, v := range registryInstance.Status.OperatorsStatus {
-		assert.Equalf(v1.OperatorRunning, v.Phase, "operator(%s) phase should be Running", k)
+		assert.Equalf(v1alpha1.OperatorRunning, v.Phase, "operator(%s) phase should be Running", k)
 		assert.NotEqualf(-1, registryInstance.GetReconcileRequest(k, req), "reconcile requests should be include %s", req.NamespacedName)
 	}
-	assert.Equalf(v1.OperatorRunning, registryInstance.Status.Phase, "registry(%s/%s) phase should be Running", registryInstance.Namespace, registryInstance.Name)
+	assert.Equalf(v1alpha1.OperatorRunning, registryInstance.Status.Phase, "registry(%s/%s) phase should be Running", registryInstance.Namespace, registryInstance.Name)
 
 	// Retrieve OperandConfig
 	configInstance, err := r.getConfigInstance(registryName, registryNamespace)
 	assert.NoError(err)
 	for k, v := range configInstance.Status.ServiceStatus {
 		for crK, crV := range v.CrStatus {
-			assert.Equalf(v1.ServiceRunning, crV, "operator(%s) cr(%s) phase should be Running", k, crK)
+			assert.Equalf(v1alpha1.ServiceRunning, crV, "operator(%s) cr(%s) phase should be Running", k, crK)
 		}
 	}
-	assert.Equalf(v1.ServiceRunning, configInstance.Status.Phase, "config(%s/%s) phase should be Running", configInstance.Namespace, configInstance.Name)
+	assert.Equalf(v1alpha1.ServiceRunning, configInstance.Status.Phase, "config(%s/%s) phase should be Running", configInstance.Namespace, configInstance.Name)
 
 	// Retrieve OperandRequest
 	retrieveOperandRequest(t, r, req, requestInstance, 2, operatorNamespace)
@@ -104,7 +104,7 @@ func initReconcile(t *testing.T, r ReconcileOperandRequest, req reconcile.Reques
 }
 
 // Retrieve OperandRequest instance
-func retrieveOperandRequest(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, requestInstance *v1.OperandRequest, expectedMemNum int, operatorNamespace string) {
+func retrieveOperandRequest(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, requestInstance *v1alpha1.OperandRequest, expectedMemNum int, operatorNamespace string) {
 	assert := assert.New(t)
 	err := r.client.Get(context.TODO(), req.NamespacedName, requestInstance)
 	assert.NoError(err)
@@ -119,14 +119,14 @@ func retrieveOperandRequest(t *testing.T, r ReconcileOperandRequest, req reconci
 	assert.Equalf(expectedMemNum, len(csvs.Items), "csv list should have %s ClusterServiceVersions", expectedMemNum)
 
 	for _, m := range requestInstance.Status.Members {
-		assert.Equalf(v1.OperatorRunning, m.Phase.OperatorPhase, "operator(%s) phase should be Running", m.Name)
-		assert.Equalf(v1.ServiceRunning, m.Phase.OperandPhase, "operand(%s) phase should be Running", m.Name)
+		assert.Equalf(v1alpha1.OperatorRunning, m.Phase.OperatorPhase, "operator(%s) phase should be Running", m.Name)
+		assert.Equalf(v1alpha1.ServiceRunning, m.Phase.OperandPhase, "operand(%s) phase should be Running", m.Name)
 	}
-	assert.Equalf(v1.ClusterPhaseRunning, requestInstance.Status.Phase, "request(%s/%s) phase should be Running", requestInstance.Namespace, requestInstance.Name)
+	assert.Equalf(v1alpha1.ClusterPhaseRunning, requestInstance.Status.Phase, "request(%s/%s) phase should be Running", requestInstance.Namespace, requestInstance.Name)
 }
 
 // Absent an operator from request
-func absentOperand(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, requestInstance *v1.OperandRequest, operatorNamespace string) {
+func absentOperand(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, requestInstance *v1alpha1.OperandRequest, operatorNamespace string) {
 	assert := assert.New(t)
 	requestInstance.Spec.Requests[0].Operands = requestInstance.Spec.Requests[0].Operands[1:]
 	err := r.client.Update(context.TODO(), requestInstance)
@@ -140,14 +140,14 @@ func absentOperand(t *testing.T, r ReconcileOperandRequest, req reconcile.Reques
 }
 
 // Present an operator from request
-func presentOperand(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, requestInstance *v1.OperandRequest, operatorNamespace string) {
+func presentOperand(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, requestInstance *v1alpha1.OperandRequest, operatorNamespace string) {
 	assert := assert.New(t)
 	// Present an operator into request
-	requestInstance.Spec.Requests[0].Operands = append(requestInstance.Spec.Requests[0].Operands, v1.Operand{Name: "etcd"})
+	requestInstance.Spec.Requests[0].Operands = append(requestInstance.Spec.Requests[0].Operands, v1alpha1.Operand{Name: "etcd"})
 	err := r.client.Update(context.TODO(), requestInstance)
 	assert.NoError(err)
 
-	err = r.createSubscription(requestInstance, &v1.Operator{
+	err = r.createSubscription(requestInstance, &v1alpha1.Operator{
 		Name:            "etcd",
 		Namespace:       operatorNamespace,
 		SourceName:      "community-operators",
@@ -172,7 +172,7 @@ func presentOperand(t *testing.T, r ReconcileOperandRequest, req reconcile.Reque
 }
 
 // Mock delete OperandRequest instance, mark OperandRequest instance as delete state
-func deleteOperandRequest(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, requestInstance *v1.OperandRequest, operatorNamespace string) {
+func deleteOperandRequest(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, requestInstance *v1alpha1.OperandRequest, operatorNamespace string) {
 	assert := assert.New(t)
 	deleteTime := metav1.NewTime(time.Now())
 	requestInstance.SetDeletionTimestamp(&deleteTime)
@@ -200,7 +200,7 @@ func deleteOperandRequest(t *testing.T, r ReconcileOperandRequest, req reconcile
 
 func getReconciler(name, namespace, registryName, registryNamespace, operatorNamespace string) ReconcileOperandRequest {
 	s := scheme.Scheme
-	v1.SchemeBuilder.AddToScheme(s)
+	v1alpha1.SchemeBuilder.AddToScheme(s)
 	olmv1.SchemeBuilder.AddToScheme(s)
 	olmv1alpha1.SchemeBuilder.AddToScheme(s)
 	v1beta2.SchemeBuilder.AddToScheme(s)
@@ -254,16 +254,16 @@ func updateOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req re
 	assert.NoError(err)
 	configInstance, err = r.getConfigInstance(registryName, registryNamespace)
 	assert.NoError(err)
-	assert.Equal(v1.ServiceRunning, configInstance.Status.ServiceStatus["etcd"].CrStatus["etcdCluster"], "The status of etcdCluster should be running in the OperandConfig")
-	updatedRequestInstance := &v1.OperandRequest{}
+	assert.Equal(v1alpha1.ServiceRunning, configInstance.Status.ServiceStatus["etcd"].CrStatus["etcdCluster"], "The status of etcdCluster should be running in the OperandConfig")
+	updatedRequestInstance := &v1alpha1.OperandRequest{}
 	err = r.client.Get(context.TODO(), req.NamespacedName, updatedRequestInstance)
 	assert.NoError(err)
 	for _, operator := range updatedRequestInstance.Status.Members {
 		if operator.Name == "etcd" {
-			assert.Equal(v1.ServiceRunning, operator.Phase.OperandPhase, "The etcd phase status should be running in the OperandRequest")
+			assert.Equal(v1alpha1.ServiceRunning, operator.Phase.OperandPhase, "The etcd phase status should be running in the OperandRequest")
 		}
 	}
-	assert.Equal(v1.ClusterPhaseRunning, updatedRequestInstance.Status.Phase, "The cluster phase status should be running in the OperandRequest")
+	assert.Equal(v1alpha1.ClusterPhaseRunning, updatedRequestInstance.Status.Phase, "The cluster phase status should be running in the OperandRequest")
 
 	registryInstance, err := r.getRegistryInstance(registryName, registryNamespace)
 	assert.NoError(err)
@@ -291,16 +291,16 @@ func absentOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req re
 	assert.NoError(err)
 	configInstance, err = r.getConfigInstance(registryName, registryNamespace)
 	assert.NoError(err)
-	assert.Equal(v1.ServiceNone, configInstance.Status.ServiceStatus["etcd"].CrStatus["etcdCluster"], "The status of etcdCluster should be cleaned up in the OperandConfig")
-	updatedRequestInstance := &v1.OperandRequest{}
+	assert.Equal(v1alpha1.ServiceNone, configInstance.Status.ServiceStatus["etcd"].CrStatus["etcdCluster"], "The status of etcdCluster should be cleaned up in the OperandConfig")
+	updatedRequestInstance := &v1alpha1.OperandRequest{}
 	err = r.client.Get(context.TODO(), req.NamespacedName, updatedRequestInstance)
 	assert.NoError(err)
 	for _, operator := range updatedRequestInstance.Status.Members {
 		if operator.Name == "etcd" {
-			assert.Equal(v1.ServiceNone, operator.Phase.OperandPhase, "The etcd phase status should be none in the OperandRequest")
+			assert.Equal(v1alpha1.ServiceNone, operator.Phase.OperandPhase, "The etcd phase status should be none in the OperandRequest")
 		}
 	}
-	assert.Equal(v1.ClusterPhaseRunning, updatedRequestInstance.Status.Phase, "The cluster phase status should be running in the OperandRequest")
+	assert.Equal(v1alpha1.ClusterPhaseRunning, updatedRequestInstance.Status.Phase, "The cluster phase status should be running in the OperandRequest")
 }
 
 // Present an operand custom resource from config
@@ -317,19 +317,19 @@ func presentOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req r
 	assert.NoError(err)
 	configInstance, err = r.getConfigInstance(registryName, registryNamespace)
 	assert.NoError(err)
-	assert.Equal(v1.ServiceRunning, configInstance.Status.ServiceStatus["etcd"].CrStatus["etcdCluster"], "The status of etcdCluster should be running in the OperandConfig")
-	updatedRequestInstance := &v1.OperandRequest{}
+	assert.Equal(v1alpha1.ServiceRunning, configInstance.Status.ServiceStatus["etcd"].CrStatus["etcdCluster"], "The status of etcdCluster should be running in the OperandConfig")
+	updatedRequestInstance := &v1alpha1.OperandRequest{}
 	err = r.client.Get(context.TODO(), req.NamespacedName, updatedRequestInstance)
 	assert.NoError(err)
 	for _, operator := range updatedRequestInstance.Status.Members {
 		if operator.Name == "etcd" {
-			assert.Equal(v1.ServiceRunning, operator.Phase.OperandPhase, "The etcd phase status should be none in the OperandRequest")
+			assert.Equal(v1alpha1.ServiceRunning, operator.Phase.OperandPhase, "The etcd phase status should be none in the OperandRequest")
 		}
 	}
-	assert.Equal(v1.ClusterPhaseRunning, updatedRequestInstance.Status.Phase, "The cluster phase status should be running in the OperandRequest")
+	assert.Equal(v1alpha1.ClusterPhaseRunning, updatedRequestInstance.Status.Phase, "The cluster phase status should be running in the OperandRequest")
 }
 
-func checkOperandCustomResource(t *testing.T, r ReconcileOperandRequest, registryInstance *v1.OperandRegistry, etcdSize, jenkinsPort int, etcdVersion string) error {
+func checkOperandCustomResource(t *testing.T, r ReconcileOperandRequest, registryInstance *v1alpha1.OperandRegistry, etcdSize, jenkinsPort int, etcdVersion string) error {
 	assert := assert.New(t)
 	for _, operator := range registryInstance.Spec.Operators {
 		if operator.Name == "etcd" {
@@ -381,14 +381,14 @@ func initClientData(name, namespace, registryName, registryNamespace, operatorNa
 }
 
 // Return OperandRegistry obj
-func operandRegistry(registryName, registryNamespace, operatorNamespace string) *v1.OperandRegistry {
-	return &v1.OperandRegistry{
+func operandRegistry(registryName, registryNamespace, operatorNamespace string) *v1alpha1.OperandRegistry {
+	return &v1alpha1.OperandRegistry{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      registryName,
 			Namespace: registryNamespace,
 		},
-		Spec: v1.OperandRegistrySpec{
-			Operators: []v1.Operator{
+		Spec: v1alpha1.OperandRegistrySpec{
+			Operators: []v1alpha1.Operator{
 				{
 					Name:            "etcd",
 					Namespace:       operatorNamespace,
@@ -411,14 +411,14 @@ func operandRegistry(registryName, registryNamespace, operatorNamespace string) 
 }
 
 // Return OperandConfig obj
-func operandConfig(configName, configNamespace string) *v1.OperandConfig {
-	return &v1.OperandConfig{
+func operandConfig(configName, configNamespace string) *v1alpha1.OperandConfig {
+	return &v1alpha1.OperandConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      configName,
 			Namespace: configNamespace,
 		},
-		Spec: v1.OperandConfigSpec{
-			Services: []v1.ConfigService{
+		Spec: v1alpha1.OperandConfigSpec{
+			Services: []v1alpha1.ConfigService{
 				{
 					Name: "etcd",
 					Spec: map[string]runtime.RawExtension{
@@ -437,18 +437,18 @@ func operandConfig(configName, configNamespace string) *v1.OperandConfig {
 }
 
 // Return OperandRequest obj
-func operandRequest(name, namespace, registryName, registryNamespace string) *v1.OperandRequest {
-	return &v1.OperandRequest{
+func operandRequest(name, namespace, registryName, registryNamespace string) *v1alpha1.OperandRequest {
+	return &v1alpha1.OperandRequest{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: v1.OperandRequestSpec{
-			Requests: []v1.Request{
+		Spec: v1alpha1.OperandRequestSpec{
+			Requests: []v1alpha1.Request{
 				{
 					Registry:          registryName,
 					RegistryNamespace: registryNamespace,
-					Operands: []v1.Operand{
+					Operands: []v1alpha1.Operand{
 						{
 							Name: "etcd",
 						},

@@ -84,15 +84,14 @@ install: ## Install all resources (CR/CRD's, RBAC and Operator)
 	@echo ....... Applying Operator .......
 	- kubectl apply -f deploy/operator.yaml -n ${NAMESPACE}
 	@echo ....... Creating the Instances .......
-	- kubectl apply -f deploy/crds/operator.ibm.com_v1_operandregistry_cr.yaml -n ${NAMESPACE}
-	- kubectl apply -f deploy/crds/operator.ibm.com_v1_operandconfig_cr.yaml -n ${NAMESPACE}
-	- kubectl apply -f deploy/crds/operator.ibm.com_v1_operandrequest_cr.yaml -n ${NAMESPACE}
+	- kubectl apply -f deploy/crds/operator.ibm.com_v1alpha1_operandregistry_cr.yaml -n ${NAMESPACE}
+	- kubectl apply -f deploy/crds/operator.ibm.com_v1alpha1_operandconfig_cr.yaml -n ${NAMESPACE}
 uninstall: ## Uninstall all that all performed in the $ make install
 	@echo ....... Uninstalling .......
 	@echo ....... Deleting the Instances .......
-	- kubectl delete -f deploy/crds/operator.ibm.com_v1_operandrequest_cr.yaml -n ${NAMESPACE} --ignore-not-found
-	- kubectl delete -f deploy/crds/operator.ibm.com_v1_operandregistry_cr.yaml -n ${NAMESPACE} --ignore-not-found
-	- kubectl delete -f deploy/crds/operator.ibm.com_v1_operandconfig_cr.yaml -n ${NAMESPACE} --ignore-not-found
+	- kubectl delete -f deploy/crds/operator.ibm.com_v1alpha1_operandrequest_cr.yaml -n ${NAMESPACE} --ignore-not-found
+	- kubectl delete -f deploy/crds/operator.ibm.com_v1alpha1_operandregistry_cr.yaml -n ${NAMESPACE} --ignore-not-found
+	- kubectl delete -f deploy/crds/operator.ibm.com_v1alpha1_operandconfig_cr.yaml -n ${NAMESPACE} --ignore-not-found
 	@echo ....... Deleting Operator .......
 	- kubectl delete -f deploy/operator.yaml -n ${NAMESPACE} --ignore-not-found
 	@echo ....... Deleting CRDs .......

@@ -30,7 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	v1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1"
+	v1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 )
 
 // TestRegistryController runs ReconcileOperandRegistry.Reconcile() against a
@@ -58,37 +58,37 @@ func initReconcile(t *testing.T, r ReconcileOperandRegistry, req reconcile.Reque
 	_, err := r.Reconcile(req)
 	assert.NoError(err)
 
-	registry := &v1.OperandRegistry{}
+	registry := &v1alpha1.OperandRegistry{}
 	err = r.client.Get(context.TODO(), req.NamespacedName, registry)
 	assert.NoError(err)
 	// Check the default value
 	for _, o := range registry.Spec.Operators {
-		assert.Equalf(v1.ScopePrivate, o.Scope, "default operator(%s) scope should be private", o.Name)
+		assert.Equalf(v1alpha1.ScopePrivate, o.Scope, "default operator(%s) scope should be private", o.Name)
 	}
 	// Check the registry init status
 	assert.NotNil(registry.Status, "init operator status should not be empty")
-	assert.Equalf(v1.OperatorInit, registry.Status.Phase, "Overall OperandRegistry phase should be 'Initialized'")
+	assert.Equalf(v1alpha1.OperatorInit, registry.Status.Phase, "Overall OperandRegistry phase should be 'Initialized'")
 
-	bindInfo := &v1.OperandBindInfo{}
+	bindInfo := &v1alpha1.OperandBindInfo{}
 	err = r.client.Get(context.TODO(), types.NamespacedName{Name: operatorName, Namespace: operatorNamespace}, bindInfo)
 	assert.NoError(err)
 
 	// Check the OperandBindInfo status
 	assert.NotNil(bindInfo.Status, "init OperandBindInfo status should not be empty")
-	assert.Equalf(v1.BindInfoUpdating, bindInfo.Status.Phase, "Overall OperandBindInfo phase should be 'Updating'")
+	assert.Equalf(v1alpha1.BindInfoUpdating, bindInfo.Status.Phase, "Overall OperandBindInfo phase should be 'Updating'")
 
-	request := &v1.OperandRequest{}
+	request := &v1alpha1.OperandRequest{}
 	err = r.client.Get(context.TODO(), types.NamespacedName{Name: requestName, Namespace: requestNamespace}, request)
 	assert.NoError(err)
 
 	// Check the OperandRequest status
 	assert.NotNil(request.Status, "init OperandRequest status should not be empty")
-	assert.Equalf(v1.ClusterPhaseUpdating, request.Status.Phase, "Overall OperandRequest phase should be 'Updating'")
+	assert.Equalf(v1alpha1.ClusterPhaseUpdating, request.Status.Phase, "Overall OperandRequest phase should be 'Updating'")
 }
 
 func getReconciler(name, namespace, requestName, requestNamespace, operatorName, operatorNamespace string) ReconcileOperandRegistry {
 	s := scheme.Scheme
-	v1.SchemeBuilder.AddToScheme(s)
+	v1alpha1.SchemeBuilder.AddToScheme(s)
 	corev1.SchemeBuilder.AddToScheme(s)
 	v1beta2.SchemeBuilder.AddToScheme(s)
 	v1alpha2.SchemeBuilder.AddToScheme(s)
@@ -132,14 +132,14 @@ func initClientData(name, namespace, requestName, requestNamespace, operatorName
 }
 
 // Return OperandRegistry obj
-func operandRegistry(name, namespace, operatorNamespace string) *v1.OperandRegistry {
-	return &v1.OperandRegistry{
+func operandRegistry(name, namespace, operatorNamespace string) *v1alpha1.OperandRegistry {
+	return &v1alpha1.OperandRegistry{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: v1.OperandRegistrySpec{
-			Operators: []v1.Operator{
+		Spec: v1alpha1.OperandRegistrySpec{
+			Operators: []v1alpha1.Operator{
 				{
 					Name:            "etcd",
 					Namespace:       operatorNamespace,
@@ -162,8 +162,8 @@ func operandRegistry(name, namespace, operatorNamespace string) *v1.OperandRegis
 }
 
 // Return OperandRequest obj
-func operandRequest(name, namespace, requestName, requestNamespace string) *v1.OperandRequest {
-	return &v1.OperandRequest{
+func operandRequest(name, namespace, requestName, requestNamespace string) *v1alpha1.OperandRequest {
+	return &v1alpha1.OperandRequest{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      requestName,
 			Namespace: requestNamespace,
@@ -171,18 +171,18 @@ func operandRequest(name, namespace, requestName, requestNamespace string) *v1.O
 				namespace + "." + name + "/registry": "true",
 			},
 		},
-		Spec: v1.OperandRequestSpec{
-			Requests: []v1.Request{
+		Spec: v1alpha1.OperandRequestSpec{
+			Requests: []v1alpha1.Request{
 				{
 					Registry:          name,
 					RegistryNamespace: namespace,
-					Operands: []v1.Operand{
+					Operands: []v1alpha1.Operand{
 						{
 							Name: "etcd",
 						},
 						{
 							Name: "jenkins",
-							Bindings: map[string]v1.SecretConfigmap{
+							Bindings: map[string]v1alpha1.SecretConfigmap{
 								"public": {
 									Secret:    "secret3",
 									Configmap: "cm3",
@@ -197,8 +197,8 @@ func operandRequest(name, namespace, requestName, requestNamespace string) *v1.O
 }
 
 // Return OperandBindInfo obj
-func operandBindInfo(name, namespace, operatorName, operatorNamespace string) *v1.OperandBindInfo {
-	return &v1.OperandBindInfo{
+func operandBindInfo(name, namespace, operatorName, operatorNamespace string) *v1alpha1.OperandBindInfo {
+	return &v1alpha1.OperandBindInfo{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      operatorName,
 			Namespace: operatorNamespace,
@@ -206,10 +206,10 @@ func operandBindInfo(name, namespace, operatorName, operatorNamespace string) *v
 				namespace + "." + name + "/registry": "true",
 			},
 		},
-		Spec: v1.OperandBindInfoSpec{
+		Spec: v1alpha1.OperandBindInfoSpec{
 			Operand:  "jenkins",
 			Registry: name,
-			Bindings: map[string]v1.SecretConfigmap{
+			Bindings: map[string]v1alpha1.SecretConfigmap{
 				"public": {
 					Secret:    "secret1",
 					Configmap: "cm1",

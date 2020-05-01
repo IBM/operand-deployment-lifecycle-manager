@@ -1,4 +1,4 @@
-apiVersion: operator.ibm.com/v1
+apiVersion: operator.ibm.com/v1alpha1
 kind: OperandRequest
 metadata:
   name: example-service

@@ -36,7 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	operatorv1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1"
+	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 )
 
 /**
@@ -73,7 +73,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to primary resource OperandRequest
-	err = c.Watch(&source.Kind{Type: &operatorv1.OperandRequest{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &operatorv1alpha1.OperandRequest{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -82,7 +82,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Watch for changes to secondary resource Pods and requeue the owner OperandRequest
 	err = c.Watch(&source.Kind{Type: &olmv1alpha1.Subscription{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
-		OwnerType:    &operatorv1.OperandRequest{},
+		OwnerType:    &operatorv1alpha1.OperandRequest{},
 	})
 	if err != nil {
 		return err
@@ -90,7 +90,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	err = c.Watch(&source.Kind{Type: &olmv1.OperatorGroup{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
-		OwnerType:    &operatorv1.OperandRequest{},
+		OwnerType:    &operatorv1alpha1.OperandRequest{},
 	})
 	if err != nil {
 		return err
@@ -126,7 +126,7 @@ type clusterObjects struct {
 func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 
 	// Fetch the OperandRequest instance
-	requestInstance := &operatorv1.OperandRequest{}
+	requestInstance := &operatorv1alpha1.OperandRequest{}
 	if err := r.client.Get(context.TODO(), request.NamespacedName, requestInstance); err != nil {
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, client.IgnoreNotFound(err)
@@ -202,7 +202,7 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 	}
 
 	// Check if all csv deploy successed
-	if requestInstance.Status.Phase != operatorv1.ClusterPhaseRunning {
+	if requestInstance.Status.Phase != operatorv1alpha1.ClusterPhaseRunning {
 		klog.V(2).Info("Waiting for all the operands deploy successed")
 		return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
 	}
@@ -210,7 +210,7 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileOperandRequest) waitForInstallPlan(requestInstance *operatorv1.OperandRequest, reconcileReq reconcile.Request) error {
+func (r *ReconcileOperandRequest) waitForInstallPlan(requestInstance *operatorv1alpha1.OperandRequest, reconcileReq reconcile.Request) error {
 	klog.V(2).Info("Waiting for subscriptions to be ready ...")
 
 	subs := make(map[string]string)
@@ -240,7 +240,7 @@ func (r *ReconcileOperandRequest) waitForInstallPlan(requestInstance *operatorv1
 						ip, err := r.olmClient.OperatorsV1alpha1().InstallPlans(found.Namespace).Get(found.Status.InstallPlanRef.Name, metav1.GetOptions{})
 
 						if err != nil {
-							err := r.updateRegistryStatus(registryInstance, reconcileReq, found.ObjectMeta.Name, operatorv1.OperatorFailed)
+							err := r.updateRegistryStatus(registryInstance, reconcileReq, found.ObjectMeta.Name, operatorv1alpha1.OperatorFailed)
 							return false, err
 						}
 
@@ -250,7 +250,7 @@ func (r *ReconcileOperandRequest) waitForInstallPlan(requestInstance *operatorv1
 							continue
 						}
 
-						err = r.updateRegistryStatus(registryInstance, reconcileReq, found.ObjectMeta.Name, operatorv1.OperatorRunning)
+						err = r.updateRegistryStatus(registryInstance, reconcileReq, found.ObjectMeta.Name, operatorv1alpha1.OperatorRunning)
 						if err != nil {
 							return false, err
 						}
@@ -273,7 +273,7 @@ func (r *ReconcileOperandRequest) waitForInstallPlan(requestInstance *operatorv1
 	return nil
 }
 
-func (r *ReconcileOperandRequest) addFinalizer(cr *operatorv1.OperandRequest) error {
+func (r *ReconcileOperandRequest) addFinalizer(cr *operatorv1alpha1.OperandRequest) error {
 	if len(cr.GetFinalizers()) < 1 && cr.GetDeletionTimestamp() == nil {
 		cr.SetFinalizers([]string{"finalizer.request.ibm.com"})
 		// Update CR
@@ -285,7 +285,7 @@ func (r *ReconcileOperandRequest) addFinalizer(cr *operatorv1.OperandRequest) er
 	return nil
 }
 
-func (r *ReconcileOperandRequest) checkFinalizer(requestInstance *operatorv1.OperandRequest, request reconcile.Request) error {
+func (r *ReconcileOperandRequest) checkFinalizer(requestInstance *operatorv1alpha1.OperandRequest, request reconcile.Request) error {
 	existingSub, err := r.olmClient.OperatorsV1alpha1().Subscriptions(metav1.NamespaceAll).List(metav1.ListOptions{
 		LabelSelector: "operator.ibm.com/opreq-control",
 	})
