@@ -203,7 +203,7 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 
 	// Check if all csv deploy successed
 	if requestInstance.Status.Phase != operatorv1alpha1.ClusterPhaseRunning {
-		klog.V(2).Info("Waiting for all the operands deploy successed")
+		klog.V(2).Info("Waiting for all operands to be deployed successfully ...")
 		return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
@@ -257,7 +257,7 @@ func (r *ReconcileOperandRequest) waitForInstallPlan(requestInstance *operatorv1
 						subs[found.ObjectMeta.Name] = "Ready"
 					} else {
 						// Subscription existing and not managed by OperandRequest controller
-						klog.V(3).Info("Subscription has created by other user, ignore update/delete it. ", "Subscription.Namespace: ", found.Namespace, "Subscription.Name: ", found.Name)
+						klog.V(2).Infof("Subscription %s in the namespace %s isn't created by ODLM. Ignore update/delete it", found.Name, found.Namespace)
 					}
 				}
 			}
