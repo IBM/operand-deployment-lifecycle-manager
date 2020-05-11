@@ -302,7 +302,7 @@ func (r *ReconcileOperandRequest) checkFinalizer(requestInstance *operatorv1alph
 	for _, req := range requestInstance.Spec.Requests {
 		registryInstance, err := r.getRegistryInstance(req.Registry, req.RegistryNamespace)
 		if err != nil {
-			klog.Error("Failed to get OperandRegistry: ",err)
+			klog.Error("Failed to get OperandRegistry: ", err)
 			return err
 		}
 		configInstance, err := r.getConfigInstance(req.Registry, req.RegistryNamespace)
@@ -312,7 +312,7 @@ func (r *ReconcileOperandRequest) checkFinalizer(requestInstance *operatorv1alph
 		}
 		for _, operand := range req.Operands {
 			if err := r.deleteSubscription(operand.Name, requestInstance, registryInstance, configInstance, request); err != nil {
-				klog.Error("Failed to delete subscriptions during the uninstall: ",err)
+				klog.Error("Failed to delete subscriptions during the uninstall: ", err)
 				klog.Error(err)
 				return err
 			}

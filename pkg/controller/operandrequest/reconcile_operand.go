@@ -221,7 +221,7 @@ func (r *ReconcileOperandRequest) deleteAllCustomResource(csv *olmv1alpha1.Clust
 					Namespace: namespace,
 				}, &unstruct)
 				if getError != nil && !errors.IsNotFound(getError) {
-					klog.Errorf("Failed to get the custom resource %s in the namespace %s: ", name, namespace, getError)
+					klog.Errorf("Failed to get the custom resource %s in the namespace %s: %s", name, namespace, getError)
 					merr.Add(getError)
 					continue
 				}
@@ -229,7 +229,7 @@ func (r *ReconcileOperandRequest) deleteAllCustomResource(csv *olmv1alpha1.Clust
 					klog.V(2).Info("Finish Deleting the CR: " + kind)
 					stateDeleteErr := r.deleteServiceStatus(csc, service.Name, crdName)
 					if stateDeleteErr != nil {
-						klog.Error("Failed to clean up the deleted service status for the custom resource %s in the namespace %s in the operand config: ", name, namespace, stateDeleteErr)
+						klog.Errorf("Failed to clean up the deleted service status for the custom resource %s in the namespace %s in the operand config: %s", name, namespace, stateDeleteErr)
 						merr.Add(stateDeleteErr)
 					}
 					continue
@@ -237,7 +237,7 @@ func (r *ReconcileOperandRequest) deleteAllCustomResource(csv *olmv1alpha1.Clust
 				if unstruct.Object["metadata"].(map[string]interface{})["labels"] != nil && unstruct.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{})["operator.ibm.com/opreq-control"] == t {
 					deleteErr := r.deleteCustomResource(unstruct, service, namespace, csc)
 					if deleteErr != nil {
-						klog.Error("Failed to delete custom resource %s in the namespace %s: ", name, namespace, deleteErr)
+						klog.Errorf("Failed to delete custom resource %s in the namespace %s: %s", name, namespace, deleteErr)
 						return deleteErr
 					}
 				}
@@ -369,7 +369,7 @@ func (r *ReconcileOperandRequest) updateCustomResource(unstruct unstructured.Uns
 			klog.Error("Failed to update status")
 			return stateUpdateErr
 		}
-		klog.Error("Failed to get the Custom Resource %s: %s", crName, crGetErr)
+		klog.Errorf("Failed to get the Custom Resource %s: %s", crName, crGetErr)
 		return crGetErr
 	}
 
@@ -387,7 +387,7 @@ func (r *ReconcileOperandRequest) updateCustomResource(unstruct unstructured.Uns
 				klog.Error("Failed to update status")
 				return stateUpdateErr
 			}
-			klog.Error("Failed to Update the Custom Resource %s: %s", crName, crUpdateErr)
+			klog.Errorf("Failed to Update the Custom Resource %s: %s", crName, crUpdateErr)
 			return crUpdateErr
 		}
 		UpdatedCR := unstructured.Unstructured{
@@ -408,7 +408,7 @@ func (r *ReconcileOperandRequest) updateCustomResource(unstruct unstructured.Uns
 				klog.Error("Failed to update status")
 				return stateUpdateErr
 			}
-			klog.Error("Failed to get the Custom Resource %s: %s", crName, crGetErr)
+			klog.Errorf("Failed to get the Custom Resource %s: %s", crName, crGetErr)
 			return crGetErr
 		}
 		if UpdatedCR.Object["metadata"].(map[string]interface{})["generation"] != CRgeneration {
@@ -458,7 +458,7 @@ func (r *ReconcileOperandRequest) deleteCustomResource(unstruct unstructured.Uns
 			if !strings.EqualFold(kind, "OperandRequest") {
 				klog.V(3).Infof("Waiting for CR %s is deleted", kind)
 				err := wait.PollImmediate(time.Second*20, time.Minute*10, func() (bool, error) {
-					klog.V(3).Info("Checking for CR %s is deleted", kind)
+					klog.V(3).Infof("Checking for CR %s is deleted", kind)
 					err := r.client.Get(context.TODO(), types.NamespacedName{
 						Name:      name,
 						Namespace: namespace,
