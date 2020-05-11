@@ -151,7 +151,7 @@ func (r *ReconcileOperandRequest) reconcileCr(service *operatorv1alpha1.ConfigSe
 		}, &unstruct)
 
 		if getError != nil && !errors.IsNotFound(getError) {
-			klog.Error("Failed to get the custom resource should be deleted: ", getError)
+			klog.Error("Failed to get the custom resource should be deleted with name: ", name, getError)
 			merr.Add(getError)
 			continue
 		} else if errors.IsNotFound(getError) {
@@ -442,7 +442,7 @@ func (r *ReconcileOperandRequest) deleteCustomResource(unstruct unstructured.Uns
 		Namespace: namespace,
 	}, crShouldBeDeleted)
 	if getError != nil && !errors.IsNotFound(getError) {
-		klog.Error("Failed to get the custom resource should be deleted: ", getError)
+		klog.Error("Failed to get the custom resource should be deleted with name: ", name, getError)
 		return getError
 	}
 	if errors.IsNotFound(getError) {
