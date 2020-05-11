@@ -130,7 +130,7 @@ func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconci
 
 	// Initialize OperandBindInfo status
 	bindInfoInstance.InitBindInfoStatus()
-	klog.V(3).Infof("Initializing the of statusOperandBindInfo %s in the namespace %s", request.Name, request.Namespace)
+	klog.V(3).Infof("Initializing the status of OperandBindInfo %s in the namespace %s", request.Name, request.Namespace)
 	if err := r.client.Status().Update(context.TODO(), bindInfoInstance); err != nil {
 		return reconcile.Result{}, err
 	}
