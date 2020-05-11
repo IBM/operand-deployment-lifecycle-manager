@@ -469,7 +469,7 @@ spec:
                 productID: 068a62892a1e4db39641342e592daa25
                 productMetric: FREE
                 productName: IBM Cloud Platform Common Services
-                productVersion: 3.3.0
+                productVersion: 3.4.0
               labels:
                 app.kubernetes.io/instance: operand-deployment-lifecycle-manager
                 name: operand-deployment-lifecycle-manager
@@ -494,7 +494,7 @@ spec:
                       fieldPath: metadata.namespace
                 - name: OPERATOR_NAME
                   value: operand-deployment-lifecycle-manager
-                image: quay.io/opencloudio/odlm:latest
+                image: quay.io/opencloudio/odlm:1.2.0
                 imagePullPolicy: Always
                 name: operand-deployment-lifecycle-manager
                 resources: {}
