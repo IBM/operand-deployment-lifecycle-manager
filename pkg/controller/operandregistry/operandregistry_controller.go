@@ -101,7 +101,7 @@ func (r *ReconcileOperandRegistry) Reconcile(request reconcile.Request) (reconci
 	}
 	// Set the default status for OperandRegistry instance
 	instance.InitRegistryStatus()
-	klog.V(3).Info("Initializing OperandRegistry instance status: ", request)
+	klog.V(3).Infof("Initializing the status of OperandRegistry %s in the namespace %s", request.Name, request.Namespace)
 	if err := r.client.Status().Update(context.TODO(), instance); err != nil {
 		return reconcile.Result{}, err
 	}
