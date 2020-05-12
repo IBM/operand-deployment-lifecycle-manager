@@ -17,6 +17,7 @@
 package v1alpha1
 
 import (
+	"regexp"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -51,33 +52,9 @@ type Request struct {
 type Operand struct {
 	// Name of the operand to be deployed
 	Name string `json:"name"`
-	// Specify a Binding list
-	// +listType=set
+	// The bindings section is used to specify names of secret and/or configmap.
 	// +optional
-	Bindings []Binding `json:"bindings,omitempty"`
-}
-
-// Binding defines the scope of the operand, and the resources, like Secret, ConfigMap and ServiceAccount
-type Binding struct {
-	// A scope indicator, either public or private
-	// Valid values are:
-	// - "private" (default): deployment only request from the containing names;
-	// - "public": deployment can be requested from other namespaces;
-	// +optional
-	Scope scope `json:"scope,omitempty"`
-	// Specifies that name of a secret that should contain information shared
-	// from the deployed operand if it shares secrets with requesters.
-	// +optional
-	Secret string `json:"secret,omitempty"`
-	// Specifies the name of a configmap that should contain information shared
-	// from the deployed operand if it shares configmaps with requesters.
-	// +optional
-	ConfigMap string `json:"configMap,omitempty"`
-	// Specifies the name of the service account that needs to access the created secret
-	// and/or configmap (e.g. the service account being used by running pods),
-	// so that ODLM can sure that the access rights are set correctly, if needed.
-	// +optional
-	ServiceAccount string `json:"serviceAccount,omitempty"`
+	Bindings map[string]SecretConfigmap `json:"bindings,omitempty"`
 }
 
 // ConditionType is the condition of a service
@@ -91,19 +68,23 @@ type ResourceType string
 
 // Constants are used for state
 const (
-	ConditionCreating ConditionType = "Creating"
-	ConditionUpdating ConditionType = "Updating"
-	ConditionDeleting ConditionType = "Deleting"
-	ConditionNotFound ConditionType = "NotFound"
+	ConditionCreating   ConditionType = "Creating"
+	ConditionUpdating   ConditionType = "Updating"
+	ConditionDeleting   ConditionType = "Deleting"
+	ConditionNotFound   ConditionType = "NotFound"
+	ConditionOutofScope ConditionType = "OutofScope"
+	ConditionReady      ConditionType = "Ready"
 
 	ClusterPhaseNone     ClusterPhase = "Pending"
 	ClusterPhaseCreating ClusterPhase = "Creating"
+	ClusterPhaseUpdating ClusterPhase = "Updating"
 	ClusterPhaseRunning  ClusterPhase = "Running"
 	ClusterPhaseFailed   ClusterPhase = "Failed"
 
-	ResourceTypeSub     ResourceType = "subscription"
-	ResourceTypeCsv     ResourceType = "csv"
-	ResourceTypeOperand ResourceType = "operand"
+	ResourceTypeSub      ResourceType = "subscription"
+	ResourceTypeCsv      ResourceType = "csv"
+	ResourceTypeOperator ResourceType = "operator"
+	ResourceTypeOperand  ResourceType = "operands"
 )
 
 // Condition represents the current state of the Request Service
@@ -170,6 +151,9 @@ type MemberStatus struct {
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=operandrequests,shortName=opreq,scope=Namespaced
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=.metadata.creationTimestamp
+// +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=.status.phase,description="Current Phase"
+// +kubebuilder:printcolumn:name="Created At",type=string,JSONPath=.metadata.creationTimestamp
 // +operator-sdk:gen-csv:customresourcedefinitions.displayName="OperandRequest"
 // +operator-sdk:gen-csv:customresourcedefinitions.resources=`Namespace,v1,""`
 // +operator-sdk:gen-csv:customresourcedefinitions.resources=`Deployment,v1,""`
@@ -208,21 +192,38 @@ func (r *OperandRequest) SetCreatingCondition(name string, rt ResourceType, cs c
 	r.setCondition(*c)
 }
 
-// SetUpdatingCondition updates a condition status
+// SetUpdatingCondition creates an updating condition status
 func (r *OperandRequest) SetUpdatingCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
 	c := newCondition(ConditionUpdating, cs, "Updating "+string(rt), "Updating "+string(rt)+" "+name)
 	r.setCondition(*c)
 }
 
-// SetDeletingCondition delete a condition status
+// SetDeletingCondition creates a deleting condition status
 func (r *OperandRequest) SetDeletingCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
 	c := newCondition(ConditionDeleting, cs, "Deleting "+string(rt), "Deleting "+string(rt)+" "+name)
 	r.setCondition(*c)
 }
 
-// SetNotFoundCondition not found resource
+// SetNotFoundOperatorFromRegistryCondition creates a NotFoundCondition
 func (r *OperandRequest) SetNotFoundOperatorFromRegistryCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
 	c := newCondition(ConditionNotFound, cs, "Not found "+string(rt), "Not found "+string(rt)+" "+name+" from registry")
+	r.setCondition(*c)
+}
+
+// SetOutofScopeCondition creates a NotFoundCondition
+func (r *OperandRequest) SetOutofScopeCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
+	c := newCondition(ConditionOutofScope, cs, string(rt)+" "+name+" is a private operator", string(rt)+" "+name+" is a private operator. It can only be request within the OperandRegistry namespace")
+	r.setCondition(*c)
+}
+
+// SetReadyCondition creates a Condition to claim Ready
+func (r *OperandRequest) SetReadyCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
+	c := &Condition{}
+	if rt == ResourceTypeOperator {
+		c = newCondition(ConditionReady, cs, string(rt)+" is ready", string(rt)+" "+name+" is ready")
+	} else if rt == ResourceTypeOperand {
+		c = newCondition(ConditionReady, cs, string(rt)+" are created", string(rt)+" from "+name+" are created")
+	}
 	r.setCondition(*c)
 }
 
@@ -263,12 +264,31 @@ func (r *OperandRequest) SetMemberStatus(name string, operatorPhase OperatorPhas
 	if mp != nil {
 		if m.Phase.OperatorPhase != mp.Phase.OperatorPhase {
 			r.Status.Members[pos].Phase.OperatorPhase = m.Phase.OperatorPhase
+			r.setOperatorReadyCondition(m, name)
 		}
 		if m.Phase.OperandPhase != mp.Phase.OperandPhase {
 			r.Status.Members[pos].Phase.OperandPhase = m.Phase.OperandPhase
+			r.setOperandReadyCondition(m, name)
 		}
 	} else {
 		r.Status.Members = append(r.Status.Members, m)
+		r.setOperatorReadyCondition(m, name)
+	}
+}
+
+func (r *OperandRequest) setOperatorReadyCondition(m MemberStatus, name string) {
+	if m.Phase.OperatorPhase == OperatorRunning {
+		r.SetReadyCondition(name, ResourceTypeOperator, corev1.ConditionTrue)
+	} else {
+		r.SetReadyCondition(name, ResourceTypeOperator, corev1.ConditionFalse)
+	}
+}
+
+func (r *OperandRequest) setOperandReadyCondition(m MemberStatus, name string) {
+	if m.Phase.OperandPhase == ServiceRunning {
+		r.SetReadyCondition(name, ResourceTypeOperand, corev1.ConditionTrue)
+	} else {
+		r.SetReadyCondition(name, ResourceTypeOperand, corev1.ConditionFalse)
 	}
 }
 
@@ -304,6 +324,13 @@ func (r *OperandRequest) SetClusterPhase(p ClusterPhase) {
 	r.Status.Phase = p
 }
 
+// SetUpdatingClusterPhase sets the cluster Phase status as Creating
+func (r *OperandRequest) SetUpdatingClusterPhase() {
+	r.Status.Phase = ClusterPhaseUpdating
+}
+
+// UpdateClusterPhase will collect the phase of all the operators and operands.
+// Then summarize the cluster phase of the OperandRequest.
 func (r *OperandRequest) UpdateClusterPhase() {
 	clusterStatusStat := struct {
 		creatingNum int
@@ -363,6 +390,25 @@ func (r *OperandRequest) SetDefaultsRequestSpec() {
 func (r *OperandRequest) SetDefaultRequestStatus() {
 	if r.Status.Phase == "" {
 		r.Status.Phase = ClusterPhaseNone
+	}
+}
+
+// AddLabels set the labels for the OperandConfig and OperandRegistry used by this OperandRequest
+func (r *OperandRequest) AddLabels() {
+	if r.Labels == nil {
+		r.Labels = make(map[string]string)
+	} else {
+		reg, _ := regexp.Compile(`^(.*)\.(.*)\/registry|^(.*)\.(.*)\/config`)
+		for label := range r.Labels {
+			if reg.MatchString(label) {
+				delete(r.Labels, label)
+			}
+		}
+	}
+
+	for _, req := range r.Spec.Requests {
+		r.Labels[req.RegistryNamespace+"."+req.Registry+"/registry"] = "true"
+		r.Labels[req.RegistryNamespace+"."+req.Registry+"/config"] = "true"
 	}
 }
 

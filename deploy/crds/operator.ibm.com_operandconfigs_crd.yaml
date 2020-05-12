@@ -7,6 +7,17 @@ metadata:
     app.kubernetes.io/name: "odlm"
   name: operandconfigs.operator.ibm.com
 spec:
+  additionalPrinterColumns:
+  - JSONPath: .metadata.creationTimestamp
+    name: Age
+    type: date
+  - JSONPath: .status.phase
+    description: Current Phase
+    name: Phase
+    type: string
+  - JSONPath: .metadata.creationTimestamp
+    name: Created At
+    type: string
   group: operator.ibm.com
   names:
     kind: OperandConfig
@@ -79,22 +90,8 @@ spec:
               type: object
           type: object
       type: object
-  version: v1
+  version: v1alpha1
   versions:
-  - additionalPrinterColumns:
-    - JSONPath: .metadata.creationTimestamp
-      name: Age
-      type: date
-    - JSONPath: .status.phase
-      description: Current Phase
-      name: Phase
-      type: string
-    - JSONPath: .metadata.creationTimestamp
-      name: Created At
-      type: string
-    name: v1
-    served: true
-    storage: true
   - name: v1alpha1
     served: true
-    storage: false
+    storage: true
