@@ -15,14 +15,14 @@ spec:
       annotations:
         productName: "IBM Cloud Platform Common Services"
         productID: "068a62892a1e4db39641342e592daa25"
-        productVersion: "3.3.0"
+        productVersion: "3.4.0"
         productMetric: "FREE"
     spec:
       serviceAccountName: operand-deployment-lifecycle-manager
       containers:
         - name: operand-deployment-lifecycle-manager
           # Replace this with the built image name
-          image: quay.io/opencloudio/odlm:latest
+          image: quay.io/opencloudio/odlm:1.2.0
           command:
           - odlm
           args:
