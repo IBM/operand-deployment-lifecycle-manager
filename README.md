@@ -120,3 +120,7 @@ When the API or CRD changed, run `make code-dev` re-generate the code.
 [oc_tool]: https://docs.okd.io/3.11/cli_reference/get_started_cli.html#cli-reference-get-started-cli
 [operator_sdk]: https://github.com/operator-framework/operator-sdk
 [operator_install]: https://github.com/operator-framework/operator-sdk/blob/master/doc/user/install-operator-sdk.md
+
+## SecurityContextConstraints Requirements
+
+The Operand Deployment Lifecycle Manager supports running under the OpenShift Container Platform default restricted security context constraints.

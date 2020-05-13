@@ -16,6 +16,8 @@ spec:
       labels:
         name: operand-deployment-lifecycle-manager
         app.kubernetes.io/instance: operand-deployment-lifecycle-manager
+        app.kubernetes.io/managed-by: "operand-deployment-lifecycle-manager"
+        app.kubernetes.io/name: "odlm"
       annotations:
         productName: "IBM Cloud Platform Common Services"
         productID: "068a62892a1e4db39641342e592daa25"
@@ -61,7 +63,7 @@ spec:
               cpu: 500m
               memory: 512Mi
             requests:
-              cpu: 100m
+              cpu: 200m
               memory: 200Mi
           securityContext:
             allowPrivilegeEscalation: false
