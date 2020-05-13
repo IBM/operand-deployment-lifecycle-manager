@@ -8,6 +8,11 @@ metadata:
           "apiVersion": "operator.ibm.com/v1alpha1",
           "kind": "OperandConfig",
           "metadata": {
+            "labels": {
+              "app.kubernetes.io/instance": "operand-deployment-lifecycle-manager",
+              "app.kubernetes.io/managed-by": "operand-deployment-lifecycle-manager",
+              "app.kubernetes.io/name": "odlm"
+            },
             "name": "example-service"
           },
           "spec": {
@@ -29,6 +34,11 @@ metadata:
           "apiVersion": "operator.ibm.com/v1alpha1",
           "kind": "OperandRegistry",
           "metadata": {
+            "labels": {
+              "app.kubernetes.io/instance": "operand-deployment-lifecycle-manager",
+              "app.kubernetes.io/managed-by": "operand-deployment-lifecycle-manager",
+              "app.kubernetes.io/name": "odlm"
+            },
             "name": "example-service"
           },
           "spec": {
@@ -48,6 +58,11 @@ metadata:
           "apiVersion": "operator.ibm.com/v1alpha1",
           "kind": "OperandRequest",
           "metadata": {
+            "labels": {
+              "app.kubernetes.io/instance": "operand-deployment-lifecycle-manager",
+              "app.kubernetes.io/managed-by": "operand-deployment-lifecycle-manager",
+              "app.kubernetes.io/name": "odlm"
+            },
             "name": "example-service"
           },
           "spec": {
@@ -472,8 +487,21 @@ spec:
                 productVersion: 3.4.0
               labels:
                 app.kubernetes.io/instance: operand-deployment-lifecycle-manager
+                app.kubernetes.io/managed-by: operand-deployment-lifecycle-manager
+                app.kubernetes.io/name: odlm
                 name: operand-deployment-lifecycle-manager
             spec:
+              affinity:
+                nodeAffinity:
+                  requiredDuringSchedulingIgnoredDuringExecution:
+                    nodeSelectorTerms:
+                    - matchExpressions:
+                      - key: beta.kubernetes.io/arch
+                        operator: In
+                        values:
+                        - amd64
+                        - ppc64le
+                        - s390x
               containers:
               - args:
                 - -v=2
@@ -497,7 +525,21 @@ spec:
                 image: quay.io/opencloudio/odlm:1.2.0
                 imagePullPolicy: Always
                 name: operand-deployment-lifecycle-manager
-                resources: {}
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 512Mi
+                  requests:
+                    cpu: 100m
+                    memory: 200Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+                  privileged: false
+                  readOnlyRootFilesystem: true
+                  runAsNonRoot: true
               serviceAccountName: operand-deployment-lifecycle-manager
     strategy: deployment
   installModes:
