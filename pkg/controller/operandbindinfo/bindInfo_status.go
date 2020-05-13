@@ -35,8 +35,12 @@ func (r *ReconcileOperandBindInfo) updateBindInfoPhase(cr *operatorv1alpha1.Oper
 		}
 		requestNsList := make([]string, len(requestNamespaces))
 		for index, ns := range requestNamespaces {
+			if ns.Namespace == bindInfoInstance.Namespace {
+				continue
+			}
 			requestNsList[index] = ns.Namespace
 		}
+		requestNsList = unique(requestNsList)
 		if bindInfoInstance.Status.Phase == phase && reflect.DeepEqual(requestNsList, bindInfoInstance.Status.RequestNamespaces) {
 			return true, nil
 		}
@@ -51,4 +55,16 @@ func (r *ReconcileOperandBindInfo) updateBindInfoPhase(cr *operatorv1alpha1.Oper
 		return err
 	}
 	return nil
+}
+
+func unique(stringSlice []string) []string {
+	keys := make(map[string]bool)
+	list := []string{}
+	for _, entry := range stringSlice {
+		if _, value := keys[entry]; !value {
+			keys[entry] = true
+			list = append(list, entry)
+		}
+	}
+	return list
 }
