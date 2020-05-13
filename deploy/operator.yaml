@@ -1,6 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  labels:
+    app.kubernetes.io/instance: "operand-deployment-lifecycle-manager"
+    app.kubernetes.io/managed-by: "operand-deployment-lifecycle-manager"
+    app.kubernetes.io/name: "odlm"
   name: operand-deployment-lifecycle-manager
 spec:
   replicas: 1
@@ -19,6 +23,17 @@ spec:
         productMetric: "FREE"
     spec:
       serviceAccountName: operand-deployment-lifecycle-manager
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: beta.kubernetes.io/arch
+                operator: In
+                values:
+                - amd64
+                - ppc64le
+                - s390x
       containers:
         - name: operand-deployment-lifecycle-manager
           # Replace this with the built image name
@@ -41,3 +56,18 @@ spec:
                   fieldPath: metadata.namespace
             - name: OPERATOR_NAME
               value: "operand-deployment-lifecycle-manager"
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 200Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
