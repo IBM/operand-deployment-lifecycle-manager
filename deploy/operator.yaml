@@ -58,8 +58,8 @@ spec:
               value: "operand-deployment-lifecycle-manager"
           resources:
             limits:
-              cpu: 200m
-              memory: 400Mi
+              cpu: 500m
+              memory: 512Mi
             requests:
               cpu: 100m
               memory: 200Mi
