@@ -70,7 +70,7 @@ metadata:
     containerImage: quay.io/opencloudio/odlm:1.2.0
     createdAt: "2020-04-02T11:28:16Z"
     description: The Operand Deployment Lifecycle Manager provides a Kubernetes CRD-based
-      API to manage the lifecycle of IBM Cloud Platform common services.
+      API to manage the lifecycle of operands.
     olm.skipRange: '>=1.1.0 <1.2.0'
     repository: https://github.com/IBM/operand-deployment-lifecycle-manager
     support: IBM
@@ -285,16 +285,16 @@ spec:
     odlm.ibm.com/v1alpha1\nkind: OperandRegistry\nmetadata:\n  name: example-service
     [1]\n  namespace: example-service-ns [2]\nspec:\n  operators:\n  - name: jenkins
     [3]\n    namespace: default [4]\n    channel: alpha [5]\n    packageName: jenkins-operator
-    [6]\n    sourceName: community-operators [7]\n    sourceNamespace: openshift-marketplace
-    [8]\n```\n\nThe Operand (Deployment) Registry Custom Resource (CR) lists OLM Operator
+    [6]\n    scope: public [7]\n    sourceName: community-operators [8]\n    sourceNamespace: openshift-marketplace
+    [9]\n```\n\nThe Operand (Deployment) Registry Custom Resource (CR) lists OLM Operator
     information for operands that may be requested for installation and/or access
     by an application that runs in a namespace.  The registry CR specifies:\n\n1.
-    Name of the OperandRegistry\n1. Namespace of the OperandRegistry\n1. **name**
+    name of the OperandRegistry\n1. namespace of the OperandRegistry\n1. **name**
     is the name of the operator, which should be the same as the services name in
     the OperandConfig and OperandRequest.\n1. **namespace** is the namespace where
     the operator will be deployed.\n1. **channel** is the name of OLM channel that
     is subscribed for the operator.\n1. **packageName** is the name of the package
-    in CatalogSource that is subscribed for the operator.\n1. **sourceName** is the
+    in CatalogSource that is subscribed for the operator.\n1. **scope** is an indicator, either public or private, that dictates whether deployment can be requested from other namespaces (public) or only from the containing names (private). The default is private.\n1. **sourceName** is the
     name of the CatalogSource.\n1. **sourceNamespace** is the namespace of the CatalogSource.\n1.
     **description** is used to add a detailed description of a  service.\n\n## OperandConfig\n\nOperandConfig
     defines the individual operand deployment configuration. The Operand Config Custom
@@ -305,7 +305,7 @@ spec:
     OperandConfigs\nmetadata:\n  name: example-service [1]\n  namespace: example-service-ns
     [2]\nspec:\n  services:\n  - name: jenkins [3]\n    spec: [4]\n      jenkins:\n
     \       port: 8081\n```\n\nOperandConfig defines the individual operand deployment
-    config:\n\n1. Name of the OperandConfig\n1. Namespace of the OperandConfig\n1.
+    config:\n\n1. name of the OperandConfig\n1. namespace of the OperandConfig\n1.
     **name** is the name of the operator, which should be the same as the services
     name in the OperandRegistry and OperandRequest.\n1. **spec** defines a map. Its
     key is the kind name of the custom resource. Its value is merged to the spec field
@@ -331,8 +331,8 @@ spec:
     OperandRequest\nmetadata:\n  name: example-service [1]\n  namespace: example-service-ns
     [2]\nspec:\n  requests:\n  - registry: example-service [3]\n    registryNamespace:
     example-service-ns [4]\n    operands: [5]\n    - name: jenkins [6]\n      bindings:
-    [7]\n        public:\n          secret: iamrequestsecret [8]\n          configmap:
-    iamrequestconfigmap [9]\n```\n\n1. Name of the OperandRequest\n1. Namespace of
+    [7]\n        public:\n          secret: jenkins-operator-credential [8]\n          configmap:
+    jenkins-operator-base-configuration [9]\n```\n\n1. name of the OperandRequest\n1. namespace of
     the OperandRequest\n1. **registry** identifies the name of the OperandRegistry
     CR from which this operand deployment is being requested.\n1. **registryNamespace**
     identifies the namespace in which the catalog CR is defined. **Note:** If the
@@ -358,9 +358,9 @@ spec:
     OperandBindInfo\nmetadata:\n  name: publicjenkinsbinding [1]\n  namespace: example-service-ns
     [2]\nspec:\n  operand: jenkins [3]\n  registry: example-service [4]\n  description:
     \"Binding information that should be accessible to jenkins adopters\" [5]\n  bindings:
-    [6]\n    public:\n     secret: iambindsecret [7]\n     configmap: iamconfigmap
-    [8]\n```\n\nFields in this CR are described below.\n\n1. Name of the OperandBindInfo\n1.
-    Namespace of the OperandBindInfo\n1. The **operand** should be the the individual
+    [6]\n    public:\n      secret: jenkins-operator-credentials-example [7]\n      configmap: jenkins-operator-base-configuration-example
+    [8]\n```\n\nFields in this CR are described below.\n\n1. name of the OperandBindInfo\n1.
+    namespace of the OperandBindInfo\n1. The **operand** should be the the individual
     operator name.\n1. The **registry** section must match the name in the OperandRegistry
     in the current namespace.\n1. **description** is used to add a detailed description
     of a  service.\n1. The **bindings** section is used to specify information about
