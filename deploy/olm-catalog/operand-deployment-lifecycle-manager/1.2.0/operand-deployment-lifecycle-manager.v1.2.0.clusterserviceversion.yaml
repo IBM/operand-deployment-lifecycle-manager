@@ -282,7 +282,7 @@ spec:
     operator is deployed, it generates a default OperandRegistry instance. You can
     edit the instance as required.\n\nFollowing is an example of the OperandRegistry
     CR:\n\n>**NOTE:** The \"name\" parameter must be unique for each entry.\n\n```yaml\napiVersion:
-    odlm.ibm.com/v1alpha1\nkind: OperandRegistry\nmetadata:\n  name: example-service
+    operator.ibm.com/v1alpha1\nkind: OperandRegistry\nmetadata:\n  name: example-service
     [1]\n  namespace: example-service-ns [2]\nspec:\n  operators:\n  - name: jenkins
     [3]\n    namespace: default [4]\n    channel: alpha [5]\n    packageName: jenkins-operator
     [6]\n    scope: public [7]\n    sourceName: community-operators [8]\n    sourceNamespace:
@@ -344,7 +344,7 @@ spec:
     one catalog exists in the namespace.\n1. **operands** in the CR is a list of `operands`.\n1.
     **name** of **operands** in the CR must match a name specification in an OperandRegistry's
     CR.\n1. The **bindings** of the **operands** is a map to get and rename the secret
-    and/or configmap from the provider and creat them in the requester's namespace.
+    and/or configmap from the provider and create them in the requester's namespace.
     If the requester wants to rename the secret and/or configmap, they need to know
     the key of the binding in the `OperandBindInfo`. If the key of the **bindings**
     map is prefixed with `public`, it means the secret and/or configmap can be shared
