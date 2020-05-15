@@ -179,9 +179,10 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 	err := r.waitForInstallPlan(requestInstance, request)
 	if err != nil {
 		if err.Error() == "timed out waiting for the condition" {
-			return reconcile.Result{Requeue: true}, nil
+			r.recorder.Event(requestInstance, corev1.EventTypeWarning, "Timeout", "Timeout to waiting for all InstallPlan complete")
+		} else {
+			return reconcile.Result{}, err
 		}
-		return reconcile.Result{}, err
 	}
 
 	// Update request status after subscription ready
