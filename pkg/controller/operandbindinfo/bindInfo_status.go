@@ -38,7 +38,7 @@ func (r *ReconcileOperandBindInfo) updateBindInfoPhase(cr *operatorv1alpha1.Oper
 			if ns.Namespace == bindInfoInstance.Namespace {
 				continue
 			}
-			requestNsList =  append(requestNsList,ns.Namespace)
+			requestNsList = append(requestNsList, ns.Namespace)
 		}
 		requestNsList = unique(requestNsList)
 		if bindInfoInstance.Status.Phase == phase && reflect.DeepEqual(requestNsList, bindInfoInstance.Status.RequestNamespaces) {
