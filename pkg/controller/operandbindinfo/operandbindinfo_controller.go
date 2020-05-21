@@ -177,7 +177,7 @@ func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconci
 				klog.Errorf("Not found OperandRequest %s in the namespace %s: %s", bindRequest.Name, bindRequest.Namespace, err)
 				r.recorder.Eventf(bindInfoInstance, corev1.EventTypeWarning, "NotFound", "NotFound OperandRequest %s in the namespace %s", bindRequest.Name, bindRequest.Namespace)
 			}
-			return reconcile.Result{}, client.IgnoreNotFound(err)
+			merr.Add(err)
 		}
 		// Get binding information from OperandRequest
 		secretReq, cmReq := getBindingInfofromRequest(bindInfoInstance, requestInstance)
