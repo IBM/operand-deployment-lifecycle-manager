@@ -18,6 +18,9 @@
 # environment variables before build the repo.
 BUILD_LOCALLY ?= 1
 
+VCS_URL ?= https://github.com/IBM/operand-deployment-lifecycle-manager
+VCS_REF ?= $(shell git rev-parse HEAD)
+
 # The namespcethat operator will be deployed in
 NAMESPACE=ibm-common-services
 
@@ -140,7 +143,7 @@ build-push-image: build-image push-image
 
 build-image: build
 	@echo "Building the $(IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
-	@docker build -t $(IMAGE_REPO)/$(IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) -f build/Dockerfile .
+	@docker build -t $(IMAGE_REPO)/$(IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) --build-arg VCS_REF=$(VCS_REF) --build-arg VCS_URL=$(VCS_URL) -f build/Dockerfile .
 
 push-image: $(CONFIG_DOCKER_TARGET) build-image
 	@echo "Pushing the $(IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
