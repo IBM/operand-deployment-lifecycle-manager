@@ -178,6 +178,7 @@ func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconci
 				r.recorder.Eventf(bindInfoInstance, corev1.EventTypeWarning, "NotFound", "NotFound OperandRequest %s in the namespace %s", bindRequest.Name, bindRequest.Namespace)
 			}
 			merr.Add(err)
+			continue
 		}
 		// Get binding information from OperandRequest
 		secretReq, cmReq := getBindingInfofromRequest(bindInfoInstance, requestInstance)
