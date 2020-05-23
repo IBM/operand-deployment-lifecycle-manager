@@ -1,6 +1,10 @@
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
+  labels:
+    app.kubernetes.io/instance: "operand-deployment-lifecycle-manager"
+    app.kubernetes.io/managed-by: "operand-deployment-lifecycle-manager"
+    app.kubernetes.io/name: "odlm"
   name: operandrequests.operator.ibm.com
 spec:
   additionalPrinterColumns:
@@ -98,7 +102,6 @@ spec:
                 - registry
                 type: object
               type: array
-              x-kubernetes-list-type: set
           required:
           - requests
           type: object
@@ -137,7 +140,6 @@ spec:
                 - type
                 type: object
               type: array
-              x-kubernetes-list-type: set
             members:
               description: Members represnets the current operand status of the set
               items:
@@ -163,7 +165,6 @@ spec:
                 - name
                 type: object
               type: array
-              x-kubernetes-list-type: set
             phase:
               description: Phase is the cluster running phase
               type: string
