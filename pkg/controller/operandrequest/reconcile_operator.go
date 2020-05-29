@@ -80,7 +80,7 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1a
 					}
 				} else {
 					// Subscription existing and not managed by OperandRequest controller
-					klog.V(2).Info("Subscription has created by other user, ignore update/delete it.", " Subscription.Namespace: ", found.Namespace, "Subscription.Name: ", found.Name)
+					klog.V(2).Infof("Subscription %s in namespace %s isn't created by ODLM. Ignore update/delete it.", found.Name, found.Namespace)
 				}
 			} else {
 				klog.V(2).Infof("Operator %s not found in the registry %s/%s", operand.Name, registryInstance.Namespace, registryInstance.Name)
@@ -165,7 +165,7 @@ func (r *ReconcileOperandRequest) createSubscription(cr *operatorv1alpha1.Operan
 
 func (r *ReconcileOperandRequest) updateSubscription(cr *operatorv1alpha1.OperandRequest, sub *olmv1alpha1.Subscription) error {
 
-	klog.V(2).Info("Updating Subscription...", " Subscription Namespace: ", sub.Namespace, "Subscription Name: ", sub.Name)
+	klog.V(2).Info("Updating Subscription...", " Subscription Namespace: ", sub.Namespace, " Subscription Name: ", sub.Name)
 	cr.SetUpdatingCondition(sub.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionTrue)
 	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
 		return err

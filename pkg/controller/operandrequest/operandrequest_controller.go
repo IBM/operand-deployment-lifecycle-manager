@@ -203,7 +203,7 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 
 	// Check if all csv deploy successed
 	if requestInstance.Status.Phase != operatorv1alpha1.ClusterPhaseRunning {
-		klog.V(2).Info("Waiting for all the operands deploy successed")
+		klog.V(2).Info("Waiting for all operands to be deployed successfully ...")
 		return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
@@ -257,7 +257,7 @@ func (r *ReconcileOperandRequest) waitForInstallPlan(requestInstance *operatorv1
 						subs[found.ObjectMeta.Name] = "Ready"
 					} else {
 						// Subscription existing and not managed by OperandRequest controller
-						klog.V(3).Info("Subscription has created by other user, ignore update/delete it. ", "Subscription.Namespace: ", found.Namespace, "Subscription.Name: ", found.Name)
+						klog.V(2).Infof("Subscription %s in the namespace %s isn't created by ODLM. Ignore update/delete it", found.Name, found.Namespace)
 					}
 				}
 			}
@@ -274,11 +274,13 @@ func (r *ReconcileOperandRequest) waitForInstallPlan(requestInstance *operatorv1
 }
 
 func (r *ReconcileOperandRequest) addFinalizer(cr *operatorv1alpha1.OperandRequest) error {
+	klog.V(2).Infof("Add finializer to the OperandRequest %s in the namespace %s", cr.Name, cr.Namespace)
 	if len(cr.GetFinalizers()) < 1 && cr.GetDeletionTimestamp() == nil {
 		cr.SetFinalizers([]string{"finalizer.request.ibm.com"})
 		// Update CR
 		err := r.client.Update(context.TODO(), cr)
 		if err != nil {
+			klog.Errorf("Failed to update the OperandRequest %s in the namespace %s: %s", cr.Name, cr.Namespace, err)
 			return err
 		}
 	}
@@ -286,6 +288,7 @@ func (r *ReconcileOperandRequest) addFinalizer(cr *operatorv1alpha1.OperandReque
 }
 
 func (r *ReconcileOperandRequest) checkFinalizer(requestInstance *operatorv1alpha1.OperandRequest, request reconcile.Request) error {
+	klog.V(2).Infof("Deleting OperandRequest %s in the namespace %s", requestInstance.Name, requestInstance.Namespace)
 	existingSub, err := r.olmClient.OperatorsV1alpha1().Subscriptions(metav1.NamespaceAll).List(metav1.ListOptions{
 		LabelSelector: "operator.ibm.com/opreq-control",
 	})
@@ -299,14 +302,18 @@ func (r *ReconcileOperandRequest) checkFinalizer(requestInstance *operatorv1alph
 	for _, req := range requestInstance.Spec.Requests {
 		registryInstance, err := r.getRegistryInstance(req.Registry, req.RegistryNamespace)
 		if err != nil {
+			klog.Error("Failed to get OperandRegistry: ", err)
 			return err
 		}
 		configInstance, err := r.getConfigInstance(req.Registry, req.RegistryNamespace)
 		if err != nil {
+			klog.Error("Failed to get OperandConfig: ", err)
 			return err
 		}
 		for _, operand := range req.Operands {
 			if err := r.deleteSubscription(operand.Name, requestInstance, registryInstance, configInstance, request); err != nil {
+				klog.Error("Failed to delete subscriptions during the uninstall: ", err)
+				klog.Error(err)
 				return err
 			}
 		}

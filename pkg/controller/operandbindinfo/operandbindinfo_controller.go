@@ -130,7 +130,7 @@ func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconci
 
 	// Initialize OperandBindInfo status
 	bindInfoInstance.InitBindInfoStatus()
-	klog.V(3).Info("Initializing OperandBindInfo instance status: ", request)
+	klog.V(3).Infof("Initializing the status of OperandBindInfo %s in the namespace %s", request.Name, request.Namespace)
 	if err := r.client.Status().Update(context.TODO(), bindInfoInstance); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -174,15 +174,16 @@ func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconci
 		requestInstance := &operatorv1alpha1.OperandRequest{}
 		if err := r.client.Get(context.TODO(), types.NamespacedName{Name: bindRequest.Name, Namespace: bindRequest.Namespace}, requestInstance); err != nil {
 			if k8serr.IsNotFound(err) {
-				klog.Errorf("Not found OperandRequest %s in the namespace %s : %s", bindRequest.Name, bindRequest.Namespace, err)
+				klog.Errorf("Not found OperandRequest %s in the namespace %s: %s", bindRequest.Name, bindRequest.Namespace, err)
 				r.recorder.Eventf(bindInfoInstance, corev1.EventTypeWarning, "NotFound", "NotFound OperandRequest %s in the namespace %s", bindRequest.Name, bindRequest.Namespace)
 			}
-			return reconcile.Result{}, client.IgnoreNotFound(err)
+			merr.Add(err)
+			continue
 		}
 		// Get binding information from OperandRequest
 		secretReq, cmReq := getBindingInfofromRequest(bindInfoInstance, requestInstance)
 		// Copy Secret and/or ConfigMap to the OperandRequest namespace
-		klog.V(3).Infof("Start to copy secret and/or configmap to namespace %s", bindRequest.Namespace)
+		klog.V(3).Infof("Start to copy secret and/or configmap to the namespace %s", bindRequest.Namespace)
 		// Only copy the public bindInfo
 		for key, binding := range bindInfoInstance.Spec.Bindings {
 			reg, _ := regexp.Compile(`^public(.*)$`)
@@ -239,11 +240,11 @@ func (r *ReconcileOperandBindInfo) copySecret(sourceName, targetName, sourceNs, 
 	secret := &corev1.Secret{}
 	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: sourceName, Namespace: sourceNs}, secret); err != nil {
 		if k8serr.IsNotFound(err) {
-			klog.Errorf("Secret %s is not found from the namespace %s", sourceName, sourceNs)
+			klog.Warningf("Secret %s is not found from the namespace %s", sourceName, sourceNs)
 			r.recorder.Eventf(bindInfoInstance, corev1.EventTypeWarning, "NotFound", "No Secret %s in the namespace %s", sourceName, sourceNs)
 			return true, nil
 		}
-		klog.Errorf("Failed to get Secret %s from the namespace %s : %s", sourceName, sourceNs, err)
+		klog.Errorf("Failed to get Secret %s from the namespace %s: %s", sourceName, sourceNs, err)
 		return false, err
 	}
 	// Create the Secret to the OperandRequest namespace
@@ -259,7 +260,7 @@ func (r *ReconcileOperandBindInfo) copySecret(sourceName, targetName, sourceNs, 
 	}
 	// Set the OperandRequest as the controller of the Secret
 	if err := controllerutil.SetControllerReference(requestInstance, secretCopy, r.scheme); err != nil {
-		klog.Errorf("Failed to set OperandRequest %s as thr Owner of Secret %s : %s", requestInstance.Name, targetName, err)
+		klog.Errorf("Failed to set OperandRequest %s as the owner of Secret %s: %s", requestInstance.Name, targetName, err)
 		return false, err
 	}
 	// Create the Secret in the OperandRequest namespace
@@ -271,7 +272,7 @@ func (r *ReconcileOperandBindInfo) copySecret(sourceName, targetName, sourceNs, 
 				Name:      targetName,
 				Namespace: targetNs,
 			}, existingSecret); err != nil {
-				klog.Errorf("Failed to get the existing Secret %s in the namespace %s : %s", sourceName, targetNs, err)
+				klog.Errorf("Failed to get the existing secret %s in the namespace %s: %s", sourceName, targetNs, err)
 				return false, err
 			}
 			if reflect.DeepEqual(existingSecret.Data, secretCopy.Data) && reflect.DeepEqual(existingSecret.StringData, secretCopy.StringData) {
@@ -280,25 +281,25 @@ func (r *ReconcileOperandBindInfo) copySecret(sourceName, targetName, sourceNs, 
 			}
 			existingSecret.Data, existingSecret.StringData = secretCopy.Data, secretCopy.StringData
 			if err := r.client.Update(context.TODO(), existingSecret); err != nil {
-				klog.Errorf("Failed to update Secret %s in the namespace %s : %s", targetName, targetNs, err)
+				klog.Errorf("Failed to update secret %s in the namespace %s: %s", targetName, targetNs, err)
 				return false, err
 			}
 			return false, nil
 		}
-		klog.Errorf("Failed to create Secret %s in the namespace %s : %s", targetName, targetNs, err)
+		klog.Errorf("Failed to create secret %s in the namespace %s: %s", targetName, targetNs, err)
 		return false, err
 	}
 	// Set the OperandBindInfo as the controller of the operand Secret
 	if err := controllerutil.SetOwnerReference(bindInfoInstance, secret, r.scheme); err != nil {
-		klog.Errorf("Failed to set OperandRequest %s as thr Owner of Secret %s : %s", secret.Name, sourceName, err)
+		klog.Errorf("Failed to set OperandRequest %s as the owner of Secret %s: %s", secret.Name, sourceName, err)
 		return false, err
 	}
 	// Update the operand Secret
 	if err := r.client.Update(context.TODO(), secret); err != nil {
-		klog.Errorf("Failed to update Secret %s in the namespace %s : %s", secret.Name, secret.Namespace, err)
+		klog.Errorf("Failed to update Secret %s in the namespace %s: %s", secret.Name, secret.Namespace, err)
 		return false, err
 	}
-	klog.V(2).Infof("Copy secret %s from namespace %s to secret %s in the namespace %s", sourceName, sourceNs, targetName, targetNs)
+	klog.V(2).Infof("Copy secret %s from the namespace %s to secret %s in the namespace %s", sourceName, sourceNs, targetName, targetNs)
 
 	return false, nil
 }
@@ -318,11 +319,11 @@ func (r *ReconcileOperandBindInfo) copyConfigmap(sourceName, targetName, sourceN
 	cm := &corev1.ConfigMap{}
 	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: sourceName, Namespace: sourceNs}, cm); err != nil {
 		if k8serr.IsNotFound(err) {
-			klog.Errorf("Configmap %s is not found from the namespace %s", sourceName, sourceNs)
+			klog.Warningf("Configmap %s is not found from the namespace %s", sourceName, sourceNs)
 			r.recorder.Eventf(bindInfoInstance, corev1.EventTypeWarning, "NotFound", "No Configmap %s in the namespace %s", sourceName, sourceNs)
 			return true, nil
 		}
-		klog.Errorf("Failed tp get Configmap %s from the namespace %s : %s", sourceName, sourceNs, err)
+		klog.Errorf("Failed to get Configmap %s from the namespace %s: %s", sourceName, sourceNs, err)
 		return false, err
 	}
 	// Create the ConfigMap to the OperandRequest namespace
@@ -337,7 +338,7 @@ func (r *ReconcileOperandBindInfo) copyConfigmap(sourceName, targetName, sourceN
 	}
 	// Set the OperandRequest as the controller of the configmap
 	if err := controllerutil.SetControllerReference(requestInstance, cmCopy, r.scheme); err != nil {
-		klog.Errorf("Failed to set OperandRequest %s as thr Owner of ConfigMap %s : %s", requestInstance.Name, sourceName, err)
+		klog.Errorf("Failed to set OperandRequest %s as the owner of ConfigMap %s: %s", requestInstance.Name, sourceName, err)
 		return false, err
 	}
 	// Create the ConfigMap in the OperandRequest namespace
@@ -349,7 +350,7 @@ func (r *ReconcileOperandBindInfo) copyConfigmap(sourceName, targetName, sourceN
 				Name:      targetName,
 				Namespace: targetNs,
 			}, existingCm); err != nil {
-				klog.Errorf("Failed to get the existing ConfigMap %s in the namespace %s : %s", sourceName, targetNs, err)
+				klog.Errorf("Failed to get the existing ConfigMap %s in the namespace %s: %s", sourceName, targetNs, err)
 				return false, err
 			}
 			if reflect.DeepEqual(existingCm.Data, cmCopy.Data) && reflect.DeepEqual(existingCm.BinaryData, cmCopy.BinaryData) {
@@ -358,33 +359,33 @@ func (r *ReconcileOperandBindInfo) copyConfigmap(sourceName, targetName, sourceN
 			}
 			existingCm.Data, existingCm.BinaryData = cmCopy.Data, cmCopy.BinaryData
 			if err := r.client.Update(context.TODO(), existingCm); err != nil {
-				klog.Errorf("Failed to update ConfigMap %s in the namespace %s : %s", sourceName, targetNs, err)
+				klog.Errorf("Failed to update ConfigMap %s in the namespace %s: %s", sourceName, targetNs, err)
 				return false, err
 			}
 			return false, nil
 		}
-		klog.Errorf("Failed to create ConfigMap %s in the namespace %s : %s", sourceName, targetNs, err)
+		klog.Errorf("Failed to create ConfigMap %s in the namespace %s: %s", sourceName, targetNs, err)
 		return false, err
 
 	}
 	// Set the OperandBindInfo as the controller of the operand Configmap
 	if err := controllerutil.SetOwnerReference(bindInfoInstance, cm, r.scheme); err != nil {
-		klog.Errorf("Failed to set OperandRequest %s as thr Owner of Configmap %s : %s", bindInfoInstance.Name, sourceName, err)
+		klog.Errorf("Failed to set OperandRequest %s as the owner of Configmap %s: %s", bindInfoInstance.Name, sourceName, err)
 		return false, err
 	}
 	// Update the operand Configmap
 	if err := r.client.Update(context.TODO(), cm); err != nil {
-		klog.Errorf("Failed to update Configmap %s in the namespace %s : %s", cm.Name, cm.Namespace, err)
+		klog.Errorf("Failed to update Configmap %s in the namespace %s: %s", cm.Name, cm.Namespace, err)
 		return false, err
 	}
-	klog.V(2).Infof("Copy configmap %s from namespace %s to namespace %s", sourceName, sourceNs, targetNs)
+	klog.V(2).Infof("Copy configmap %s from the namespace %s to the namespace %s", sourceName, sourceNs, targetNs)
 
 	return false, nil
 }
 
 // Get the OperandBindInfo instance with the name and namespace
 func (r *ReconcileOperandBindInfo) getBindInfoInstance(name, namespace string) (*operatorv1alpha1.OperandBindInfo, error) {
-	klog.V(3).Info("Get the OperandBindInfo instance from the name: ", name, " namespace: ", namespace)
+	klog.V(3).Infof("Get the OperandBindInfo %s from the namespace %s", name, namespace)
 	// Fetch the OperandBindInfo instance
 	bindInfo := &operatorv1alpha1.OperandBindInfo{}
 	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, bindInfo); err != nil {

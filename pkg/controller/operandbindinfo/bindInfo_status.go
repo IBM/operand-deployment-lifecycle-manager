@@ -33,14 +33,20 @@ func (r *ReconcileOperandBindInfo) updateBindInfoPhase(cr *operatorv1alpha1.Oper
 		if err != nil {
 			return false, err
 		}
-		requestNsList := make([]string, len(requestNamespaces))
-		for index, ns := range requestNamespaces {
-			requestNsList[index] = ns.Namespace
+		var requestNsList []string
+		for _, ns := range requestNamespaces {
+			if ns.Namespace == bindInfoInstance.Namespace {
+				continue
+			}
+			requestNsList = append(requestNsList, ns.Namespace)
 		}
+		requestNsList = unique(requestNsList)
 		if bindInfoInstance.Status.Phase == phase && reflect.DeepEqual(requestNsList, bindInfoInstance.Status.RequestNamespaces) {
 			return true, nil
 		}
-		bindInfoInstance.Status.RequestNamespaces = requestNsList
+		if len(requestNsList) != 0 {
+			bindInfoInstance.Status.RequestNamespaces = requestNsList
+		}
 		bindInfoInstance.Status.Phase = phase
 		if err := r.client.Status().Update(context.TODO(), bindInfoInstance); err != nil {
 			klog.V(3).Info("Waiting for OperandBindInfo instance status ready ...")
@@ -51,4 +57,16 @@ func (r *ReconcileOperandBindInfo) updateBindInfoPhase(cr *operatorv1alpha1.Oper
 		return err
 	}
 	return nil
+}
+
+func unique(stringSlice []string) []string {
+	keys := make(map[string]bool)
+	list := []string{}
+	for _, entry := range stringSlice {
+		if _, value := keys[entry]; !value {
+			keys[entry] = true
+			list = append(list, entry)
+		}
+	}
+	return list
 }
