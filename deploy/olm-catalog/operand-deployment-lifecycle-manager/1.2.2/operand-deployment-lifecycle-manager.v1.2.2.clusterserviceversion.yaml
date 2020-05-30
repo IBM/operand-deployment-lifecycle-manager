@@ -83,7 +83,7 @@ metadata:
     categories: Developer Tools, Monitoring, Logging & Tracing, Security
     certified: "false"
     containerImage: quay.io/opencloudio/odlm:1.2.2
-    createdAt: "2020-05-20T12:40:16Z"
+    createdAt: "2020-05-30T12:04:06Z"
     description: The Operand Deployment Lifecycle Manager provides a Kubernetes CRD-based
       API to manage the lifecycle of IBM Cloud Platform common services.
     olm.skipRange: '>=1.1.0 <1.2.2'
@@ -466,7 +466,7 @@ spec:
                       fieldPath: metadata.namespace
                 - name: OPERATOR_NAME
                   value: operand-deployment-lifecycle-manager
-                image: quay.io/opencloudio/odlm: latest
+                image: quay.io/opencloudio/odlm:latest
                 imagePullPolicy: Always
                 name: operand-deployment-lifecycle-manager
                 resources:
