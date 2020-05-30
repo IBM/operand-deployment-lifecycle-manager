@@ -504,7 +504,7 @@ spec:
   - name: IBM Operand Deployment Lifecycle Manager Project
     url: https://github.com/IBM/operand-deployment-lifecycle-manager
   maintainers:
-  - email: supports@ibm.com
+  - email: support@ibm.com
     name: IBM Support
   maturity: stable
   provider:
