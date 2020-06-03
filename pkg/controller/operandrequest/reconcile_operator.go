@@ -29,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
@@ -273,13 +272,17 @@ func (r *ReconcileOperandRequest) deleteSubscription(operandName string, request
 			return err
 		}
 		if err := r.olmClient.OperatorsV1alpha1().Subscriptions(opt.Namespace).Delete(opt.Name, &metav1.DeleteOptions{}); err != nil {
-			klog.Error("Failed to update delete subscription: ", err)
-			requestInstance.SetDeletingCondition(opt.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionFalse)
-			if updateErr := r.client.Status().Update(context.TODO(), requestInstance); updateErr != nil {
-				klog.Error("Failed to update delete condition for operandRequest: ", updateErr)
-				return updateErr
+			if errors.IsNotFound(err) {
+				klog.Warningf("Subscription %s does not found", opt.Name)
+			} else {
+				klog.Error("Failed to delete subscription: ", err)
+				requestInstance.SetDeletingCondition(opt.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionFalse)
+				if updateErr := r.client.Status().Update(context.TODO(), requestInstance); updateErr != nil {
+					klog.Error("Failed to update delete condition for operandRequest: ", updateErr)
+					return updateErr
+				}
+				return err
 			}
-			return client.IgnoreNotFound(err)
 		}
 
 		requestInstance.CleanMemberStatus(opt.Name)
