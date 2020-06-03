@@ -191,7 +191,6 @@ func preDeleteCheck(operandName string, rr reconcile.Request, registryInstance *
 }
 
 func (r *ReconcileOperandRequest) deleteSubscription(operandName string, requestInstance *operatorv1alpha1.OperandRequest, registryInstance *operatorv1alpha1.OperandRegistry, configInstance *operatorv1alpha1.OperandConfig, rr reconcile.Request) error {
-	klog.V(2).Info("Deleting Subscription: ", operandName)
 	pos, rrs := preDeleteCheck(operandName, rr, registryInstance)
 
 	// If subscription not find in the registry status, nothing to do, return nil
@@ -224,6 +223,7 @@ func (r *ReconcileOperandRequest) deleteSubscription(operandName string, request
 	//       - name: request-2
 	//         namespace: common-services-ns
 	if rrs > 1 {
+		klog.V(3).Info("This operator is used by others OperandRequest, only update the status")
 		requestInstance.CleanMemberStatus(operandName)
 		if err := r.client.Status().Update(context.TODO(), requestInstance); err != nil {
 			return err
@@ -241,18 +241,20 @@ func (r *ReconcileOperandRequest) deleteSubscription(operandName string, request
 	}
 
 	if csv != nil {
-		klog.V(2).Info("Deleting a Custom Resource")
+		klog.V(2).Infof("Deleting all the Custom Resources for CSV, Namespace: %s, Name: %s", csv.Namespace, csv.Name)
 		if err := r.deleteAllCustomResource(csv, configInstance, operandName); err != nil {
 			klog.Error("Failed to Delete a Custom Resource: ", err)
 			return err
 		}
+
 		klog.V(3).Info("Set Deleting Condition in the operandRequest")
 		requestInstance.SetDeletingCondition(csv.Name, operatorv1alpha1.ResourceTypeCsv, corev1.ConditionTrue)
 		if err := r.client.Status().Update(context.TODO(), requestInstance); err != nil {
 			klog.Error("Failed to update operandRequest status:", err)
 			return err
 		}
-		klog.V(2).Info("Deleting the ClusterServiceVersion")
+
+		klog.V(2).Infof("Deleting the ClusterServiceVersion, Namespace: %s, Name: %s", csv.Namespace, csv.Name)
 		if err := r.olmClient.OperatorsV1alpha1().ClusterServiceVersions(csv.Namespace).Delete(csv.Name, &metav1.DeleteOptions{}); err != nil {
 			klog.Error("Failed to delete the ClusterServiceVersion: ", err)
 			requestInstance.SetDeletingCondition(csv.Name, operatorv1alpha1.ResourceTypeCsv, corev1.ConditionFalse)
@@ -265,7 +267,7 @@ func (r *ReconcileOperandRequest) deleteSubscription(operandName string, request
 
 	opt := registryInstance.GetOperator(operandName)
 	if opt != nil {
-		klog.V(2).Info("Deleting the Subscription")
+		klog.V(2).Infof("Deleting the Subscription, Namespace: %s, Name: %s", opt.Namespace, opt.Name)
 		requestInstance.SetDeletingCondition(opt.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionTrue)
 		if err := r.client.Status().Update(context.TODO(), requestInstance); err != nil {
 			klog.Error("Failed to update delete condition for operandRequest: ", err)
