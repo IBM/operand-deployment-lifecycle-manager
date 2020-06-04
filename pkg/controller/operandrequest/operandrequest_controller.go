@@ -26,7 +26,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -175,22 +174,13 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, err
 	}
 
-	// Fetch Subscriptions and check the status of install plan
-	err := r.waitForInstallPlan(requestInstance, request)
-	if err != nil {
-		if err.Error() == "timed out waiting for the condition" {
-			return reconcile.Result{Requeue: true}, nil
-		}
-		return reconcile.Result{}, err
-	}
-
 	// Update request status after subscription ready
 	if err := r.updateMemberStatus(requestInstance); err != nil {
 		return reconcile.Result{}, err
 	}
 
 	// Reconcile the Operand
-	merr := r.reconcileOperand(requestInstance)
+	merr := r.reconcileOperand(requestInstance, request)
 
 	if len(merr.Errors) != 0 {
 		return reconcile.Result{}, merr
@@ -208,69 +198,6 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 	}
 
 	return reconcile.Result{}, nil
-}
-
-func (r *ReconcileOperandRequest) waitForInstallPlan(requestInstance *operatorv1alpha1.OperandRequest, reconcileReq reconcile.Request) error {
-	klog.V(2).Info("Waiting for subscriptions to be ready ...")
-
-	subs := make(map[string]string)
-	err := wait.PollImmediate(time.Second*20, time.Minute*10, func() (bool, error) {
-		ready := true
-		for _, req := range requestInstance.Spec.Requests {
-			registryInstance, err := r.getRegistryInstance(req.Registry, req.RegistryNamespace)
-			if err != nil {
-				return false, err
-			}
-			for _, operand := range req.Operands {
-				// Check the requested Operand if exist in specific OperandRegistry
-				opt := registryInstance.GetOperator(operand.Name)
-				if opt != nil {
-					// Check subscription if exist
-					found, err := r.olmClient.OperatorsV1alpha1().Subscriptions(opt.Namespace).Get(opt.Name, metav1.GetOptions{})
-					if err != nil {
-						return false, err
-					}
-					// Subscription existing and managed by OperandRequest controller
-					if _, ok := found.Labels["operator.ibm.com/opreq-control"]; ok {
-						if found.Status.Install == nil {
-							subs[found.ObjectMeta.Name] = "Install Plan is not ready"
-							ready = false
-							continue
-						}
-						ip, err := r.olmClient.OperatorsV1alpha1().InstallPlans(found.Namespace).Get(found.Status.InstallPlanRef.Name, metav1.GetOptions{})
-
-						if err != nil {
-							err := r.updateRegistryStatus(registryInstance, reconcileReq, found.ObjectMeta.Name, operatorv1alpha1.OperatorFailed)
-							return false, err
-						}
-
-						if ip.Status.Phase != olmv1alpha1.InstallPlanPhaseComplete {
-							subs[found.ObjectMeta.Name] = "Cluster Service Version is not ready"
-							ready = false
-							continue
-						}
-
-						err = r.updateRegistryStatus(registryInstance, reconcileReq, found.ObjectMeta.Name, operatorv1alpha1.OperatorRunning)
-						if err != nil {
-							return false, err
-						}
-						subs[found.ObjectMeta.Name] = "Ready"
-					} else {
-						// Subscription existing and not managed by OperandRequest controller
-						klog.V(2).Infof("Subscription %s in the namespace %s isn't created by ODLM. Ignore update/delete it", found.Name, found.Namespace)
-					}
-				}
-			}
-		}
-		return ready, nil
-	})
-	for sub, state := range subs {
-		klog.V(2).Info("Subscription: " + sub + ", state: " + state)
-	}
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func (r *ReconcileOperandRequest) addFinalizer(cr *operatorv1alpha1.OperandRequest) error {

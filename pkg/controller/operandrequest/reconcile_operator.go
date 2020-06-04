@@ -235,7 +235,8 @@ func (r *ReconcileOperandRequest) deleteSubscription(operandName string, request
 		return nil
 	}
 
-	csv, err := r.getClusterServiceVersion(operandName)
+	op := registryInstance.GetOperator(operandName)
+	csv, err := r.getClusterServiceVersion(operandName, op.Namespace)
 	// If can't get CSV, requeue the request
 	if err != nil {
 		return err
