@@ -35,24 +35,22 @@ import (
 
 // TestRegistryController runs ReconcileOperandRegistry.Reconcile() against a
 // fake client that tracks a OperandRegistry object.
-func TestRegistryController(t *testing.T) {
+func TestRegistryRequestController(t *testing.T) {
 	var (
 		name              = "common-service"
 		namespace         = "ibm-common-service"
 		requestName       = "ibm-cloudpak-name"
 		requestNamespace  = "ibm-cloudpak"
-		operatorName      = "ibm-operator-name"
 		operatorNamespace = "ibm-operators"
 	)
 
 	req := getReconcileRequest(name, namespace)
-	r := getReconciler(name, namespace, requestName, requestNamespace, operatorName, operatorNamespace)
+	r := getRequestReconciler(name, namespace, requestName, requestNamespace, operatorNamespace)
 
-	initReconcile(t, r, req, requestName, requestNamespace, operatorName, operatorNamespace)
-
+	initRegistryRequestReconcile(t, r, req, requestName, requestNamespace)
 }
 
-func initReconcile(t *testing.T, r ReconcileOperandRegistry, req reconcile.Request, requestName, requestNamespace, operatorName, operatorNamespace string) {
+func initRegistryRequestReconcile(t *testing.T, r ReconcileOperandRegistryRequest, req reconcile.Request, requestName, requestNamespace string) {
 	assert := assert.New(t)
 
 	_, err := r.Reconcile(req)
@@ -69,14 +67,6 @@ func initReconcile(t *testing.T, r ReconcileOperandRegistry, req reconcile.Reque
 	assert.NotNil(registry.Status, "init operator status should not be empty")
 	assert.Equalf(v1alpha1.OperatorInit, registry.Status.Phase, "Overall OperandRegistry phase should be 'Initialized'")
 
-	bindInfo := &v1alpha1.OperandBindInfo{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{Name: operatorName, Namespace: operatorNamespace}, bindInfo)
-	assert.NoError(err)
-
-	// Check the OperandBindInfo status
-	assert.NotNil(bindInfo.Status, "init OperandBindInfo status should not be empty")
-	assert.Equalf(v1alpha1.BindInfoUpdating, bindInfo.Status.Phase, "Overall OperandBindInfo phase should be 'Updating'")
-
 	request := &v1alpha1.OperandRequest{}
 	err = r.client.Get(context.TODO(), types.NamespacedName{Name: requestName, Namespace: requestNamespace}, request)
 	assert.NoError(err)
@@ -86,20 +76,20 @@ func initReconcile(t *testing.T, r ReconcileOperandRegistry, req reconcile.Reque
 	assert.Equalf(v1alpha1.ClusterPhaseUpdating, request.Status.Phase, "Overall OperandRequest phase should be 'Updating'")
 }
 
-func getReconciler(name, namespace, requestName, requestNamespace, operatorName, operatorNamespace string) ReconcileOperandRegistry {
+func getRequestReconciler(name, namespace, requestName, requestNamespace, operatorNamespace string) ReconcileOperandRegistryRequest {
 	s := scheme.Scheme
 	v1alpha1.SchemeBuilder.AddToScheme(s)
 	corev1.SchemeBuilder.AddToScheme(s)
 	v1beta2.SchemeBuilder.AddToScheme(s)
 	v1alpha2.SchemeBuilder.AddToScheme(s)
 
-	initData := initClientData(name, namespace, requestName, requestNamespace, operatorName, operatorNamespace)
+	initData := initRequestClientData(name, namespace, requestName, requestNamespace, operatorNamespace)
 
 	// Create a fake client to mock API calls.
 	client := fake.NewFakeClient(initData.objs...)
 
 	// Return a ReconcileOperandRegistry object with the scheme and fake client.
-	return ReconcileOperandRegistry{
+	return ReconcileOperandRegistryRequest{
 		scheme: s,
 		client: client,
 	}
@@ -119,14 +109,14 @@ type DataObj struct {
 	objs []runtime.Object
 }
 
-func initClientData(name, namespace, requestName, requestNamespace, operatorName, operatorNamespace string) *DataObj {
+func initRequestClientData(name, namespace, requestName, requestNamespace, operatorNamespace string) *DataObj {
 	return &DataObj{
 		objs: []runtime.Object{
 			operandRegistry(name, namespace, operatorNamespace),
 			operandRequest(name, namespace, requestName, requestNamespace),
-			operandBindInfo(name, namespace, operatorName, operatorNamespace),
-			configmap("cm", operatorNamespace),
-			secret("secret", operatorNamespace),
+			// operandBindInfo(name, namespace, operatorName, operatorNamespace),
+			// configmap("cm", operatorNamespace),
+			// secret("secret", operatorNamespace),
 		},
 	}
 }
@@ -192,6 +182,9 @@ func operandRequest(name, namespace, requestName, requestNamespace string) *v1al
 					},
 				},
 			},
+		},
+		Status: v1alpha1.OperandRequestStatus{
+			Phase: v1alpha1.ClusterPhaseRunning,
 		},
 	}
 }
