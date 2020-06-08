@@ -29,7 +29,7 @@ NAMESPACE=ibm-common-services
 # IMAGE_REPO, IMAGE_NAME and RELEASE_TAG environment variable.
 IMAGE_REPO ?= quay.io/opencloudio
 IMAGE_NAME ?= odlm
-CSV_VERSION ?= 1.2.1
+CSV_VERSION ?= 1.2.2
 
 QUAY_USERNAME ?=
 QUAY_PASSWORD ?=
