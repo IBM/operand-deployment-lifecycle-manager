@@ -31,7 +31,6 @@ import (
 type OperandConfigSpec struct {
 	// Services is a list of configuration of service
 	// +optional
-	// +listType=set
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
 	Services []ConfigService `json:"services,omitempty"`
 }

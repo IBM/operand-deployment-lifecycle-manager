@@ -74,7 +74,6 @@ const (
 type OperandRegistrySpec struct {
 	// Operators is a list of operator OLM definition
 	// +optional
-	// +listType=set
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
 	Operators []Operator `json:"operators,omitempty"`
 }

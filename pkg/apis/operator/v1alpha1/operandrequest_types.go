@@ -28,7 +28,6 @@ import (
 // +k8s:openapi-gen=true
 type OperandRequestSpec struct {
 	// Requests defines a list of operands installation
-	// +listType=set
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
 	Requests []Request `json:"requests"`
 }
@@ -113,12 +112,10 @@ type Condition struct {
 type OperandRequestStatus struct {
 	// Conditions represents the current state of the Request Service
 	// +optional
-	// +listType=set
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
 	Conditions []Condition `json:"conditions,omitempty"`
 	// Members represnets the current operand status of the set
 	// +optional
-	// +listType=set
 	Members []MemberStatus `json:"members,omitempty"`
 	// Phase is the cluster running phase
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
