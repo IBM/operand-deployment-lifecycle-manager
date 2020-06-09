@@ -18,6 +18,7 @@ package operandrequest
 
 import (
 	"context"
+	"reflect"
 	"time"
 
 	olmv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1"
@@ -26,13 +27,16 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
@@ -78,20 +82,53 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// TODO(user): Modify this to be the types you create that are owned by the primary resource
-	// Watch for changes to secondary resource Pods and requeue the owner OperandRequest
-	err = c.Watch(&source.Kind{Type: &olmv1alpha1.Subscription{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &operatorv1alpha1.OperandRequest{},
-	})
+	predicateConfigSpec := predicate.Funcs{
+		CreateFunc: func(e event.CreateEvent) bool {
+			return true
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return false
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			oldObject := e.ObjectOld.(*operatorv1alpha1.OperandConfig)
+			newObject := e.ObjectNew.(*operatorv1alpha1.OperandConfig)
+			return !reflect.DeepEqual(oldObject.Spec, newObject.Spec)
+		},
+		GenericFunc: func(e event.GenericEvent) bool {
+			return false
+		},
+	}
+
+	predicateRegistrySpec := predicate.Funcs{
+		CreateFunc: func(e event.CreateEvent) bool {
+			return true
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return false
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			oldObject := e.ObjectOld.(*operatorv1alpha1.OperandRegistry)
+			newObject := e.ObjectNew.(*operatorv1alpha1.OperandRegistry)
+			return !reflect.DeepEqual(oldObject.Spec, newObject.Spec)
+		},
+		GenericFunc: func(e event.GenericEvent) bool {
+			return false
+		},
+	}
+	// Watch for OperandConfig spec changes and requeue the OperandRequest
+	err = c.Watch(&source.Kind{Type: &operatorv1alpha1.OperandConfig{}}, &handler.EnqueueRequestsFromMapFunc{
+		ToRequests: getConfigToRquestMapper(mgr),
+	}, predicateConfigSpec)
+
 	if err != nil {
 		return err
 	}
 
-	err = c.Watch(&source.Kind{Type: &olmv1.OperatorGroup{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &operatorv1alpha1.OperandRequest{},
-	})
+	// Watch for OperandRegistry spec changes and requeue the OperandRequest
+	err = c.Watch(&source.Kind{Type: &operatorv1alpha1.OperandRegistry{}}, &handler.EnqueueRequestsFromMapFunc{
+		ToRequests: getRegistryToRquestMapper(mgr),
+	}, predicateRegistrySpec)
+
 	if err != nil {
 		return err
 	}
@@ -319,4 +356,44 @@ func (r *ReconcileOperandRequest) checkFinalizer(requestInstance *operatorv1alph
 		}
 	}
 	return nil
+}
+
+func getRegistryToRquestMapper(mgr manager.Manager) handler.ToRequestsFunc {
+	return func(object handler.MapObject) []reconcile.Request {
+		mgrClient := mgr.GetClient()
+		requestList := &operatorv1alpha1.OperandRequestList{}
+		opts := []client.ListOption{
+			client.MatchingLabels(map[string]string{object.Meta.GetNamespace() + "." + object.Meta.GetName() + "/registry": "true"}),
+		}
+
+		_ = mgrClient.List(context.TODO(), requestList, opts...)
+
+		requests := []reconcile.Request{}
+		for _, request := range requestList.Items {
+			namespaceName := types.NamespacedName{Name: request.Name, Namespace: request.Namespace}
+			req := reconcile.Request{NamespacedName: namespaceName}
+			requests = append(requests, req)
+		}
+		return requests
+	}
+}
+
+func getConfigToRquestMapper(mgr manager.Manager) handler.ToRequestsFunc {
+	return func(object handler.MapObject) []reconcile.Request {
+		mgrClient := mgr.GetClient()
+		requestList := &operatorv1alpha1.OperandRequestList{}
+		opts := []client.ListOption{
+			client.MatchingLabels(map[string]string{object.Meta.GetNamespace() + "." + object.Meta.GetName() + "/config": "true"}),
+		}
+
+		_ = mgrClient.List(context.TODO(), requestList, opts...)
+
+		requests := []reconcile.Request{}
+		for _, request := range requestList.Items {
+			namespaceName := types.NamespacedName{Name: request.Name, Namespace: request.Namespace}
+			req := reconcile.Request{NamespacedName: namespaceName}
+			requests = append(requests, req)
+		}
+		return requests
+	}
 }

@@ -97,32 +97,5 @@ func (r *ReconcileOperandConfig) Reconcile(request reconcile.Request) (reconcile
 		return reconcile.Result{}, err
 	}
 
-	if err := r.updateOperandRequestStatus(request); err != nil {
-		return reconcile.Result{}, err
-	}
-
 	return reconcile.Result{}, nil
-}
-
-// updateOperandRequestStatus update the cluster phase of OperandRequest
-// When the config changed, query all the OperandRequests that use it, and then
-// update these OperandRequest's Phase to Updating, to trigger reconcile of these OperandRequests.
-func (r *ReconcileOperandConfig) updateOperandRequestStatus(request reconcile.Request) error {
-	// Get the requests related with current config
-	requestList := &operatorv1alpha1.OperandRequestList{}
-
-	opts := []client.ListOption{
-		client.MatchingLabels(map[string]string{request.Namespace + "." + request.Name + "/config": "true"}),
-	}
-	if err := r.client.List(context.TODO(), requestList, opts...); err != nil {
-		return err
-	}
-
-	for _, req := range requestList.Items {
-		req.SetUpdatingClusterPhase()
-		if err := r.client.Status().Update(context.TODO(), &req); err != nil {
-			return err
-		}
-	}
-	return nil
 }
