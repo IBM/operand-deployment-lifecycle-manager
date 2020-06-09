@@ -22,6 +22,8 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 // The OperandRequestSpec identifies one or more specific operands (from a specific Registry) that should actually be installed
@@ -410,6 +412,20 @@ func (r *OperandRequest) AddLabels() {
 		r.Labels[req.RegistryNamespace+"."+req.Registry+"/registry"] = "true"
 		r.Labels[req.RegistryNamespace+"."+req.Registry+"/config"] = "true"
 	}
+}
+
+// GetAllReconcileRequest gets all the ReconcileRequest from OperandRegistry status
+func (r *OperandRequest) GetAllReconcileRequest() []reconcile.Request {
+	rrs := []reconcile.Request{}
+	for _, r := range r.Spec.Requests {
+		rr := reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      r.Registry,
+				Namespace: r.RegistryNamespace,
+			}}
+		rrs = append(rrs, rr)
+	}
+	return rrs
 }
 
 func init() {
