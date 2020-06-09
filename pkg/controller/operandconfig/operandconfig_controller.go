@@ -119,8 +119,10 @@ func (r *ReconcileOperandConfig) updateOperandRequestStatus(request reconcile.Re
 	}
 
 	for _, req := range requestList.Items {
-		req.SetUpdatingClusterPhase()
-		if err := r.client.Status().Update(context.TODO(), &req); err != nil {
+		// Fix G601: Implicit memory aliasing in for loop.
+		request := req
+		request.SetUpdatingClusterPhase()
+		if err := r.client.Status().Update(context.TODO(), &request); err != nil {
 			return err
 		}
 	}
