@@ -32,8 +32,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
@@ -68,8 +70,34 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	predicateRegistrySpec := predicate.Funcs{
+		CreateFunc: func(e event.CreateEvent) bool {
+			return true
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return false
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			oldObject := e.ObjectOld.(*operatorv1alpha1.OperandRegistry)
+			newObject := e.ObjectNew.(*operatorv1alpha1.OperandRegistry)
+			return !reflect.DeepEqual(oldObject.Status.OperatorsStatus, newObject.Status.OperatorsStatus)
+		},
+		GenericFunc: func(e event.GenericEvent) bool {
+			return false
+		},
+	}
+
 	// Watch for changes to primary resource OperandBindInfo
 	err = c.Watch(&source.Kind{Type: &operatorv1alpha1.OperandBindInfo{}}, &handler.EnqueueRequestForObject{})
+	if err != nil {
+		return err
+	}
+
+	// Watch for OperandRegistry status changes and requeue the OperandRequest
+	err = c.Watch(&source.Kind{Type: &operatorv1alpha1.OperandRegistry{}}, &handler.EnqueueRequestsFromMapFunc{
+		ToRequests: getRegistryToRquestMapper(mgr),
+	}, predicateRegistrySpec)
+
 	if err != nil {
 		return err
 	}
@@ -419,4 +447,24 @@ func getBindingInfofromRequest(bindInfoInstance *operatorv1alpha1.OperandBindInf
 		}
 	}
 	return secretReq, cmReq
+}
+
+func getRegistryToRquestMapper(mgr manager.Manager) handler.ToRequestsFunc {
+	return func(object handler.MapObject) []reconcile.Request {
+		mgrClient := mgr.GetClient()
+		bindInfoList := &operatorv1alpha1.OperandBindInfoList{}
+		opts := []client.ListOption{
+			client.MatchingLabels(map[string]string{object.Meta.GetNamespace() + "." + object.Meta.GetName() + "/registry": "true"}),
+		}
+
+		_ = mgrClient.List(context.TODO(), bindInfoList, opts...)
+
+		bindinfos := []reconcile.Request{}
+		for _, bindinfo := range bindInfoList.Items {
+			namespaceName := types.NamespacedName{Name: bindinfo.Name, Namespace: bindinfo.Namespace}
+			req := reconcile.Request{NamespacedName: namespaceName}
+			bindinfos = append(bindinfos, req)
+		}
+		return bindinfos
+	}
 }

@@ -19,8 +19,6 @@ import (
 	"context"
 	"testing"
 
-	v1beta2 "github.com/coreos/etcd-operator/pkg/apis/etcd/v1beta2"
-	v1alpha2 "github.com/jenkinsci/kubernetes-operator/pkg/apis/jenkins/v1alpha2"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,20 +35,18 @@ import (
 // fake client that tracks a OperandConfig object.
 func TestConfigController(t *testing.T) {
 	var (
-		name             = "common-service"
-		namespace        = "ibm-common-service"
-		requestName      = "ibm-cloudpak-name"
-		requestNamespace = "ibm-cloudpak"
+		name      = "common-service"
+		namespace = "ibm-common-service"
 	)
 
 	req := getReconcileRequest(name, namespace)
-	r := getReconciler(name, namespace, requestName, requestNamespace)
+	r := getReconciler(name, namespace)
 
-	initReconcile(t, r, req, requestName, requestNamespace)
+	initReconcile(t, r, req)
 
 }
 
-func initReconcile(t *testing.T, r ReconcileOperandConfig, req reconcile.Request, requestName, requestNamespace string) {
+func initReconcile(t *testing.T, r ReconcileOperandConfig, req reconcile.Request) {
 	assert := assert.New(t)
 
 	_, err := r.Reconcile(req)
@@ -62,24 +58,14 @@ func initReconcile(t *testing.T, r ReconcileOperandConfig, req reconcile.Request
 	// Check the config init status
 	assert.NotNil(config.Status, "init operator status should not be empty")
 	assert.Equal(v1alpha1.ServiceInit, config.Status.Phase, "Overall OperandConfig phase should be 'Initialized'")
-
-	request := &v1alpha1.OperandRequest{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{Name: requestName, Namespace: requestNamespace}, request)
-	assert.NoError(err)
-
-	// Check the OperandRequest status
-	assert.NotNil(request.Status, "init OperandRequest status should not be empty")
-	assert.Equalf(v1alpha1.ClusterPhaseUpdating, request.Status.Phase, "Overall OperandRequest phase should be 'Updating'")
 }
 
-func getReconciler(name, namespace, requestName, requestNamespace string) ReconcileOperandConfig {
+func getReconciler(name, namespace string) ReconcileOperandConfig {
 	s := scheme.Scheme
 	v1alpha1.SchemeBuilder.AddToScheme(s)
 	corev1.SchemeBuilder.AddToScheme(s)
-	v1beta2.SchemeBuilder.AddToScheme(s)
-	v1alpha2.SchemeBuilder.AddToScheme(s)
 
-	initData := initClientData(name, namespace, requestName, requestNamespace)
+	initData := initClientData(name, namespace)
 
 	// Create a fake client to mock API calls.
 	client := fake.NewFakeClient(initData.objs...)
@@ -95,10 +81,9 @@ type DataObj struct {
 	objs []runtime.Object
 }
 
-func initClientData(name, namespace, requestName, requestNamespace string) *DataObj {
+func initClientData(name, namespace string) *DataObj {
 	return &DataObj{
 		objs: []runtime.Object{
-			operandRequest(name, namespace, requestName, requestNamespace),
 			operandConfig(name, namespace)},
 	}
 }
@@ -132,35 +117,6 @@ func operandConfig(name, namespace string) *v1alpha1.OperandConfig {
 					Name: "jenkins",
 					Spec: map[string]runtime.RawExtension{
 						"jenkins": {Raw: []byte(`{"service":{"port": 8081}}`)},
-					},
-				},
-			},
-		},
-	}
-}
-
-// Return OperandRequest obj
-func operandRequest(name, namespace, requestName, requestNamespace string) *v1alpha1.OperandRequest {
-	return &v1alpha1.OperandRequest{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      requestName,
-			Namespace: requestNamespace,
-			Labels: map[string]string{
-				namespace + "." + name + "/config": "true",
-			},
-		},
-		Spec: v1alpha1.OperandRequestSpec{
-			Requests: []v1alpha1.Request{
-				{
-					Registry:          name,
-					RegistryNamespace: namespace,
-					Operands: []v1alpha1.Operand{
-						{
-							Name: "etcd",
-						},
-						{
-							Name: "jenkins",
-						},
 					},
 				},
 			},

@@ -27,6 +27,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -82,11 +83,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	// Watch for changes to resource OperandRegistry
 	if err := c.Watch(&source.Kind{Type: &operatorv1alpha1.OperandRegistry{}}, &handler.EnqueueRequestsFromMapFunc{
-		ToRequests: handler.ToRequestsFunc(
-			func(a handler.MapObject) []reconcile.Request {
-				or := a.Object.(*operatorv1alpha1.OperandRegistry)
-				return or.GetAllReconcileRequest()
-			}),
+		ToRequests: getRegistryToRquestMapper(mgr),
 	}, predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			oldObject := e.ObjectOld.(*operatorv1alpha1.OperandRegistry)
@@ -101,21 +98,29 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// TODO(user): Modify this to be the types you create that are owned by the primary resource
-	// Watch for changes to secondary resource Pods and requeue the owner OperandRequest
-	err = c.Watch(&source.Kind{Type: &olmv1alpha1.Subscription{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &operatorv1alpha1.OperandRequest{},
-	})
-	if err != nil {
+	// Watch for OperandConfig spec changes and requeue the OperandRequest
+	if err = c.Watch(&source.Kind{Type: &operatorv1alpha1.OperandConfig{}}, &handler.EnqueueRequestsFromMapFunc{
+		ToRequests: getConfigToRquestMapper(mgr),
+	}, predicate.Funcs{
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			// Evaluates to false if the object has been confirmed deleted.
+			return !e.DeleteStateUnknown
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			oldObject := e.ObjectOld.(*operatorv1alpha1.OperandConfig)
+			newObject := e.ObjectNew.(*operatorv1alpha1.OperandConfig)
+			return !reflect.DeepEqual(oldObject.Spec, newObject.Spec)
+		},
+	}); err != nil {
 		return err
 	}
 
-	err = c.Watch(&source.Kind{Type: &olmv1.OperatorGroup{}}, &handler.EnqueueRequestForOwner{
+	// TODO(user): Modify this to be the types you create that are owned by the primary resource
+	// Watch for changes to secondary resource Pods and requeue the owner OperandRequest
+	if err = c.Watch(&source.Kind{Type: &olmv1alpha1.Subscription{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
 		OwnerType:    &operatorv1alpha1.OperandRequest{},
-	})
-	if err != nil {
+	}); err != nil {
 		return err
 	}
 
@@ -270,4 +275,44 @@ func (r *ReconcileOperandRequest) checkFinalizer(requestInstance *operatorv1alph
 		}
 	}
 	return nil
+}
+
+func getRegistryToRquestMapper(mgr manager.Manager) handler.ToRequestsFunc {
+	return func(object handler.MapObject) []reconcile.Request {
+		mgrClient := mgr.GetClient()
+		requestList := &operatorv1alpha1.OperandRequestList{}
+		opts := []client.ListOption{
+			client.MatchingLabels(map[string]string{object.Meta.GetNamespace() + "." + object.Meta.GetName() + "/registry": "true"}),
+		}
+
+		_ = mgrClient.List(context.TODO(), requestList, opts...)
+
+		requests := []reconcile.Request{}
+		for _, request := range requestList.Items {
+			namespaceName := types.NamespacedName{Name: request.Name, Namespace: request.Namespace}
+			req := reconcile.Request{NamespacedName: namespaceName}
+			requests = append(requests, req)
+		}
+		return requests
+	}
+}
+
+func getConfigToRquestMapper(mgr manager.Manager) handler.ToRequestsFunc {
+	return func(object handler.MapObject) []reconcile.Request {
+		mgrClient := mgr.GetClient()
+		requestList := &operatorv1alpha1.OperandRequestList{}
+		opts := []client.ListOption{
+			client.MatchingLabels(map[string]string{object.Meta.GetNamespace() + "." + object.Meta.GetName() + "/config": "true"}),
+		}
+
+		_ = mgrClient.List(context.TODO(), requestList, opts...)
+
+		requests := []reconcile.Request{}
+		for _, request := range requestList.Items {
+			namespaceName := types.NamespacedName{Name: request.Name, Namespace: request.Namespace}
+			req := reconcile.Request{NamespacedName: namespaceName}
+			requests = append(requests, req)
+		}
+		return requests
+	}
 }
