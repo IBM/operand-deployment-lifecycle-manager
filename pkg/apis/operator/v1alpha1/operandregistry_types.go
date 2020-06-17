@@ -20,6 +20,7 @@ import (
 	"reflect"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -236,6 +237,26 @@ func (r *OperandRegistry) GetOperator(operandName string) *Operator {
 		}
 	}
 	return nil
+}
+
+// GetAllReconcileRequest gets all the ReconcileRequest from OperandRegistry status
+func (r *OperandRegistry) GetAllReconcileRequest() []reconcile.Request {
+	maprrs := make(map[string]reconcile.Request)
+	for _, os := range r.Status.OperatorsStatus {
+		for _, rr := range os.ReconcileRequests {
+			key := rr.Namespace + "/" + rr.Name
+			maprrs[key] = reconcile.Request{NamespacedName: types.NamespacedName{
+				Name:      rr.Name,
+				Namespace: rr.Namespace,
+			}}
+		}
+	}
+
+	rrs := []reconcile.Request{}
+	for _, rr := range maprrs {
+		rrs = append(rrs, rr)
+	}
+	return rrs
 }
 
 func init() {

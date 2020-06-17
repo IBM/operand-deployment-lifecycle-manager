@@ -132,8 +132,10 @@ func (r *ReconcileOperandRegistry) updateOperandRequestStatus(request reconcile.
 	}
 
 	for _, req := range requestList.Items {
-		req.SetUpdatingClusterPhase()
-		if err := r.client.Status().Update(context.TODO(), &req); err != nil {
+		// Fix G601: Implicit memory aliasing in for loop.
+		request := req
+		request.SetUpdatingClusterPhase()
+		if err := r.client.Status().Update(context.TODO(), &request); err != nil {
 			return err
 		}
 	}
@@ -155,8 +157,10 @@ func (r *ReconcileOperandRegistry) updateOperandBindInfoStatus(request reconcile
 	}
 
 	for _, binding := range bindInfoList.Items {
-		binding.SetUpdatingBindInfoPhase()
-		if err := r.client.Status().Update(context.TODO(), &binding); err != nil {
+		// Fix G601: Implicit memory aliasing in for loop.
+		bi := binding
+		bi.SetUpdatingBindInfoPhase()
+		if err := r.client.Status().Update(context.TODO(), &bi); err != nil {
 			return err
 		}
 	}

@@ -18,6 +18,7 @@ package operandrequest
 
 import (
 	"context"
+	"reflect"
 	"time"
 
 	olmv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1"
@@ -30,8 +31,10 @@ import (
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
@@ -74,6 +77,27 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Watch for changes to primary resource OperandRequest
 	err = c.Watch(&source.Kind{Type: &operatorv1alpha1.OperandRequest{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
+		return err
+	}
+
+	// Watch for changes to resource OperandRegistry
+	if err := c.Watch(&source.Kind{Type: &operatorv1alpha1.OperandRegistry{}}, &handler.EnqueueRequestsFromMapFunc{
+		ToRequests: handler.ToRequestsFunc(
+			func(a handler.MapObject) []reconcile.Request {
+				or := a.Object.(*operatorv1alpha1.OperandRegistry)
+				return or.GetAllReconcileRequest()
+			}),
+	}, predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			oldObject := e.ObjectOld.(*operatorv1alpha1.OperandRegistry)
+			newObject := e.ObjectNew.(*operatorv1alpha1.OperandRegistry)
+			return !reflect.DeepEqual(oldObject.Spec, newObject.Spec)
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			// Evaluates to false if the object has been confirmed deleted.
+			return !e.DeleteStateUnknown
+		},
+	}); err != nil {
 		return err
 	}
 
