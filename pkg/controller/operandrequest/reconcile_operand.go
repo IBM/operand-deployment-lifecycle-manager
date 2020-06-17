@@ -19,6 +19,7 @@ package operandrequest
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"time"
 
@@ -29,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 	util "github.com/IBM/operand-deployment-lifecycle-manager/pkg/util"
@@ -36,44 +38,75 @@ import (
 
 const t = "true"
 
-func (r *ReconcileOperandRequest) reconcileOperand(requestInstance *operatorv1alpha1.OperandRequest) *util.MultiErr {
+func (r *ReconcileOperandRequest) reconcileOperand(requestInstance *operatorv1alpha1.OperandRequest, reconcileReq reconcile.Request) *util.MultiErr {
 	klog.V(1).Info("Reconciling Operands")
 	merr := &util.MultiErr{}
 
 	for _, req := range requestInstance.Spec.Requests {
+		configInstance, err := r.getConfigInstance(req.Registry, req.RegistryNamespace)
+		if err != nil {
+			klog.Error("Failed to get the operandconfig instance: ", err)
+			merr.Add(err)
+			continue
+		}
+		registryInstance, err := r.getRegistryInstance(req.Registry, req.RegistryNamespace)
+		if err != nil {
+			klog.Error("Failed to get the operandregistry instance: ", err)
+			merr.Add(err)
+			continue
+		}
 		for _, operand := range req.Operands {
-			configInstance, err := r.getConfigInstance(req.Registry, req.RegistryNamespace)
+
+			// Check the requested Service Config if exist in specific OperandConfig
+			opdConfig := configInstance.GetService(operand.Name)
+			if opdConfig == nil {
+				klog.Warningf("Cannot find %s in the operandconfig instance %s in the namespace %s ", operand.Name, req.Registry, req.RegistryNamespace)
+			}
+			opdRegistry := registryInstance.GetOperator(operand.Name)
+			if opdRegistry == nil {
+				klog.Warningf("Cannot find %s in the operandregistry instance %s in the namespace %s ", operand.Name, req.Registry, req.RegistryNamespace)
+			}
+
+			klog.V(3).Info("Looking for csv for the operator: ", opdConfig.Name)
+
+			// Looking for the CSV
+			csv, err := r.getClusterServiceVersion(opdConfig.Name, opdRegistry.Namespace)
+
+			// If can't get CSV, requeue the request
 			if err != nil {
-				klog.Error("Failed to get Operand Config Instance: ", err)
+				klog.Errorf("Failed to get the ClusterServiceVersion for the Subscription %s in the namespace %s: %s", opdConfig.Name, opdRegistry.Namespace, err)
 				merr.Add(err)
+				err = r.updateRegistryStatus(registryInstance, reconcileReq, operand.Name, operatorv1alpha1.OperatorFailed)
+				if err != nil {
+					klog.Error("Failed to get update operandregistry status: ", err)
+					merr.Add(err)
+				}
 				continue
 			}
-			// Check the requested Service Config if exist in specific OperandConfig
-			svc := configInstance.GetService(operand.Name)
-			if svc != nil {
-				klog.V(3).Info("Reconciling custom resource: ", svc.Name)
-				// Looking for the CSV
-				csv, err := r.getClusterServiceVersion(svc.Name)
 
-				// If can't get CSV, requeue the request
+			if csv == nil {
+				klog.Warningf("Failed to get the ClusterServiceVersion for the Subscription %s in the namespace %s", opdConfig.Name, opdRegistry.Namespace)
+				err = r.updateRegistryStatus(registryInstance, reconcileReq, operand.Name, operatorv1alpha1.OperatorInstalling)
 				if err != nil {
-					klog.Error("Failed to get Cluster Service Version: ", err)
-					merr.Add(err)
-					continue
-				}
-
-				if csv == nil {
-					continue
-				}
-
-				klog.V(3).Info("Generating custom resource base on Cluster Service Version: ", csv.ObjectMeta.Name)
-
-				// Merge and Generate CR
-				err = r.reconcileCr(svc, csv, configInstance)
-				if err != nil {
-					klog.Error("Failed to get create or update custom resource: ", err)
+					klog.Error("Failed to get update operandregistry status: ", err)
 					merr.Add(err)
 				}
+				continue
+			}
+
+			klog.V(3).Info("Generating customresource base on ClusterServiceVersion: ", csv.ObjectMeta.Name)
+
+			err = r.updateRegistryStatus(registryInstance, reconcileReq, operand.Name, operatorv1alpha1.OperatorRunning)
+			if err != nil {
+				klog.Error("Failed to get update operandregistry status: ", err)
+				merr.Add(err)
+			}
+
+			// Merge and Generate CR
+			err = r.reconcileCr(opdConfig, csv, configInstance)
+			if err != nil {
+				klog.Error("Failed to get create or update customresource: ", err)
+				merr.Add(err)
 			}
 		}
 	}
@@ -84,39 +117,72 @@ func (r *ReconcileOperandRequest) reconcileOperand(requestInstance *operatorv1al
 	return &util.MultiErr{}
 }
 
-// getCSV retrieves the Cluster Service Version
-func (r *ReconcileOperandRequest) getClusterServiceVersion(subName string) (*olmv1alpha1.ClusterServiceVersion, error) {
-	klog.V(3).Info("Looking for the Cluster Service Version ", "in Subscription: ", subName)
-	subs, listSubErr := r.olmClient.OperatorsV1alpha1().Subscriptions("").List(metav1.ListOptions{
-		LabelSelector: "operator.ibm.com/opreq-control",
-	})
-	if listSubErr != nil {
-		klog.Error("Failed to list subscriptions: ", listSubErr)
-		return nil, listSubErr
+// getCSV retrieves the ClusterServiceVersion
+func (r *ReconcileOperandRequest) getClusterServiceVersion(subName, subNamespace string) (*olmv1alpha1.ClusterServiceVersion, error) {
+	klog.V(3).Infof("Looking for the ClusterServiceVersion for Subscription %s in the namespace %s", subName, subNamespace)
+	sub, err := r.olmClient.OperatorsV1alpha1().Subscriptions(subNamespace).Get(subName, metav1.GetOptions{})
+	if errors.IsNotFound(err) {
+		klog.V(3).Infof("There is no Subscription %s in the namespace %s", subName, subNamespace)
+		return nil, nil
 	}
-	var csvName, csvNamespace string
-	for _, s := range subs.Items {
-		if s.Name == subName {
-			if s.Status.CurrentCSV == "" {
-				klog.V(3).Info("There is no Cluster Service Version for the Subscription: ", subName)
-				return nil, nil
-			}
-			csvName = s.Status.CurrentCSV
-			csvNamespace = s.Namespace
-			csv, getCSVErr := r.olmClient.OperatorsV1alpha1().ClusterServiceVersions(csvNamespace).Get(csvName, metav1.GetOptions{})
-			if getCSVErr != nil {
-				if errors.IsNotFound(getCSVErr) {
-					continue
-				}
-				klog.Error("Failed to get Cluster Service Version: ", getCSVErr)
-				return nil, getCSVErr
-			}
-			klog.V(3).Info("Get Cluster Service Version: ", csvName, " in namespace: ", csvNamespace)
-			return csv, nil
+	if err != nil {
+		klog.Error("Failed to list Subscriptions: ", err)
+		return nil, err
+	}
+
+	if _, ok := sub.Labels["operator.ibm.com/opreq-control"]; !ok {
+		// Subscription existing and not managed by OperandRequest controller
+		klog.V(2).Infof("Subscription %s in the namespace %s isn't created by ODLM. Ignore updating/deleting it", sub.Name, sub.Namespace)
+	}
+
+	// Subscription existing and managed by OperandRequest controller
+
+	if sub.Status.CurrentCSV == "" {
+		klog.V(3).Infof("The ClusterServiceVersion for Subscription %s is not ready. Will check it again", subName)
+		return nil, nil
+	}
+
+	csvName := sub.Status.CurrentCSV
+	csvNamespace := subNamespace
+
+	if sub.Status.Install == nil || sub.Status.InstallPlanRef.Name == "" {
+		klog.V(3).Infof("The Installplan for Subscription %s is not ready. Will check it again", subName)
+		return nil, nil
+	}
+
+	ipName := sub.Status.InstallPlanRef.Name
+	ipNamespace := subNamespace
+
+	// If the installplan is deleted after is completed, ODLM won't block the CR update.
+	ip, err := r.olmClient.OperatorsV1alpha1().InstallPlans(ipNamespace).Get(ipName, metav1.GetOptions{})
+	if err != nil && !errors.IsNotFound(err) {
+		klog.Errorf("Failed to get Installplan %s in the namespace %s: %s", ipName, ipNamespace, err)
+		return nil, err
+	} else if !errors.IsNotFound(err) && ip.Status.Phase == olmv1alpha1.InstallPlanPhaseFailed {
+		klog.Errorf("Installplan %s in the namespace %s is failed", ipName, ipNamespace)
+		return nil, fmt.Errorf("installplan %s in the namespace %s is failed", ipName, ipNamespace)
+	} else if !errors.IsNotFound(err) && ip.Status.Phase != olmv1alpha1.InstallPlanPhaseComplete {
+		klog.Infof("Installplan %s in the namespace %s is not ready", ipName, ipNamespace)
+		return nil, nil
+	}
+
+	csv, getCSVErr := r.olmClient.OperatorsV1alpha1().ClusterServiceVersions(csvNamespace).Get(csvName, metav1.GetOptions{})
+	if getCSVErr != nil {
+		if errors.IsNotFound(getCSVErr) {
+			klog.V(3).Infof("The Subscription %s is upgrading. Will check it when it is stable", subName)
+			return nil, nil
 		}
+		klog.Errorf("Failed to get ClusterServiceVersion %s in the namespace %s: %s", csvName, csvNamespace, getCSVErr)
+		return nil, getCSVErr
 	}
-	klog.V(3).Info("There is no Cluster Service Version for: ", subName)
-	return nil, nil
+
+	if csv.Status.Phase == olmv1alpha1.CSVPhaseFailed {
+		klog.Errorf("The ClusterServiceVersion for Subscription %s is Failed", subName)
+		return nil, fmt.Errorf("the ClusterServiceVersion for Subscription %s is Failed", subName)
+	}
+
+	klog.V(3).Infof("Get ClusterServiceVersion %s in the namespace %s", csvName, csvNamespace)
+	return csv, nil
 }
 
 // reconcileCr merge and create custom resource base on OperandConfig and CSV alm-examples
@@ -130,13 +196,13 @@ func (r *ReconcileOperandRequest) reconcileCr(service *operatorv1alpha1.ConfigSe
 	// Convert CR template string to slice
 	crTemplatesErr := json.Unmarshal([]byte(almExamples), &crTemplates)
 	if crTemplatesErr != nil {
-		klog.Errorf("Failed to convert alm-examples in the subscription %s to slice: %s", service.Name, crTemplatesErr)
+		klog.Errorf("Failed to convert alm-examples in the Subscription %s to slice: %s", service.Name, crTemplatesErr)
 		return crTemplatesErr
 	}
 
 	merr := &util.MultiErr{}
 
-	// Merge OperandConfig and Cluster Service Version alm-examples
+	// Merge OperandConfig and ClusterServiceVersion alm-examples
 	for _, crTemplate := range crTemplates {
 
 		// Create an unstruct object for CR and request its value to CR template
@@ -195,13 +261,13 @@ func (r *ReconcileOperandRequest) deleteAllCustomResource(csv *olmv1alpha1.Clust
 	// Convert CR template string to slice
 	crTemplatesErr := json.Unmarshal([]byte(almExamples), &crTemplates)
 	if crTemplatesErr != nil {
-		klog.Errorf("Failed to convert alm-examples in the subscription %s to slice: %s", service.Name, crTemplatesErr)
+		klog.Errorf("Failed to convert alm-examples in the Subscription %s to slice: %s", service.Name, crTemplatesErr)
 		return crTemplatesErr
 	}
 
 	merr := &util.MultiErr{}
 
-	// Merge OperandConfig and Cluster Service Version alm-examples
+	// Merge OperandConfig and ClusterServiceVersion alm-examples
 	for _, crTemplate := range crTemplates {
 
 		// Get CR from the alm-example

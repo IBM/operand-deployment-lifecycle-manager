@@ -145,11 +145,12 @@ type OperatorPhase string
 
 // Operator status
 const (
-	OperatorReady   OperatorPhase = "Ready for Deployment"
-	OperatorRunning OperatorPhase = "Running"
-	OperatorFailed  OperatorPhase = "Failed"
-	OperatorInit    OperatorPhase = "Initialized"
-	OperatorNone    OperatorPhase = ""
+	OperatorReady      OperatorPhase = "Ready for Deployment"
+	OperatorRunning    OperatorPhase = "Running"
+	OperatorInstalling OperatorPhase = "Installing"
+	OperatorFailed     OperatorPhase = "Failed"
+	OperatorInit       OperatorPhase = "Initialized"
+	OperatorNone       OperatorPhase = ""
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
