@@ -61,10 +61,12 @@ func (r *ReconcileOperandRequest) reconcileOperand(requestInstance *operatorv1al
 			opdConfig := configInstance.GetService(operand.Name)
 			if opdConfig == nil {
 				klog.Warningf("Cannot find %s in the operandconfig instance %s in the namespace %s ", operand.Name, req.Registry, req.RegistryNamespace)
+				continue
 			}
 			opdRegistry := registryInstance.GetOperator(operand.Name)
 			if opdRegistry == nil {
 				klog.Warningf("Cannot find %s in the operandregistry instance %s in the namespace %s ", operand.Name, req.Registry, req.RegistryNamespace)
+				continue
 			}
 
 			klog.V(3).Info("Looking for csv for the operator: ", opdConfig.Name)
