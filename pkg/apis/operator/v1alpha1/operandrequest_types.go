@@ -22,6 +22,8 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 // The OperandRequestSpec identifies one or more specific operands (from a specific Registry) that should actually be installed
@@ -75,11 +77,12 @@ const (
 	ConditionOutofScope ConditionType = "OutofScope"
 	ConditionReady      ConditionType = "Ready"
 
-	ClusterPhaseNone     ClusterPhase = "Pending"
-	ClusterPhaseCreating ClusterPhase = "Creating"
-	ClusterPhaseUpdating ClusterPhase = "Updating"
-	ClusterPhaseRunning  ClusterPhase = "Running"
-	ClusterPhaseFailed   ClusterPhase = "Failed"
+	ClusterPhaseNone       ClusterPhase = "Pending"
+	ClusterPhaseCreating   ClusterPhase = "Creating"
+	ClusterPhaseInstalling ClusterPhase = "Installing"
+	ClusterPhaseUpdating   ClusterPhase = "Updating"
+	ClusterPhaseRunning    ClusterPhase = "Running"
+	ClusterPhaseFailed     ClusterPhase = "Failed"
 
 	ResourceTypeSub      ResourceType = "subscription"
 	ResourceTypeCsv      ResourceType = "csv"
@@ -333,13 +336,15 @@ func (r *OperandRequest) SetUpdatingClusterPhase() {
 // Then summarize the cluster phase of the OperandRequest.
 func (r *OperandRequest) UpdateClusterPhase() {
 	clusterStatusStat := struct {
-		creatingNum int
-		runningNum  int
-		failedNum   int
+		creatingNum   int
+		runningNum    int
+		installingNum int
+		failedNum     int
 	}{
-		creatingNum: 0,
-		runningNum:  0,
-		failedNum:   0,
+		creatingNum:   0,
+		runningNum:    0,
+		installingNum: 0,
+		failedNum:     0,
 	}
 
 	for _, m := range r.Status.Members {
@@ -350,6 +355,8 @@ func (r *OperandRequest) UpdateClusterPhase() {
 			clusterStatusStat.failedNum++
 		case OperatorRunning:
 			clusterStatusStat.runningNum++
+		case OperatorInstalling:
+			clusterStatusStat.installingNum++
 		default:
 		}
 
@@ -367,6 +374,8 @@ func (r *OperandRequest) UpdateClusterPhase() {
 	var clusterPhase ClusterPhase
 	if clusterStatusStat.failedNum > 0 {
 		clusterPhase = ClusterPhaseFailed
+	} else if clusterStatusStat.installingNum > 0 {
+		clusterPhase = ClusterPhaseInstalling
 	} else if clusterStatusStat.creatingNum > 0 {
 		clusterPhase = ClusterPhaseCreating
 	} else if clusterStatusStat.runningNum > 0 {
@@ -410,6 +419,20 @@ func (r *OperandRequest) AddLabels() {
 		r.Labels[req.RegistryNamespace+"."+req.Registry+"/registry"] = "true"
 		r.Labels[req.RegistryNamespace+"."+req.Registry+"/config"] = "true"
 	}
+}
+
+// GetAllReconcileRequest gets all the ReconcileRequest from OperandRegistry status
+func (r *OperandRequest) GetAllReconcileRequest() []reconcile.Request {
+	rrs := []reconcile.Request{}
+	for _, r := range r.Spec.Requests {
+		rr := reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      r.Registry,
+				Namespace: r.RegistryNamespace,
+			}}
+		rrs = append(rrs, rr)
+	}
+	return rrs
 }
 
 func init() {
