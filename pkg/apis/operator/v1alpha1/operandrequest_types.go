@@ -68,6 +68,9 @@ type ClusterPhase string
 // ResourceType is the type of condition use
 type ResourceType string
 
+// OperatorPhase defines the operator status
+type OperatorPhase string
+
 // Constants are used for state
 const (
 	ConditionCreating   ConditionType = "Creating"
@@ -76,6 +79,14 @@ const (
 	ConditionNotFound   ConditionType = "NotFound"
 	ConditionOutofScope ConditionType = "OutofScope"
 	ConditionReady      ConditionType = "Ready"
+
+	OperatorReady      OperatorPhase = "Ready for Deployment"
+	OperatorRunning    OperatorPhase = "Running"
+	OperatorInstalling OperatorPhase = "Installing"
+	OperatorUpdating   OperatorPhase = "Updating"
+	OperatorFailed     OperatorPhase = "Failed"
+	OperatorInit       OperatorPhase = "Initialized"
+	OperatorNone       OperatorPhase = ""
 
 	ClusterPhaseNone       ClusterPhase = "Pending"
 	ClusterPhaseCreating   ClusterPhase = "Creating"
@@ -262,24 +273,24 @@ func newCondition(condType ConditionType, status corev1.ConditionStatus, reason,
 
 // SetMemberStatus appends a Member status in the Member status list
 func (r *OperandRequest) SetMemberStatus(name string, operatorPhase OperatorPhase, operandPhase ServicePhase) {
-	m := newMemberStatus(name, operatorPhase, operandPhase)
-	pos, mp := getMemberStatus(&r.Status, name)
-	if mp != nil {
-		if m.Phase.OperatorPhase != mp.Phase.OperatorPhase {
-			r.Status.Members[pos].Phase.OperatorPhase = m.Phase.OperatorPhase
+	pos, m := getMemberStatus(&r.Status, name)
+	if m != nil {
+		if operatorPhase != "" && operatorPhase != m.Phase.OperatorPhase {
+			r.Status.Members[pos].Phase.OperatorPhase = operatorPhase
 			r.setOperatorReadyCondition(m, name)
 		}
-		if m.Phase.OperandPhase != mp.Phase.OperandPhase {
-			r.Status.Members[pos].Phase.OperandPhase = m.Phase.OperandPhase
+		if operandPhase != "" && operandPhase != m.Phase.OperandPhase {
+			r.Status.Members[pos].Phase.OperandPhase = operandPhase
 			r.setOperandReadyCondition(m, name)
 		}
 	} else {
-		r.Status.Members = append(r.Status.Members, m)
-		r.setOperatorReadyCondition(m, name)
+		newM := newMemberStatus(name, operatorPhase, operandPhase)
+		r.Status.Members = append(r.Status.Members, newM)
+		r.setOperatorReadyCondition(&newM, name)
 	}
 }
 
-func (r *OperandRequest) setOperatorReadyCondition(m MemberStatus, name string) {
+func (r *OperandRequest) setOperatorReadyCondition(m *MemberStatus, name string) {
 	if m.Phase.OperatorPhase == OperatorRunning {
 		r.SetReadyCondition(name, ResourceTypeOperator, corev1.ConditionTrue)
 	} else {
@@ -287,7 +298,7 @@ func (r *OperandRequest) setOperatorReadyCondition(m MemberStatus, name string) 
 	}
 }
 
-func (r *OperandRequest) setOperandReadyCondition(m MemberStatus, name string) {
+func (r *OperandRequest) setOperandReadyCondition(m *MemberStatus, name string) {
 	if m.Phase.OperandPhase == ServiceRunning {
 		r.SetReadyCondition(name, ResourceTypeOperand, corev1.ConditionTrue)
 	} else {

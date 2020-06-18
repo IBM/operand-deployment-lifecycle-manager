@@ -160,7 +160,7 @@ func operandRegistry(namespace, registryName, registryNamespace, requestName, re
 			},
 		},
 		Status: v1alpha1.OperandRegistryStatus{
-			Phase: v1alpha1.OperatorRunning,
+			Phase: v1alpha1.RegistryRunning,
 			OperatorsStatus: map[string]v1alpha1.OperatorStatus{
 				"jenkins": {
 					Phase: v1alpha1.OperatorRunning,

@@ -36,6 +36,13 @@ import (
 
 func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1alpha1.OperandRequest, reconcileReq reconcile.Request) error {
 	klog.V(1).Info("Reconciling Operators")
+	// Update request phase status
+	defer func() {
+		requestInstance.UpdateClusterPhase()
+		if err := r.client.Status().Update(context.TODO(), requestInstance); err != nil {
+			klog.Error("Update request phase failed", err)
+		}
+	}()
 	for _, req := range requestInstance.Spec.Requests {
 		registryInstance, err := r.getRegistryInstance(req.Registry, req.RegistryNamespace)
 		if err != nil {
@@ -62,8 +69,10 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1a
 					if errors.IsNotFound(err) {
 						// Subscription does not exist, create a new one
 						if err = r.createSubscription(requestInstance, opt); err != nil {
+							requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorFailed, "")
 							return err
 						}
+						requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorInstalling, "")
 						continue
 					}
 					return err
@@ -74,8 +83,10 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1a
 					if found.Spec.Channel != opt.Channel {
 						found.Spec.Channel = opt.Channel
 						if err = r.updateSubscription(requestInstance, found); err != nil {
+							requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorFailed, "")
 							return err
 						}
+						requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorUpdating, "")
 					}
 				} else {
 					// Subscription existing and not managed by OperandRequest controller
@@ -228,9 +239,6 @@ func (r *ReconcileOperandRequest) deleteSubscription(operandName string, request
 		if err := r.client.Status().Update(context.TODO(), requestInstance); err != nil {
 			return err
 		}
-		if err := r.deleteRegistryStatus(registryInstance, rr, operandName); err != nil {
-			return err
-		}
 		return nil
 	}
 
@@ -291,10 +299,6 @@ func (r *ReconcileOperandRequest) deleteSubscription(operandName string, request
 		requestInstance.CleanMemberStatus(opt.Name)
 		if err := r.client.Status().Update(context.TODO(), requestInstance); err != nil {
 			klog.Error("Failed to delete member in the operandRequest status: ", err)
-			return err
-		}
-		if err := r.deleteRegistryStatus(registryInstance, rr, opt.Name); err != nil {
-			klog.Error("Failed to delete operandRegistry status: ", err)
 			return err
 		}
 	}
