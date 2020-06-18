@@ -523,35 +523,35 @@ func (r *ReconcileOperandRequest) deleteCustomResource(unstruct unstructured.Uns
 				klog.Error("Failed to delete the custom resource should be deleted: ", deleteErr)
 				return deleteErr
 			}
-			if !strings.EqualFold(kind, "OperandRequest") {
-				klog.V(3).Infof("Waiting for CR %s is deleted", kind)
-				err := wait.PollImmediate(time.Second*20, time.Minute*10, func() (bool, error) {
-					klog.V(3).Infof("Checking for CR %s is deleted", kind)
-					err := r.client.Get(context.TODO(), types.NamespacedName{
-						Name:      name,
-						Namespace: namespace,
-					},
-						&unstruct)
-					if errors.IsNotFound(err) {
-						return true, nil
-					}
-					if err != nil {
-						klog.Error("Failed to get the custom resource: ", err)
-						return false, err
-					}
-					return false, nil
-				})
+			err := wait.PollImmediate(time.Second*20, time.Minute*10, func() (bool, error) {
+				if strings.EqualFold(kind, "OperandRequest") {
+					return true, nil
+				}
+				klog.V(3).Infof("Waiting for CR %s is removed ...", kind)
+				err := r.client.Get(context.TODO(), types.NamespacedName{
+					Name:      name,
+					Namespace: namespace,
+				},
+					&unstruct)
+				if errors.IsNotFound(err) {
+					return true, nil
+				}
 				if err != nil {
-					klog.Error("Failed to delete the custom resource should be deleted: ", err)
-					return err
+					klog.Error("Failed to get the custom resource: ", err)
+					return false, err
 				}
-				stateDeleteErr := r.deleteServiceStatus(csc, service.Name, kind)
-				if stateDeleteErr != nil {
-					klog.Error("Failed to clean up the deleted service status in the operand config: ", stateDeleteErr)
-					return stateDeleteErr
-				}
-				klog.V(2).Infof("Finish deleting custom resource: %s from custom resource definition: %s", name, kind)
+				return false, nil
+			})
+			if err != nil {
+				klog.Error("Failed to delete the custom resource should be deleted: ", err)
+				return err
 			}
+			stateDeleteErr := r.deleteServiceStatus(csc, service.Name, kind)
+			if stateDeleteErr != nil {
+				klog.Error("Failed to clean up the deleted service status in the operand config: ", stateDeleteErr)
+				return stateDeleteErr
+			}
+			klog.V(2).Infof("Finish deleting custom resource: %s from custom resource definition: %s", name, kind)
 		}
 	}
 	return nil
