@@ -175,11 +175,8 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, err
 	}
 
-	// Add finalizer
-	if requestInstance.GetFinalizers() == nil {
-		if err := r.addFinalizer(requestInstance); err != nil {
-			return reconcile.Result{}, err
-		}
+	if err := r.addFinalizer(requestInstance); err != nil {
+		return reconcile.Result{}, err
 	}
 
 	// Remove finalizer when DeletionTimestamp none zero
@@ -191,7 +188,7 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 			return reconcile.Result{}, err
 		}
 		// Update finalizer to allow delete CR
-		requestInstance.SetFinalizers(nil)
+		removeFinalizer(&requestInstance.ObjectMeta, "finalizer.request.ibm.com")
 		err = r.client.Update(context.TODO(), requestInstance)
 		if err != nil {
 			return reconcile.Result{}, err
@@ -220,9 +217,8 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 }
 
 func (r *ReconcileOperandRequest) addFinalizer(cr *operatorv1alpha1.OperandRequest) error {
-	klog.V(2).Infof("Add finializer to the OperandRequest %s in the namespace %s", cr.Name, cr.Namespace)
-	if len(cr.GetFinalizers()) < 1 && cr.GetDeletionTimestamp() == nil {
-		cr.SetFinalizers([]string{"finalizer.request.ibm.com"})
+	if cr.GetDeletionTimestamp() == nil {
+		ensureFinalizer(&cr.ObjectMeta, "finalizer.request.ibm.com")
 		// Update CR
 		err := r.client.Update(context.TODO(), cr)
 		if err != nil {
@@ -305,4 +301,33 @@ func getConfigToRquestMapper(mgr manager.Manager) handler.ToRequestsFunc {
 		}
 		return requests
 	}
+}
+
+// ensureFinalizer ensures that the object's finalizer is included
+// in the ObjectMeta Finalizers slice. If it already exists, no state change occurs.
+// If it doesn't, the finalizer is appended to the slice.
+func ensureFinalizer(objectMeta *metav1.ObjectMeta, expectedFinalizer string) {
+	// First check if the finalizer is already included in the object.
+	for _, finalizer := range objectMeta.Finalizers {
+		if finalizer == expectedFinalizer {
+			return
+		}
+	}
+
+	// If it doesn't exist, append the finalizer to the object meta.
+	klog.V(2).Infof("Add finializer to the OperandRequest %s in the namespace %s", objectMeta.Name, objectMeta.Namespace)
+	objectMeta.Finalizers = append(objectMeta.Finalizers, expectedFinalizer)
+}
+
+// removeFinalizer removes the finalizer from the object's ObjectMeta.
+func removeFinalizer(objectMeta *metav1.ObjectMeta, deletingFinalizer string) {
+	outFinalizers := make([]string, 0)
+	for _, finalizer := range objectMeta.Finalizers {
+		if finalizer == deletingFinalizer {
+			continue
+		}
+		outFinalizers = append(outFinalizers, finalizer)
+	}
+
+	objectMeta.Finalizers = outFinalizers
 }
