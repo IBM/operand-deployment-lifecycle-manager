@@ -85,7 +85,7 @@ metadata:
     containerImage: quay.io/opencloudio/odlm:1.2.2
     createdAt: "2020-05-30T12:04:06Z"
     description: The Operand Deployment Lifecycle Manager provides a Kubernetes CRD-based
-      API to manage the lifecycle of IBM Cloud Platform common services.
+      API to manage the lifecycle of operands.
     olm.skipRange: '>=1.1.0 <1.2.2'
     repository: https://github.com/IBM/operand-deployment-lifecycle-manager
     support: IBM
@@ -297,30 +297,33 @@ spec:
     operator is deployed, it generates a default OperandRegistry instance. You can
     edit the instance as required.\n\nFollowing is an example of the OperandRegistry
     CR:\n\n>**NOTE:** The \"name\" parameter must be unique for each entry.\n\n```yaml\napiVersion:
-    odlm.ibm.com/v1alpha1\nkind: OperandRegistry\nmetadata:\n  name: example-service
+    operator.ibm.com/v1alpha1\nkind: OperandRegistry\nmetadata:\n  name: example-service
     [1]\n  namespace: example-service-ns [2]\nspec:\n  operators:\n  - name: jenkins
     [3]\n    namespace: default [4]\n    channel: alpha [5]\n    packageName: jenkins-operator
-    [6]\n    sourceName: community-operators [7]\n    sourceNamespace: openshift-marketplace
-    [8]\n```\n\nThe Operand (Deployment) Registry Custom Resource (CR) lists OLM Operator
-    information for operands that may be requested for installation and/or access
-    by an application that runs in a namespace.  The registry CR specifies:\n\n1.
-    Name of the OperandRegistry\n1. Namespace of the OperandRegistry\n1. **name**
+    [6]\n    scope: public [7]\n    sourceName: community-operators [8]\n    sourceNamespace:
+    openshift-marketplace [9]\n```\n\nThe Operand (Deployment) Registry Custom Resource
+    (CR) lists OLM Operator information for operands that may be requested for installation
+    and/or access by an application that runs in a namespace.  The registry CR specifies:\n\n1.
+    name of the OperandRegistry\n1. namespace of the OperandRegistry\n1. **name**
     is the name of the operator, which should be the same as the services name in
     the OperandConfig and OperandRequest.\n1. **namespace** is the namespace where
     the operator will be deployed.\n1. **channel** is the name of OLM channel that
     is subscribed for the operator.\n1. **packageName** is the name of the package
-    in CatalogSource that is subscribed for the operator.\n1. **sourceName** is the
-    name of the CatalogSource.\n1. **sourceNamespace** is the namespace of the CatalogSource.\n1.
-    **description** is used to add a detailed description of a  service.\n\n## OperandConfig\n\nOperandConfig
-    defines the individual operand deployment configuration. The Operand Config Custom
-    Resource (CR) defines the parameters for each operator that is listed in the OperandRegistry
-    that should be used to install the operator instance by specifying an installation
-    CR.\n\n>**NOTE:** When ODLM operator is deployed, it generates a default OperandConfig\ninstance.
+    in CatalogSource that is subscribed for the operator.\n1. **scope** is an indicator,
+    either public or private, that dictates whether deployment can be requested from
+    other namespaces (public) or only from the containing names (private). The default
+    is private.\n1. **sourceName** is the name of the CatalogSource.\n1. **sourceNamespace**
+    is the namespace of the CatalogSource.\n1. **description** is used to add a detailed
+    description of a  service.\n\n## OperandConfig\n\nOperandConfig defines the individual
+    operand deployment configuration. The Operand Config Custom Resource (CR) defines
+    the parameters for each operator that is listed in the OperandRegistry that should
+    be used to install the operator instance by specifying an installation CR.\n\n>**NOTE:**
+    When ODLM operator is deployed, it generates a default OperandConfig\ninstance.
     You can edit the instance as required. \n\n```yaml\napiVersion: operator.ibm.com/v1alpha1\nKind:
     OperandConfigs\nmetadata:\n  name: example-service [1]\n  namespace: example-service-ns
     [2]\nspec:\n  services:\n  - name: jenkins [3]\n    spec: [4]\n      jenkins:\n
     \       port: 8081\n```\n\nOperandConfig defines the individual operand deployment
-    config:\n\n1. Name of the OperandConfig\n1. Namespace of the OperandConfig\n1.
+    config:\n\n1. name of the OperandConfig\n1. namespace of the OperandConfig\n1.
     **name** is the name of the operator, which should be the same as the services
     name in the OperandRegistry and OperandRequest.\n1. **spec** defines a map. Its
     key is the kind name of the custom resource. Its value is merged to the spec field
@@ -346,9 +349,9 @@ spec:
     OperandRequest\nmetadata:\n  name: example-service [1]\n  namespace: example-service-ns
     [2]\nspec:\n  requests:\n  - registry: example-service [3]\n    registryNamespace:
     example-service-ns [4]\n    operands: [5]\n    - name: jenkins [6]\n      bindings:
-    [7]\n        public:\n          secret: iamrequestsecret [8]\n          configmap:
-    iamrequestconfigmap [9]\n```\n\n1. Name of the OperandRequest\n1. Namespace of
-    the OperandRequest\n1. **registry** identifies the name of the OperandRegistry
+    [7]\n        public:\n          secret: jenkins-operator-credential [8]\n          configmap:
+    jenkins-operator-base-configuration [9]\n```\n\n1. name of the OperandRequest\n1.
+    namespace of the OperandRequest\n1. **registry** identifies the name of the OperandRegistry
     CR from which this operand deployment is being requested.\n1. **registryNamespace**
     identifies the namespace in which the catalog CR is defined. **Note:** If the
     catalog name and namespace are not specified then it is assumed that the Request
@@ -356,7 +359,7 @@ spec:
     one catalog exists in the namespace.\n1. **operands** in the CR is a list of `operands`.\n1.
     **name** of **operands** in the CR must match a name specification in an OperandRegistry's
     CR.\n1. The **bindings** of the **operands** is a map to get and rename the secret
-    and/or configmap from the provider and creat them in the requester's namespace.
+    and/or configmap from the provider and create them in the requester's namespace.
     If the requester wants to rename the secret and/or configmap, they need to know
     the key of the binding in the `OperandBindInfo`. If the key of the **bindings**
     map is prefixed with `public`, it means the secret and/or configmap can be shared
@@ -373,23 +376,23 @@ spec:
     OperandBindInfo\nmetadata:\n  name: publicjenkinsbinding [1]\n  namespace: example-service-ns
     [2]\nspec:\n  operand: jenkins [3]\n  registry: example-service [4]\n  description:
     \"Binding information that should be accessible to jenkins adopters\" [5]\n  bindings:
-    [6]\n    public:\n     secret: iambindsecret [7]\n     configmap: iamconfigmap
-    [8]\n```\n\nFields in this CR are described below.\n\n1. Name of the OperandBindInfo\n1.
-    Namespace of the OperandBindInfo\n1. The **operand** should be the the individual
-    operator name.\n1. The **registry** section must match the name in the OperandRegistry
-    in the current namespace.\n1. **description** is used to add a detailed description
-    of a  service.\n1. The **bindings** section is used to specify information about
-    the access/configuration data that is to be shared. If the key of the **bindings**
-    map is prefixed with `public`, it means the secret and/or configmap can be shared
-    with the requester in the other namespace. If the key of the **bindings** map
-    is prefixed with `private`, it means the secret and/or configmap can only be shared
-    within its own namespace.\n1. The **secret** field names an existing secret, if
-    any, that has been created and holds information that is to be shared with the
-    adopter/requester.\n1. The **configmap** field identifies a configmap object,
-    if any, that should be shared with the adopter/requester\n\nODLM will use the
-    OperandBindInfo CR to pass information to an adopter when they create a OperandRequest
-    to access the service, assuming that both have compatible scopes.  ODLM will copy
-    the information from the shared service's \"OperandBindInfo.bindinfo[].secret\"
+    [6]\n    public:\n      secret: jenkins-operator-credentials-example [7]\n      configmap:
+    jenkins-operator-base-configuration-example [8]\n```\n\nFields in this CR are
+    described below.\n\n1. name of the OperandBindInfo\n1. namespace of the OperandBindInfo\n1.
+    The **operand** should be the the individual operator name.\n1. The **registry**
+    section must match the name in the OperandRegistry in the current namespace.\n1.
+    **description** is used to add a detailed description of a  service.\n1. The **bindings**
+    section is used to specify information about the access/configuration data that
+    is to be shared. If the key of the **bindings** map is prefixed with `public`,
+    it means the secret and/or configmap can be shared with the requester in the other
+    namespace. If the key of the **bindings** map is prefixed with `private`, it means
+    the secret and/or configmap can only be shared within its own namespace.\n1. The
+    **secret** field names an existing secret, if any, that has been created and holds
+    information that is to be shared with the adopter/requester.\n1. The **configmap**
+    field identifies a configmap object, if any, that should be shared with the adopter/requester\n\nODLM
+    will use the OperandBindInfo CR to pass information to an adopter when they create
+    a OperandRequest to access the service, assuming that both have compatible scopes.
+    \ ODLM will copy the information from the shared service's \"OperandBindInfo.bindinfo[].secret\"
     and/or \"OperandBindInfo.bindinfo[].configmap\" to the requester namespace. \n\n
     \ **Note:** If in the `OperandRequest`, there is no secret and/or configmap name
     specified in the **bindings** or no **bindings** field in the element of **operands**,
