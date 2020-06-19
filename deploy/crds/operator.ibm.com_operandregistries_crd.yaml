@@ -59,6 +59,9 @@ spec:
                   description:
                     description: Description of a common service
                     type: string
+                  installMode:
+                    description: The install mode of an operator
+                    type: string
                   installPlanApproval:
                     description: Approval mode for emitted InstallPlans
                     type: string
