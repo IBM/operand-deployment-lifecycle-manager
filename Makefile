@@ -13,6 +13,10 @@
 # limitations under the License.
 
 .DEFAULT_GOAL:=help
+
+KUBECTL ?= $(shell command -v kubectl)
+OPERATOR_SDK ?= $(shell command -v operator-sdk)
+
 # Specify whether this repo is build locally or not, default values is '1';
 # If set to 1, then you need to also set 'DOCKER_USERNAME' and 'DOCKER_PASSWORD'
 # environment variables before build the repo.
@@ -74,40 +78,40 @@ install: ## Install all resources (CR/CRD's, RBAC and Operator)
 	@echo ....... Set environment variables ......
 	- export WATCH_NAMESPACE=${NAMESPACE}
 	@echo ....... Creating namespace .......
-	- kubectl create namespace ${NAMESPACE}
+	- $(KUBECTL) create namespace ${NAMESPACE}
 	@echo ....... Applying CRDs .......
-	- kubectl apply -f deploy/crds/operator.ibm.com_operandregistries_crd.yaml
-	- kubectl apply -f deploy/crds/operator.ibm.com_operandconfigs_crd.yaml
-	- kubectl apply -f deploy/crds/operator.ibm.com_operandrequests_crd.yaml
-	- kubectl apply -f deploy/crds/operator.ibm.com_operandbindinfos_crd.yaml
+	- $(KUBECTL) apply -f deploy/crds/operator.ibm.com_operandregistries_crd.yaml
+	- $(KUBECTL) apply -f deploy/crds/operator.ibm.com_operandconfigs_crd.yaml
+	- $(KUBECTL) apply -f deploy/crds/operator.ibm.com_operandrequests_crd.yaml
+	- $(KUBECTL) apply -f deploy/crds/operator.ibm.com_operandbindinfos_crd.yaml
 	@echo ....... Applying RBAC .......
-	- kubectl apply -f deploy/service_account.yaml -n ${NAMESPACE}
-	- kubectl apply -f deploy/role.yaml
-	- kubectl apply -f deploy/role_binding.yaml
-	@echo ....... Applying Operator .......
-	- kubectl apply -f deploy/operator.yaml -n ${NAMESPACE}
+	- $(KUBECTL) apply -f deploy/service_account.yaml -n ${NAMESPACE}
+	- $(KUBECTL) apply -f deploy/role.yaml
+	- $(KUBECTL) apply -f deploy/role_binding.yaml
+	# @echo ....... Applying Operator .......
+	# - $(KUBECTL) apply -f deploy/operator.yaml -n ${NAMESPACE}
 	@echo ....... Creating the Instances .......
-	- kubectl apply -f deploy/crds/operator.ibm.com_v1alpha1_operandregistry_cr.yaml -n ${NAMESPACE}
-	- kubectl apply -f deploy/crds/operator.ibm.com_v1alpha1_operandconfig_cr.yaml -n ${NAMESPACE}
+	- $(KUBECTL) apply -f deploy/crds/operator.ibm.com_v1alpha1_operandregistry_cr.yaml -n ${NAMESPACE}
+	- $(KUBECTL) apply -f deploy/crds/operator.ibm.com_v1alpha1_operandconfig_cr.yaml -n ${NAMESPACE}
 uninstall: ## Uninstall all that all performed in the $ make install
 	@echo ....... Uninstalling .......
 	@echo ....... Deleting the Instances .......
-	- kubectl delete -f deploy/crds/operator.ibm.com_v1alpha1_operandrequest_cr.yaml -n ${NAMESPACE} --ignore-not-found
-	- kubectl delete -f deploy/crds/operator.ibm.com_v1alpha1_operandregistry_cr.yaml -n ${NAMESPACE} --ignore-not-found
-	- kubectl delete -f deploy/crds/operator.ibm.com_v1alpha1_operandconfig_cr.yaml -n ${NAMESPACE} --ignore-not-found
+	- $(KUBECTL) delete -f deploy/crds/operator.ibm.com_v1alpha1_operandrequest_cr.yaml -n ${NAMESPACE} --ignore-not-found
+	- $(KUBECTL) delete -f deploy/crds/operator.ibm.com_v1alpha1_operandregistry_cr.yaml -n ${NAMESPACE} --ignore-not-found
+	- $(KUBECTL) delete -f deploy/crds/operator.ibm.com_v1alpha1_operandconfig_cr.yaml -n ${NAMESPACE} --ignore-not-found
 	@echo ....... Deleting Operator .......
-	- kubectl delete -f deploy/operator.yaml -n ${NAMESPACE} --ignore-not-found
+	- $(KUBECTL) delete -f deploy/operator.yaml -n ${NAMESPACE} --ignore-not-found
 	@echo ....... Deleting CRDs .......
-	- kubectl delete -f deploy/crds/operator.ibm.com_operandbindinfos_crd.yaml --ignore-not-found
-	- kubectl delete -f deploy/crds/operator.ibm.com_operandrequests_crd.yaml --ignore-not-found
-	- kubectl delete -f deploy/crds/operator.ibm.com_operandconfigs_crd.yaml --ignore-not-found
-	- kubectl delete -f deploy/crds/operator.ibm.com_operandregistries_crd.yaml --ignore-not-found
+	- $(KUBECTL) delete -f deploy/crds/operator.ibm.com_operandbindinfos_crd.yaml --ignore-not-found
+	- $(KUBECTL) delete -f deploy/crds/operator.ibm.com_operandrequests_crd.yaml --ignore-not-found
+	- $(KUBECTL) delete -f deploy/crds/operator.ibm.com_operandconfigs_crd.yaml --ignore-not-found
+	- $(KUBECTL) delete -f deploy/crds/operator.ibm.com_operandregistries_crd.yaml --ignore-not-found
 	@echo ....... Deleting RBAC .......
-	- kubectl delete -f deploy/role_binding.yaml --ignore-not-found
-	- kubectl delete -f deploy/service_account.yaml -n ${NAMESPACE} --ignore-not-found
-	- kubectl delete -f deploy/role.yaml --ignore-not-found
+	- $(KUBECTL) delete -f deploy/role_binding.yaml --ignore-not-found
+	- $(KUBECTL) delete -f deploy/service_account.yaml -n ${NAMESPACE} --ignore-not-found
+	- $(KUBECTL) delete -f deploy/role.yaml --ignore-not-found
 	@echo ....... Deleting namespace ${NAMESPACE}.......
-	- kubectl delete namespace ${NAMESPACE} --ignore-not-found
+	- $(KUBECTL) delete namespace ${NAMESPACE} --ignore-not-found
 
 ##@ Development
 
@@ -126,7 +130,7 @@ code-dev: ## Run the default dev commands which are the go tidy, fmt, vet then e
 
 run: ## Run against the configured Kubernetes cluster in ~/.kube/config
 	@echo ....... Start Operator locally with go run ......
-	WATCH_NAMESPACE= go run ./cmd/manager/main.go -v=3 --zap-encoder=console
+	WATCH_NAMESPACE= go run ./cmd/manager/main.go -v=2 --zap-encoder=console
 
 ifeq ($(BUILD_LOCALLY),0)
     export CONFIG_DOCKER_TARGET = config-docker
@@ -157,18 +161,18 @@ test: ## Run unit test
 
 test-e2e: ## Run integration e2e tests with different options.
 	@echo ....... Creating namespace .......
-	- kubectl create namespace e2e-test-op-ns
+	- $(KUBECTL) create namespace e2e-test-op-ns
 	@echo ... Running e2e tests on locally ...
-	- operator-sdk test local ./test/e2e --verbose --up-local --namespace=e2e-test-op-ns
+	- $(OPERATOR_SDK) test local ./test/e2e --verbose --up-local --namespace=e2e-test-op-ns
 	@echo ....... Deleting namespace .......
-	- kubectl delete namespace e2e-test-op-ns
+	- $(KUBECTL) delete namespace e2e-test-op-ns
 
 coverage: ## Run code coverage test
 	@common/scripts/codecov.sh ${BUILD_LOCALLY} "pkg/controller"
 
 scorecard: ## Run scorecard test
 	@echo ... Running the scorecard test
-	- operator-sdk scorecard --verbose
+	- $(OPERATOR_SDK) scorecard --verbose
 
 ##@ Release
 

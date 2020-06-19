@@ -30,7 +30,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 	util "github.com/IBM/operand-deployment-lifecycle-manager/pkg/util"
@@ -38,10 +37,16 @@ import (
 
 const t = "true"
 
-func (r *ReconcileOperandRequest) reconcileOperand(requestInstance *operatorv1alpha1.OperandRequest, reconcileReq reconcile.Request) *util.MultiErr {
+func (r *ReconcileOperandRequest) reconcileOperand(requestInstance *operatorv1alpha1.OperandRequest) *util.MultiErr {
 	klog.V(1).Info("Reconciling Operands")
+	// Update request phase status
+	defer func() {
+		requestInstance.UpdateClusterPhase()
+		if err := r.client.Status().Update(context.TODO(), requestInstance); err != nil {
+			klog.Error("Update request phase failed", err)
+		}
+	}()
 	merr := &util.MultiErr{}
-
 	for _, req := range requestInstance.Spec.Requests {
 		configInstance, err := r.getConfigInstance(req.Registry, req.RegistryNamespace)
 		if err != nil {
@@ -78,38 +83,27 @@ func (r *ReconcileOperandRequest) reconcileOperand(requestInstance *operatorv1al
 			if err != nil {
 				klog.Errorf("Failed to get the ClusterServiceVersion for the Subscription %s in the namespace %s: %s", opdConfig.Name, opdRegistry.Namespace, err)
 				merr.Add(err)
-				err = r.updateRegistryStatus(registryInstance, reconcileReq, operand.Name, operatorv1alpha1.OperatorFailed)
-				if err != nil {
-					klog.Error("Failed to get update operandregistry status: ", err)
-					merr.Add(err)
-				}
+				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "")
 				continue
 			}
 
 			if csv == nil {
 				klog.Warningf("Failed to get the ClusterServiceVersion for the Subscription %s in the namespace %s", opdConfig.Name, opdRegistry.Namespace)
-				err = r.updateRegistryStatus(registryInstance, reconcileReq, operand.Name, operatorv1alpha1.OperatorInstalling)
-				if err != nil {
-					klog.Error("Failed to get update operandregistry status: ", err)
-					merr.Add(err)
-				}
+				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorInstalling, "")
 				continue
 			}
 
 			klog.V(3).Info("Generating customresource base on ClusterServiceVersion: ", csv.ObjectMeta.Name)
-
-			err = r.updateRegistryStatus(registryInstance, reconcileReq, operand.Name, operatorv1alpha1.OperatorRunning)
-			if err != nil {
-				klog.Error("Failed to get update operandregistry status: ", err)
-				merr.Add(err)
-			}
+			requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorRunning, "")
 
 			// Merge and Generate CR
 			err = r.reconcileCr(opdConfig, csv, configInstance)
 			if err != nil {
 				klog.Error("Failed to get create or update customresource: ", err)
 				merr.Add(err)
+				requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceFailed)
 			}
+			requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceRunning)
 		}
 	}
 	if len(merr.Errors) != 0 {

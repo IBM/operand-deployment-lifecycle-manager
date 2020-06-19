@@ -170,7 +170,7 @@ func WaitRequestStatus(f *framework.Framework, expectedPhase v1alpha1.ClusterPha
 }
 
 // WaitRegistryStatus is wait for registry phase become to expected phase
-func WaitRegistryStatus(f *framework.Framework, expectedPhase v1alpha1.OperatorPhase, ns string) (*v1alpha1.OperandRegistry, error) {
+func WaitRegistryStatus(f *framework.Framework, expectedPhase v1alpha1.RegistryPhase, ns string) (*v1alpha1.OperandRegistry, error) {
 	fmt.Println("--- WAITING: OperandRegistry")
 	reg := &v1alpha1.OperandRegistry{}
 	if err := utilwait.PollImmediate(time.Second*10, time.Minute*5, func() (bool, error) {

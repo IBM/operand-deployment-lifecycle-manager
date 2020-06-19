@@ -62,7 +62,7 @@ func initReconcile(t *testing.T, r ReconcileOperandRegistry, req reconcile.Reque
 	}
 	// Check the registry init status
 	assert.NotNil(registry.Status, "init operator status should not be empty")
-	assert.Equalf(v1alpha1.OperatorInit, registry.Status.Phase, "Overall OperandRegistry phase should be 'Initialized'")
+	assert.Equalf(v1alpha1.RegistryInit, registry.Status.Phase, "Overall OperandRegistry phase should be 'Initialized'")
 }
 
 func getReconciler(name, namespace, operatorNamespace string) ReconcileOperandRegistry {

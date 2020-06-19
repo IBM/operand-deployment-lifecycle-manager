@@ -21,6 +21,7 @@ import (
 	"reflect"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -78,7 +79,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			oldObject := e.ObjectOld.(*operatorv1alpha1.OperandRequest)
 			newObject := e.ObjectNew.(*operatorv1alpha1.OperandRequest)
-			return !reflect.DeepEqual(oldObject.Status.Members, newObject.Status.Members)
+			return !reflect.DeepEqual(oldObject.Spec, newObject.Spec)
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			// Evaluates to false if the object has been confirmed deleted.
@@ -123,12 +124,43 @@ func (r *ReconcileOperandRegistry) Reconcile(request reconcile.Request) (reconci
 	if err := r.client.Update(context.TODO(), instance); err != nil {
 		return reconcile.Result{}, err
 	}
-	// Set the default status for OperandRegistry instance
-	instance.InitRegistryStatus()
-	klog.V(3).Infof("Initializing the status of OperandRegistry %s in the namespace %s", request.Name, request.Namespace)
+
+	if err := r.updateRegistryOperatorsStatus(instance); err != nil {
+		return reconcile.Result{}, err
+	}
+	if len(instance.Status.OperatorsStatus) == 0 {
+		instance.UpdateRegistryPhase(operatorv1alpha1.RegistryInit)
+	} else {
+		instance.UpdateRegistryPhase(operatorv1alpha1.RegistryRunning)
+	}
 	if err := r.client.Status().Update(context.TODO(), instance); err != nil {
 		return reconcile.Result{}, err
 	}
 
 	return reconcile.Result{}, nil
+}
+
+func (r *ReconcileOperandRegistry) updateRegistryOperatorsStatus(instance *operatorv1alpha1.OperandRegistry) error {
+	instance.Status.OperatorsStatus = make(map[string]operatorv1alpha1.OperatorStatus)
+	requestList := &operatorv1alpha1.OperandRequestList{}
+	opts := []client.ListOption{
+		client.MatchingLabels(map[string]string{instance.Namespace + "." + instance.Name + "/registry": "true"}),
+	}
+
+	if err := r.client.List(context.TODO(), requestList, opts...); err != nil {
+		return err
+	}
+
+	for _, item := range requestList.Items {
+		key := types.NamespacedName{Name: item.Name, Namespace: item.Namespace}
+		for _, req := range item.Spec.Requests {
+			if req.Registry != instance.Name || req.RegistryNamespace != instance.Namespace {
+				continue
+			}
+			for _, operand := range req.Operands {
+				instance.SetOperatorStatus(operand.Name, "", reconcile.Request{NamespacedName: key})
+			}
+		}
+	}
+	return nil
 }
