@@ -38,6 +38,7 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1a
 	klog.V(1).Info("Reconciling Operators")
 	// Update request phase status
 	defer func() {
+		requestInstance.FreshMemberStatus()
 		requestInstance.UpdateClusterPhase()
 		if err := r.client.Status().Update(context.TODO(), requestInstance); err != nil {
 			klog.Error("Update request phase failed", err)
@@ -245,12 +246,6 @@ func (r *ReconcileOperandRequest) deleteSubscription(operandName string, request
 				return err
 			}
 		}
-
-		requestInstance.CleanMemberStatus(opt.Name)
-		if err := r.client.Status().Update(context.TODO(), requestInstance); err != nil {
-			klog.Error("Failed to delete member in the operandRequest status: ", err)
-			return err
-		}
 	}
 	return nil
 }
@@ -266,10 +261,7 @@ func (r *ReconcileOperandRequest) getNeedDeletedOperands(requestInstance *operat
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(deployedOperands)
-	fmt.Println(currentOperands)
 	needDeleteOperands := deployedOperands.Difference(currentOperands)
-	fmt.Println(needDeleteOperands)
 	return needDeleteOperands, nil
 }
 
