@@ -18,6 +18,14 @@ metadata:
           "spec": {
             "services": [
               {
+                "name": "etcd",
+                "spec": {
+                  "etcdCluster": {
+                    "size": 1
+                  }
+                }
+              },
+              {
                 "name": "jenkins",
                 "spec": {
                   "jenkins": {
@@ -44,6 +52,15 @@ metadata:
           "spec": {
             "operators": [
               {
+                "channel": "clusterwide-alpha",
+                "installMode": "cluster",
+                "name": "etcd",
+                "namespace": "etcd-cluster-operator",
+                "packageName": "etcd",
+                "sourceName": "community-operators",
+                "sourceNamespace": "openshift-marketplace"
+              },
+              {
                 "channel": "alpha",
                 "name": "jenkins",
                 "namespace": "default",
@@ -69,6 +86,9 @@ metadata:
             "requests": [
               {
                 "operands": [
+                  {
+                    "name": "etcd"
+                  },
                   {
                     "name": "jenkins"
                   }

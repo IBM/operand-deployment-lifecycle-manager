@@ -8,6 +8,10 @@ metadata:
   name: example-service
 spec:
   services:
+  - name: etcd
+    spec:
+      etcdCluster:
+        size: 1
   - name: jenkins
     spec:
       jenkins:

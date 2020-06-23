@@ -37,6 +37,9 @@ type Operator struct {
 	// - "public": deployment can be requested from other namespaces;
 	// +optional
 	Scope scope `json:"scope,omitempty"`
+	// The install mode of an operator
+	// +optional
+	InstallMode string `json:"installMode,omitempty"`
 	// The namespace in which operator's operand should be deployed
 	// +optional
 	Namespace string `json:"namespace,omitempty"`
@@ -68,6 +71,13 @@ const (
 	//ScopePublic means the operand resource can only
 	//be used in the cluster.
 	ScopePublic scope = "public"
+)
+
+const (
+	// InstallModeCluster means install the operator in all namespaces mode
+	InstallModeCluster string = "cluster"
+	// InstallModeNamespace means install the operator in one namespace mode
+	InstallModeNamespace string = "namespace"
 )
 
 // OperandRegistrySpec defines the desired state of OperandRegistry
@@ -169,6 +179,15 @@ func (r *OperandRegistry) SetDefaultsRegistry() {
 	for i, o := range r.Spec.Operators {
 		if o.Scope == "" {
 			r.Spec.Operators[i].Scope = ScopePrivate
+		}
+	}
+}
+
+// SetDefaultInstallMode Set the default install mode for an operator
+func (r *OperandRegistry) SetDefaultInstallMode() {
+	for i, o := range r.Spec.Operators {
+		if o.InstallMode == "" {
+			r.Spec.Operators[i].InstallMode = InstallModeNamespace
 		}
 	}
 }

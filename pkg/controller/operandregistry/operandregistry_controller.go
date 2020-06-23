@@ -121,6 +121,9 @@ func (r *ReconcileOperandRegistry) Reconcile(request reconcile.Request) (reconci
 
 	// Set the default scope for OperandRegistry instance
 	instance.SetDefaultsRegistry()
+
+	// Set the default install mode for OperandRegistry instance
+	instance.SetDefaultInstallMode()
 	if err := r.client.Update(context.TODO(), instance); err != nil {
 		return reconcile.Result{}, err
 	}

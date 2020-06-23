@@ -10,4 +10,5 @@ spec:
   requests:
   - registry: example-service
     operands:
+    - name: etcd
     - name: jenkins

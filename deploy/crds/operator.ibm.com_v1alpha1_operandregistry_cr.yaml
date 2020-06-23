@@ -8,6 +8,13 @@ metadata:
   name: example-service
 spec:
   operators:
+  - name: etcd
+    namespace: etcd-cluster-operator
+    channel: clusterwide-alpha
+    installMode: cluster
+    packageName: etcd
+    sourceName: community-operators
+    sourceNamespace: openshift-marketplace
   - name: jenkins
     namespace: default
     channel: alpha

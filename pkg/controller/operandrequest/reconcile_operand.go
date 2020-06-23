@@ -77,18 +77,19 @@ func (r *ReconcileOperandRequest) reconcileOperand(requestInstance *operatorv1al
 			klog.V(3).Info("Looking for csv for the operator: ", opdConfig.Name)
 
 			// Looking for the CSV
-			csv, err := r.getClusterServiceVersion(opdConfig.Name, opdRegistry.Namespace)
+			namespace := getOperatorNamespace(opdRegistry.InstallMode, opdRegistry.Namespace)
+			csv, err := r.getClusterServiceVersion(opdConfig.Name, namespace)
 
 			// If can't get CSV, requeue the request
 			if err != nil {
-				klog.Errorf("Failed to get the ClusterServiceVersion for the Subscription %s in the namespace %s: %s", opdConfig.Name, opdRegistry.Namespace, err)
+				klog.Errorf("Failed to get the ClusterServiceVersion for the Subscription %s in the namespace %s: %s", opdConfig.Name, namespace, err)
 				merr.Add(err)
 				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "")
 				continue
 			}
 
 			if csv == nil {
-				klog.Warningf("Failed to get the ClusterServiceVersion for the Subscription %s in the namespace %s", opdConfig.Name, opdRegistry.Namespace)
+				klog.Warningf("ClusterServiceVersion for the Subscription %s in the namespace %s is not ready yet, retry", opdConfig.Name, namespace)
 				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorInstalling, "")
 				continue
 			}
@@ -97,7 +98,7 @@ func (r *ReconcileOperandRequest) reconcileOperand(requestInstance *operatorv1al
 			requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorRunning, "")
 
 			// Merge and Generate CR
-			err = r.reconcileCr(opdConfig, csv, configInstance)
+			err = r.reconcileCr(opdConfig, opdRegistry.Namespace, csv, configInstance)
 			if err != nil {
 				klog.Error("Failed to get create or update customresource: ", err)
 				merr.Add(err)
@@ -182,9 +183,8 @@ func (r *ReconcileOperandRequest) getClusterServiceVersion(subName, subNamespace
 }
 
 // reconcileCr merge and create custom resource base on OperandConfig and CSV alm-examples
-func (r *ReconcileOperandRequest) reconcileCr(service *operatorv1alpha1.ConfigService, csv *olmv1alpha1.ClusterServiceVersion, csc *operatorv1alpha1.OperandConfig) error {
+func (r *ReconcileOperandRequest) reconcileCr(service *operatorv1alpha1.ConfigService, namespace string, csv *olmv1alpha1.ClusterServiceVersion, csc *operatorv1alpha1.OperandConfig) error {
 	almExamples := csv.ObjectMeta.Annotations["alm-examples"]
-	namespace := csv.ObjectMeta.Namespace
 
 	// Create a slice for crTemplates
 	var crTemplates []interface{}
@@ -241,7 +241,7 @@ func (r *ReconcileOperandRequest) reconcileCr(service *operatorv1alpha1.ConfigSe
 }
 
 // deleteAllCustomResource remove custom resource base on OperandConfig and CSV alm-examples
-func (r *ReconcileOperandRequest) deleteAllCustomResource(csv *olmv1alpha1.ClusterServiceVersion, csc *operatorv1alpha1.OperandConfig, operandName string) error {
+func (r *ReconcileOperandRequest) deleteAllCustomResource(csv *olmv1alpha1.ClusterServiceVersion, csc *operatorv1alpha1.OperandConfig, operandName, namespace string) error {
 
 	service := csc.GetService(operandName)
 	if service == nil {
@@ -249,7 +249,6 @@ func (r *ReconcileOperandRequest) deleteAllCustomResource(csv *olmv1alpha1.Clust
 	}
 	almExamples := csv.ObjectMeta.Annotations["alm-examples"]
 	klog.V(2).Info("Delete all the custom resource from Subscription ", service.Name)
-	namespace := csv.ObjectMeta.Namespace
 
 	// Create a slice for crTemplates
 	var crTemplates []interface{}
