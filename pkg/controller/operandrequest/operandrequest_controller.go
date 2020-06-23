@@ -183,7 +183,7 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 	if !requestInstance.ObjectMeta.DeletionTimestamp.IsZero() {
 
 		// Check and clean up the subscriptions
-		err := r.checkFinalizer(requestInstance, request)
+		err := r.checkFinalizer(requestInstance)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
@@ -196,7 +196,7 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, nil
 	}
 
-	if err := r.reconcileOperator(requestInstance, request); err != nil {
+	if err := r.reconcileOperator(requestInstance); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -229,7 +229,7 @@ func (r *ReconcileOperandRequest) addFinalizer(cr *operatorv1alpha1.OperandReque
 	return nil
 }
 
-func (r *ReconcileOperandRequest) checkFinalizer(requestInstance *operatorv1alpha1.OperandRequest, request reconcile.Request) error {
+func (r *ReconcileOperandRequest) checkFinalizer(requestInstance *operatorv1alpha1.OperandRequest) error {
 	klog.V(2).Infof("Deleting OperandRequest %s in the namespace %s", requestInstance.Name, requestInstance.Namespace)
 	existingSub, err := r.olmClient.OperatorsV1alpha1().Subscriptions(metav1.NamespaceAll).List(metav1.ListOptions{
 		LabelSelector: "operator.ibm.com/opreq-control",
@@ -253,7 +253,7 @@ func (r *ReconcileOperandRequest) checkFinalizer(requestInstance *operatorv1alph
 			return err
 		}
 		for _, operand := range req.Operands {
-			if err := r.deleteSubscription(operand.Name, requestInstance, registryInstance, configInstance, request); err != nil {
+			if err := r.deleteSubscription(operand.Name, requestInstance, registryInstance, configInstance); err != nil {
 				klog.Error("Failed to delete subscriptions during the uninstall: ", err)
 				klog.Error(err)
 				return err

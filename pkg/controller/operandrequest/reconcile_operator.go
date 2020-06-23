@@ -29,12 +29,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 )
 
-func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1alpha1.OperandRequest, reconcileReq reconcile.Request) error {
+func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1alpha1.OperandRequest) error {
 	klog.V(1).Info("Reconciling Operators")
 	// Update request phase status
 	defer func() {
@@ -105,7 +105,7 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1a
 	}
 
 	// Delete specific operators
-	needDeletedOperands, err := r.getNeedDeletedOperands(requestInstance, reconcileReq)
+	needDeletedOperands, err := r.getNeedDeletedOperands(requestInstance)
 	if err != nil {
 		return err
 	}
@@ -119,7 +119,8 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1a
 			return err
 		}
 		for o := range needDeletedOperands.Iter() {
-			if err := r.deleteSubscription(fmt.Sprintf("%v", o), requestInstance, registryInstance, configInstance, reconcileReq); err != nil {
+			fmt.Println(o)
+			if err := r.deleteSubscription(fmt.Sprintf("%v", o), requestInstance, registryInstance, configInstance); err != nil {
 				return err
 			}
 		}
@@ -190,58 +191,7 @@ func (r *ReconcileOperandRequest) updateSubscription(cr *operatorv1alpha1.Operan
 	return nil
 }
 
-func preDeleteCheck(operandName string, rr reconcile.Request, registryInstance *operatorv1alpha1.OperandRegistry) (int, int) {
-	klog.V(3).Infof("Pre-check for delete subscription: %s", operandName)
-	operatorStatus := registryInstance.Status.OperatorsStatus[operandName]
-	if operatorStatus.Phase != operatorv1alpha1.OperatorReady {
-		pos := registryInstance.GetReconcileRequest(operandName, rr)
-		rrs := len(operatorStatus.ReconcileRequests)
-		return pos, rrs
-	}
-	return -1, 0
-}
-
-func (r *ReconcileOperandRequest) deleteSubscription(operandName string, requestInstance *operatorv1alpha1.OperandRequest, registryInstance *operatorv1alpha1.OperandRegistry, configInstance *operatorv1alpha1.OperandConfig, rr reconcile.Request) error {
-	pos, rrs := preDeleteCheck(operandName, rr, registryInstance)
-
-	// If subscription not find in the registry status, nothing to do, return nil
-	if pos == -1 {
-		return nil
-	}
-	// If there are more than one reconcile requests in the registry status, don't really delete
-	// the subscription, just delete this subscription's reconcile request from the OperandRegistry
-	// status and delete this subscription from member status of currently OperandRequest.
-	// When all the reconcileRequests are deleted, this operator will be real delete.
-	// Example, there are 2 OperandRequests "common-services-ns/request-1" and "common-services-ns/request-2"
-	// request servcie "mongodb-operator", if delete "mongodb-operator" from request "common-services-ns/request-1",
-	// and mongodb-operator still used by request "common-services-ns/request-1", only delete reconcile request
-	// Before delete "mongodb-operator" from request "common-services-ns/request-1"
-	// status:
-	//   operatorsStatus:
-	//     mongodb-operator:
-	//       phase: Running
-	//       reconcileRequests:
-	//       - name: request-1
-	//         namespace: common-services-ns
-	//       - name: request-2
-	//         namespace: common-services-ns
-	// After delete "mongodb-operator" from request "common-services-ns/request-1"
-	// status:
-	//   operatorsStatus:
-	//     mongodb-operator:
-	//       phase: Running
-	//       reconcileRequests:
-	//       - name: request-2
-	//         namespace: common-services-ns
-	if rrs > 1 {
-		klog.V(3).Info("This operator is used by others OperandRequest, only update the status")
-		requestInstance.CleanMemberStatus(operandName)
-		if err := r.client.Status().Update(context.TODO(), requestInstance); err != nil {
-			return err
-		}
-		return nil
-	}
-
+func (r *ReconcileOperandRequest) deleteSubscription(operandName string, requestInstance *operatorv1alpha1.OperandRequest, registryInstance *operatorv1alpha1.OperandRegistry, configInstance *operatorv1alpha1.OperandConfig) error {
 	op := registryInstance.GetOperator(operandName)
 	csv, err := r.getClusterServiceVersion(operandName, op.Namespace)
 	// If can't get CSV, requeue the request
@@ -305,36 +255,46 @@ func (r *ReconcileOperandRequest) deleteSubscription(operandName string, request
 	return nil
 }
 
-func (r *ReconcileOperandRequest) getNeedDeletedOperands(requestInstance *operatorv1alpha1.OperandRequest, reconcileReq reconcile.Request) (gset.Set, error) {
+func (r *ReconcileOperandRequest) getNeedDeletedOperands(requestInstance *operatorv1alpha1.OperandRequest) (gset.Set, error) {
 	klog.V(3).Info("Getting the operater need to be delete")
-	requestOperands := gset.NewSet()
-	for _, req := range requestInstance.Spec.Requests {
-		for _, o := range req.Operands {
-			requestOperands.Add(o.Name)
-		}
+	deployedOperands := gset.NewSet()
+	for _, req := range requestInstance.Status.Members {
+		deployedOperands.Add(req.Name)
 	}
 
-	deployedOperands, err := r.getDeployedOperands(requestInstance, reconcileReq)
+	currentOperands, err := r.getCurrentOperands(requestInstance)
 	if err != nil {
 		return nil, err
 	}
-	needDeleteOperands := deployedOperands.Difference(requestOperands)
+	fmt.Println(deployedOperands)
+	fmt.Println(currentOperands)
+	needDeleteOperands := deployedOperands.Difference(currentOperands)
+	fmt.Println(needDeleteOperands)
 	return needDeleteOperands, nil
 }
 
-func (r *ReconcileOperandRequest) getDeployedOperands(requestInstance *operatorv1alpha1.OperandRequest, reconcileReq reconcile.Request) (gset.Set, error) {
+func (r *ReconcileOperandRequest) getCurrentOperands(requestInstance *operatorv1alpha1.OperandRequest) (gset.Set, error) {
 	klog.V(3).Info("Getting the operaters have been deployed")
 	deployedOperands := gset.NewSet()
 	for _, req := range requestInstance.Spec.Requests {
-		registryInstance, err := r.getRegistryInstance(req.Registry, req.RegistryNamespace)
-		if err != nil {
+
+		requestList := &operatorv1alpha1.OperandRequestList{}
+
+		opts := []client.ListOption{
+			client.MatchingLabels(map[string]string{req.RegistryNamespace + "." + req.Registry + "/registry": "true"}),
+		}
+
+		if err := r.client.List(context.TODO(), requestList, opts...); err != nil {
 			return nil, err
 		}
 
-		for name, status := range registryInstance.Status.OperatorsStatus {
-			if status.Phase != operatorv1alpha1.OperatorReady {
-				if pos := registryInstance.GetReconcileRequest(name, reconcileReq); pos != -1 {
-					deployedOperands.Add(name)
+		for _, item := range requestList.Items {
+			for _, existingReq := range item.Spec.Requests {
+				if req.Registry != existingReq.Registry || req.RegistryNamespace != existingReq.RegistryNamespace {
+					continue
+				}
+				for _, operand := range existingReq.Operands {
+					deployedOperands.Add(operand.Name)
 				}
 			}
 		}
