@@ -64,7 +64,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to primary resource OperandRegistry
-	err = c.Watch(&source.Kind{Type: &operatorv1alpha1.OperandRegistry{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &operatorv1alpha1.OperandRegistry{}}, &handler.EnqueueRequestForObject{}, predicate.GenerationChangedPredicate{})
 	if err != nil {
 		return err
 	}
@@ -141,7 +141,9 @@ func (r *ReconcileOperandRegistry) Reconcile(request reconcile.Request) (reconci
 }
 
 func (r *ReconcileOperandRegistry) updateRegistryOperatorsStatus(instance *operatorv1alpha1.OperandRegistry) error {
+	// Create an empty OperatorsStatus map
 	instance.Status.OperatorsStatus = make(map[string]operatorv1alpha1.OperatorStatus)
+	// List the OperandRequests refer the OperatorRegistry by label of the OperandRequests
 	requestList := &operatorv1alpha1.OperandRequestList{}
 	opts := []client.ListOption{
 		client.MatchingLabels(map[string]string{instance.Namespace + "." + instance.Name + "/registry": "true"}),
@@ -150,10 +152,11 @@ func (r *ReconcileOperandRegistry) updateRegistryOperatorsStatus(instance *opera
 	if err := r.client.List(context.TODO(), requestList, opts...); err != nil {
 		return err
 	}
-
+	// Update OperandRegistry status from the OperandRequest list
 	for _, item := range requestList.Items {
 		key := types.NamespacedName{Name: item.Name, Namespace: item.Namespace}
 		for _, req := range item.Spec.Requests {
+			// Skip the status updating if the OperandRegistry doesn't match
 			if req.Registry != instance.Name || req.RegistryNamespace != instance.Namespace {
 				continue
 			}
