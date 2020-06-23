@@ -306,12 +306,24 @@ func (r *OperandRequest) setOperandReadyCondition(m *MemberStatus, name string) 
 	}
 }
 
-// CleanMemberStatus deletes a Member status from the Member status list
-func (r *OperandRequest) CleanMemberStatus(name string) {
-	pos, _ := getMemberStatus(&r.Status, name)
-	if pos != -1 {
-		r.Status.Members = append(r.Status.Members[:pos], r.Status.Members[pos+1:]...)
+// FreshMemberStatus cleanup Member status from the Member status list
+func (r *OperandRequest) FreshMemberStatus() {
+	for index, m := range r.Status.Members {
+		if !r.getOperand(m.Name) {
+			r.Status.Members = append(r.Status.Members[:index], r.Status.Members[index+1:]...)
+		}
 	}
+}
+
+func (r *OperandRequest) getOperand(name string) bool {
+	for _, req := range r.Spec.Requests {
+		for _, operand := range req.Operands {
+			if name == operand.Name {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func getMemberStatus(status *OperandRequestStatus, name string) (int, *MemberStatus) {
