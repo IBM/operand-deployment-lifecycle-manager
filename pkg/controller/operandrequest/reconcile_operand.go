@@ -94,6 +94,13 @@ func (r *ReconcileOperandRequest) reconcileOperand(requestInstance *operatorv1al
 				continue
 			}
 
+			if csv.Status.Phase == olmv1alpha1.CSVPhaseFailed {
+				klog.Errorf("The ClusterServiceVersion for Subscription %s is Failed", opdConfig.Name)
+				merr.Add(fmt.Errorf("the ClusterServiceVersion for Subscription %s is Failed", opdConfig.Name))
+				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "")
+				continue
+			}
+
 			klog.V(3).Info("Generating customresource base on ClusterServiceVersion: ", csv.ObjectMeta.Name)
 			requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorRunning, "")
 
@@ -171,11 +178,6 @@ func (r *ReconcileOperandRequest) getClusterServiceVersion(subName, subNamespace
 		}
 		klog.Errorf("Failed to get ClusterServiceVersion %s in the namespace %s: %s", csvName, csvNamespace, getCSVErr)
 		return nil, getCSVErr
-	}
-
-	if csv.Status.Phase == olmv1alpha1.CSVPhaseFailed {
-		klog.Errorf("The ClusterServiceVersion for Subscription %s is Failed", subName)
-		return nil, fmt.Errorf("the ClusterServiceVersion for Subscription %s is Failed", subName)
 	}
 
 	klog.V(3).Infof("Get ClusterServiceVersion %s in the namespace %s", csvName, csvNamespace)
