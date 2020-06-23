@@ -201,12 +201,12 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, nil
 	}
 
-	if err := r.reconcileOperator(requestInstance); err != nil {
+	if err := r.reconcileOperator(request.NamespacedName); err != nil {
 		return reconcile.Result{}, err
 	}
 
 	// Reconcile the Operand
-	merr := r.reconcileOperand(requestInstance)
+	merr := r.reconcileOperand(request.NamespacedName)
 
 	if len(merr.Errors) != 0 {
 		return reconcile.Result{}, merr
@@ -215,7 +215,7 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 	// Check if all csv deploy succeed
 	if requestInstance.Status.Phase != operatorv1alpha1.ClusterPhaseRunning {
 		klog.V(2).Info("Waiting for all operands to be deployed successfully ...")
-		return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
+		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
 	return reconcile.Result{}, nil

@@ -99,10 +99,11 @@ const (
 	ClusterPhaseRunning    ClusterPhase = "Running"
 	ClusterPhaseFailed     ClusterPhase = "Failed"
 
-	ResourceTypeSub      ResourceType = "subscription"
-	ResourceTypeCsv      ResourceType = "csv"
-	ResourceTypeOperator ResourceType = "operator"
-	ResourceTypeOperand  ResourceType = "operands"
+	ResourceTypeCatalogSource ResourceType = "catalogsource"
+	ResourceTypeSub           ResourceType = "subscription"
+	ResourceTypeCsv           ResourceType = "csv"
+	ResourceTypeOperator      ResourceType = "operator"
+	ResourceTypeOperand       ResourceType = "operands"
 )
 
 // Condition represents the current state of the Request Service
@@ -246,7 +247,7 @@ func (r *OperandRequest) SetReadyCondition(name string, rt ResourceType, cs core
 }
 
 func (r *OperandRequest) setCondition(c Condition) {
-	pos, cp := getCondition(&r.Status, c.Type, c.Message)
+	pos, cp := getCondition(&r.Status.Conditions, c.Type, c.Message)
 	if cp != nil {
 		r.Status.Conditions[pos] = c
 	} else {
@@ -254,8 +255,8 @@ func (r *OperandRequest) setCondition(c Condition) {
 	}
 }
 
-func getCondition(status *OperandRequestStatus, t ConditionType, msg string) (int, *Condition) {
-	for i, c := range status.Conditions {
+func getCondition(conds *[]Condition, t ConditionType, msg string) (int, *Condition) {
+	for i, c := range *conds {
 		if t == c.Type && msg == c.Message {
 			return i, &c
 		}
@@ -410,7 +411,12 @@ func (r *OperandRequest) UpdateClusterPhase() {
 
 // GetRegistryKey Set the default value for Request spec
 func (r *OperandRequest) GetRegistryKey(req Request) types.NamespacedName {
-	return types.NamespacedName{Namespace: req.RegistryNamespace, Name: req.Registry}
+	regName := req.Registry
+	regNs := req.RegistryNamespace
+	if regNs == "" {
+		regNs = r.Namespace
+	}
+	return types.NamespacedName{Namespace: regNs, Name: regName}
 }
 
 //InitConfigStatus OperandConfig status
@@ -461,8 +467,8 @@ func (r *OperandRequest) UpdateLabels() bool {
 	return isUpdated
 }
 
-// GetAllReconcileRequest gets all the ReconcileRequest from OperandRegistry status
-func (r *OperandRequest) GetAllReconcileRequest() []reconcile.Request {
+// GetAllRegistryReconcileRequest gets all the Registry ReconcileRequest
+func (r *OperandRequest) GetAllRegistryReconcileRequest() []reconcile.Request {
 	rrs := []reconcile.Request{}
 	for _, req := range r.Spec.Requests {
 		rrs = append(rrs, reconcile.Request{NamespacedName: r.GetRegistryKey(req)})

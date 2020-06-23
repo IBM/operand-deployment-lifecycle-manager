@@ -447,6 +447,11 @@ func (in *OperandRegistryStatus) DeepCopyInto(out *OperandRegistryStatus) {
 			(*out)[key] = *val.DeepCopy()
 		}
 	}
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make([]Condition, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 
