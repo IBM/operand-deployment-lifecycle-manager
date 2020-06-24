@@ -1,7 +1,7 @@
 channels:
-- currentCSV: operand-deployment-lifecycle-manager.v1.2.1
-  name: beta
 - currentCSV: operand-deployment-lifecycle-manager.v1.2.2
+  name: beta
+- currentCSV: operand-deployment-lifecycle-manager.v1.2.3
   name: dev
 - currentCSV: operand-deployment-lifecycle-manager.v1.2.1
   name: stable-v1
