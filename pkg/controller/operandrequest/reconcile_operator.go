@@ -33,6 +33,7 @@ import (
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 	constant "github.com/IBM/operand-deployment-lifecycle-manager/pkg/constant"
+	util "github.com/IBM/operand-deployment-lifecycle-manager/pkg/util"
 )
 
 func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1alpha1.OperandRequest) error {
@@ -122,11 +123,14 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1a
 		if err != nil {
 			return err
 		}
+		merr := &util.MultiErr{}
 		for o := range needDeletedOperands.Iter() {
-			fmt.Println(o)
 			if err := r.deleteSubscription(fmt.Sprintf("%v", o), requestInstance, registryInstance, configInstance); err != nil {
-				return err
+				merr.Add(err)
 			}
+		}
+		if len(merr.Errors) != 0 {
+			return merr
 		}
 	}
 	klog.V(1).Info("Finished reconciling Operators")
