@@ -40,6 +40,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
+	util "github.com/IBM/operand-deployment-lifecycle-manager/pkg/util"
 )
 
 /**
@@ -252,12 +253,16 @@ func (r *ReconcileOperandRequest) checkFinalizer(requestInstance *operatorv1alph
 			klog.Error("Failed to get OperandConfig: ", err)
 			return err
 		}
+
+		merr := &util.MultiErr{}
 		for _, operand := range req.Operands {
 			if err := r.deleteSubscription(operand.Name, requestInstance, registryInstance, configInstance); err != nil {
 				klog.Error("Failed to delete subscriptions during the uninstall: ", err)
-				klog.Error(err)
-				return err
+				merr.Add(err)
 			}
+		}
+		if len(merr.Errors) != 0 {
+			return merr
 		}
 	}
 	return nil
