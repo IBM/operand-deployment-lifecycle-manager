@@ -28,6 +28,10 @@ type BindInfoPhase string
 
 // BindInfo status
 const (
+	// BindInfoFinalizer is the name for the finalizer to allow for deletion
+	// reconciliation when an OperandBindInfo is deleted.
+	BindInfoFinalizer = "finalizer.bindinfo.ibm.com"
+
 	BindInfoCompleted BindInfoPhase = "Completed"
 	BindInfoFailed    BindInfoPhase = "Failed"
 	BindInfoInit      BindInfoPhase = "Initialized"
@@ -158,4 +162,17 @@ func (r *OperandBindInfo) UpdateLabels() bool {
 		}
 	}
 	return isUpdated
+}
+
+// RemoveFinalizer removes the operator source finalizer from the
+// OperatorSource ObjectMeta.
+func (r *OperandBindInfo) RemoveFinalizer() bool {
+	return RemoveFinalizer(&r.ObjectMeta, BindInfoFinalizer)
+}
+
+// EnsureFinalizer ensures that the operator source finalizer is included
+// in the ObjectMeta.Finalizer slice. If it already exists, no state change occurs.
+// If it doesn't, the finalizer is appended to the slice.
+func (r *OperandBindInfo) EnsureFinalizer() bool {
+	return EnsureFinalizer(&r.ObjectMeta, BindInfoFinalizer)
 }

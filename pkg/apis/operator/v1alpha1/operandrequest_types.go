@@ -73,6 +73,10 @@ type OperatorPhase string
 
 // Constants are used for state
 const (
+	// RequestFinalizer is the name for the finalizer to allow for deletion
+	// reconciliation when an OperandRequest is deleted.
+	RequestFinalizer = "finalizer.request.ibm.com"
+
 	ConditionCreating   ConditionType = "Creating"
 	ConditionUpdating   ConditionType = "Updating"
 	ConditionDeleting   ConditionType = "Deleting"
@@ -471,4 +475,17 @@ func (r *OperandRequest) GetAllReconcileRequest() []reconcile.Request {
 
 func init() {
 	SchemeBuilder.Register(&OperandRequest{}, &OperandRequestList{})
+}
+
+// RemoveFinalizer removes the operator source finalizer from the
+// OperatorSource ObjectMeta.
+func (r *OperandRequest) RemoveFinalizer() bool {
+	return RemoveFinalizer(&r.ObjectMeta, RequestFinalizer)
+}
+
+// EnsureFinalizer ensures that the operator source finalizer is included
+// in the ObjectMeta.Finalizer slice. If it already exists, no state change occurs.
+// If it doesn't, the finalizer is appended to the slice.
+func (r *OperandRequest) EnsureFinalizer() bool {
+	return EnsureFinalizer(&r.ObjectMeta, RequestFinalizer)
 }

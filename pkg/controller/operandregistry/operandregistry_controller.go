@@ -19,6 +19,7 @@ package operandregistry
 import (
 	"context"
 	"reflect"
+	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -138,6 +139,31 @@ func (r *ReconcileOperandRegistry) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
+	// Set Finalizer for the OperandRegistry
+	added := instance.EnsureFinalizer()
+	if added {
+		if err := r.client.Update(context.TODO(), instance); err != nil {
+			return reconcile.Result{}, err
+		}
+	}
+
+	if instance.DeletionTimestamp != nil {
+		requestList, err := r.getOperandRequest(instance)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		if len(requestList.Items) == 0 {
+			removed := instance.RemoveFinalizer()
+			if removed {
+				if err := r.client.Update(context.TODO(), instance); err != nil {
+					return reconcile.Result{}, err
+				}
+			}
+		} else {
+			return reconcile.Result{RequeueAfter: 1 * time.Minute}, nil
+		}
+	}
+
 	return reconcile.Result{}, nil
 }
 
@@ -145,12 +171,8 @@ func (r *ReconcileOperandRegistry) updateRegistryOperatorsStatus(instance *opera
 	// Create an empty OperatorsStatus map
 	instance.Status.OperatorsStatus = make(map[string]operatorv1alpha1.OperatorStatus)
 	// List the OperandRequests refer the OperatorRegistry by label of the OperandRequests
-	requestList := &operatorv1alpha1.OperandRequestList{}
-	opts := []client.ListOption{
-		client.MatchingLabels(map[string]string{instance.Namespace + "." + instance.Name + "/registry": "true"}),
-	}
-
-	if err := r.client.List(context.TODO(), requestList, opts...); err != nil {
+	requestList, err := r.getOperandRequest(instance)
+	if err != nil {
 		return err
 	}
 	// Update OperandRegistry status from the OperandRequest list
@@ -168,4 +190,16 @@ func (r *ReconcileOperandRegistry) updateRegistryOperatorsStatus(instance *opera
 		}
 	}
 	return nil
+}
+
+func (r *ReconcileOperandRegistry) getOperandRequest(instance *operatorv1alpha1.OperandRegistry) (*operatorv1alpha1.OperandRequestList, error) {
+	requestList := &operatorv1alpha1.OperandRequestList{}
+	opts := []client.ListOption{
+		client.MatchingLabels(map[string]string{instance.Namespace + "." + instance.Name + "/registry": "true"}),
+	}
+
+	if err := r.client.List(context.TODO(), requestList, opts...); err != nil {
+		return nil, err
+	}
+	return requestList, nil
 }

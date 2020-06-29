@@ -106,6 +106,10 @@ type ServicePhase string
 
 // Service status
 const (
+	// ConfigFinalizer is the name for the finalizer to allow for deletion
+	// reconciliation when an OperandConfig is deleted.
+	ConfigFinalizer = "finalizer.config.ibm.com"
+
 	ServiceReady   ServicePhase = "Ready for Deployment"
 	ServiceRunning ServicePhase = "Running"
 	ServiceFailed  ServicePhase = "Failed"
@@ -182,4 +186,17 @@ func (r *OperandConfig) UpdateOperandPhase() {
 	} else {
 		r.Status.Phase = ServiceNone
 	}
+}
+
+// RemoveFinalizer removes the operator source finalizer from the
+// OperatorSource ObjectMeta.
+func (r *OperandConfig) RemoveFinalizer() bool {
+	return RemoveFinalizer(&r.ObjectMeta, ConfigFinalizer)
+}
+
+// EnsureFinalizer ensures that the operator source finalizer is included
+// in the ObjectMeta.Finalizer slice. If it already exists, no state change occurs.
+// If it doesn't, the finalizer is appended to the slice.
+func (r *OperandConfig) EnsureFinalizer() bool {
+	return EnsureFinalizer(&r.ObjectMeta, ConfigFinalizer)
 }
