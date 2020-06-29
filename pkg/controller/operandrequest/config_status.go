@@ -21,6 +21,7 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog"
 
@@ -54,7 +55,7 @@ func (r *ReconcileOperandRequest) updateServiceStatus(configInstance *operatorv1
 
 		if err := r.client.Status().Update(context.TODO(), configInstance); err != nil {
 			klog.V(3).Info("Waiting for OperandConfig instance status ready ...")
-			configInstance, _ = r.getConfigInstance(configInstance.Name, configInstance.Namespace)
+			configInstance, _ = r.getConfigInstance(types.NamespacedName{Name: configInstance.Name, Namespace: configInstance.Namespace})
 			return false, nil
 		}
 		return true, nil
@@ -69,7 +70,7 @@ func (r *ReconcileOperandRequest) deleteServiceStatus(cr *operatorv1alpha1.Opera
 	klog.V(3).Infof("Deleting custom resource %s from OperandConfig status", serviceName)
 
 	if err := wait.PollImmediate(time.Second*20, time.Minute*10, func() (done bool, err error) {
-		configInstance, err := r.getConfigInstance(cr.Name, cr.Namespace)
+		configInstance, err := r.getConfigInstance(types.NamespacedName{Name: cr.Name, Namespace: cr.Namespace})
 		if err != nil {
 			return false, err
 		}

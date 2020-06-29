@@ -147,28 +147,28 @@ func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconci
 	}
 
 	klog.V(1).Infof("Reconciling OperandBindInfo %s in the namespace %s", bindInfoInstance.Name, bindInfoInstance.Namespace)
-
-	// Set default for OperandBindInfo instance
-	bindInfoInstance.SetDefaultsRequestSpec()
-	// Add labels for the reqistry
-	bindInfoInstance.AddLabels()
-	if err := r.client.Update(context.TODO(), bindInfoInstance); err != nil {
-		return reconcile.Result{}, err
+	// Update labels for the reqistry
+	if bindInfoInstance.UpdateLabels() {
+		if err := r.client.Update(context.TODO(), bindInfoInstance); err != nil {
+			return reconcile.Result{}, err
+		}
 	}
 
 	// Initialize OperandBindInfo status
-	bindInfoInstance.InitBindInfoStatus()
-	klog.V(3).Infof("Initializing the status of OperandBindInfo %s in the namespace %s", request.Name, request.Namespace)
-	if err := r.client.Status().Update(context.TODO(), bindInfoInstance); err != nil {
-		return reconcile.Result{}, err
+	if !bindInfoInstance.InitBindInfoStatus() {
+		klog.V(3).Infof("Initializing the status of OperandBindInfo %s in the namespace %s", request.Name, request.Namespace)
+		if err := r.client.Status().Update(context.TODO(), bindInfoInstance); err != nil {
+			return reconcile.Result{}, err
+		}
 	}
 
 	// Fetch the OperandRegistry instance
+	registryKey := bindInfoInstance.GetRegistryKey()
 	registryInstance := &operatorv1alpha1.OperandRegistry{}
-	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: bindInfoInstance.Spec.Registry, Namespace: bindInfoInstance.Spec.RegistryNamespace}, registryInstance); err != nil {
+	if err := r.client.Get(context.TODO(), registryKey, registryInstance); err != nil {
 		if k8serr.IsNotFound(err) {
-			klog.Errorf("NotFound OperandRegistry %s from the namespace %s", bindInfoInstance.Spec.Registry, bindInfoInstance.Spec.RegistryNamespace)
-			r.recorder.Eventf(bindInfoInstance, corev1.EventTypeWarning, "NotFound", "NotFound OperandRegistry %s from the namespace %s", bindInfoInstance.Spec.Registry, bindInfoInstance.Spec.RegistryNamespace)
+			klog.Errorf("NotFound OperandRegistry from the NamespacedName %s", registryKey.String())
+			r.recorder.Eventf(bindInfoInstance, corev1.EventTypeWarning, "NotFound", "NotFound OperandRegistry from the NamespacedName %s", registryKey.String)
 		}
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}

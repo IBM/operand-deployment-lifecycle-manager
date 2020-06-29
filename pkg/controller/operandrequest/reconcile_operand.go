@@ -48,13 +48,14 @@ func (r *ReconcileOperandRequest) reconcileOperand(requestInstance *operatorv1al
 	}()
 	merr := &util.MultiErr{}
 	for _, req := range requestInstance.Spec.Requests {
-		configInstance, err := r.getConfigInstance(req.Registry, req.RegistryNamespace)
+		registryKey := requestInstance.GetRegistryKey(req)
+		configInstance, err := r.getConfigInstance(registryKey)
 		if err != nil {
 			klog.Error("Failed to get the operandconfig instance: ", err)
 			merr.Add(err)
 			continue
 		}
-		registryInstance, err := r.getRegistryInstance(req.Registry, req.RegistryNamespace)
+		registryInstance, err := r.getRegistryInstance(registryKey)
 		if err != nil {
 			klog.Error("Failed to get the operandregistry instance: ", err)
 			merr.Add(err)
@@ -322,10 +323,10 @@ func (r *ReconcileOperandRequest) deleteAllCustomResource(csv *olmv1alpha1.Clust
 }
 
 // Get the OperandConfig instance with the name and namespace
-func (r *ReconcileOperandRequest) getConfigInstance(name, namespace string) (*operatorv1alpha1.OperandConfig, error) {
-	klog.V(3).Infof("Get the OperandConfig instance %s in the namespace %s", name, namespace)
+func (r *ReconcileOperandRequest) getConfigInstance(key types.NamespacedName) (*operatorv1alpha1.OperandConfig, error) {
+	klog.V(3).Infof("Get the OperandConfig instance %s in the namespace %s", key.Name, key.Namespace)
 	config := &operatorv1alpha1.OperandConfig{}
-	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, config); err != nil {
+	if err := r.client.Get(context.TODO(), key, config); err != nil {
 		return nil, err
 	}
 	return config, nil

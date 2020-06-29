@@ -76,7 +76,7 @@ func initReconcile(t *testing.T, r ReconcileOperandRequest, req reconcile.Reques
 	assert.NoError(err)
 
 	// Retrieve OperandRegistry
-	registryInstance, err := r.getRegistryInstance(registryName, registryNamespace)
+	registryInstance, err := r.getRegistryInstance(types.NamespacedName{Name: registryName, Namespace: registryNamespace})
 	assert.NoError(err)
 	// for k, v := range registryInstance.Status.OperatorsStatus {
 	// 	assert.Equalf(v1alpha1.OperatorRunning, v.Phase, "operator(%s) phase should be Running", k)
@@ -232,7 +232,7 @@ func getReconcileRequest(name, namespace string) reconcile.Request {
 func updateOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req reconcile.Request, registryName, registryNamespace string) {
 	assert := assert.New(t)
 	// Retrieve OperandConfig
-	configInstance, err := r.getConfigInstance(registryName, registryNamespace)
+	configInstance, err := r.getConfigInstance(types.NamespacedName{Name: registryName, Namespace: registryNamespace})
 	assert.NoError(err)
 	for id, operator := range configInstance.Spec.Services {
 		if operator.Name == "etcd" {
@@ -248,7 +248,7 @@ func updateOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req re
 		t.Error("Reconcile requeued request as not expected")
 	}
 	assert.NoError(err)
-	configInstance, err = r.getConfigInstance(registryName, registryNamespace)
+	configInstance, err = r.getConfigInstance(types.NamespacedName{Name: registryName, Namespace: registryNamespace})
 	assert.NoError(err)
 	assert.Equal(v1alpha1.ServiceRunning, configInstance.Status.ServiceStatus["etcd"].CrStatus["etcdCluster"], "The status of etcdCluster should be running in the OperandConfig")
 	updatedRequestInstance := &v1alpha1.OperandRequest{}
@@ -261,7 +261,7 @@ func updateOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req re
 	}
 	assert.Equal(v1alpha1.ClusterPhaseRunning, updatedRequestInstance.Status.Phase, "The cluster phase status should be running in the OperandRequest")
 
-	registryInstance, err := r.getRegistryInstance(registryName, registryNamespace)
+	registryInstance, err := r.getRegistryInstance(types.NamespacedName{Name: registryName, Namespace: registryNamespace})
 	assert.NoError(err)
 	err = checkOperandCustomResource(t, r, registryInstance, 1, 8081, "3.2.13")
 	assert.NoError(err)

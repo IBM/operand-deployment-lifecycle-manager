@@ -47,10 +47,11 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1a
 		}
 	}()
 	for _, req := range requestInstance.Spec.Requests {
-		registryInstance, err := r.getRegistryInstance(req.Registry, req.RegistryNamespace)
+		registryKey := requestInstance.GetRegistryKey(req)
+		registryInstance, err := r.getRegistryInstance(registryKey)
 		if err != nil {
 			if errors.IsNotFound(err) {
-				r.recorder.Eventf(requestInstance, corev1.EventTypeWarning, "NotFound", "NotFound OperandRegistry %s from the namespace %s", req.Registry, req.RegistryNamespace)
+				r.recorder.Eventf(requestInstance, corev1.EventTypeWarning, "NotFound", "NotFound OperandRegistry in NamespacedName %s", registryKey.String)
 			}
 			return err
 		}
@@ -115,11 +116,12 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1a
 		return err
 	}
 	for _, req := range requestInstance.Spec.Requests {
-		registryInstance, err := r.getRegistryInstance(req.Registry, req.RegistryNamespace)
+		registryKey := requestInstance.GetRegistryKey(req)
+		registryInstance, err := r.getRegistryInstance(registryKey)
 		if err != nil {
 			return err
 		}
-		configInstance, err := r.getConfigInstance(req.Registry, req.RegistryNamespace)
+		configInstance, err := r.getConfigInstance(registryKey)
 		if err != nil {
 			return err
 		}
@@ -284,11 +286,11 @@ func (r *ReconcileOperandRequest) getCurrentOperands(requestInstance *operatorv1
 	klog.V(3).Info("Getting the operaters have been deployed")
 	deployedOperands := gset.NewSet()
 	for _, req := range requestInstance.Spec.Requests {
-
+		registryKey := requestInstance.GetRegistryKey(req)
 		requestList := &operatorv1alpha1.OperandRequestList{}
 
 		opts := []client.ListOption{
-			client.MatchingLabels(map[string]string{req.RegistryNamespace + "." + req.Registry + "/registry": "true"}),
+			client.MatchingLabels(map[string]string{registryKey.Namespace + "." + registryKey.Name + "/registry": "true"}),
 		}
 
 		if err := r.client.List(context.TODO(), requestList, opts...); err != nil {
@@ -297,7 +299,8 @@ func (r *ReconcileOperandRequest) getCurrentOperands(requestInstance *operatorv1
 
 		for _, item := range requestList.Items {
 			for _, existingReq := range item.Spec.Requests {
-				if req.Registry != existingReq.Registry || req.RegistryNamespace != existingReq.RegistryNamespace {
+				existRegistryKey := requestInstance.GetRegistryKey(existingReq)
+				if registryKey.String() != existRegistryKey.String() {
 					continue
 				}
 				for _, operand := range existingReq.Operands {
@@ -395,10 +398,10 @@ func getOperatorNamespace(installMode, namespace string) string {
 }
 
 // Get the OperandRegistry instance with the name and namespace
-func (r *ReconcileOperandRequest) getRegistryInstance(name, namespace string) (*operatorv1alpha1.OperandRegistry, error) {
-	klog.V(3).Info("Get the OperandRegistry instance from the name: ", name, " in the namespace: ", namespace)
+func (r *ReconcileOperandRequest) getRegistryInstance(key types.NamespacedName) (*operatorv1alpha1.OperandRegistry, error) {
+	klog.V(3).Info("Get the OperandRegistry instance from the name: ", key.Name, " in the namespace: ", key.Namespace)
 	reg := &operatorv1alpha1.OperandRegistry{}
-	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, reg); err != nil {
+	if err := r.client.Get(context.TODO(), key, reg); err != nil {
 		return nil, err
 	}
 	return reg, nil

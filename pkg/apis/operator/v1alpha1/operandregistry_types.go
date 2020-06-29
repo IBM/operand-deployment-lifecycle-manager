@@ -17,8 +17,6 @@
 package v1alpha1
 
 import (
-	"reflect"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -174,29 +172,14 @@ type OperandRegistryList struct {
 	Items           []OperandRegistry `json:"items"`
 }
 
-// SetDefaultsRegistry Set the default value for Registry spec
-func (r *OperandRegistry) SetDefaultsRegistry() {
-	for i, o := range r.Spec.Operators {
-		if o.Scope == "" {
-			r.Spec.Operators[i].Scope = ScopePrivate
-		}
-	}
-}
-
-// SetDefaultInstallMode Set the default install mode for an operator
-func (r *OperandRegistry) SetDefaultInstallMode() {
-	for i, o := range r.Spec.Operators {
-		if o.InstallMode == "" {
-			r.Spec.Operators[i].InstallMode = InstallModeNamespace
-		}
-	}
-}
-
 // InitRegistryStatus Init Phase in the OperandRegistry status
-func (r *OperandRegistry) InitRegistryStatus() {
-	if (reflect.DeepEqual(r.Status, OperandRegistryStatus{})) {
+func (r *OperandRegistry) InitRegistryStatus() bool {
+	isInitialized := true
+	if r.Status.Phase == "" {
+		isInitialized = false
 		r.Status.Phase = RegistryInit
 	}
+	return isInitialized
 }
 
 // InitRegistryOperatorStatus Init Operators status in the OperandRegistry instance
@@ -250,6 +233,12 @@ func (r *OperandRegistry) CleanOperatorStatus(name string, request reconcile.Req
 func (r *OperandRegistry) GetOperator(operandName string) *Operator {
 	for _, o := range r.Spec.Operators {
 		if o.Name == operandName {
+			if o.Scope == "" {
+				o.Scope = ScopePrivate
+			}
+			if o.InstallMode == "" {
+				o.InstallMode = InstallModeNamespace
+			}
 			return &o
 		}
 	}

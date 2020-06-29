@@ -17,10 +17,10 @@
 package v1alpha1
 
 import (
-	"reflect"
-	"regexp"
+	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // BindInfoPhase defines the BindInfo status
@@ -107,11 +107,14 @@ func init() {
 	SchemeBuilder.Register(&OperandBindInfo{}, &OperandBindInfoList{})
 }
 
-//InitBindInfoStatus OperandConfig status
-func (r *OperandBindInfo) InitBindInfoStatus() {
-	if (reflect.DeepEqual(r.Status, OperandBindInfoStatus{})) {
+// InitBindInfoStatus OperandConfig status
+func (r *OperandBindInfo) InitBindInfoStatus() bool {
+	isInitialized := true
+	if r.Status.Phase == "" {
+		isInitialized = false
 		r.Status.Phase = BindInfoInit
 	}
+	return isInitialized
 }
 
 // SetUpdatingBindInfoPhase sets the Phase status as Updating
@@ -119,24 +122,45 @@ func (r *OperandBindInfo) SetUpdatingBindInfoPhase() {
 	r.Status.Phase = BindInfoUpdating
 }
 
-// SetDefaultsRequestSpec Set the default value for OperandBindInfo spec
-func (r *OperandBindInfo) SetDefaultsRequestSpec() {
-	if r.Spec.RegistryNamespace == "" {
-		r.Spec.RegistryNamespace = r.Namespace
+// GetRegistryKey Set the default value for Request spec
+func (r *OperandBindInfo) GetRegistryKey() types.NamespacedName {
+	if r.Spec.RegistryNamespace != "" {
+		return types.NamespacedName{Namespace: r.Spec.RegistryNamespace, Name: r.Spec.Registry}
 	}
+	return types.NamespacedName{Namespace: r.Namespace, Name: r.Spec.Registry}
 }
 
-// AddLabels set the labels for the OperandConfig and OperandRegistry used by this OperandRequest
-func (r *OperandBindInfo) AddLabels() {
+func (r *OperandBindInfo) GeneralLabels() map[string]string {
+	labels := make(map[string]string)
+	registryKey := r.GetRegistryKey()
+	labels[registryKey.Namespace+"."+registryKey.Name+"/registry"] = "true"
+	return labels
+}
+
+// UpdateLabels update the labels for the OperandConfig and OperandRegistry used by this OperandRequest
+// Return true if label changed, otherwise return false
+func (r *OperandBindInfo) UpdateLabels() bool {
+	isUpdated := false
 	if r.Labels == nil {
-		r.Labels = make(map[string]string)
+		r.Labels = r.GeneralLabels()
+		isUpdated = true
 	} else {
-		reg, _ := regexp.Compile(`^(.*)\.(.*)$\/registry`)
+		// Remove useless labels
 		for label := range r.Labels {
-			if reg.MatchString(label) {
-				delete(r.Labels, label)
+			if strings.HasSuffix(label, "/registry") {
+				if _, ok := r.GeneralLabels()[label]; !ok {
+					delete(r.Labels, label)
+					isUpdated = true
+				}
+			}
+		}
+		// Add new label
+		for label := range r.GeneralLabels() {
+			if _, ok := r.Labels[label]; !ok {
+				r.Labels[label] = "true"
+				isUpdated = true
 			}
 		}
 	}
-	r.Labels[r.Spec.RegistryNamespace+"."+r.Spec.Registry+"/registry"] = "true"
+	return isUpdated
 }

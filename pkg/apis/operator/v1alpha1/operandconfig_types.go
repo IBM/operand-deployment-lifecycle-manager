@@ -17,8 +17,6 @@
 package v1alpha1
 
 import (
-	"reflect"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -129,11 +127,14 @@ func (r *OperandConfig) GetService(operandName string) *ConfigService {
 	return nil
 }
 
-//InitConfigStatus OperandConfig status
-func (r *OperandConfig) InitConfigStatus() {
-	if (reflect.DeepEqual(r.Status, OperandConfigStatus{})) {
+// InitConfigStatus OperandConfig status
+func (r *OperandConfig) InitConfigStatus() bool {
+	isInitialized := true
+	if r.Status.Phase == "" {
+		isInitialized = false
 		r.Status.Phase = ServiceInit
 	}
+	return isInitialized
 }
 
 //InitConfigServiceStatus service status in the OperandConfig instance
