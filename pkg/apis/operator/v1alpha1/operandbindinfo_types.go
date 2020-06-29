@@ -117,11 +117,6 @@ func (r *OperandBindInfo) InitBindInfoStatus() bool {
 	return isInitialized
 }
 
-// SetUpdatingBindInfoPhase sets the Phase status as Updating
-func (r *OperandBindInfo) SetUpdatingBindInfoPhase() {
-	r.Status.Phase = BindInfoUpdating
-}
-
 // GetRegistryKey Set the default value for Request spec
 func (r *OperandBindInfo) GetRegistryKey() types.NamespacedName {
 	if r.Spec.RegistryNamespace != "" {

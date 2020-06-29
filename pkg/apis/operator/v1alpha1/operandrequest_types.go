@@ -17,7 +17,6 @@
 package v1alpha1
 
 import (
-	"regexp"
 	"strings"
 	"time"
 
@@ -351,11 +350,6 @@ func (r *OperandRequest) SetClusterPhase(p ClusterPhase) {
 	r.Status.Phase = p
 }
 
-// SetUpdatingClusterPhase sets the cluster Phase status as Creating
-func (r *OperandRequest) SetUpdatingClusterPhase() {
-	r.Status.Phase = ClusterPhaseUpdating
-}
-
 // UpdateClusterPhase will collect the phase of all the operators and operands.
 // Then summarize the cluster phase of the OperandRequest.
 func (r *OperandRequest) UpdateClusterPhase() {
@@ -410,15 +404,6 @@ func (r *OperandRequest) UpdateClusterPhase() {
 	r.SetClusterPhase(clusterPhase)
 }
 
-// SetDefaultsRequestSpec Set the default value for Request spec
-func (r *OperandRequest) SetDefaultsRequestSpec() {
-	for i, req := range r.Spec.Requests {
-		if req.RegistryNamespace == "" {
-			r.Spec.Requests[i].RegistryNamespace = r.Namespace
-		}
-	}
-}
-
 // GetRegistryKey Set the default value for Request spec
 func (r *OperandRequest) GetRegistryKey(req Request) types.NamespacedName {
 	if req.RegistryNamespace != "" {
@@ -435,26 +420,6 @@ func (r *OperandRequest) InitRequestStatus() bool {
 		r.Status.Phase = ClusterPhaseNone
 	}
 	return isInitialized
-}
-
-// AddLabels set the labels for the OperandConfig and OperandRegistry used by this OperandRequest
-func (r *OperandRequest) AddLabels() {
-	if r.Labels == nil {
-		r.Labels = make(map[string]string)
-	} else {
-		reg, _ := regexp.Compile(`^(.*)\.(.*)\/registry|^(.*)\.(.*)\/config`)
-		for label := range r.Labels {
-			if reg.MatchString(label) {
-				delete(r.Labels, label)
-			}
-		}
-	}
-
-	for _, req := range r.Spec.Requests {
-		registryKey := r.GetRegistryKey(req)
-		r.Labels[registryKey.Namespace+"."+registryKey.Name+"/registry"] = "true"
-		r.Labels[registryKey.Namespace+"."+registryKey.Name+"/config"] = "true"
-	}
 }
 
 func (r *OperandRequest) GeneralLabels() map[string]string {

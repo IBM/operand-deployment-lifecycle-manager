@@ -182,17 +182,6 @@ func (r *OperandRegistry) InitRegistryStatus() bool {
 	return isInitialized
 }
 
-// InitRegistryOperatorStatus Init Operators status in the OperandRegistry instance
-func (r *OperandRegistry) InitRegistryOperatorStatus() {
-	r.Status.OperatorsStatus = make(map[string]OperatorStatus)
-	for _, opt := range r.Spec.Operators {
-		opratorStatus := OperatorStatus{
-			Phase: OperatorReady,
-		}
-		r.Status.OperatorsStatus[opt.Name] = opratorStatus
-	}
-}
-
 // GetReconcileRequest gets the position of request from OperandRegistry status
 func (r *OperandRegistry) GetReconcileRequest(name string, reconcileRequest reconcile.Request) int {
 	s := r.Status.OperatorsStatus[name]
@@ -213,18 +202,6 @@ func (r *OperandRegistry) SetOperatorStatus(name string, phase OperatorPhase, re
 
 	if pos := r.GetReconcileRequest(name, request); pos == -1 {
 		s.ReconcileRequests = append(s.ReconcileRequests, ReconcileRequest{Name: request.Name, Namespace: request.Namespace})
-	}
-	r.Status.OperatorsStatus[name] = s
-}
-
-// CleanOperatorStatus remove the operator status in the operandRegistry
-func (r *OperandRegistry) CleanOperatorStatus(name string, request reconcile.Request) {
-	s := r.Status.OperatorsStatus[name]
-	if pos := r.GetReconcileRequest(name, request); pos != -1 {
-		s.ReconcileRequests = append(s.ReconcileRequests[:pos], s.ReconcileRequests[pos+1:]...)
-	}
-	if len(s.ReconcileRequests) == 0 {
-		s.Phase = OperatorReady
 	}
 	r.Status.OperatorsStatus[name] = s
 }
