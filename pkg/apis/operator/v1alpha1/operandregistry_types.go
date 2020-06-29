@@ -17,8 +17,6 @@
 package v1alpha1
 
 import (
-	"reflect"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -174,40 +172,14 @@ type OperandRegistryList struct {
 	Items           []OperandRegistry `json:"items"`
 }
 
-// SetDefaultsRegistry Set the default value for Registry spec
-func (r *OperandRegistry) SetDefaultsRegistry() {
-	for i, o := range r.Spec.Operators {
-		if o.Scope == "" {
-			r.Spec.Operators[i].Scope = ScopePrivate
-		}
-	}
-}
-
-// SetDefaultInstallMode Set the default install mode for an operator
-func (r *OperandRegistry) SetDefaultInstallMode() {
-	for i, o := range r.Spec.Operators {
-		if o.InstallMode == "" {
-			r.Spec.Operators[i].InstallMode = InstallModeNamespace
-		}
-	}
-}
-
 // InitRegistryStatus Init Phase in the OperandRegistry status
-func (r *OperandRegistry) InitRegistryStatus() {
-	if (reflect.DeepEqual(r.Status, OperandRegistryStatus{})) {
+func (r *OperandRegistry) InitRegistryStatus() bool {
+	isInitialized := true
+	if r.Status.Phase == "" {
+		isInitialized = false
 		r.Status.Phase = RegistryInit
 	}
-}
-
-// InitRegistryOperatorStatus Init Operators status in the OperandRegistry instance
-func (r *OperandRegistry) InitRegistryOperatorStatus() {
-	r.Status.OperatorsStatus = make(map[string]OperatorStatus)
-	for _, opt := range r.Spec.Operators {
-		opratorStatus := OperatorStatus{
-			Phase: OperatorReady,
-		}
-		r.Status.OperatorsStatus[opt.Name] = opratorStatus
-	}
+	return isInitialized
 }
 
 // GetReconcileRequest gets the position of request from OperandRegistry status
@@ -234,22 +206,16 @@ func (r *OperandRegistry) SetOperatorStatus(name string, phase OperatorPhase, re
 	r.Status.OperatorsStatus[name] = s
 }
 
-// CleanOperatorStatus remove the operator status in the operandRegistry
-func (r *OperandRegistry) CleanOperatorStatus(name string, request reconcile.Request) {
-	s := r.Status.OperatorsStatus[name]
-	if pos := r.GetReconcileRequest(name, request); pos != -1 {
-		s.ReconcileRequests = append(s.ReconcileRequests[:pos], s.ReconcileRequests[pos+1:]...)
-	}
-	if len(s.ReconcileRequests) == 0 {
-		s.Phase = OperatorReady
-	}
-	r.Status.OperatorsStatus[name] = s
-}
-
 // GetOperator obtain the operator definition with the operand name
 func (r *OperandRegistry) GetOperator(operandName string) *Operator {
 	for _, o := range r.Spec.Operators {
 		if o.Name == operandName {
+			if o.Scope == "" {
+				o.Scope = ScopePrivate
+			}
+			if o.InstallMode == "" {
+				o.InstallMode = InstallModeNamespace
+			}
 			return &o
 		}
 	}

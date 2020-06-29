@@ -79,7 +79,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			oldObject := e.ObjectOld.(*operatorv1alpha1.OperandRequest)
 			newObject := e.ObjectNew.(*operatorv1alpha1.OperandRequest)
-			return !reflect.DeepEqual(oldObject.Spec, newObject.Spec)
+			return !reflect.DeepEqual(oldObject.Status.Members, newObject.Status.Members)
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			// Evaluates to false if the object has been confirmed deleted.
@@ -119,13 +119,11 @@ func (r *ReconcileOperandRegistry) Reconcile(request reconcile.Request) (reconci
 
 	klog.V(1).Infof("Reconciling OperandRegistry %s", request.NamespacedName)
 
-	// Set the default scope for OperandRegistry instance
-	instance.SetDefaultsRegistry()
-
-	// Set the default install mode for OperandRegistry instance
-	instance.SetDefaultInstallMode()
-	if err := r.client.Update(context.TODO(), instance); err != nil {
-		return reconcile.Result{}, err
+	// Set the init status for OperandConfig instance
+	if !instance.InitRegistryStatus() {
+		if err := r.client.Update(context.TODO(), instance); err != nil {
+			return reconcile.Result{}, err
+		}
 	}
 
 	if err := r.updateRegistryOperatorsStatus(instance); err != nil {
@@ -157,14 +155,15 @@ func (r *ReconcileOperandRegistry) updateRegistryOperatorsStatus(instance *opera
 	}
 	// Update OperandRegistry status from the OperandRequest list
 	for _, item := range requestList.Items {
-		key := types.NamespacedName{Name: item.Name, Namespace: item.Namespace}
+		requestKey := types.NamespacedName{Name: item.Name, Namespace: item.Namespace}
 		for _, req := range item.Spec.Requests {
+			registryKey := item.GetRegistryKey(req)
 			// Skip the status updating if the OperandRegistry doesn't match
-			if req.Registry != instance.Name || req.RegistryNamespace != instance.Namespace {
+			if registryKey.Name != instance.Name || registryKey.Namespace != instance.Namespace {
 				continue
 			}
 			for _, operand := range req.Operands {
-				instance.SetOperatorStatus(operand.Name, "", reconcile.Request{NamespacedName: key})
+				instance.SetOperatorStatus(operand.Name, "", reconcile.Request{NamespacedName: requestKey})
 			}
 		}
 	}

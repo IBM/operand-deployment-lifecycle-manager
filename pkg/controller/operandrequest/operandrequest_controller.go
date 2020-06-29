@@ -163,17 +163,18 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 
 	klog.V(1).Infof("Reconciling OperandRequest %s in the namespace %s", requestInstance.Name, requestInstance.Namespace)
 
-	// Set default for OperandRequest instance
-	requestInstance.SetDefaultsRequestSpec()
-	// Add labels for the request
-	requestInstance.AddLabels()
-	if err := r.client.Update(context.TODO(), requestInstance); err != nil {
-		return reconcile.Result{}, err
+	// Update labels for the request
+	if requestInstance.UpdateLabels() {
+		if err := r.client.Update(context.TODO(), requestInstance); err != nil {
+			return reconcile.Result{}, err
+		}
 	}
-	// Set the default status for OperandRequest instance
-	requestInstance.SetDefaultRequestStatus()
-	if err := r.client.Status().Update(context.TODO(), requestInstance); err != nil {
-		return reconcile.Result{}, err
+
+	// Set the init status for OperandRequest instance
+	if !requestInstance.InitRequestStatus() {
+		if err := r.client.Status().Update(context.TODO(), requestInstance); err != nil {
+			return reconcile.Result{}, err
+		}
 	}
 
 	if err := r.addFinalizer(requestInstance); err != nil {
@@ -243,12 +244,13 @@ func (r *ReconcileOperandRequest) checkFinalizer(requestInstance *operatorv1alph
 	}
 	// Delete all the subscriptions that created by current request
 	for _, req := range requestInstance.Spec.Requests {
-		registryInstance, err := r.getRegistryInstance(req.Registry, req.RegistryNamespace)
+		registryKey := requestInstance.GetRegistryKey(req)
+		registryInstance, err := r.getRegistryInstance(registryKey)
 		if err != nil {
 			klog.Error("Failed to get OperandRegistry: ", err)
 			return err
 		}
-		configInstance, err := r.getConfigInstance(req.Registry, req.RegistryNamespace)
+		configInstance, err := r.getConfigInstance(registryKey)
 		if err != nil {
 			klog.Error("Failed to get OperandConfig: ", err)
 			return err

@@ -56,10 +56,6 @@ func initReconcile(t *testing.T, r ReconcileOperandRegistry, req reconcile.Reque
 	registry := &v1alpha1.OperandRegistry{}
 	err = r.client.Get(context.TODO(), req.NamespacedName, registry)
 	assert.NoError(err)
-	// Check the default value
-	for _, o := range registry.Spec.Operators {
-		assert.Equalf(v1alpha1.ScopePrivate, o.Scope, "default operator(%s) scope should be private", o.Name)
-	}
 	// Check the registry init status
 	assert.NotNil(registry.Status, "init operator status should not be empty")
 	assert.Equalf(v1alpha1.RegistryInit, registry.Status.Phase, "Overall OperandRegistry phase should be 'Initialized'")

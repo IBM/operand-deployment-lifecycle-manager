@@ -90,12 +90,12 @@ func (r *ReconcileOperandConfig) Reconcile(request reconcile.Request) (reconcile
 
 	klog.V(1).Infof("Reconciling OperandConfig %s", request.NamespacedName)
 
-	// Set the default status for OperandConfig instance
-	instance.InitConfigStatus()
-	klog.V(3).Infof("Initializing the status of OperandConfig %s in the namespace %s", request.Name, request.Namespace)
-	if err := r.client.Status().Update(context.TODO(), instance); err != nil {
-		return reconcile.Result{}, err
+	// Set the init status for OperandConfig instance
+	if !instance.InitConfigStatus() {
+		klog.V(3).Infof("Initializing the status of OperandConfig %s in the namespace %s", request.Name, request.Namespace)
+		if err := r.client.Status().Update(context.TODO(), instance); err != nil {
+			return reconcile.Result{}, err
+		}
 	}
-
 	return reconcile.Result{}, nil
 }

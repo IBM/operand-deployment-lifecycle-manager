@@ -17,7 +17,7 @@
 package v1alpha1
 
 import (
-	"regexp"
+	"strings"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -350,11 +350,6 @@ func (r *OperandRequest) SetClusterPhase(p ClusterPhase) {
 	r.Status.Phase = p
 }
 
-// SetUpdatingClusterPhase sets the cluster Phase status as Creating
-func (r *OperandRequest) SetUpdatingClusterPhase() {
-	r.Status.Phase = ClusterPhaseUpdating
-}
-
 // UpdateClusterPhase will collect the phase of all the operators and operands.
 // Then summarize the cluster phase of the OperandRequest.
 func (r *OperandRequest) UpdateClusterPhase() {
@@ -409,51 +404,67 @@ func (r *OperandRequest) UpdateClusterPhase() {
 	r.SetClusterPhase(clusterPhase)
 }
 
-// SetDefaultsRequestSpec Set the default value for Request spec
-func (r *OperandRequest) SetDefaultsRequestSpec() {
-	for i, req := range r.Spec.Requests {
-		if req.RegistryNamespace == "" {
-			r.Spec.Requests[i].RegistryNamespace = r.Namespace
-		}
+// GetRegistryKey Set the default value for Request spec
+func (r *OperandRequest) GetRegistryKey(req Request) types.NamespacedName {
+	if req.RegistryNamespace != "" {
+		return types.NamespacedName{Namespace: req.RegistryNamespace, Name: req.Registry}
 	}
+	return types.NamespacedName{Namespace: r.Namespace, Name: req.Registry}
 }
 
-// SetDefaultRequestStatus set the default OperandRquest status
-func (r *OperandRequest) SetDefaultRequestStatus() {
+//InitConfigStatus OperandConfig status
+func (r *OperandRequest) InitRequestStatus() bool {
+	isInitialized := true
 	if r.Status.Phase == "" {
+		isInitialized = false
 		r.Status.Phase = ClusterPhaseNone
 	}
+	return isInitialized
 }
 
-// AddLabels set the labels for the OperandConfig and OperandRegistry used by this OperandRequest
-func (r *OperandRequest) AddLabels() {
+func (r *OperandRequest) GeneralLabels() map[string]string {
+	labels := make(map[string]string)
+	for _, req := range r.Spec.Requests {
+		registryKey := r.GetRegistryKey(req)
+		labels[registryKey.Namespace+"."+registryKey.Name+"/registry"] = "true"
+		labels[registryKey.Namespace+"."+registryKey.Name+"/config"] = "true"
+	}
+	return labels
+}
+
+// UpdateLabels update the labels for the OperandConfig and OperandRegistry used by this OperandRequest
+// Return true if label changed, otherwise return false
+func (r *OperandRequest) UpdateLabels() bool {
+	isUpdated := false
 	if r.Labels == nil {
-		r.Labels = make(map[string]string)
+		r.Labels = r.GeneralLabels()
+		isUpdated = true
 	} else {
-		reg, _ := regexp.Compile(`^(.*)\.(.*)\/registry|^(.*)\.(.*)\/config`)
+		// Remove useless labels
 		for label := range r.Labels {
-			if reg.MatchString(label) {
-				delete(r.Labels, label)
+			if strings.HasSuffix(label, "/registry") || strings.HasSuffix(label, "/config") {
+				if _, ok := r.GeneralLabels()[label]; !ok {
+					delete(r.Labels, label)
+					isUpdated = true
+				}
+			}
+		}
+		// Add new label
+		for label := range r.GeneralLabels() {
+			if _, ok := r.Labels[label]; !ok {
+				r.Labels[label] = "true"
+				isUpdated = true
 			}
 		}
 	}
-
-	for _, req := range r.Spec.Requests {
-		r.Labels[req.RegistryNamespace+"."+req.Registry+"/registry"] = "true"
-		r.Labels[req.RegistryNamespace+"."+req.Registry+"/config"] = "true"
-	}
+	return isUpdated
 }
 
 // GetAllReconcileRequest gets all the ReconcileRequest from OperandRegistry status
 func (r *OperandRequest) GetAllReconcileRequest() []reconcile.Request {
 	rrs := []reconcile.Request{}
-	for _, r := range r.Spec.Requests {
-		rr := reconcile.Request{
-			NamespacedName: types.NamespacedName{
-				Name:      r.Registry,
-				Namespace: r.RegistryNamespace,
-			}}
-		rrs = append(rrs, rr)
+	for _, req := range r.Spec.Requests {
+		rrs = append(rrs, reconcile.Request{NamespacedName: r.GetRegistryKey(req)})
 	}
 	return rrs
 }
