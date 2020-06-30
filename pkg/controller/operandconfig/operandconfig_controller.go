@@ -18,6 +18,7 @@ package operandconfig
 
 import (
 	"context"
+	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
@@ -97,5 +98,43 @@ func (r *ReconcileOperandConfig) Reconcile(request reconcile.Request) (reconcile
 			return reconcile.Result{}, err
 		}
 	}
+
+	// Set Finalizer for the OperandConfig
+	added := instance.EnsureFinalizer()
+	if added {
+		if err := r.client.Update(context.TODO(), instance); err != nil {
+			return reconcile.Result{}, err
+		}
+	}
+
+	if instance.DeletionTimestamp != nil {
+		requestList, err := r.getOperandRequest(instance)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		if len(requestList.Items) == 0 {
+			removed := instance.RemoveFinalizer()
+			if removed {
+				if err := r.client.Update(context.TODO(), instance); err != nil {
+					return reconcile.Result{}, err
+				}
+			}
+		} else {
+			return reconcile.Result{RequeueAfter: 1 * time.Minute}, nil
+		}
+	}
+
 	return reconcile.Result{}, nil
+}
+
+func (r *ReconcileOperandConfig) getOperandRequest(instance *operatorv1alpha1.OperandConfig) (*operatorv1alpha1.OperandRequestList, error) {
+	requestList := &operatorv1alpha1.OperandRequestList{}
+	opts := []client.ListOption{
+		client.MatchingLabels(map[string]string{instance.Namespace + "." + instance.Name + "/config": "true"}),
+	}
+
+	if err := r.client.List(context.TODO(), requestList, opts...); err != nil {
+		return nil, err
+	}
+	return requestList, nil
 }

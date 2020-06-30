@@ -190,10 +190,12 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 			return reconcile.Result{}, err
 		}
 		// Update finalizer to allow delete CR
-		removeFinalizer(&requestInstance.ObjectMeta, "finalizer.request.ibm.com")
-		err = r.client.Update(context.TODO(), requestInstance)
-		if err != nil {
-			return reconcile.Result{}, err
+		removed := requestInstance.RemoveFinalizer()
+		if removed {
+			err = r.client.Update(context.TODO(), requestInstance)
+			if err != nil {
+				return reconcile.Result{}, err
+			}
 		}
 		return reconcile.Result{}, nil
 	}
@@ -209,7 +211,7 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, merr
 	}
 
-	// Check if all csv deploy successed
+	// Check if all csv deploy succeed
 	if requestInstance.Status.Phase != operatorv1alpha1.ClusterPhaseRunning {
 		klog.V(2).Info("Waiting for all operands to be deployed successfully ...")
 		return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
@@ -220,12 +222,14 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 
 func (r *ReconcileOperandRequest) addFinalizer(cr *operatorv1alpha1.OperandRequest) error {
 	if cr.GetDeletionTimestamp() == nil {
-		ensureFinalizer(&cr.ObjectMeta, "finalizer.request.ibm.com")
-		// Update CR
-		err := r.client.Update(context.TODO(), cr)
-		if err != nil {
-			klog.Errorf("Failed to update the OperandRequest %s in the namespace %s: %s", cr.Name, cr.Namespace, err)
-			return err
+		added := cr.EnsureFinalizer()
+		if added {
+			// Update CR
+			err := r.client.Update(context.TODO(), cr)
+			if err != nil {
+				klog.Errorf("Failed to update the OperandRequest %s in the namespace %s: %s", cr.Name, cr.Namespace, err)
+				return err
+			}
 		}
 	}
 	return nil
@@ -308,33 +312,4 @@ func getConfigToRquestMapper(mgr manager.Manager) handler.ToRequestsFunc {
 		}
 		return requests
 	}
-}
-
-// ensureFinalizer ensures that the object's finalizer is included
-// in the ObjectMeta Finalizers slice. If it already exists, no state change occurs.
-// If it doesn't, the finalizer is appended to the slice.
-func ensureFinalizer(objectMeta *metav1.ObjectMeta, expectedFinalizer string) {
-	// First check if the finalizer is already included in the object.
-	for _, finalizer := range objectMeta.Finalizers {
-		if finalizer == expectedFinalizer {
-			return
-		}
-	}
-
-	// If it doesn't exist, append the finalizer to the object meta.
-	klog.V(2).Infof("Add finializer to the OperandRequest %s in the namespace %s", objectMeta.Name, objectMeta.Namespace)
-	objectMeta.Finalizers = append(objectMeta.Finalizers, expectedFinalizer)
-}
-
-// removeFinalizer removes the finalizer from the object's ObjectMeta.
-func removeFinalizer(objectMeta *metav1.ObjectMeta, deletingFinalizer string) {
-	outFinalizers := make([]string, 0)
-	for _, finalizer := range objectMeta.Finalizers {
-		if finalizer == deletingFinalizer {
-			continue
-		}
-		outFinalizers = append(outFinalizers, finalizer)
-	}
-
-	objectMeta.Finalizers = outFinalizers
 }

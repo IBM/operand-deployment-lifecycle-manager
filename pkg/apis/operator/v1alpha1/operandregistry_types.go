@@ -154,6 +154,10 @@ type RegistryPhase string
 
 // Registry phase
 const (
+	// RegistryFinalizer is the name for the finalizer to allow for deletion
+	// reconciliation when an OperandRegistry is deleted.
+	RegistryFinalizer = "finalizer.registry.ibm.com"
+
 	RegistryReady    RegistryPhase = "Ready for Deployment"
 	RegistryRunning  RegistryPhase = "Running"
 	RegistryPending  RegistryPhase = "Pending"
@@ -249,4 +253,17 @@ func init() {
 // UpdateRegistryPhase sets the current Phase status
 func (r *OperandRegistry) UpdateRegistryPhase(phase RegistryPhase) {
 	r.Status.Phase = phase
+}
+
+// RemoveFinalizer removes the operator source finalizer from the
+// OperatorSource ObjectMeta.
+func (r *OperandRegistry) RemoveFinalizer() bool {
+	return RemoveFinalizer(&r.ObjectMeta, RegistryFinalizer)
+}
+
+// EnsureFinalizer ensures that the operator source finalizer is included
+// in the ObjectMeta.Finalizer slice. If it already exists, no state change occurs.
+// If it doesn't, the finalizer is appended to the slice.
+func (r *OperandRegistry) EnsureFinalizer() bool {
+	return EnsureFinalizer(&r.ObjectMeta, RegistryFinalizer)
 }
