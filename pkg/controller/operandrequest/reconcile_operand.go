@@ -32,6 +32,7 @@ import (
 	"k8s.io/klog"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
+	fetch "github.com/IBM/operand-deployment-lifecycle-manager/pkg/controller/common"
 	util "github.com/IBM/operand-deployment-lifecycle-manager/pkg/util"
 )
 
@@ -49,13 +50,13 @@ func (r *ReconcileOperandRequest) reconcileOperand(requestInstance *operatorv1al
 	merr := &util.MultiErr{}
 	for _, req := range requestInstance.Spec.Requests {
 		registryKey := requestInstance.GetRegistryKey(req)
-		configInstance, err := r.getConfigInstance(registryKey)
+		configInstance, err := fetch.FetchOperandConfig(r.client, registryKey)
 		if err != nil {
 			klog.Error("Failed to get the operandconfig instance: ", err)
 			merr.Add(err)
 			continue
 		}
-		registryInstance, err := r.getRegistryInstance(registryKey)
+		registryInstance, err := fetch.FetchOperandRegistry(r.client, registryKey)
 		if err != nil {
 			klog.Error("Failed to get the operandregistry instance: ", err)
 			merr.Add(err)
@@ -319,16 +320,6 @@ func (r *ReconcileOperandRequest) deleteAllCustomResource(csv *olmv1alpha1.Clust
 	}
 
 	return nil
-}
-
-// Get the OperandConfig instance with the name and namespace
-func (r *ReconcileOperandRequest) getConfigInstance(key types.NamespacedName) (*operatorv1alpha1.OperandConfig, error) {
-	klog.V(3).Infof("Get the OperandConfig instance %s in the namespace %s", key.Name, key.Namespace)
-	config := &operatorv1alpha1.OperandConfig{}
-	if err := r.client.Get(context.TODO(), key, config); err != nil {
-		return nil, err
-	}
-	return config, nil
 }
 
 func (r *ReconcileOperandRequest) compareConfigandExample(unstruct unstructured.Unstructured, service *operatorv1alpha1.ConfigService, namespace string, csc *operatorv1alpha1.OperandConfig) error {

@@ -20,6 +20,8 @@ import (
 	"context"
 	"time"
 
+	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
+	fetch "github.com/IBM/operand-deployment-lifecycle-manager/pkg/controller/common"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -29,8 +31,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 )
 
 /**
@@ -108,7 +108,7 @@ func (r *ReconcileOperandConfig) Reconcile(request reconcile.Request) (reconcile
 	}
 
 	if instance.DeletionTimestamp != nil {
-		requestList, err := r.getOperandRequest(instance)
+		requestList, err := fetch.FetchAllOperandRequests(r.client, map[string]string{instance.Namespace + "." + instance.Name + "/config": "true"})
 		if err != nil {
 			return reconcile.Result{}, err
 		}
@@ -125,16 +125,4 @@ func (r *ReconcileOperandConfig) Reconcile(request reconcile.Request) (reconcile
 	}
 
 	return reconcile.Result{}, nil
-}
-
-func (r *ReconcileOperandConfig) getOperandRequest(instance *operatorv1alpha1.OperandConfig) (*operatorv1alpha1.OperandRequestList, error) {
-	requestList := &operatorv1alpha1.OperandRequestList{}
-	opts := []client.ListOption{
-		client.MatchingLabels(map[string]string{instance.Namespace + "." + instance.Name + "/config": "true"}),
-	}
-
-	if err := r.client.List(context.TODO(), requestList, opts...); err != nil {
-		return nil, err
-	}
-	return requestList, nil
 }

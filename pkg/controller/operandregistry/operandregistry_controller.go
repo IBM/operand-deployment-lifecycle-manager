@@ -21,6 +21,8 @@ import (
 	"reflect"
 	"time"
 
+	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
+	fetch "github.com/IBM/operand-deployment-lifecycle-manager/pkg/controller/common"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
@@ -33,8 +35,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 )
 
 /**
@@ -148,7 +148,7 @@ func (r *ReconcileOperandRegistry) Reconcile(request reconcile.Request) (reconci
 	}
 
 	if instance.DeletionTimestamp != nil {
-		requestList, err := r.getOperandRequest(instance)
+		requestList, err := fetch.FetchAllOperandRequests(r.client, map[string]string{instance.Namespace + "." + instance.Name + "/registry": "true"})
 		if err != nil {
 			return reconcile.Result{}, err
 		}
@@ -171,7 +171,7 @@ func (r *ReconcileOperandRegistry) updateRegistryOperatorsStatus(instance *opera
 	// Create an empty OperatorsStatus map
 	instance.Status.OperatorsStatus = make(map[string]operatorv1alpha1.OperatorStatus)
 	// List the OperandRequests refer the OperatorRegistry by label of the OperandRequests
-	requestList, err := r.getOperandRequest(instance)
+	requestList, err := fetch.FetchAllOperandRequests(r.client, map[string]string{instance.Namespace + "." + instance.Name + "/registry": "true"})
 	if err != nil {
 		return err
 	}
@@ -190,16 +190,4 @@ func (r *ReconcileOperandRegistry) updateRegistryOperatorsStatus(instance *opera
 		}
 	}
 	return nil
-}
-
-func (r *ReconcileOperandRegistry) getOperandRequest(instance *operatorv1alpha1.OperandRegistry) (*operatorv1alpha1.OperandRequestList, error) {
-	requestList := &operatorv1alpha1.OperandRequestList{}
-	opts := []client.ListOption{
-		client.MatchingLabels(map[string]string{instance.Namespace + "." + instance.Name + "/registry": "true"}),
-	}
-
-	if err := r.client.List(context.TODO(), requestList, opts...); err != nil {
-		return nil, err
-	}
-	return requestList, nil
 }

@@ -26,6 +26,7 @@ import (
 	"k8s.io/klog"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
+	fetch "github.com/IBM/operand-deployment-lifecycle-manager/pkg/controller/common"
 )
 
 func (r *ReconcileOperandRequest) updateServiceStatus(configInstance *operatorv1alpha1.OperandConfig, operatorName, serviceName string, serviceStatus operatorv1alpha1.ServicePhase) error {
@@ -55,7 +56,7 @@ func (r *ReconcileOperandRequest) updateServiceStatus(configInstance *operatorv1
 
 		if err := r.client.Status().Update(context.TODO(), configInstance); err != nil {
 			klog.V(3).Info("Waiting for OperandConfig instance status ready ...")
-			configInstance, _ = r.getConfigInstance(types.NamespacedName{Name: configInstance.Name, Namespace: configInstance.Namespace})
+			configInstance, _ = fetch.FetchOperandConfig(r.client, types.NamespacedName{Name: configInstance.Name, Namespace: configInstance.Namespace})
 			return false, nil
 		}
 		return true, nil
@@ -70,7 +71,7 @@ func (r *ReconcileOperandRequest) deleteServiceStatus(cr *operatorv1alpha1.Opera
 	klog.V(3).Infof("Deleting custom resource %s from OperandConfig status", serviceName)
 
 	if err := wait.PollImmediate(time.Second*20, time.Minute*10, func() (done bool, err error) {
-		configInstance, err := r.getConfigInstance(types.NamespacedName{Name: cr.Name, Namespace: cr.Namespace})
+		configInstance, err := fetch.FetchOperandConfig(r.client, types.NamespacedName{Name: cr.Name, Namespace: cr.Namespace})
 		if err != nil {
 			return false, err
 		}

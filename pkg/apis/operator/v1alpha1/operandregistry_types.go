@@ -214,12 +214,6 @@ func (r *OperandRegistry) SetOperatorStatus(name string, phase OperatorPhase, re
 func (r *OperandRegistry) GetOperator(operandName string) *Operator {
 	for _, o := range r.Spec.Operators {
 		if o.Name == operandName {
-			if o.Scope == "" {
-				o.Scope = ScopePrivate
-			}
-			if o.InstallMode == "" {
-				o.InstallMode = InstallModeNamespace
-			}
 			return &o
 		}
 	}
