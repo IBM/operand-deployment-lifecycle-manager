@@ -20,8 +20,6 @@ import (
 	"context"
 	"time"
 
-	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
-	fetch "github.com/IBM/operand-deployment-lifecycle-manager/pkg/controller/common"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -31,6 +29,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+
+	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
+	fetch "github.com/IBM/operand-deployment-lifecycle-manager/pkg/controller/common"
 )
 
 /**
