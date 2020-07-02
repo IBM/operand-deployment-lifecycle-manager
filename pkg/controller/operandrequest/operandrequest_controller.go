@@ -40,6 +40,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
+	fetch "github.com/IBM/operand-deployment-lifecycle-manager/pkg/controller/common"
 	util "github.com/IBM/operand-deployment-lifecycle-manager/pkg/util"
 )
 
@@ -249,12 +250,12 @@ func (r *ReconcileOperandRequest) checkFinalizer(requestInstance *operatorv1alph
 	// Delete all the subscriptions that created by current request
 	for _, req := range requestInstance.Spec.Requests {
 		registryKey := requestInstance.GetRegistryKey(req)
-		registryInstance, err := r.getRegistryInstance(registryKey)
+		registryInstance, err := fetch.FetchOperandRegistry(r.client, registryKey)
 		if err != nil {
 			klog.Error("Failed to get OperandRegistry: ", err)
 			return err
 		}
-		configInstance, err := r.getConfigInstance(registryKey)
+		configInstance, err := fetch.FetchOperandConfig(r.client, registryKey)
 		if err != nil {
 			klog.Error("Failed to get OperandConfig: ", err)
 			return err

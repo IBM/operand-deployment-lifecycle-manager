@@ -410,10 +410,7 @@ func (r *OperandRequest) UpdateClusterPhase() {
 
 // GetRegistryKey Set the default value for Request spec
 func (r *OperandRequest) GetRegistryKey(req Request) types.NamespacedName {
-	if req.RegistryNamespace != "" {
-		return types.NamespacedName{Namespace: req.RegistryNamespace, Name: req.Registry}
-	}
-	return types.NamespacedName{Namespace: r.Namespace, Name: req.Registry}
+	return types.NamespacedName{Namespace: req.RegistryNamespace, Name: req.Registry}
 }
 
 //InitConfigStatus OperandConfig status

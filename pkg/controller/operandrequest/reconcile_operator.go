@@ -27,12 +27,12 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 	constant "github.com/IBM/operand-deployment-lifecycle-manager/pkg/constant"
+	fetch "github.com/IBM/operand-deployment-lifecycle-manager/pkg/controller/common"
 	util "github.com/IBM/operand-deployment-lifecycle-manager/pkg/util"
 )
 
@@ -48,7 +48,7 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1a
 	}()
 	for _, req := range requestInstance.Spec.Requests {
 		registryKey := requestInstance.GetRegistryKey(req)
-		registryInstance, err := r.getRegistryInstance(registryKey)
+		registryInstance, err := fetch.FetchOperandRegistry(r.client, registryKey)
 		if err != nil {
 			if errors.IsNotFound(err) {
 				r.recorder.Eventf(requestInstance, corev1.EventTypeWarning, "NotFound", "NotFound OperandRegistry in NamespacedName %s", registryKey.String)
@@ -117,11 +117,11 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1a
 	}
 	for _, req := range requestInstance.Spec.Requests {
 		registryKey := requestInstance.GetRegistryKey(req)
-		registryInstance, err := r.getRegistryInstance(registryKey)
+		registryInstance, err := fetch.FetchOperandRegistry(r.client, registryKey)
 		if err != nil {
 			return err
 		}
-		configInstance, err := r.getConfigInstance(registryKey)
+		configInstance, err := fetch.FetchOperandConfig(r.client, registryKey)
 		if err != nil {
 			return err
 		}
@@ -395,14 +395,4 @@ func getOperatorNamespace(installMode, namespace string) string {
 	}
 
 	return namespace
-}
-
-// Get the OperandRegistry instance with the name and namespace
-func (r *ReconcileOperandRequest) getRegistryInstance(key types.NamespacedName) (*operatorv1alpha1.OperandRegistry, error) {
-	klog.V(3).Info("Get the OperandRegistry instance from the name: ", key.Name, " in the namespace: ", key.Namespace)
-	reg := &operatorv1alpha1.OperandRegistry{}
-	if err := r.client.Get(context.TODO(), key, reg); err != nil {
-		return nil, err
-	}
-	return reg, nil
 }
