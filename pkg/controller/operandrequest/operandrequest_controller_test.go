@@ -238,9 +238,6 @@ func updateOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req re
 		t.Error("Reconcile requeued request as not expected")
 	}
 	assert.NoError(err)
-	configInstance, err = fetch.FetchOperandConfig(r.client, types.NamespacedName{Name: registryName, Namespace: registryNamespace})
-	assert.NoError(err)
-	assert.Equal(v1alpha1.ServiceRunning, configInstance.Status.ServiceStatus["etcd"].CrStatus["etcdCluster"], "The status of etcdCluster should be running in the OperandConfig")
 	updatedRequestInstance := &v1alpha1.OperandRequest{}
 	err = r.client.Get(context.TODO(), req.NamespacedName, updatedRequestInstance)
 	assert.NoError(err)
@@ -302,10 +299,6 @@ func presentOperandCustomResource(t *testing.T, r ReconcileOperandRequest, req r
 		t.Error("Reconcile requeued request as not expected")
 	}
 	assert.NoError(err)
-	registryKey := types.NamespacedName{Name: registryName, Namespace: registryNamespace}
-	configInstance, err = fetch.FetchOperandConfig(r.client, registryKey)
-	assert.NoError(err)
-	assert.Equal(v1alpha1.ServiceRunning, configInstance.Status.ServiceStatus["etcd"].CrStatus["etcdCluster"], "The status of etcdCluster should be running in the OperandConfig")
 	updatedRequestInstance := &v1alpha1.OperandRequest{}
 	err = r.client.Get(context.TODO(), req.NamespacedName, updatedRequestInstance)
 	assert.NoError(err)

@@ -74,7 +74,7 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestKey types.NamespacedN
 				}
 
 				// Check subscription if exist
-				namespace := getOperatorNamespace(opt.InstallMode, opt.Namespace)
+				namespace := fetch.GetOperatorNamespace(opt.InstallMode, opt.Namespace)
 				sub, err := fetch.FetchSubscription(r.olmClient, opt.Name, namespace, opt.PackageName)
 
 				if errors.IsNotFound(err) {
@@ -119,7 +119,7 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestKey types.NamespacedN
 }
 
 func (r *ReconcileOperandRequest) createSubscription(cr *operatorv1alpha1.OperandRequest, opt *operatorv1alpha1.Operator) error {
-	namespace := getOperatorNamespace(opt.InstallMode, opt.Namespace)
+	namespace := fetch.GetOperatorNamespace(opt.InstallMode, opt.Namespace)
 	klog.V(3).Info("Subscription Namespace: ", namespace)
 
 	co := generateClusterObjects(opt)
@@ -180,8 +180,21 @@ func (r *ReconcileOperandRequest) deleteSubscription(operandName string, request
 		return nil
 	}
 
-	namespace := getOperatorNamespace(op.InstallMode, op.Namespace)
-	csv, err := r.getClusterServiceVersion(operandName, op.PackageName, namespace)
+	namespace := fetch.GetOperatorNamespace(op.InstallMode, op.Namespace)
+	sub, err := fetch.FetchSubscription(r.olmClient, operandName, namespace, op.PackageName)
+
+	if errors.IsNotFound(err) {
+		klog.V(3).Infof("There is no Subscription %s or %s in the namespace %s", operandName, op.PackageName, namespace)
+		return nil
+	}
+
+	if _, ok := sub.Labels[constant.OpreqLabel]; !ok {
+		// Subscription existing and not managed by OperandRequest controller
+		klog.V(2).Infof("Subscription %s in the namespace %s isn't created by ODLM", sub.Name, sub.Namespace)
+		return nil
+	}
+
+	csv, err := fetch.FetchClusterServiceVersion(r.olmClient, sub)
 	// If can't get CSV, requeue the request
 	if err != nil {
 		return err
@@ -321,7 +334,7 @@ func generateClusterObjects(o *operatorv1alpha1.Operator) *clusterObjects {
 	co.operatorGroup = og
 
 	// The namespace is 'openshift-operators' when installMode is cluster
-	namespace := getOperatorNamespace(o.InstallMode, o.Namespace)
+	namespace := fetch.GetOperatorNamespace(o.InstallMode, o.Namespace)
 
 	// Subscription Object
 	installPlanApproval := olmv1alpha1.ApprovalAutomatic
@@ -369,14 +382,6 @@ func generateOperatorGroup(namespace string, targetNamespaces []string) *olmv1.O
 	og.SetGroupVersionKind(schema.GroupVersionKind{Group: olmv1.SchemeGroupVersion.Group, Kind: "OperatorGroup", Version: olmv1.SchemeGroupVersion.Version})
 
 	return og
-}
-
-func getOperatorNamespace(installMode, namespace string) string {
-	if installMode == operatorv1alpha1.InstallModeCluster {
-		return constant.ClusterOperatorNamespace
-	}
-
-	return namespace
 }
 
 func (r *ReconcileOperandRequest) checkUninstallLabel(name, namespace string) bool {

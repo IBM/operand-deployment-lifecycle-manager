@@ -110,11 +110,11 @@ const (
 	// reconciliation when an OperandConfig is deleted.
 	ConfigFinalizer = "finalizer.config.ibm.com"
 
-	ServiceReady   ServicePhase = "Ready for Deployment"
-	ServiceRunning ServicePhase = "Running"
-	ServiceFailed  ServicePhase = "Failed"
-	ServiceInit    ServicePhase = "Initialized"
-	ServiceNone    ServicePhase = ""
+	ServiceNotReady ServicePhase = "NotReady"
+	ServiceRunning  ServicePhase = "Running"
+	ServiceFailed   ServicePhase = "Failed"
+	ServiceInit     ServicePhase = "Initialized"
+	ServiceNone     ServicePhase = ""
 )
 
 func init() {
@@ -148,7 +148,7 @@ func (r *OperandConfig) InitConfigServiceStatus() {
 	for _, operator := range r.Spec.Services {
 		r.Status.ServiceStatus[operator.Name] = CrStatus{CrStatus: make(map[string]ServicePhase)}
 		for service := range operator.Spec {
-			r.Status.ServiceStatus[operator.Name].CrStatus[service] = ServiceReady
+			r.Status.ServiceStatus[operator.Name].CrStatus[service] = ServiceInit
 		}
 	}
 	r.UpdateOperandPhase()
@@ -157,19 +157,19 @@ func (r *OperandConfig) InitConfigServiceStatus() {
 // UpdateOperandPhase sets the current Phase status
 func (r *OperandConfig) UpdateOperandPhase() {
 	operandStatusStat := struct {
-		readyNum   int
-		runningNum int
-		failedNum  int
+		notReadyNum int
+		runningNum  int
+		failedNum   int
 	}{
-		readyNum:   0,
-		runningNum: 0,
-		failedNum:  0,
+		notReadyNum: 0,
+		runningNum:  0,
+		failedNum:   0,
 	}
 	for _, operator := range r.Status.ServiceStatus {
 		for _, service := range operator.CrStatus {
 			switch service {
-			case ServiceReady:
-				operandStatusStat.readyNum++
+			case ServiceNotReady:
+				operandStatusStat.notReadyNum++
 			case ServiceRunning:
 				operandStatusStat.runningNum++
 			case ServiceFailed:
@@ -179,10 +179,10 @@ func (r *OperandConfig) UpdateOperandPhase() {
 	}
 	if operandStatusStat.failedNum > 0 {
 		r.Status.Phase = ServiceFailed
+	} else if operandStatusStat.notReadyNum > 0 {
+		r.Status.Phase = ServiceNotReady
 	} else if operandStatusStat.runningNum > 0 {
 		r.Status.Phase = ServiceRunning
-	} else if operandStatusStat.readyNum > 0 {
-		r.Status.Phase = ServiceReady
 	} else {
 		r.Status.Phase = ServiceNone
 	}
@@ -199,4 +199,9 @@ func (r *OperandConfig) RemoveFinalizer() bool {
 // If it doesn't, the finalizer is appended to the slice.
 func (r *OperandConfig) EnsureFinalizer() bool {
 	return EnsureFinalizer(&r.ObjectMeta, ConfigFinalizer)
+}
+
+// CheckPhase checks if the OperandConfig phase are running
+func (r *OperandConfig) CheckPhase() bool {
+	return r.Status.Phase == ServiceRunning
 }

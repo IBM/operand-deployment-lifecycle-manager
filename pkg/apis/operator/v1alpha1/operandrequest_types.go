@@ -386,7 +386,7 @@ func (r *OperandRequest) UpdateClusterPhase() {
 		}
 
 		switch m.Phase.OperandPhase {
-		case ServiceReady:
+		case ServiceNotReady:
 			clusterStatusStat.creatingNum++
 		case ServiceRunning:
 			clusterStatusStat.runningNum++
