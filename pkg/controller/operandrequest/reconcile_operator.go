@@ -76,18 +76,29 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestKey types.NamespacedN
 				// Check subscription if exist
 				namespace := getOperatorNamespace(opt.InstallMode, opt.Namespace)
 				found, err := r.olmClient.OperatorsV1alpha1().Subscriptions(namespace).Get(opt.Name, metav1.GetOptions{})
-				if err != nil {
-					if errors.IsNotFound(err) {
-						// Subscription does not exist, create a new one
-						if err = r.createSubscription(requestInstance, opt); err != nil {
-							requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorFailed, "")
-							return err
-						}
-						requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorInstalling, "")
-						continue
-					}
+
+				if err != nil && !errors.IsNotFound(err) {
 					return err
 				}
+
+				if errors.IsNotFound(err) {
+					found, err = r.olmClient.OperatorsV1alpha1().Subscriptions(namespace).Get(opt.PackageName, metav1.GetOptions{})
+
+					if err != nil && !errors.IsNotFound(err) {
+						return err
+					}
+				}
+
+				if errors.IsNotFound(err) {
+					// Subscription does not exist, create a new one
+					if err = r.createSubscription(requestInstance, opt); err != nil {
+						requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorFailed, "")
+						return err
+					}
+					requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorInstalling, "")
+					continue
+				}
+
 				// Subscription existing and managed by OperandRequest controller
 				if _, ok := found.Labels[constant.OpreqLabel]; ok {
 					// Subscription channel changed, update it.
@@ -203,7 +214,7 @@ func (r *ReconcileOperandRequest) deleteSubscription(operandName string, request
 	}
 
 	namespace := getOperatorNamespace(op.InstallMode, op.Namespace)
-	csv, err := r.getClusterServiceVersion(operandName, namespace)
+	csv, err := r.getClusterServiceVersion(operandName, op.PackageName, namespace)
 	// If can't get CSV, requeue the request
 	if err != nil {
 		return err

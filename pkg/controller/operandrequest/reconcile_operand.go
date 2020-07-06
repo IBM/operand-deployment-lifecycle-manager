@@ -85,7 +85,7 @@ func (r *ReconcileOperandRequest) reconcileOperand(requestKey types.NamespacedNa
 
 			// Looking for the CSV
 			namespace := getOperatorNamespace(opdRegistry.InstallMode, opdRegistry.Namespace)
-			csv, err := r.getClusterServiceVersion(opdConfig.Name, namespace)
+			csv, err := r.getClusterServiceVersion(opdConfig.Name, opdRegistry.PackageName, namespace)
 
 			// If can't get CSV, requeue the request
 			if err != nil {
@@ -133,21 +133,32 @@ func (r *ReconcileOperandRequest) reconcileOperand(requestKey types.NamespacedNa
 }
 
 // getCSV retrieves the ClusterServiceVersion
-func (r *ReconcileOperandRequest) getClusterServiceVersion(subName, subNamespace string) (*olmv1alpha1.ClusterServiceVersion, error) {
+func (r *ReconcileOperandRequest) getClusterServiceVersion(subName, packageName, subNamespace string) (*olmv1alpha1.ClusterServiceVersion, error) {
 	klog.V(3).Infof("Looking for the ClusterServiceVersion for Subscription %s in the namespace %s", subName, subNamespace)
 	sub, err := r.olmClient.OperatorsV1alpha1().Subscriptions(subNamespace).Get(subName, metav1.GetOptions{})
-	if errors.IsNotFound(err) {
-		klog.V(3).Infof("There is no Subscription %s in the namespace %s", subName, subNamespace)
-		return nil, nil
-	}
-	if err != nil {
+
+	if err != nil && !errors.IsNotFound(err) {
 		klog.Error("Failed to list Subscriptions: ", err)
 		return nil, err
 	}
 
+	if errors.IsNotFound(err) {
+		klog.V(3).Infof("There is no Subscription %s in the namespace %s", subName, subNamespace)
+		sub, err = r.olmClient.OperatorsV1alpha1().Subscriptions(subNamespace).Get(packageName, metav1.GetOptions{})
+		if err != nil && !errors.IsNotFound(err) {
+			klog.Error("Failed to list Subscriptions: ", err)
+			return nil, err
+		}
+	}
+
+	if errors.IsNotFound(err) {
+		klog.V(3).Infof("There is no Subscription %s or %s in the namespace %s", subName, packageName, subNamespace)
+		return nil, nil
+	}
+
 	if _, ok := sub.Labels[constant.OpreqLabel]; !ok {
 		// Subscription existing and not managed by OperandRequest controller
-		klog.V(2).Infof("Subscription %s in the namespace %s isn't created by ODLM. Ignore updating/deleting it", sub.Name, sub.Namespace)
+		klog.V(2).Infof("Subscription %s in the namespace %s isn't created by ODLM", sub.Name, sub.Namespace)
 	}
 
 	// Subscription existing and managed by OperandRequest controller
