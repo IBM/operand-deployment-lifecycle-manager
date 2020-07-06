@@ -54,11 +54,6 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	// Add extenal api scheme
-	if err := olmv1alpha1.AddToScheme(mgr.GetScheme()); err != nil {
-		klog.Error("Add olm api scheme failed: ", err)
-		return nil
-	}
 	return &ReconcileOperandRegistry{
 		client:   mgr.GetClient(),
 		recorder: mgr.GetEventRecorderFor("operandregistry"),
@@ -129,7 +124,8 @@ func (r *ReconcileOperandRegistry) Reconcile(request reconcile.Request) (reconci
 
 	klog.V(1).Infof("Reconciling OperandRegistry %s", request.NamespacedName)
 
-	// Set Finalizer for the OperandRegistry
+	// Set Finalizer for the OperandRegistry. If the OperandRegistry finalizer is added to the finalizer list,
+	// EnsureFinalizer() will return true. If the OperandRegistry finalizer already exists, EnsureFinalizer() will return false.
 	if instance.EnsureFinalizer() {
 		if err := r.client.Update(context.TODO(), instance); err != nil {
 			return reconcile.Result{}, err
