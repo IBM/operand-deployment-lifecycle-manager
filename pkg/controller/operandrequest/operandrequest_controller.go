@@ -162,7 +162,7 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
 
-	klog.V(1).Infof("Reconciling OperandRequest %s in the namespace %s", requestInstance.Name, requestInstance.Namespace)
+	klog.V(1).Infof("Reconciling OperandRequest %s", request.NamespacedName)
 
 	// Update labels for the request
 	if requestInstance.UpdateLabels() {
@@ -214,10 +214,11 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 
 	// Check if all csv deploy succeed
 	if requestInstance.Status.Phase != operatorv1alpha1.ClusterPhaseRunning {
-		klog.V(2).Info("Waiting for all operands to be deployed successfully ...")
-		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
+		klog.V(2).Info("Waiting for all operators and operands to be deployed successfully ...")
+		return reconcile.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
+	klog.V(1).Infof("Finished reconciling OperandRequest %s", request.NamespacedName)
 	return reconcile.Result{}, nil
 }
 

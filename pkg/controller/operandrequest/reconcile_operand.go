@@ -39,18 +39,18 @@ import (
 const t = "true"
 
 func (r *ReconcileOperandRequest) reconcileOperand(requestKey types.NamespacedName) *util.MultiErr {
-	klog.V(1).Info("Reconciling Operands")
+	klog.V(1).Infof("Reconciling Operands for OperandRequest %s", requestKey)
 	merr := &util.MultiErr{}
 	requestInstance, err := fetch.FetchOperandRequest(r.client, requestKey)
 	if err != nil {
 		merr.Add(err)
 		return merr
 	}
-	// Update request phase status
+	// Update request status
 	defer func() {
 		requestInstance.UpdateClusterPhase()
 		if err := r.client.Status().Update(context.TODO(), requestInstance); err != nil {
-			klog.Error("Update request phase failed", err)
+			klog.Error("Update request status failed: ", err)
 		}
 	}()
 
@@ -129,7 +129,7 @@ func (r *ReconcileOperandRequest) reconcileOperand(requestKey types.NamespacedNa
 	if len(merr.Errors) != 0 {
 		return merr
 	}
-	klog.V(1).Info("Finished reconciling Operands")
+	klog.V(1).Infof("Finished reconciling Operands for OperandRequest %s", requestKey)
 	return &util.MultiErr{}
 }
 

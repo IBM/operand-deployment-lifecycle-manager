@@ -37,17 +37,17 @@ import (
 )
 
 func (r *ReconcileOperandRequest) reconcileOperator(requestKey types.NamespacedName) error {
-	klog.V(1).Info("Reconciling Operators")
+	klog.V(1).Infof("Reconciling Operators for OperandRequest %s", requestKey)
 	requestInstance, err := fetch.FetchOperandRequest(r.client, requestKey)
 	if err != nil {
 		return err
 	}
-	// Update request phase status
+	// Update request status
 	defer func() {
 		requestInstance.FreshMemberStatus()
 		requestInstance.UpdateClusterPhase()
 		if err := r.client.Status().Update(context.TODO(), requestInstance); err != nil {
-			klog.Error("Update request phase failed", err)
+			klog.Error("Update request status failed: ", err)
 		}
 	}()
 
@@ -106,13 +106,8 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestKey types.NamespacedN
 			} else {
 				klog.V(2).Infof("Operator %s not found in the registry %s/%s", operand.Name, registryInstance.Namespace, registryInstance.Name)
 				requestInstance.SetNotFoundOperatorFromRegistryCondition(operand.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionTrue)
-				if updateErr := r.client.Status().Update(context.TODO(), requestInstance); updateErr != nil {
-					return updateErr
-				}
 			}
-
 		}
-		// SetCondition for notfind registry
 	}
 
 	// Delete specific operators
@@ -140,7 +135,7 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestKey types.NamespacedN
 			return merr
 		}
 	}
-	klog.V(1).Info("Finished reconciling Operators")
+	klog.V(1).Infof("Finished reconciling Operators for OperandRequest %s", requestKey)
 
 	return nil
 }
@@ -179,15 +174,10 @@ func (r *ReconcileOperandRequest) createSubscription(cr *operatorv1alpha1.Operan
 	klog.V(2).Info("Creating the Subscription: " + opt.Name)
 	sub := co.subscription
 	cr.SetCreatingCondition(sub.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionTrue)
-	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
-		return err
-	}
+
 	_, err := r.olmClient.OperatorsV1alpha1().Subscriptions(sub.Namespace).Create(sub)
 	if err != nil && !errors.IsAlreadyExists(err) {
 		cr.SetCreatingCondition(sub.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionFalse)
-		if updateErr := r.client.Status().Update(context.TODO(), cr); updateErr != nil {
-			return updateErr
-		}
 		return err
 	}
 	return nil
@@ -197,14 +187,9 @@ func (r *ReconcileOperandRequest) updateSubscription(cr *operatorv1alpha1.Operan
 
 	klog.V(2).Info("Updating Subscription...", " Subscription Namespace: ", sub.Namespace, " Subscription Name: ", sub.Name)
 	cr.SetUpdatingCondition(sub.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionTrue)
-	if err := r.client.Status().Update(context.TODO(), cr); err != nil {
-		return err
-	}
+
 	if _, err := r.olmClient.OperatorsV1alpha1().Subscriptions(sub.Namespace).Update(sub); err != nil {
 		cr.SetUpdatingCondition(sub.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionFalse)
-		if updateErr := r.client.Status().Update(context.TODO(), cr); updateErr != nil {
-			return updateErr
-		}
 		return err
 	}
 	return nil
@@ -233,42 +218,27 @@ func (r *ReconcileOperandRequest) deleteSubscription(operandName string, request
 
 		klog.V(3).Info("Set Deleting Condition in the operandRequest")
 		requestInstance.SetDeletingCondition(csv.Name, operatorv1alpha1.ResourceTypeCsv, corev1.ConditionTrue)
-		if err := r.client.Status().Update(context.TODO(), requestInstance); err != nil {
-			klog.Error("Failed to update operandRequest status:", err)
-			return err
-		}
 
 		klog.V(2).Infof("Deleting the ClusterServiceVersion, Namespace: %s, Name: %s", csv.Namespace, csv.Name)
 		if err := r.olmClient.OperatorsV1alpha1().ClusterServiceVersions(csv.Namespace).Delete(csv.Name, &metav1.DeleteOptions{}); err != nil {
 			klog.Error("Failed to delete the ClusterServiceVersion: ", err)
 			requestInstance.SetDeletingCondition(csv.Name, operatorv1alpha1.ResourceTypeCsv, corev1.ConditionFalse)
-			if updateErr := r.client.Status().Update(context.TODO(), requestInstance); updateErr != nil {
-				return updateErr
-			}
 			return err
 		}
 	}
 
 	klog.V(2).Infof("Deleting the Subscription, Namespace: %s, Name: %s", namespace, op.Name)
 	requestInstance.SetDeletingCondition(op.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionTrue)
-	if err := r.client.Status().Update(context.TODO(), requestInstance); err != nil {
-		klog.Error("Failed to update delete condition for operandRequest: ", err)
-		return err
-	}
+
 	if err := r.olmClient.OperatorsV1alpha1().Subscriptions(namespace).Delete(op.Name, &metav1.DeleteOptions{}); err != nil {
 		if errors.IsNotFound(err) {
 			klog.Warningf("Subscription %s was not found in namespace %s", op.Name, namespace)
 		} else {
 			klog.Error("Failed to delete subscription: ", err)
 			requestInstance.SetDeletingCondition(op.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionFalse)
-			if updateErr := r.client.Status().Update(context.TODO(), requestInstance); updateErr != nil {
-				klog.Error("Failed to update delete condition for operandRequest: ", updateErr)
-				return updateErr
-			}
 			return err
 		}
 	}
-
 	return nil
 }
 
