@@ -40,6 +40,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
+	constant "github.com/IBM/operand-deployment-lifecycle-manager/pkg/constant"
 	fetch "github.com/IBM/operand-deployment-lifecycle-manager/pkg/controller/common"
 	util "github.com/IBM/operand-deployment-lifecycle-manager/pkg/util"
 )
@@ -240,7 +241,7 @@ func (r *ReconcileOperandRequest) addFinalizer(cr *operatorv1alpha1.OperandReque
 func (r *ReconcileOperandRequest) checkFinalizer(requestInstance *operatorv1alpha1.OperandRequest) error {
 	klog.V(2).Infof("Deleting OperandRequest %s in the namespace %s", requestInstance.Name, requestInstance.Namespace)
 	existingSub, err := r.olmClient.OperatorsV1alpha1().Subscriptions(metav1.NamespaceAll).List(metav1.ListOptions{
-		LabelSelector: "operator.ibm.com/opreq-control",
+		LabelSelector: constant.OpreqLabel,
 	})
 	if err != nil {
 		return err

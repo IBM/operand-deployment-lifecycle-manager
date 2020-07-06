@@ -16,4 +16,14 @@
 
 package constant
 
-const ClusterOperatorNamespace string = "openshift-operators"
+const (
+
+	//ClusterOperatorNamespace is the namespace of cluster operators
+	ClusterOperatorNamespace string = "openshift-operators"
+
+	//NotUninstallLabel is the label used to prevent subscription/CR from uninstall
+	NotUninstallLabel string = "operator.ibm.com/opreq-do-not-uninstall"
+
+	//OpreqLabel is the label used to label the subscription/CR managed by ODLM
+	OpreqLabel string = "operator.ibm.com/opreq-control"
+)

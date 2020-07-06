@@ -89,7 +89,7 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestKey types.NamespacedN
 					return err
 				}
 				// Subscription existing and managed by OperandRequest controller
-				if _, ok := found.Labels["operator.ibm.com/opreq-control"]; ok {
+				if _, ok := found.Labels[constant.OpreqLabel]; ok {
 					// Subscription channel changed, update it.
 					if found.Spec.Channel != opt.Channel {
 						found.Spec.Channel = opt.Channel
@@ -216,6 +216,11 @@ func (r *ReconcileOperandRequest) deleteSubscription(operandName string, request
 			return err
 		}
 
+		if r.checkUninstallLabel(op.Name, namespace) {
+			klog.V(2).Infof("Operator %s has label operator.ibm.com/opreq-do-not-uninstall. Skip the uninstall", op.Name)
+			return nil
+		}
+
 		klog.V(3).Info("Set Deleting Condition in the operandRequest")
 		requestInstance.SetDeletingCondition(csv.Name, operatorv1alpha1.ResourceTypeCsv, corev1.ConditionTrue)
 
@@ -286,7 +291,7 @@ func generateClusterObjects(o *operatorv1alpha1.Operator) *clusterObjects {
 	klog.V(3).Info("Generating Cluster Objects")
 	co := &clusterObjects{}
 	labels := map[string]string{
-		"operator.ibm.com/opreq-control": "true",
+		constant.OpreqLabel: "true",
 	}
 
 	klog.V(3).Info("Generating Namespace: ", o.Namespace)
@@ -337,7 +342,7 @@ func generateClusterObjects(o *operatorv1alpha1.Operator) *clusterObjects {
 
 func generateOperatorGroup(namespace string, targetNamespaces []string) *olmv1.OperatorGroup {
 	labels := map[string]string{
-		"operator.ibm.com/opreq-control": "true",
+		constant.OpreqLabel: "true",
 	}
 	if targetNamespaces == nil {
 		targetNamespaces = append(targetNamespaces, namespace)
@@ -364,4 +369,14 @@ func getOperatorNamespace(installMode, namespace string) string {
 	}
 
 	return namespace
+}
+
+func (r *ReconcileOperandRequest) checkUninstallLabel(name, namespace string) bool {
+	sub, err := r.olmClient.OperatorsV1alpha1().Subscriptions(namespace).Get(name, metav1.GetOptions{})
+	if err != nil {
+		klog.Warning("Failed to get subscription: ", err)
+		return true
+	}
+	subLabels := sub.GetLabels()
+	return subLabels[constant.NotUninstallLabel] == "true"
 }

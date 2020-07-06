@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
+	constant "github.com/IBM/operand-deployment-lifecycle-manager/pkg/constant"
 	fetch "github.com/IBM/operand-deployment-lifecycle-manager/pkg/controller/common"
 )
 
@@ -462,7 +463,7 @@ func operandRequest(name, namespace, registryName, registryNamespace string) *v1
 // Return Subscription obj
 func sub(name, namespace, csvVersion string) *olmv1alpha1.Subscription {
 	labels := map[string]string{
-		"operator.ibm.com/opreq-control": "true",
+		constant.OpreqLabel: "true",
 	}
 	return &olmv1alpha1.Subscription{
 		ObjectMeta: metav1.ObjectMeta{
