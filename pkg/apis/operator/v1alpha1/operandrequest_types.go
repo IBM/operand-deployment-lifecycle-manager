@@ -313,15 +313,17 @@ func (r *OperandRequest) setOperandReadyCondition(m *MemberStatus, name string) 
 
 // FreshMemberStatus cleanup Member status from the Member status list
 func (r *OperandRequest) FreshMemberStatus() {
+	newMembers := []MemberStatus{}
 	for index, m := range r.Status.Members {
-		if !r.getOperand(m.Name) {
-			r.Status.Members = append(r.Status.Members[:index], r.Status.Members[index+1:]...)
+		if foundOperand(r.Spec.Requests, m.Name) {
+			newMembers = append(newMembers, r.Status.Members[index])
 		}
 	}
+	r.Status.Members = newMembers
 }
 
-func (r *OperandRequest) getOperand(name string) bool {
-	for _, req := range r.Spec.Requests {
+func foundOperand(requests []Request, name string) bool {
+	for _, req := range requests {
 		for _, operand := range req.Operands {
 			if name == operand.Name {
 				return true
