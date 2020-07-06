@@ -252,7 +252,7 @@ func (r *OperandRegistry) SetReadyCondition(name string, rt ResourceType, cs cor
 	r.setCondition(*c)
 }
 
-// SetNoneCondition creates a Condition to claim Ready
+// SetNoneCondition creates a Condition to claim NotFound
 func (r *OperandRegistry) SetNotFoundCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
 	c := newCondition(ConditionNotFound, cs, "Not found "+string(rt), "Not found "+string(rt)+" "+name)
 	r.setCondition(*c)
