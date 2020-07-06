@@ -27,8 +27,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 	constant "github.com/IBM/operand-deployment-lifecycle-manager/pkg/constant"
@@ -36,8 +36,12 @@ import (
 	util "github.com/IBM/operand-deployment-lifecycle-manager/pkg/util"
 )
 
-func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1alpha1.OperandRequest) error {
+func (r *ReconcileOperandRequest) reconcileOperator(requestKey types.NamespacedName) error {
 	klog.V(1).Info("Reconciling Operators")
+	requestInstance, err := fetch.FetchOperandRequest(r.client, requestKey)
+	if err != nil {
+		return err
+	}
 	// Update request phase status
 	defer func() {
 		requestInstance.FreshMemberStatus()
@@ -46,12 +50,13 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestInstance *operatorv1a
 			klog.Error("Update request phase failed", err)
 		}
 	}()
+
 	for _, req := range requestInstance.Spec.Requests {
 		registryKey := requestInstance.GetRegistryKey(req)
 		registryInstance, err := fetch.FetchOperandRegistry(r.client, registryKey)
 		if err != nil {
 			if errors.IsNotFound(err) {
-				r.recorder.Eventf(requestInstance, corev1.EventTypeWarning, "NotFound", "NotFound OperandRegistry in NamespacedName %s", registryKey.String)
+				r.recorder.Eventf(requestInstance, corev1.EventTypeWarning, "NotFound", "NotFound OperandRegistry in NamespacedName %s", registryKey.String())
 			}
 			return err
 		}
@@ -287,16 +292,10 @@ func (r *ReconcileOperandRequest) getCurrentOperands(requestInstance *operatorv1
 	deployedOperands := gset.NewSet()
 	for _, req := range requestInstance.Spec.Requests {
 		registryKey := requestInstance.GetRegistryKey(req)
-		requestList := &operatorv1alpha1.OperandRequestList{}
-
-		opts := []client.ListOption{
-			client.MatchingLabels(map[string]string{registryKey.Namespace + "." + registryKey.Name + "/registry": "true"}),
-		}
-
-		if err := r.client.List(context.TODO(), requestList, opts...); err != nil {
+		requestList, err := fetch.FetchAllOperandRequests(r.client, map[string]string{registryKey.Namespace + "." + registryKey.Name + "/registry": "true"})
+		if err != nil {
 			return nil, err
 		}
-
 		for _, item := range requestList.Items {
 			for _, existingReq := range item.Spec.Requests {
 				existRegistryKey := requestInstance.GetRegistryKey(existingReq)

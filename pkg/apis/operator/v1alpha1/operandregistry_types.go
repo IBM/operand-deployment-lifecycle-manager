@@ -17,6 +17,7 @@
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -98,6 +99,11 @@ type OperandRegistryStatus struct {
 	// OperatorsStatus defines operators status and the number of reconcile request
 	// +optional
 	OperatorsStatus map[string]OperatorStatus `json:"operatorsStatus,omitempty"`
+	// Conditions represents the current state of the Request Service
+	// +optional
+	// +listType=set
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
+	Conditions []Condition `json:"conditions,omitempty"`
 }
 
 // OperatorStatus defines operators status and the number of reconcile request
@@ -240,8 +246,25 @@ func (r *OperandRegistry) GetAllReconcileRequest() []reconcile.Request {
 	return rrs
 }
 
-func init() {
-	SchemeBuilder.Register(&OperandRegistry{}, &OperandRegistryList{})
+// SetReadyCondition creates a Condition to claim Ready
+func (r *OperandRegistry) SetReadyCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
+	c := newCondition(ConditionReady, cs, string(rt)+" is ready", string(rt)+" "+name+" is ready")
+	r.setCondition(*c)
+}
+
+// SetNoneCondition creates a Condition to claim NotFound
+func (r *OperandRegistry) SetNotFoundCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
+	c := newCondition(ConditionNotFound, cs, "Not found "+string(rt), "Not found "+string(rt)+" "+name)
+	r.setCondition(*c)
+}
+
+func (r *OperandRegistry) setCondition(c Condition) {
+	pos, cp := getCondition(&r.Status.Conditions, c.Type, c.Message)
+	if cp != nil {
+		r.Status.Conditions[pos] = c
+	} else {
+		r.Status.Conditions = append(r.Status.Conditions, c)
+	}
 }
 
 // UpdateRegistryPhase sets the current Phase status
@@ -260,4 +283,8 @@ func (r *OperandRegistry) RemoveFinalizer() bool {
 // If it doesn't, the finalizer is appended to the slice.
 func (r *OperandRegistry) EnsureFinalizer() bool {
 	return EnsureFinalizer(&r.ObjectMeta, RegistryFinalizer)
+}
+
+func init() {
+	SchemeBuilder.Register(&OperandRegistry{}, &OperandRegistryList{})
 }

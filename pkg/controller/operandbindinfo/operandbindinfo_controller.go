@@ -168,7 +168,7 @@ func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconci
 	if err := r.client.Get(context.TODO(), registryKey, registryInstance); err != nil {
 		if k8serr.IsNotFound(err) {
 			klog.Errorf("NotFound OperandRegistry from the NamespacedName %s", registryKey.String())
-			r.recorder.Eventf(bindInfoInstance, corev1.EventTypeWarning, "NotFound", "NotFound OperandRegistry from the NamespacedName %s", registryKey.String)
+			r.recorder.Eventf(bindInfoInstance, corev1.EventTypeWarning, "NotFound", "NotFound OperandRegistry from the NamespacedName %s", registryKey.String())
 		}
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}

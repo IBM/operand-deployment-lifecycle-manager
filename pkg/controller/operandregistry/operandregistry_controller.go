@@ -21,6 +21,9 @@ import (
 	"reflect"
 	"time"
 
+	olmv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
@@ -75,7 +78,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		ToRequests: handler.ToRequestsFunc(
 			func(a handler.MapObject) []reconcile.Request {
 				or := a.Object.(*operatorv1alpha1.OperandRequest)
-				return or.GetAllReconcileRequest()
+				return or.GetAllRegistryReconcileRequest()
 			}),
 	}, predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
@@ -121,28 +124,9 @@ func (r *ReconcileOperandRegistry) Reconcile(request reconcile.Request) (reconci
 
 	klog.V(1).Infof("Reconciling OperandRegistry %s", request.NamespacedName)
 
-	// Set the init status for OperandConfig instance
-	if !instance.InitRegistryStatus() {
-		if err := r.client.Update(context.TODO(), instance); err != nil {
-			return reconcile.Result{}, err
-		}
-	}
-
-	if err := r.updateRegistryOperatorsStatus(instance); err != nil {
-		return reconcile.Result{}, err
-	}
-	if len(instance.Status.OperatorsStatus) == 0 {
-		instance.UpdateRegistryPhase(operatorv1alpha1.RegistryInit)
-	} else {
-		instance.UpdateRegistryPhase(operatorv1alpha1.RegistryRunning)
-	}
-	if err := r.client.Status().Update(context.TODO(), instance); err != nil {
-		return reconcile.Result{}, err
-	}
-
-	// Set Finalizer for the OperandRegistry
-	added := instance.EnsureFinalizer()
-	if added {
+	// Set Finalizer for the OperandRegistry. If the OperandRegistry finalizer is added to the finalizer list,
+	// EnsureFinalizer() will return true. If the OperandRegistry finalizer already exists, EnsureFinalizer() will return false.
+	if instance.EnsureFinalizer() {
 		if err := r.client.Update(context.TODO(), instance); err != nil {
 			return reconcile.Result{}, err
 		}
@@ -165,17 +149,42 @@ func (r *ReconcileOperandRegistry) Reconcile(request reconcile.Request) (reconci
 		}
 	}
 
+	// Check if all the catalog sources ready for deployment
+	isReady, err := r.checkCatalogSourceStatus(instance)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	if isReady {
+		if err := r.updateRegistryOperatorsStatus(instance); err != nil {
+			return reconcile.Result{}, err
+		}
+		if instance.Status.OperatorsStatus == nil || len(instance.Status.OperatorsStatus) == 0 {
+			instance.UpdateRegistryPhase(operatorv1alpha1.RegistryReady)
+		} else {
+			instance.UpdateRegistryPhase(operatorv1alpha1.RegistryRunning)
+		}
+	} else {
+		instance.UpdateRegistryPhase(operatorv1alpha1.RegistryFailed)
+	}
+
+	if err := r.client.Status().Update(context.TODO(), instance); err != nil {
+		return reconcile.Result{}, err
+	}
+
 	return reconcile.Result{}, nil
 }
 
 func (r *ReconcileOperandRegistry) updateRegistryOperatorsStatus(instance *operatorv1alpha1.OperandRegistry) error {
-	// Create an empty OperatorsStatus map
-	instance.Status.OperatorsStatus = make(map[string]operatorv1alpha1.OperatorStatus)
 	// List the OperandRequests refer the OperatorRegistry by label of the OperandRequests
 	requestList, err := fetch.FetchAllOperandRequests(r.client, map[string]string{instance.Namespace + "." + instance.Name + "/registry": "true"})
 	if err != nil {
+		instance.Status.OperatorsStatus = nil
 		return err
 	}
+
+	// Create an empty OperatorsStatus map
+	instance.Status.OperatorsStatus = make(map[string]operatorv1alpha1.OperatorStatus)
 	// Update OperandRegistry status from the OperandRequest list
 	for _, item := range requestList.Items {
 		requestKey := types.NamespacedName{Name: item.Name, Namespace: item.Namespace}
@@ -191,4 +200,32 @@ func (r *ReconcileOperandRegistry) updateRegistryOperatorsStatus(instance *opera
 		}
 	}
 	return nil
+}
+
+func (r *ReconcileOperandRegistry) checkCatalogSourceStatus(instance *operatorv1alpha1.OperandRegistry) (bool, error) {
+	isReady := true
+	for _, o := range instance.Spec.Operators {
+		catsrcName := o.SourceName
+		catsrcNamespace := o.SourceNamespace
+		catsrcKey := types.NamespacedName{Namespace: catsrcNamespace, Name: catsrcName}
+		catsrc := &olmv1alpha1.CatalogSource{}
+		if err := r.client.Get(context.TODO(), catsrcKey, catsrc); err != nil {
+			isReady = false
+			if !errors.IsNotFound(err) {
+				return isReady, err
+			}
+			r.recorder.Eventf(instance, corev1.EventTypeWarning, "NotFound", "NotFound CatalogSource in NamespacedName %s/%s", catsrcNamespace, catsrcName)
+			instance.SetNotFoundCondition(catsrcName, operatorv1alpha1.ResourceTypeCatalogSource, corev1.ConditionTrue)
+			continue
+		}
+
+		if catsrc.Status.GRPCConnectionState.LastObservedState == "READY" {
+			instance.SetReadyCondition(catsrcName, operatorv1alpha1.ResourceTypeCatalogSource, corev1.ConditionTrue)
+		} else {
+			isReady = false
+			r.recorder.Eventf(instance, corev1.EventTypeWarning, "NotReady", "NotReady CatalogSource in NamespacedName %s/%s", catsrcNamespace, catsrcName)
+			instance.SetReadyCondition(catsrcName, operatorv1alpha1.ResourceTypeCatalogSource, corev1.ConditionFalse)
+		}
+	}
+	return isReady, nil
 }

@@ -38,8 +38,14 @@ import (
 
 const t = "true"
 
-func (r *ReconcileOperandRequest) reconcileOperand(requestInstance *operatorv1alpha1.OperandRequest) *util.MultiErr {
+func (r *ReconcileOperandRequest) reconcileOperand(requestKey types.NamespacedName) *util.MultiErr {
 	klog.V(1).Info("Reconciling Operands")
+	merr := &util.MultiErr{}
+	requestInstance, err := fetch.FetchOperandRequest(r.client, requestKey)
+	if err != nil {
+		merr.Add(err)
+		return merr
+	}
 	// Update request phase status
 	defer func() {
 		requestInstance.UpdateClusterPhase()
@@ -47,7 +53,7 @@ func (r *ReconcileOperandRequest) reconcileOperand(requestInstance *operatorv1al
 			klog.Error("Update request phase failed", err)
 		}
 	}()
-	merr := &util.MultiErr{}
+
 	for _, req := range requestInstance.Spec.Requests {
 		registryKey := requestInstance.GetRegistryKey(req)
 		configInstance, err := fetch.FetchOperandConfig(r.client, registryKey)

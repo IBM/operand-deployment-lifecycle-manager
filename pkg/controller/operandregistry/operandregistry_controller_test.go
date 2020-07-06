@@ -19,12 +19,14 @@ import (
 	"context"
 	"testing"
 
+	olmv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -56,15 +58,13 @@ func initReconcile(t *testing.T, r ReconcileOperandRegistry, req reconcile.Reque
 	registry := &v1alpha1.OperandRegistry{}
 	err = r.client.Get(context.TODO(), req.NamespacedName, registry)
 	assert.NoError(err)
-	// Check the registry init status
-	assert.NotNil(registry.Status, "init operator status should not be empty")
-	assert.Equalf(v1alpha1.RegistryInit, registry.Status.Phase, "Overall OperandRegistry phase should be 'Initialized'")
 }
 
 func getReconciler(name, namespace, operatorNamespace string) ReconcileOperandRegistry {
 	s := scheme.Scheme
 	v1alpha1.SchemeBuilder.AddToScheme(s)
 	corev1.SchemeBuilder.AddToScheme(s)
+	olmv1alpha1.SchemeBuilder.AddToScheme(s)
 
 	initData := initClientData(name, namespace, operatorNamespace)
 
@@ -73,8 +73,9 @@ func getReconciler(name, namespace, operatorNamespace string) ReconcileOperandRe
 
 	// Return a ReconcileOperandRegistry object with the scheme and fake client.
 	return ReconcileOperandRegistry{
-		scheme: s,
-		client: client,
+		scheme:   s,
+		client:   client,
+		recorder: record.NewFakeRecorder(10),
 	}
 }
 
