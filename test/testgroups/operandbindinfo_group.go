@@ -50,9 +50,8 @@ func TestOperandBindInfoCRUD(t *testing.T) {
 	assert.NoError(err)
 	assert.NotNilf(bi, "bindinfo %s should be created in namespace %s", config.OperandBindInfoCrName, config.TestNamespace1)
 
-	bi, err = helpers.WaitBindInfoStatus(f, operator.BindInfoInit, config.TestNamespace1)
+	_, err = helpers.WaitBindInfoStatus(f, operator.BindInfoInit, config.TestNamespace1)
 	assert.NoError(err)
-	assert.Equalf(operator.BindInfoInit, bi.Status.Phase, "bindinfo(%s/%s) phase should be Initialized", bi.Namespace, bi.Name)
 
 	// test update bindinfo instance
 	bi, err = helpers.UpdateOperandBindInfo(f, config.TestNamespace1)

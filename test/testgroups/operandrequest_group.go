@@ -53,17 +53,15 @@ func TestOperandRequestCRUD(t *testing.T) {
 	assert.NoError(err)
 	assert.NotNilf(reg, "regisgry %s should be created in namespace %s", config.OperandRegistryCrName, config.TestNamespace1)
 
-	reg, err = helpers.WaitRegistryStatus(f, operator.RegistryInit, config.TestNamespace1)
+	_, err = helpers.WaitRegistryStatus(f, operator.RegistryReady, config.TestNamespace1)
 	assert.NoError(err)
-	assert.Equalf(operator.RegistryInit, reg.Status.Phase, "registry(%s/%s) phase should be Initialized", reg.Namespace, reg.Name)
 
 	con, err := helpers.CreateOperandConfig(f, ctx, config.TestNamespace1)
 	assert.NoError(err)
 	assert.NotNilf(con, "config %s should be created in namespace %s", config.OperandConfigCrName, config.TestNamespace1)
 
-	con, err = helpers.WaitConfigStatus(f, operator.ServiceInit, config.TestNamespace1)
+	_, err = helpers.WaitConfigStatus(f, operator.ServiceInit, config.TestNamespace1)
 	assert.NoError(err)
-	assert.Equalf(operator.ServiceInit, con.Status.Phase, "config(%s/%s) phase should be Initialized", con.Namespace, con.Name)
 
 	// Create the first Request instance
 	req1 := helpers.NewOperandRequestCR1(config.OperandRequestCrName, config.TestNamespace1)
@@ -71,17 +69,15 @@ func TestOperandRequestCRUD(t *testing.T) {
 	assert.NoError(err)
 	assert.NotNilf(req1, "reqest %s should be created in namespace %s", config.OperandRegistryCrName, config.TestNamespace1)
 
-	req1, err = helpers.WaitRequestStatus(f, operator.ClusterPhaseRunning, config.TestNamespace1)
+	_, err = helpers.WaitRequestStatus(f, operator.ClusterPhaseRunning, config.TestNamespace1)
 	assert.NoError(err)
-	assert.Equalf(operator.ClusterPhaseRunning, req1.Status.Phase, "request(%s/%s) phase should be Running", req1.Namespace, req1.Name)
 	// Manual create BindInfo to mock alm-example
 	bi, err := helpers.CreateOperandBindInfo(f, ctx, config.TestNamespace1)
 	assert.NoError(err)
 	assert.NotNilf(bi, "bindinfo %s should be created in namespace %s", config.OperandBindInfoCrName, config.TestNamespace1)
 
-	bi, err = helpers.WaitBindInfoStatus(f, operator.BindInfoInit, config.TestNamespace1)
+	_, err = helpers.WaitBindInfoStatus(f, operator.BindInfoCompleted, config.TestNamespace1)
 	assert.NoError(err)
-	assert.Equalf(operator.BindInfoInit, bi.Status.Phase, "bindinfo(%s/%s) phase should be Initialized", bi.Namespace, bi.Name)
 
 	reg, err = helpers.WaitRegistryStatus(f, operator.RegistryRunning, config.TestNamespace1)
 	assert.NoError(err)
@@ -93,18 +89,16 @@ func TestOperandRequestCRUD(t *testing.T) {
 	assert.NoError(err)
 	assert.NotNilf(req2, "request %s should be created in namespace %s", config.OperandRegistryCrName, config.TestNamespace2)
 
-	req2, err = helpers.WaitRequestStatus(f, operator.ClusterPhaseRunning, config.TestNamespace2)
+	_, err = helpers.WaitRequestStatus(f, operator.ClusterPhaseRunning, config.TestNamespace2)
 	assert.NoError(err)
-	assert.Equalf(operator.ClusterPhaseRunning, req2.Status.Phase, "request(%s/%s) phase should be Running", req2.Namespace, req2.Name)
 
 	// Check registry status if updated
 	reg, err = helpers.WaitRegistryStatus(f, operator.RegistryRunning, config.TestNamespace1)
 	assert.NoError(err)
 	assert.Len(reg.Status.OperatorsStatus["jenkins"].ReconcileRequests, 2, "operator jenkins-operator should have 2 requests")
 
-	bi, err = helpers.WaitBindInfoStatus(f, operator.BindInfoCompleted, config.TestNamespace1)
+	_, err = helpers.WaitBindInfoStatus(f, operator.BindInfoCompleted, config.TestNamespace1)
 	assert.NoError(err)
-	assert.Equalf(operator.BindInfoCompleted, bi.Status.Phase, "bindinfo(%s/%s) phase should be Completed", bi.Namespace, bi.Name)
 
 	// Check secret and configmap if copied
 	sec, err := helpers.RetrieveSecret(f, "jenkins-operator-credentials-example", config.TestNamespace2)
@@ -135,7 +129,6 @@ func TestOperandRequestCRUD(t *testing.T) {
 
 	req1, err = helpers.WaitRequestStatus(f, operator.ClusterPhaseRunning, config.TestNamespace1)
 	assert.NoError(err)
-	assert.Equalf(operator.ClusterPhaseRunning, req1.Status.Phase, "request(%s/%s) phase should be Running", req1.Namespace, req1.Name)
 
 	reg, err = helpers.WaitRegistryStatus(f, operator.RegistryRunning, config.TestNamespace1)
 	assert.NoError(err)
