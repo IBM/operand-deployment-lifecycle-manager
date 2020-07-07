@@ -58,6 +58,8 @@ func initReconcile(t *testing.T, r ReconcileOperandRegistry, req reconcile.Reque
 	registry := &v1alpha1.OperandRegistry{}
 	err = r.client.Get(context.TODO(), req.NamespacedName, registry)
 	assert.NoError(err)
+	assert.Equalf(v1alpha1.RegistryReady, registry.Status.Phase, "OperandRegistry(%s) phase should be %s", req.NamespacedName, v1alpha1.RegistryReady)
+
 }
 
 func getReconciler(name, namespace, operatorNamespace string) ReconcileOperandRegistry {
@@ -97,6 +99,7 @@ func initClientData(name, namespace, operatorNamespace string) *DataObj {
 	return &DataObj{
 		objs: []runtime.Object{
 			operandRegistry(name, namespace, operatorNamespace),
+			catalogSource(),
 		},
 	}
 }
@@ -126,6 +129,34 @@ func operandRegistry(name, namespace, operatorNamespace string) *v1alpha1.Operan
 					PackageName:     "jenkins-operator",
 					Channel:         "alpha",
 				},
+			},
+		},
+	}
+}
+
+func catalogSource() *olmv1alpha1.CatalogSource {
+	return &olmv1alpha1.CatalogSource{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "community-operators",
+			Namespace: "openshift-marketplace",
+		},
+		Spec: olmv1alpha1.CatalogSourceSpec{
+			Address:     "community-operators.openshift-marketplace.svc:50051",
+			DisplayName: "Community Operators",
+			Icon: olmv1alpha1.Icon{
+				Data:      "",
+				MediaType: "",
+			},
+			Publisher:  "Red Hat",
+			SourceType: "grpc",
+		},
+		Status: olmv1alpha1.CatalogSourceStatus{
+			GRPCConnectionState: &olmv1alpha1.GRPCConnectionState{
+				Address:           "community-operators.openshift-marketplace.svc:50051",
+				LastObservedState: "READY",
+			},
+			RegistryServiceStatus: &olmv1alpha1.RegistryServiceStatus{
+				Protocol: "grpc",
 			},
 		},
 	}
