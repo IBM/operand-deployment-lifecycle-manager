@@ -32,11 +32,10 @@ import (
 	"k8s.io/klog"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
+	constant "github.com/IBM/operand-deployment-lifecycle-manager/pkg/constant"
 	fetch "github.com/IBM/operand-deployment-lifecycle-manager/pkg/controller/common"
 	util "github.com/IBM/operand-deployment-lifecycle-manager/pkg/util"
 )
-
-const t = "true"
 
 func (r *ReconcileOperandRequest) reconcileOperand(requestKey types.NamespacedName) *util.MultiErr {
 	klog.V(1).Infof("Reconciling Operands for OperandRequest %s", requestKey)
@@ -146,7 +145,7 @@ func (r *ReconcileOperandRequest) getClusterServiceVersion(subName, subNamespace
 		return nil, err
 	}
 
-	if _, ok := sub.Labels["operator.ibm.com/opreq-control"]; !ok {
+	if _, ok := sub.Labels[constant.OpreqLabel]; !ok {
 		// Subscription existing and not managed by OperandRequest controller
 		klog.V(2).Infof("Subscription %s in the namespace %s isn't created by ODLM. Ignore updating/deleting it", sub.Name, sub.Namespace)
 	}
@@ -237,7 +236,7 @@ func (r *ReconcileOperandRequest) reconcileCr(service *operatorv1alpha1.ConfigSe
 				continue
 			}
 		} else {
-			if unstruct.Object["metadata"].(map[string]interface{})["labels"] != nil && unstruct.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{})["operator.ibm.com/opreq-control"] == t {
+			if checkLabel(unstruct, map[string]string{constant.OpreqLabel: "true"}) {
 				// Update or Delete Custom resource
 				if updateDeleteErr := r.existingCustomResource(unstruct, service, namespace, csc); updateDeleteErr != nil {
 					merr.Add(updateDeleteErr)
@@ -309,7 +308,7 @@ func (r *ReconcileOperandRequest) deleteAllCustomResource(csv *olmv1alpha1.Clust
 					}
 					continue
 				}
-				if unstruct.Object["metadata"].(map[string]interface{})["labels"] != nil && unstruct.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{})["operator.ibm.com/opreq-control"] == t {
+				if checkLabel(unstruct, map[string]string{constant.OpreqLabel: "true"}) {
 					deleteErr := r.deleteCustomResource(unstruct, service, namespace, csc)
 					if deleteErr != nil {
 						klog.Errorf("Failed to delete custom resource %s in the namespace %s: %s", name, namespace, deleteErr)
@@ -355,11 +354,8 @@ func (r *ReconcileOperandRequest) createCustomResource(unstruct unstructured.Uns
 
 	unstruct.Object["spec"] = mergedCR
 	unstruct.Object["metadata"].(map[string]interface{})["namespace"] = namespace
-	if unstruct.Object["metadata"].(map[string]interface{})["labels"] == nil {
-		klog.V(3).Info("Adding ODLM label in the custom resource")
-		unstruct.Object["metadata"].(map[string]interface{})["labels"] = make(map[string]interface{})
-	}
-	unstruct.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{})["operator.ibm.com/opreq-control"] = t
+
+	ensureLabel(unstruct, map[string]string{constant.OpreqLabel: "true"})
 
 	// Creat the CR
 	crCreateErr := r.client.Create(context.TODO(), &unstruct)
@@ -438,7 +434,7 @@ func (r *ReconcileOperandRequest) updateCustomResource(unstruct unstructured.Uns
 		return crGetErr
 	}
 
-	if existingCR.Object["metadata"].(map[string]interface{})["labels"] != nil && existingCR.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{})["operator.ibm.com/opreq-control"] == t {
+	if checkLabel(existingCR, map[string]string{constant.OpreqLabel: "true"}) {
 
 		specJSONString, _ := json.Marshal(unstruct.Object["spec"])
 
@@ -496,7 +492,7 @@ func (r *ReconcileOperandRequest) deleteCustomResource(unstruct unstructured.Uns
 	apiversion := unstruct.Object["apiVersion"].(string)
 	name := unstruct.Object["metadata"].(map[string]interface{})["name"].(string)
 
-	crShouldBeDeleted := &unstructured.Unstructured{
+	crShouldBeDeleted := unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": apiversion,
 			"kind":       kind,
@@ -505,7 +501,7 @@ func (r *ReconcileOperandRequest) deleteCustomResource(unstruct unstructured.Uns
 	getError := r.client.Get(context.TODO(), types.NamespacedName{
 		Name:      name,
 		Namespace: namespace,
-	}, crShouldBeDeleted)
+	}, &crShouldBeDeleted)
 	if getError != nil && !errors.IsNotFound(getError) {
 		klog.Error("Failed to get the custom resource should be deleted with name: ", name, getError)
 		return getError
@@ -513,9 +509,9 @@ func (r *ReconcileOperandRequest) deleteCustomResource(unstruct unstructured.Uns
 	if errors.IsNotFound(getError) {
 		klog.V(3).Infof("There is no custom resource: %s from custom resource definition: %s", name, kind)
 	} else {
-		if crShouldBeDeleted.Object["metadata"].(map[string]interface{})["labels"] != nil && crShouldBeDeleted.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{})["operator.ibm.com/opreq-control"] == t {
+		if checkLabel(crShouldBeDeleted, map[string]string{constant.OpreqLabel: "true"}) && !checkLabel(crShouldBeDeleted, map[string]string{constant.NotUninstallLabel: "true"}) {
 			klog.V(3).Infof("Deleting custom resource: %s from custom resource definition: %s", name, kind)
-			deleteErr := r.client.Delete(context.TODO(), crShouldBeDeleted)
+			deleteErr := r.client.Delete(context.TODO(), &crShouldBeDeleted)
 			if deleteErr != nil {
 				klog.Error("Failed to delete the custom resource should be deleted: ", deleteErr)
 				return deleteErr
@@ -552,4 +548,36 @@ func (r *ReconcileOperandRequest) deleteCustomResource(unstruct unstructured.Uns
 		}
 	}
 	return nil
+}
+
+func checkLabel(unstruct unstructured.Unstructured, labels map[string]string) bool {
+	for k, v := range labels {
+		if !hasLabel(unstruct, k) {
+			return false
+		}
+		if unstruct.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{})[k] != v {
+			return false
+		}
+	}
+	return true
+}
+
+func hasLabel(unstruct unstructured.Unstructured, labelName string) bool {
+	if unstruct.Object["metadata"].(map[string]interface{})["labels"] == nil {
+		return false
+	}
+	if _, ok := unstruct.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{})[labelName]; !ok {
+		return false
+	}
+	return true
+}
+
+func ensureLabel(unstruct unstructured.Unstructured, labels map[string]string) bool {
+	if unstruct.Object["metadata"].(map[string]interface{})["labels"] == nil {
+		unstruct.Object["metadata"].(map[string]interface{})["labels"] = make(map[string]interface{})
+	}
+	for k, v := range labels {
+		unstruct.Object["metadata"].(map[string]interface{})["labels"].(map[string]interface{})[k] = v
+	}
+	return true
 }
