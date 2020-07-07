@@ -530,6 +530,7 @@ func newOperandRegistryCR(name, namespace string) *v1alpha1.OperandRegistry {
 					SourceNamespace: "openshift-marketplace",
 					PackageName:     "etcd",
 					Channel:         "singlenamespace-alpha",
+					Scope:           v1alpha1.ScopePublic,
 				},
 				{
 					Name:            "jenkins",

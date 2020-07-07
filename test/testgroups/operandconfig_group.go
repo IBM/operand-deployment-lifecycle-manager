@@ -51,7 +51,6 @@ func TestOperandConfigCRUD(t *testing.T) {
 
 	con, err = helpers.WaitConfigStatus(f, operator.ServiceInit, config.TestNamespace1)
 	assert.NoError(err)
-	assert.Equalf(operator.ServiceInit, con.Status.Phase, "config(%s/%s) phase should be Initialized", con.Namespace, con.Name)
 
 	err = helpers.UpdateOperandConfig(f, config.TestNamespace1)
 	assert.NoError(err)
