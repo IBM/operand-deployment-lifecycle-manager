@@ -75,25 +75,24 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestKey types.NamespacedN
 
 				// Check subscription if exist
 				namespace := getOperatorNamespace(opt.InstallMode, opt.Namespace)
-				found, err := r.olmClient.OperatorsV1alpha1().Subscriptions(namespace).Get(opt.Name, metav1.GetOptions{})
-				if err != nil {
-					if errors.IsNotFound(err) {
-						// Subscription does not exist, create a new one
-						if err = r.createSubscription(requestInstance, opt); err != nil {
-							requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorFailed, "")
-							return err
-						}
-						requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorInstalling, "")
-						continue
+				sub, err := fetch.FetchSubscription(r.olmClient, opt.Name, namespace, opt.PackageName)
+
+				if errors.IsNotFound(err) {
+					// Subscription does not exist, create a new one
+					if err = r.createSubscription(requestInstance, opt); err != nil {
+						requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorFailed, "")
+						return err
 					}
-					return err
+					requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorInstalling, "")
+					continue
 				}
+
 				// Subscription existing and managed by OperandRequest controller
-				if _, ok := found.Labels[constant.OpreqLabel]; ok {
+				if _, ok := sub.Labels[constant.OpreqLabel]; ok {
 					// Subscription channel changed, update it.
-					if found.Spec.Channel != opt.Channel {
-						found.Spec.Channel = opt.Channel
-						if err = r.updateSubscription(requestInstance, found); err != nil {
+					if sub.Spec.Channel != opt.Channel {
+						sub.Spec.Channel = opt.Channel
+						if err = r.updateSubscription(requestInstance, sub); err != nil {
 							requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorFailed, "")
 							return err
 						}
@@ -101,7 +100,7 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestKey types.NamespacedN
 					}
 				} else {
 					// Subscription existing and not managed by OperandRequest controller
-					klog.V(2).Infof("Subscription %s in namespace %s isn't created by ODLM. Ignore update/delete it.", found.Name, found.Namespace)
+					klog.V(2).Infof("Subscription %s in namespace %s isn't created by ODLM. Ignore update/delete it.", sub.Name, sub.Namespace)
 				}
 			} else {
 				klog.V(2).Infof("Operator %s not found in the registry %s/%s", operand.Name, registryInstance.Namespace, registryInstance.Name)
@@ -203,7 +202,7 @@ func (r *ReconcileOperandRequest) deleteSubscription(operandName string, request
 	}
 
 	namespace := getOperatorNamespace(op.InstallMode, op.Namespace)
-	csv, err := r.getClusterServiceVersion(operandName, namespace)
+	csv, err := r.getClusterServiceVersion(operandName, op.PackageName, namespace)
 	// If can't get CSV, requeue the request
 	if err != nil {
 		return err

@@ -19,6 +19,10 @@ package common
 import (
 	"context"
 
+	olmv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
+	olmclient "github.com/operator-framework/operator-lifecycle-manager/pkg/api/client/clientset/versioned"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -88,4 +92,22 @@ func FetchOperandRequest(c client.Client, key types.NamespacedName) (*apiv1alpha
 		}
 	}
 	return req, nil
+}
+
+// FetchSubscription fetch Subscription from name
+func FetchSubscription(olmClient olmclient.Interface, name, namespace string, packageName ...string) (*olmv1alpha1.Subscription, error) {
+	sub, err := olmClient.OperatorsV1alpha1().Subscriptions(namespace).Get(name, metav1.GetOptions{})
+
+	if err != nil && !errors.IsNotFound(err) {
+		return nil, err
+	}
+
+	if errors.IsNotFound(err) {
+		sub, err = olmClient.OperatorsV1alpha1().Subscriptions(namespace).Get(packageName[0], metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return sub, nil
 }
