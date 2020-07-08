@@ -393,6 +393,7 @@ func operandRegistry(registryName, registryNamespace, operatorNamespace string) 
 					SourceNamespace: "openshift-marketplace",
 					PackageName:     "jenkins-operator",
 					Channel:         "alpha",
+					Scope:           v1alpha1.ScopePublic,
 				},
 			},
 		},

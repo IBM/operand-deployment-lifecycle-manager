@@ -41,8 +41,6 @@ import (
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
 	constant "github.com/IBM/operand-deployment-lifecycle-manager/pkg/constant"
-	fetch "github.com/IBM/operand-deployment-lifecycle-manager/pkg/controller/common"
-	util "github.com/IBM/operand-deployment-lifecycle-manager/pkg/util"
 )
 
 /**
@@ -250,29 +248,8 @@ func (r *ReconcileOperandRequest) checkFinalizer(requestInstance *operatorv1alph
 		return nil
 	}
 	// Delete all the subscriptions that created by current request
-	for _, req := range requestInstance.Spec.Requests {
-		registryKey := requestInstance.GetRegistryKey(req)
-		registryInstance, err := fetch.FetchOperandRegistry(r.client, registryKey)
-		if err != nil {
-			klog.Error("Failed to get OperandRegistry: ", err)
-			return err
-		}
-		configInstance, err := fetch.FetchOperandConfig(r.client, registryKey)
-		if err != nil {
-			klog.Error("Failed to get OperandConfig: ", err)
-			return err
-		}
-
-		merr := &util.MultiErr{}
-		for _, operand := range req.Operands {
-			if err := r.deleteSubscription(operand.Name, requestInstance, registryInstance, configInstance); err != nil {
-				klog.Error("Failed to delete subscriptions during the uninstall: ", err)
-				merr.Add(err)
-			}
-		}
-		if len(merr.Errors) != 0 {
-			return merr
-		}
+	if err = r.absentOperatorsAndOperands(requestInstance); err != nil {
+		return err
 	}
 	return nil
 }

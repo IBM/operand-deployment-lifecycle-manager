@@ -110,29 +110,8 @@ func (r *ReconcileOperandRequest) reconcileOperator(requestKey types.NamespacedN
 	}
 
 	// Delete specific operators
-	needDeletedOperands, err := r.getNeedDeletedOperands(requestInstance)
-	if err != nil {
+	if err = r.absentOperatorsAndOperands(requestInstance); err != nil {
 		return err
-	}
-	for _, req := range requestInstance.Spec.Requests {
-		registryKey := requestInstance.GetRegistryKey(req)
-		registryInstance, err := fetch.FetchOperandRegistry(r.client, registryKey)
-		if err != nil {
-			return err
-		}
-		configInstance, err := fetch.FetchOperandConfig(r.client, registryKey)
-		if err != nil {
-			return err
-		}
-		merr := &util.MultiErr{}
-		for o := range needDeletedOperands.Iter() {
-			if err := r.deleteSubscription(fmt.Sprintf("%v", o), requestInstance, registryInstance, configInstance); err != nil {
-				merr.Add(err)
-			}
-		}
-		if len(merr.Errors) != 0 {
-			return merr
-		}
 	}
 	klog.V(1).Infof("Finished reconciling Operators for OperandRequest %s", requestKey)
 
@@ -246,6 +225,34 @@ func (r *ReconcileOperandRequest) deleteSubscription(operandName string, request
 	return nil
 }
 
+func (r *ReconcileOperandRequest) absentOperatorsAndOperands(requestInstance *operatorv1alpha1.OperandRequest) error {
+	needDeletedOperands, err := r.getNeedDeletedOperands(requestInstance)
+	if err != nil {
+		return err
+	}
+	for _, req := range requestInstance.Spec.Requests {
+		registryKey := requestInstance.GetRegistryKey(req)
+		registryInstance, err := fetch.FetchOperandRegistry(r.client, registryKey)
+		if err != nil {
+			return err
+		}
+		configInstance, err := fetch.FetchOperandConfig(r.client, registryKey)
+		if err != nil {
+			return err
+		}
+		merr := &util.MultiErr{}
+		for o := range needDeletedOperands.Iter() {
+			if err := r.deleteSubscription(fmt.Sprintf("%v", o), requestInstance, registryInstance, configInstance); err != nil {
+				merr.Add(err)
+			}
+		}
+		if len(merr.Errors) != 0 {
+			return merr
+		}
+	}
+	return nil
+}
+
 func (r *ReconcileOperandRequest) getNeedDeletedOperands(requestInstance *operatorv1alpha1.OperandRequest) (gset.Set, error) {
 	klog.V(3).Info("Getting the operater need to be delete")
 	deployedOperands := gset.NewSet()
@@ -272,7 +279,10 @@ func (r *ReconcileOperandRequest) getCurrentOperands(requestInstance *operatorv1
 		}
 		for _, item := range requestList.Items {
 			for _, existingReq := range item.Spec.Requests {
-				existRegistryKey := requestInstance.GetRegistryKey(existingReq)
+				if !item.DeletionTimestamp.IsZero() {
+					existingReq.Operands = nil
+				}
+				existRegistryKey := item.GetRegistryKey(existingReq)
 				if registryKey.String() != existRegistryKey.String() {
 					continue
 				}
@@ -282,7 +292,6 @@ func (r *ReconcileOperandRequest) getCurrentOperands(requestInstance *operatorv1
 			}
 		}
 	}
-
 	return deployedOperands, nil
 }
 
