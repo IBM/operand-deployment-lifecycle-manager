@@ -135,21 +135,8 @@ func (r *ReconcileOperandRequest) reconcileOperand(requestKey types.NamespacedNa
 // getCSV retrieves the ClusterServiceVersion
 func (r *ReconcileOperandRequest) getClusterServiceVersion(subName, packageName, subNamespace string) (*olmv1alpha1.ClusterServiceVersion, error) {
 	klog.V(3).Infof("Looking for the ClusterServiceVersion for Subscription %s in the namespace %s", subName, subNamespace)
-	sub, err := r.olmClient.OperatorsV1alpha1().Subscriptions(subNamespace).Get(subName, metav1.GetOptions{})
 
-	if err != nil && !errors.IsNotFound(err) {
-		klog.Error("Failed to list Subscriptions: ", err)
-		return nil, err
-	}
-
-	if errors.IsNotFound(err) {
-		klog.V(3).Infof("There is no Subscription %s in the namespace %s", subName, subNamespace)
-		sub, err = r.olmClient.OperatorsV1alpha1().Subscriptions(subNamespace).Get(packageName, metav1.GetOptions{})
-		if err != nil && !errors.IsNotFound(err) {
-			klog.Error("Failed to list Subscriptions: ", err)
-			return nil, err
-		}
-	}
+	sub, err := fetch.FetchSubscription(r.olmClient, subName, subNamespace, packageName)
 
 	if errors.IsNotFound(err) {
 		klog.V(3).Infof("There is no Subscription %s or %s in the namespace %s", subName, packageName, subNamespace)
