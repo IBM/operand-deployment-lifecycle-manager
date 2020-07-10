@@ -18,15 +18,18 @@ package common
 
 import (
 	"context"
+	"fmt"
 
 	olmv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
 	olmclient "github.com/operator-framework/operator-lifecycle-manager/pkg/api/client/clientset/versioned"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	apiv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/pkg/apis/operator/v1alpha1"
+	constant "github.com/IBM/operand-deployment-lifecycle-manager/pkg/constant"
 )
 
 // FetchOperandRegistry fetch the OperandRegistry instance with default value
@@ -110,4 +113,59 @@ func FetchSubscription(olmClient olmclient.Interface, name, namespace string, pa
 	}
 
 	return sub, nil
+}
+
+// FetchClusterServiceVersion fetch the ClusterServiceVersion from the subscription
+func FetchClusterServiceVersion(olmClient olmclient.Interface, sub *olmv1alpha1.Subscription) (*olmv1alpha1.ClusterServiceVersion, error) {
+	// Check the ClusterServiceVersion status in the subscription
+	if sub.Status.CurrentCSV == "" {
+		klog.V(3).Infof("The ClusterServiceVersion for Subscription %s is not ready. Will check it again", sub.Name)
+		return nil, nil
+	}
+
+	csvName := sub.Status.CurrentCSV
+	csvNamespace := sub.Namespace
+
+	if sub.Status.Install == nil || sub.Status.InstallPlanRef.Name == "" {
+		klog.V(3).Infof("The Installplan for Subscription %s is not ready. Will check it again", sub.Name)
+		return nil, nil
+	}
+
+	ipName := sub.Status.InstallPlanRef.Name
+	ipNamespace := sub.Namespace
+
+	// If the installplan is deleted after is completed, ODLM won't block the CR update.
+	ip, err := olmClient.OperatorsV1alpha1().InstallPlans(ipNamespace).Get(ipName, metav1.GetOptions{})
+	if err != nil && !errors.IsNotFound(err) {
+		klog.Errorf("Failed to get Installplan %s in the namespace %s: %s", ipName, ipNamespace, err)
+		return nil, err
+	} else if !errors.IsNotFound(err) && ip.Status.Phase == olmv1alpha1.InstallPlanPhaseFailed {
+		klog.Errorf("Installplan %s in the namespace %s is failed", ipName, ipNamespace)
+		return nil, fmt.Errorf("installplan %s in the namespace %s is failed", ipName, ipNamespace)
+	} else if !errors.IsNotFound(err) && ip.Status.Phase != olmv1alpha1.InstallPlanPhaseComplete {
+		klog.Infof("Installplan %s in the namespace %s is not ready", ipName, ipNamespace)
+		return nil, nil
+	}
+
+	csv, getCSVErr := olmClient.OperatorsV1alpha1().ClusterServiceVersions(csvNamespace).Get(csvName, metav1.GetOptions{})
+	if getCSVErr != nil {
+		if errors.IsNotFound(getCSVErr) {
+			klog.V(3).Infof("The Subscription %s is upgrading. Will check it when it is stable", sub.Name)
+			return nil, nil
+		}
+		klog.Errorf("Failed to get ClusterServiceVersion %s in the namespace %s: %s", csvName, csvNamespace, getCSVErr)
+		return nil, getCSVErr
+	}
+
+	klog.V(3).Infof("Get ClusterServiceVersion %s in the namespace %s", csvName, csvNamespace)
+	return csv, nil
+}
+
+// GetOperatorNamespace returns the operator namespace based on the install mode
+func GetOperatorNamespace(installMode, namespace string) string {
+	if installMode == apiv1alpha1.InstallModeCluster {
+		return constant.ClusterOperatorNamespace
+	}
+
+	return namespace
 }
