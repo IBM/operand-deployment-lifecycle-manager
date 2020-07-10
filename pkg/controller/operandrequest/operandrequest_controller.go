@@ -161,7 +161,7 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
 
-	klog.V(1).Infof("Reconciling OperandRequest %s", request.NamespacedName)
+	klog.V(1).Infof("Reconciling OperandRequest: %s", request.NamespacedName)
 
 	// Update labels for the request
 	if requestInstance.UpdateLabels() {
@@ -217,7 +217,7 @@ func (r *ReconcileOperandRequest) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
-	klog.V(1).Infof("Finished reconciling OperandRequest %s", request.NamespacedName)
+	klog.V(1).Infof("Finished reconciling OperandRequest: %s", request.NamespacedName)
 	return reconcile.Result{}, nil
 }
 

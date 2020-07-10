@@ -184,7 +184,7 @@ func (r *OperandConfig) UpdateOperandPhase() {
 	} else if operandStatusStat.runningNum > 0 {
 		r.Status.Phase = ServiceRunning
 	} else {
-		r.Status.Phase = ServiceNone
+		r.Status.Phase = ServiceInit
 	}
 }
 

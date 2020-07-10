@@ -146,7 +146,7 @@ func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
 
-	klog.V(1).Infof("Reconciling OperandBindInfo %s", request.NamespacedName)
+	klog.V(1).Infof("Reconciling OperandBindInfo: %s", request.NamespacedName)
 	// Update labels for the reqistry
 	if bindInfoInstance.UpdateLabels() {
 		if err := r.client.Update(context.TODO(), bindInfoInstance); err != nil {
@@ -251,6 +251,8 @@ func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconci
 	if err := r.updateBindInfoPhase(bindInfoInstance, operatorv1alpha1.BindInfoCompleted, requestNamespaces); err != nil {
 		return reconcile.Result{}, err
 	}
+
+	klog.V(1).Infof("Finished reconciling OperandBindInfo: %s", request.NamespacedName)
 	return reconcile.Result{}, nil
 }
 

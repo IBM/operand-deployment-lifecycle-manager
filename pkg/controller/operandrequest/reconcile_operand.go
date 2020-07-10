@@ -37,7 +37,7 @@ import (
 )
 
 func (r *ReconcileOperandRequest) reconcileOperand(requestKey types.NamespacedName) *util.MultiErr {
-	klog.V(1).Infof("Reconciling Operands for OperandRequest %s", requestKey)
+	klog.V(1).Infof("Reconciling Operands for OperandRequest: %s", requestKey)
 	merr := &util.MultiErr{}
 	requestInstance, err := fetch.FetchOperandRequest(r.client, requestKey)
 	if err != nil {
@@ -140,7 +140,7 @@ func (r *ReconcileOperandRequest) reconcileOperand(requestKey types.NamespacedNa
 	if len(merr.Errors) != 0 {
 		return merr
 	}
-	klog.V(1).Infof("Finished reconciling Operands for OperandRequest %s", requestKey)
+	klog.V(1).Infof("Finished reconciling Operands for OperandRequest: %s", requestKey)
 	return &util.MultiErr{}
 }
 

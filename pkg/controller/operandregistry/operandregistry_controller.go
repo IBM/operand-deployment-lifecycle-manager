@@ -122,7 +122,7 @@ func (r *ReconcileOperandRegistry) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
 
-	klog.V(1).Infof("Reconciling OperandRegistry %s", request.NamespacedName)
+	klog.V(1).Infof("Reconciling OperandRegistry: %s", request.NamespacedName)
 
 	// Set Finalizer for the OperandRegistry. If the OperandRegistry finalizer is added to the finalizer list,
 	// EnsureFinalizer() will return true. If the OperandRegistry finalizer already exists, EnsureFinalizer() will return false.
@@ -172,6 +172,7 @@ func (r *ReconcileOperandRegistry) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
+	klog.V(1).Infof("Finished reconciling OperandRegistry: %s", request.NamespacedName)
 	return reconcile.Result{}, nil
 }
 
