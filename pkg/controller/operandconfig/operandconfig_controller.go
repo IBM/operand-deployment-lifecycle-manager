@@ -131,7 +131,7 @@ func (r *ReconcileOperandConfig) Reconcile(request reconcile.Request) (reconcile
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
 
-	klog.V(1).Infof("Reconciling OperandConfig %s", request.NamespacedName)
+	klog.V(1).Infof("Reconciling OperandConfig: %s", request.NamespacedName)
 
 	// Set the init status for OperandConfig instance
 	if !instance.InitConfigStatus() {
@@ -170,18 +170,14 @@ func (r *ReconcileOperandConfig) Reconcile(request reconcile.Request) (reconcile
 		}
 	}
 
-	// Fetch the OperandConfig instance
-	instance = &operatorv1alpha1.OperandConfig{}
-	if err := r.client.Get(context.TODO(), request.NamespacedName, instance); err != nil {
-		return reconcile.Result{}, client.IgnoreNotFound(err)
-	}
-
 	// Check if all the services are deployed
-	if instance.Status.Phase != operatorv1alpha1.ServiceRunning {
+	if instance.Status.Phase != operatorv1alpha1.ServiceInit &&
+		instance.Status.Phase != operatorv1alpha1.ServiceRunning {
 		klog.V(2).Info("Waiting for all the services being deployed ...")
 		return reconcile.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
+	klog.V(1).Infof("Finished reconciling OperandConfig: %s", request.NamespacedName)
 	return reconcile.Result{}, nil
 }
 
