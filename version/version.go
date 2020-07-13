@@ -18,5 +18,5 @@ package version
 
 var (
 	// Version of ODLM operator image
-	Version = "1.2.3"
+	Version = "1.2.4"
 )
