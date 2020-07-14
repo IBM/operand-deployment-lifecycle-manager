@@ -145,31 +145,6 @@ func (r *ReconcileOperandConfig) Reconcile(request reconcile.Request) (reconcile
 		return reconcile.Result{}, err
 	}
 
-	// Set Finalizer for the OperandConfig
-	added := instance.EnsureFinalizer()
-	if added {
-		if err := r.client.Update(context.TODO(), instance); err != nil {
-			return reconcile.Result{}, err
-		}
-	}
-
-	if instance.DeletionTimestamp != nil {
-		requestList, err := fetch.FetchAllOperandRequests(r.client, map[string]string{instance.Namespace + "." + instance.Name + "/config": "true"})
-		if err != nil {
-			return reconcile.Result{}, err
-		}
-		if len(requestList.Items) == 0 {
-			removed := instance.RemoveFinalizer()
-			if removed {
-				if err := r.client.Update(context.TODO(), instance); err != nil {
-					return reconcile.Result{}, err
-				}
-			}
-		} else {
-			return reconcile.Result{RequeueAfter: 1 * time.Minute}, nil
-		}
-	}
-
 	// Check if all the services are deployed
 	if instance.Status.Phase != operatorv1alpha1.ServiceInit &&
 		instance.Status.Phase != operatorv1alpha1.ServiceRunning {
