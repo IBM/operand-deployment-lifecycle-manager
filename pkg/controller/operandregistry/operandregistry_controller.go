@@ -19,7 +19,6 @@ package operandregistry
 import (
 	"context"
 	"reflect"
-	"time"
 
 	olmv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -123,31 +122,6 @@ func (r *ReconcileOperandRegistry) Reconcile(request reconcile.Request) (reconci
 	}
 
 	klog.V(1).Infof("Reconciling OperandRegistry: %s", request.NamespacedName)
-
-	// Set Finalizer for the OperandRegistry. If the OperandRegistry finalizer is added to the finalizer list,
-	// EnsureFinalizer() will return true. If the OperandRegistry finalizer already exists, EnsureFinalizer() will return false.
-	if instance.EnsureFinalizer() {
-		if err := r.client.Update(context.TODO(), instance); err != nil {
-			return reconcile.Result{}, err
-		}
-	}
-
-	if instance.DeletionTimestamp != nil {
-		requestList, err := fetch.FetchAllOperandRequests(r.client, map[string]string{instance.Namespace + "." + instance.Name + "/registry": "true"})
-		if err != nil {
-			return reconcile.Result{}, err
-		}
-		if len(requestList.Items) == 0 {
-			removed := instance.RemoveFinalizer()
-			if removed {
-				if err := r.client.Update(context.TODO(), instance); err != nil {
-					return reconcile.Result{}, err
-				}
-			}
-		} else {
-			return reconcile.Result{RequeueAfter: 1 * time.Minute}, nil
-		}
-	}
 
 	// Check if all the catalog sources ready for deployment
 	isReady, err := r.checkCatalogSourceStatus(instance)
