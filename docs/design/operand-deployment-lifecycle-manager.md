@@ -44,8 +44,6 @@ The ODLM will have four CRDs:
 
 OperandRegistry defines the OLM information, like channel and catalog source, for each operator.
 
-**NOTE:** When the ODLM operator is deployed, it generates a default OperandRegistry instance. You can edit the instance as required.
-
 Following is an example of the OperandRegistry CR:
 
 **NOTE:** The "name" parameter must be unique for each entry.
@@ -65,6 +63,7 @@ spec:
     scope: public [7]
     sourceName: community-operators [8]
     sourceNamespace: openshift-marketplace [9]
+    installMode: cluster [10]
 ```
 
 The Operand (Deployment) Registry Custom Resource (CR) lists OLM Operator information for operands that may be requested for installation and/or access by an application that runs in a namespace. The registry CR specifies:
@@ -78,12 +77,11 @@ The Operand (Deployment) Registry Custom Resource (CR) lists OLM Operator inform
 7. `scope` is an indicator, either public or private, that dictates whether deployment can be requested from other namespaces (public) or only from the containing names (private). The default is private.
 8. `sourceName` is the name of the CatalogSource.
 9. `sourceNamespace` is the namespace of the CatalogSource.
+10. `installMode` is the install mode of the operator, can be either `namespace` (OLM one namespace) or `cluster` (OLM all namespaces), by default it is `namespace`.
 
 ## OperandConfigs Spec
 
 OperandConfig defines the individual operand deployment configuration. The Operand Config Custom Resource (CR) defines the parameters for each operator that is listed in the OperandRegistry that should be used to install the operator instance by specifying an installation CR.
-
-**NOTE:** When ODLM operator is deployed, it generates a default OperandConfig instance. You can edit the instance as required.
 
 ```yaml
 apiVersion: operator.ibm.com/v1alpha1
@@ -120,7 +118,7 @@ The OperandConfig CR has
         port: 8081
 ```
 
-The IAM Operator CSV has
+The Jenkins Operator CSV has
 
 ```yaml
 apiVersion: operators.coreos.com/v1alpha1
