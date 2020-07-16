@@ -19,6 +19,7 @@ package operandregistry
 import (
 	"context"
 	"reflect"
+	"time"
 
 	olmv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -123,6 +124,10 @@ func (r *ReconcileOperandRegistry) Reconcile(request reconcile.Request) (reconci
 
 	klog.V(1).Infof("Reconciling OperandRegistry: %s", request.NamespacedName)
 
+	// Update all the operator status
+	if err := r.updateRegistryOperatorsStatus(instance); err != nil {
+		return reconcile.Result{}, err
+	}
 	// Check if all the catalog sources ready for deployment
 	isReady, err := r.checkCatalogSourceStatus(instance)
 	if err != nil {
@@ -130,24 +135,27 @@ func (r *ReconcileOperandRegistry) Reconcile(request reconcile.Request) (reconci
 	}
 
 	if isReady {
-		if err := r.updateRegistryOperatorsStatus(instance); err != nil {
-			return reconcile.Result{}, err
-		}
 		if instance.Status.OperatorsStatus == nil || len(instance.Status.OperatorsStatus) == 0 {
 			instance.UpdateRegistryPhase(operatorv1alpha1.RegistryReady)
 		} else {
 			instance.UpdateRegistryPhase(operatorv1alpha1.RegistryRunning)
 		}
+		if err := r.client.Status().Update(context.TODO(), instance); err != nil {
+			return reconcile.Result{}, err
+		}
 	} else {
 		instance.UpdateRegistryPhase(operatorv1alpha1.RegistryFailed)
-	}
-
-	if err := r.client.Status().Update(context.TODO(), instance); err != nil {
-		return reconcile.Result{}, err
+		if err := r.client.Status().Update(context.TODO(), instance); err != nil {
+			return reconcile.Result{}, err
+		}
+		// When catalog source not ready, reconcile every 1 minute to check the status
+		klog.V(2).Info("Waiting for all catalog source ready ...")
+		return reconcile.Result{RequeueAfter: 1 * time.Minute}, nil
 	}
 
 	klog.V(1).Infof("Finished reconciling OperandRegistry: %s", request.NamespacedName)
-	return reconcile.Result{}, nil
+	// Reconcile every 10 minutes to check the catalog source status
+	return reconcile.Result{RequeueAfter: 10 * time.Minute}, nil
 }
 
 func (r *ReconcileOperandRegistry) updateRegistryOperatorsStatus(instance *operatorv1alpha1.OperandRegistry) error {
@@ -189,7 +197,8 @@ func (r *ReconcileOperandRegistry) checkCatalogSourceStatus(instance *operatorv1
 			if !errors.IsNotFound(err) {
 				return isReady, err
 			}
-			r.recorder.Eventf(instance, corev1.EventTypeWarning, "NotFound", "NotFound CatalogSource in NamespacedName %s/%s", catsrcNamespace, catsrcName)
+			klog.V(3).Infof("NotFound CatalogSource in NamespacedName: %s", catsrcKey.String())
+			r.recorder.Eventf(instance, corev1.EventTypeWarning, "NotFound", "NotFound CatalogSource in NamespacedName %s", catsrcKey.String())
 			instance.SetNotFoundCondition(catsrcName, operatorv1alpha1.ResourceTypeCatalogSource, corev1.ConditionTrue)
 			continue
 		}
@@ -198,7 +207,8 @@ func (r *ReconcileOperandRegistry) checkCatalogSourceStatus(instance *operatorv1
 			instance.SetReadyCondition(catsrcName, operatorv1alpha1.ResourceTypeCatalogSource, corev1.ConditionTrue)
 		} else {
 			isReady = false
-			r.recorder.Eventf(instance, corev1.EventTypeWarning, "NotReady", "NotReady CatalogSource in NamespacedName %s/%s", catsrcNamespace, catsrcName)
+			klog.V(3).Infof("NotReady CatalogSource in NamespacedName: %s", catsrcKey.String())
+			r.recorder.Eventf(instance, corev1.EventTypeWarning, "NotReady", "NotReady CatalogSource in NamespacedName %s", catsrcKey.String())
 			instance.SetReadyCondition(catsrcName, operatorv1alpha1.ResourceTypeCatalogSource, corev1.ConditionFalse)
 		}
 	}
