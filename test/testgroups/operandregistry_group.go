@@ -33,6 +33,10 @@ func TestOperandRegistry(t *testing.T) {
 }
 
 // TestOperandRegistryCRUD is for testing OperandRegistry
+// 1. Create namespace e2e-test-ns-1.
+// 2. Create OperandRegistry e2e-test-ns-1/common-service and ensure its status being Ready.
+// 3. Update OperandRegistry e2e-test-ns-1/common-service
+// 4. Delete OperandRegistry e2e-test-ns-1/common-service
 func TestOperandRegistryCRUD(t *testing.T) {
 	assert := assert.New(t)
 	ctx := test.NewTestCtx(t)
@@ -41,10 +45,11 @@ func TestOperandRegistryCRUD(t *testing.T) {
 	// get global framework variables
 	f := test.Global
 
-	// Create namespace for test
+	// Step1: Create namespace for testing
 	err := helpers.CreateNamespace(f, ctx, config.TestNamespace1)
 	assert.NoError(err)
 
+	// Step2: Create OperandRegistry
 	reg, err := helpers.CreateOperandRegistry(f, ctx, config.TestNamespace1)
 	assert.NoError(err)
 	assert.NotNilf(reg, "registry %s should be created in namespace %s", config.OperandRegistryCrName, config.TestNamespace1)
@@ -52,9 +57,11 @@ func TestOperandRegistryCRUD(t *testing.T) {
 	reg, err = helpers.WaitRegistryStatus(f, operator.RegistryReady, config.TestNamespace1)
 	assert.NoError(err)
 
+	// Step3: Update OperandRegistry
 	err = helpers.UpdateOperandRegistry(f, config.TestNamespace1)
 	assert.NoError(err)
 
+	// Step4: Delete OperandRegistry
 	err = helpers.DeleteOperandRegistry(f, reg)
 	assert.NoError(err)
 }
