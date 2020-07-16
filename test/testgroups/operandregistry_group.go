@@ -47,7 +47,7 @@ func TestOperandRegistryCRUD(t *testing.T) {
 
 	reg, err := helpers.CreateOperandRegistry(f, ctx, config.TestNamespace1)
 	assert.NoError(err)
-	assert.NotNilf(reg, "regisgry %s should be created in namespace %s", config.OperandRegistryCrName, config.TestNamespace1)
+	assert.NotNilf(reg, "registry %s should be created in namespace %s", config.OperandRegistryCrName, config.TestNamespace1)
 
 	reg, err = helpers.WaitRegistryStatus(f, operator.RegistryReady, config.TestNamespace1)
 	assert.NoError(err)

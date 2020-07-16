@@ -95,7 +95,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	// Watch for OperandRegistry status changes and requeue the OperandRequest
 	err = c.Watch(&source.Kind{Type: &operatorv1alpha1.OperandRegistry{}}, &handler.EnqueueRequestsFromMapFunc{
-		ToRequests: getRegistryToRquestMapper(mgr),
+		ToRequests: getRegistryToRequestMapper(mgr),
 	}, predicateRegistrySpec)
 
 	if err != nil {
@@ -451,7 +451,7 @@ func getBindingInfofromRequest(bindInfoInstance *operatorv1alpha1.OperandBindInf
 	return secretReq, cmReq
 }
 
-func getRegistryToRquestMapper(mgr manager.Manager) handler.ToRequestsFunc {
+func getRegistryToRequestMapper(mgr manager.Manager) handler.ToRequestsFunc {
 	return func(object handler.MapObject) []reconcile.Request {
 		mgrClient := mgr.GetClient()
 		bindInfoList := &operatorv1alpha1.OperandBindInfoList{}
