@@ -147,7 +147,26 @@ func (r *ReconcileOperandBindInfo) Reconcile(request reconcile.Request) (reconci
 	}
 
 	klog.V(1).Infof("Reconciling OperandBindInfo: %s", request.NamespacedName)
-	// Update labels for the reqistry
+
+	// If the finalizer is added, EnsureFinalizer() will return true. If the finalizer is already there, EnsureFinalizer() will return false
+	if bindInfoInstance.EnsureFinalizer() {
+		// Update CR
+		err := r.client.Update(context.TODO(), bindInfoInstance)
+		if err != nil {
+			klog.Errorf("Failed to update the OperandBindinfo %s in the namespace %s: %s", bindInfoInstance.Name, bindInfoInstance.Namespace, err)
+			return reconcile.Result{}, err
+		}
+	}
+
+	// Remove finalizer when DeletionTimestamp none zero
+	if !bindInfoInstance.ObjectMeta.DeletionTimestamp.IsZero() {
+		if err := r.cleanupCopies(bindInfoInstance); err != nil {
+			return reconcile.Result{}, err
+		}
+		return reconcile.Result{}, nil
+	}
+
+	// Update labels for the registry
 	if bindInfoInstance.UpdateLabels() {
 		if err := r.client.Update(context.TODO(), bindInfoInstance); err != nil {
 			return reconcile.Result{}, err
@@ -278,11 +297,17 @@ func (r *ReconcileOperandBindInfo) copySecret(sourceName, targetName, sourceNs, 
 		return false, err
 	}
 	// Create the Secret to the OperandRequest namespace
+	secretlabel := make(map[string]string)
+	// Copy from the original labels to the target labels
+	for k, v := range secret.Labels {
+		secretlabel[k] = v
+	}
+	secretlabel[bindInfoInstance.Namespace+"."+bindInfoInstance.Name+"/bindinfo"] = "true"
 	secretCopy := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      targetName,
 			Namespace: targetNs,
-			Labels:    secret.Labels,
+			Labels:    secretlabel,
 		},
 		Type:       secret.Type,
 		Data:       secret.Data,
@@ -357,11 +382,17 @@ func (r *ReconcileOperandBindInfo) copyConfigmap(sourceName, targetName, sourceN
 		return false, err
 	}
 	// Create the ConfigMap to the OperandRequest namespace
+	cmlabel := make(map[string]string)
+	// Copy from the original labels to the target labels
+	for k, v := range cm.Labels {
+		cmlabel[k] = v
+	}
+	cmlabel[bindInfoInstance.Namespace+"."+bindInfoInstance.Name+"/bindinfo"] = "true"
 	cmCopy := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      targetName,
 			Namespace: targetNs,
-			Labels:    cm.Labels,
+			Labels:    cmlabel,
 		},
 		Data:       cm.Data,
 		BinaryData: cm.BinaryData,
@@ -423,6 +454,42 @@ func (r *ReconcileOperandBindInfo) getBindInfoInstance(name, namespace string) (
 		return nil, err
 	}
 	return bindInfo, nil
+}
+
+func (r *ReconcileOperandBindInfo) cleanupCopies(bindInfoInstance *operatorv1alpha1.OperandBindInfo) error {
+	secretList := &corev1.SecretList{}
+	cmList := &corev1.ConfigMapList{}
+
+	opts := []client.ListOption{
+		client.MatchingLabels(map[string]string{bindInfoInstance.Namespace + "." + bindInfoInstance.Name + "/bindinfo": "true"}),
+	}
+	if err := r.client.List(context.TODO(), secretList, opts...); err != nil {
+		return err
+	}
+	if err := r.client.List(context.TODO(), cmList, opts...); err != nil {
+		return err
+	}
+
+	for _, secret := range secretList.Items {
+		if err := r.client.Delete(context.TODO(), &secret); err != nil {
+			return err
+		}
+	}
+
+	for _, cm := range cmList.Items {
+		if err := r.client.Delete(context.TODO(), &cm); err != nil {
+			return err
+		}
+	}
+	// Update finalizer to allow delete CR
+	removed := bindInfoInstance.RemoveFinalizer()
+	if removed {
+		err := r.client.Update(context.TODO(), bindInfoInstance)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func getBindingInfofromRequest(bindInfoInstance *operatorv1alpha1.OperandBindInfo, requestInstance *operatorv1alpha1.OperandRequest) (map[string]string, map[string]string) {
