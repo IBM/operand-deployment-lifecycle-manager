@@ -67,11 +67,29 @@ code-tidy:
 # Run the operator-sdk commands to generated code (k8s and openapi and csv)
 code-gen:
 	@echo Updating the deep copy files with the changes in the API
-	operator-sdk generate k8s
+	$(OPERATOR_SDK) generate k8s
 	@echo Updating the CRD files with the OpenAPI validations
-	operator-sdk generate crds
+	$(OPERATOR_SDK) generate crds
 	@echo Updating/Generating a ClusterServiceVersion YAML manifest for the operator
-	operator-sdk generate csv --csv-version ${CSV_VERSION} --update-crds
+	$(OPERATOR_SDK) generate csv --csv-version ${CSV_VERSION} --update-crds
+
+# Use released manifests to build stable index image
+build-released-index-image:
+	@echo "Building the $(INDEX_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
+	- CHANNELS=stable-v1 DEFAULT_CHANNEL=stable-v1 BUNDLE_IMAGE_VERSION=1.1.0 BUNDLE_MANIFESTS_PATH=1.1.0 make build-push-bundle-image
+	- CHANNELS=stable-v1 DEFAULT_CHANNEL=stable-v1 BUNDLE_IMAGE_VERSION=1.2.0 BUNDLE_MANIFESTS_PATH=1.2.0 make build-push-bundle-image
+	- CHANNELS=stable-v1 DEFAULT_CHANNEL=stable-v1 BUNDLE_IMAGE_VERSION=1.2.1 BUNDLE_MANIFESTS_PATH=1.2.1 make build-push-bundle-image
+	- CHANNELS=stable-v1 DEFAULT_CHANNEL=stable-v1 BUNDLE_IMAGE_VERSION=1.2.2 BUNDLE_MANIFESTS_PATH=1.2.2 make build-push-bundle-image
+	- CHANNELS=stable-v1 DEFAULT_CHANNEL=stable-v1 BUNDLE_IMAGE_VERSION=1.2.3 BUNDLE_MANIFESTS_PATH=1.2.3 make build-push-bundle-image
+	- opm index add --permissive -c docker --bundles \
+	$(IMAGE_REPO)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):1.1.0,\
+	$(IMAGE_REPO)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):1.2.0,\
+	$(IMAGE_REPO)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):1.2.1,\
+	$(IMAGE_REPO)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):1.2.2,\
+	$(IMAGE_REPO)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):1.2.3 \
+	--tag $(IMAGE_REPO)/$(INDEX_IMAGE_NAME)-$(LOCAL_ARCH):$(RELEASED_VERSION)
+	@echo "Pushing the $(INDEX_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
+	- docker push $(IMAGE_REPO)/$(INDEX_IMAGE_NAME)-$(LOCAL_ARCH):$(RELEASED_VERSION)
 
 bundle:
 	@common/scripts/create_bundle.sh ${CSV_VERSION}

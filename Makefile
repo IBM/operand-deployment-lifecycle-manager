@@ -33,7 +33,18 @@ NAMESPACE=ibm-common-services
 # IMAGE_REPO, IMAGE_NAME and RELEASE_TAG environment variable.
 IMAGE_REPO ?= quay.io/opencloudio
 IMAGE_NAME ?= odlm
-CSV_VERSION ?= 1.2.4
+BUNDLE_IMAGE_NAME ?= odlm-operator-bundle
+BUNDLE_IMAGE_VERSION ?= latest
+BUNDLE_MANIFESTS_PATH ?= manifests
+INDEX_IMAGE_NAME ?= odlm-catalog
+INDEX_IMAGE_VERSION ?= latest
+RELEASED_VERSION ?= 1.2.3
+STABLE_VERSION ?= 1.2.3
+BETA_VERSION ?= 1.2.4
+DEV_VERSION ?= 1.2.5
+CHANNELS ?= dev
+DEFAULT_CHANNEL ?= dev
+CSV_VERSION ?= 1.2.5
 
 QUAY_USERNAME ?=
 QUAY_PASSWORD ?=
@@ -143,7 +154,7 @@ build:
 	@GOARCH=$(LOCAL_ARCH) common/scripts/gobuild.sh build/_output/bin/$(IMAGE_NAME) ./cmd/manager
 	@strip $(STRIP_FLAGS) build/_output/bin/$(IMAGE_NAME)
 
-build-push-image: build-image push-image
+build-push-image: push-image
 
 build-image: build
 	@echo "Building the $(IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
@@ -152,6 +163,56 @@ build-image: build
 push-image: $(CONFIG_DOCKER_TARGET) build-image
 	@echo "Pushing the $(IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
 	@docker push $(IMAGE_REPO)/$(IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION)
+
+# Build and push operator bundle image
+build-push-bundle-image:
+	@echo "Bulding the $(BUNDLE_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
+	- $(OPERATOR_SDK) bundle create $(IMAGE_REPO)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(BUNDLE_IMAGE_VERSION) \
+	--directory deploy/olm-catalog/operand-deployment-lifecycle-manager/$(BUNDLE_MANIFESTS_PATH) \
+	--package operand-deployment-lifecycle-manager-app \
+	--channels $(CHANNELS) \
+	--default-channel $(DEFAULT_CHANNEL) \
+	--overwrite
+	@echo "Pushing the $(BUNDLE_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
+	- docker push $(IMAGE_REPO)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(BUNDLE_IMAGE_VERSION)
+
+# Build and push index image
+build-push-index-image: build-push-bundle-image
+	@echo "Building the $(INDEX_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
+	- opm index add --permissive -c docker \
+	--bundles $(IMAGE_REPO)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(BUNDLE_IMAGE_VERSION) \
+	--from-index $(IMAGE_REPO)/$(INDEX_IMAGE_NAME)-$(LOCAL_ARCH):$(FROM_INDEX_IMAGE_VERSION) \
+	--tag $(IMAGE_REPO)/$(INDEX_IMAGE_NAME)-$(LOCAL_ARCH):$(NEW_INDEX_IMAGE_VERSION)
+	@echo "Pushing the $(INDEX_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
+	- docker push $(IMAGE_REPO)/$(INDEX_IMAGE_NAME)-$(LOCAL_ARCH):$(NEW_INDEX_IMAGE_VERSION)
+
+build-dev-index-image: ## Build and push dev index image
+	CHANNELS=dev \
+	DEFAULT_CHANNEL=dev \
+	FROM_INDEX_IMAGE_VERSION=$(BETA_VERSION) \
+	NEW_INDEX_IMAGE_VERSION=$(DEV_VERSION) \
+	BUNDLE_IMAGE_VERSION=$(DEV_VERSION) \
+	BUNDLE_MANIFESTS_PATH=manifests \
+	make build-push-index-image
+
+build-beta-index-image: ## Build and push beta index image
+	CHANNELS=beta \
+	DEFAULT_CHANNEL=beta \
+	FROM_INDEX_IMAGE_VERSION=$(STABLE_VERSION) \
+	NEW_INDEX_IMAGE_VERSION=$(BETA_VERSION) \
+	BUNDLE_IMAGE_VERSION=$(BETA_VERSION) \
+	BUNDLE_MANIFESTS_PATH=$(BETA_VERSION) \
+	make build-push-index-image
+
+
+build-stable-index-image: ## Build and push stable index image
+	CHANNELS=stable-v1 \
+	DEFAULT_CHANNEL=stable-v1 \
+	FROM_INDEX_IMAGE_VERSION=$(RELEASED_VERSION) \
+	NEW_INDEX_IMAGE_VERSION=$(STABLE_VERSION) \
+	BUNDLE_IMAGE_VERSION=$(STABLE_VERSION) \
+	BUNDLE_MANIFESTS_PATH=$(STABLE_VERSION) \
+	make build-push-index-image
 
 ##@ Test
 
