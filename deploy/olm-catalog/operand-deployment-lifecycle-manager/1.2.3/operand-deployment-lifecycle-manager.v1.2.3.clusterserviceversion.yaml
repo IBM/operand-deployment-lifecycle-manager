@@ -489,7 +489,7 @@ spec:
                       fieldPath: metadata.namespace
                 - name: OPERATOR_NAME
                   value: operand-deployment-lifecycle-manager
-                image: quay.io/opencloudio/odlm@sha256:fc63b11a6d4bb2b7cfd187ce7a15d2a1f7d546ce0f1e560a61d7674325cc96a7
+                image: quay.io/opencloudio/odlm@sha256:5de37572a1cd21be404195a96b4e1beb59f8ac421c56dde95010cec4ac7afea5
                 imagePullPolicy: Always
                 name: operand-deployment-lifecycle-manager
                 resources:
