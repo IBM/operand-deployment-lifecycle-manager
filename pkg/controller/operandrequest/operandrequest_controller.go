@@ -84,7 +84,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	// Watch for changes to resource OperandRegistry
 	if err := c.Watch(&source.Kind{Type: &operatorv1alpha1.OperandRegistry{}}, &handler.EnqueueRequestsFromMapFunc{
-		ToRequests: getRegistryToRquestMapper(mgr),
+		ToRequests: getRegistryToRequestMapper(mgr),
 	}, predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			oldObject := e.ObjectOld.(*operatorv1alpha1.OperandRegistry)
@@ -101,7 +101,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	// Watch for OperandConfig spec changes and requeue the OperandRequest
 	if err = c.Watch(&source.Kind{Type: &operatorv1alpha1.OperandConfig{}}, &handler.EnqueueRequestsFromMapFunc{
-		ToRequests: getConfigToRquestMapper(mgr),
+		ToRequests: getConfigToRequestMapper(mgr),
 	}, predicate.Funcs{
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			// Evaluates to false if the object has been confirmed deleted.
@@ -254,7 +254,7 @@ func (r *ReconcileOperandRequest) checkFinalizer(requestInstance *operatorv1alph
 	return nil
 }
 
-func getRegistryToRquestMapper(mgr manager.Manager) handler.ToRequestsFunc {
+func getRegistryToRequestMapper(mgr manager.Manager) handler.ToRequestsFunc {
 	return func(object handler.MapObject) []reconcile.Request {
 		mgrClient := mgr.GetClient()
 		requestList := &operatorv1alpha1.OperandRequestList{}
@@ -274,7 +274,7 @@ func getRegistryToRquestMapper(mgr manager.Manager) handler.ToRequestsFunc {
 	}
 }
 
-func getConfigToRquestMapper(mgr manager.Manager) handler.ToRequestsFunc {
+func getConfigToRequestMapper(mgr manager.Manager) handler.ToRequestsFunc {
 	return func(object handler.MapObject) []reconcile.Request {
 		mgrClient := mgr.GetClient()
 		requestList := &operatorv1alpha1.OperandRequestList{}

@@ -33,6 +33,10 @@ func TestOperandConfig(t *testing.T) {
 }
 
 // TestOperandConfigCRUD is for testing OperandConfig
+// 1. Create namespace e2e-test-ns-1.
+// 2. Create OperandConfig e2e-test-ns-1/common-service and ensure its status being Initialized.
+// 3. Update OperandConfig e2e-test-ns-1/common-service
+// 4. Delete OperandConfig e2e-test-ns-1/common-service
 func TestOperandConfigCRUD(t *testing.T) {
 	assert := assert.New(t)
 	ctx := test.NewTestCtx(t)
@@ -41,10 +45,11 @@ func TestOperandConfigCRUD(t *testing.T) {
 	// get global framework variables
 	f := test.Global
 
-	// Create namespace for test
+	// Step1: Create namespace for testing
 	err := helpers.CreateNamespace(f, ctx, config.TestNamespace1)
 	assert.NoError(err)
 
+	// Step2: Create OperandConfig
 	con, err := helpers.CreateOperandConfig(f, ctx, config.TestNamespace1)
 	assert.NoError(err)
 	assert.NotNilf(con, "config %s should be created in namespace %s", config.OperandConfigCrName, config.TestNamespace1)
@@ -52,9 +57,11 @@ func TestOperandConfigCRUD(t *testing.T) {
 	con, err = helpers.WaitConfigStatus(f, operator.ServiceInit, config.TestNamespace1)
 	assert.NoError(err)
 
+	// Step3: Update OperandConfig
 	err = helpers.UpdateOperandConfig(f, config.TestNamespace1)
 	assert.NoError(err)
 
+	// Step4: Delete OperandConfig
 	err = helpers.DeleteOperandConfig(f, con)
 	assert.NoError(err)
 }

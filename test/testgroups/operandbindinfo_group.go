@@ -33,6 +33,10 @@ func TestOperandBindInfo(t *testing.T) {
 }
 
 // TestOperandBindInfoCRUD is for testing OperandBindInfo
+// 1. Create namespace e2e-test-ns-1.
+// 2. Create OperandBindInfo e2e-test-ns-1/jenkins-public-bindinfo and ensure its status being Initialized.
+// 3. Update OperandBindInfo e2e-test-ns-1/jenkins-public-bindinfo
+// 4. Delete OperandBindInfo e2e-test-ns-1/jenkins-public-bindinfo
 func TestOperandBindInfoCRUD(t *testing.T) {
 	assert := assert.New(t)
 	ctx := test.NewTestCtx(t)
@@ -41,11 +45,11 @@ func TestOperandBindInfoCRUD(t *testing.T) {
 	// get global framework variables
 	f := test.Global
 
-	// Create namespace for test
+	// Step1: Create namespace for testing
 	err := helpers.CreateNamespace(f, ctx, config.TestNamespace1)
 	assert.NoError(err)
 
-	// test create a bindinfo instance
+	// Step2: Create OperandBindInfo
 	bi, err := helpers.CreateOperandBindInfo(f, ctx, config.TestNamespace1)
 	assert.NoError(err)
 	assert.NotNilf(bi, "bindinfo %s should be created in namespace %s", config.OperandBindInfoCrName, config.TestNamespace1)
@@ -53,12 +57,12 @@ func TestOperandBindInfoCRUD(t *testing.T) {
 	_, err = helpers.WaitBindInfoStatus(f, operator.BindInfoInit, config.TestNamespace1)
 	assert.NoError(err)
 
-	// test update bindinfo instance
+	// Step3: Update OperandBindInfo
 	bi, err = helpers.UpdateOperandBindInfo(f, config.TestNamespace1)
 	assert.NoError(err)
 	assert.Equalf("jenkins-operator-base-configuration-example", bi.Spec.Bindings["public"].Configmap, "bindinfo(%s/%s) Configmap name should be jenkins-operator-base-configuration-example", bi.Namespace, bi.Name)
 
-	// test delete a bindinfo instance
+	// Step4: Delete OperandBindInfo
 	err = helpers.DeleteOperandBindInfo(f, bi)
 	assert.NoError(err)
 }
