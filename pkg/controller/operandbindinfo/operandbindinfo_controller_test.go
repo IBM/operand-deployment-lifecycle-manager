@@ -81,6 +81,27 @@ func initReconcile(t *testing.T, r ReconcileOperandBindInfo, req reconcile.Reque
 	secret2 := &corev1.Secret{}
 	err = r.client.Get(context.TODO(), types.NamespacedName{Name: "secret2", Namespace: requestNamespace}, secret2)
 	assert.True(errors.IsNotFound(err))
+
+	bindinfoInstance := &v1alpha1.OperandBindInfo{}
+	err = r.client.Get(context.TODO(), types.NamespacedName{Name: "ibm-operators-bindinfo", Namespace: "ibm-operators"}, bindinfoInstance)
+	assert.NoError(err)
+
+	bindinfoInstance.DeletionTimestamp = now()
+
+	err = r.client.Update(context.TODO(), bindinfoInstance)
+	assert.NoError(err)
+
+	res, err = r.Reconcile(req)
+	if res.Requeue {
+		t.Error("Reconcile requeued request as not expected")
+	}
+	assert.NoError(err)
+
+	err = r.client.Get(context.TODO(), types.NamespacedName{Name: "cm3", Namespace: requestNamespace}, configmap1)
+	assert.True(errors.IsNotFound(err))
+
+	err = r.client.Get(context.TODO(), types.NamespacedName{Name: "secret3", Namespace: requestNamespace}, secret1)
+	assert.True(errors.IsNotFound(err))
 }
 
 func getReconciler(name, namespace, registryName, registryNamespace, requestName, requestNamespace string) ReconcileOperandBindInfo {
@@ -279,4 +300,9 @@ func secret2(name, namespace string) *corev1.Secret {
 			"test": "secret2",
 		},
 	}
+}
+
+func now() *metav1.Time {
+	now := metav1.Now()
+	return &now
 }
