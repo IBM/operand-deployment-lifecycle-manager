@@ -1,0 +1,5 @@
+## This file is auto-generated, do not modify ##
+resources:
+- operator_v1alpha1_operandrequest.yaml
+- operator_v1alpha1_operandregistry.yaml
+- operator_v1alpha1_operandconfig.yaml

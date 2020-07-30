@@ -1,0 +1,24 @@
+# permissions for end users to edit operandrequests.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: operandrequest-editor-role
+rules:
+- apiGroups:
+  - operator.ibm.com
+  resources:
+  - operandrequests
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - operator.ibm.com
+  resources:
+  - operandrequests/status
+  verbs:
+  - get

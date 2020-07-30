@@ -1,0 +1,64 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    control-plane: controller-manager
+  name: system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    control-plane: controller-manager
+    app.kubernetes.io/instance: "operand-deployment-lifecycle-manager"
+    app.kubernetes.io/managed-by: "operand-deployment-lifecycle-manager"
+    app.kubernetes.io/name: "odlm"
+  name: controller-manager
+  namespace: system
+spec:
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+      name: operand-deployment-lifecycle-manager
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        control-plane: controller-manager
+        name: operand-deployment-lifecycle-manager
+        app.kubernetes.io/instance: operand-deployment-lifecycle-manager
+        app.kubernetes.io/managed-by: "operand-deployment-lifecycle-manager"
+        app.kubernetes.io/name: "odlm"
+      annotations:
+        productName: "IBM Cloud Platform Common Services"
+        productID: "068a62892a1e4db39641342e592daa25"
+        productVersion: "3.5.0"
+        productMetric: "FREE"
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: beta.kubernetes.io/arch
+                operator: In
+                values:
+                - amd64
+                - ppc64le
+                - s390x
+      serviceAccountName: operand-deployment-lifecycle-manager-manager-role
+      containers:
+      - command:
+        - /manager
+        args:
+        - --enable-leader-election
+        image: quay.io/opencloudio/odlm:latest
+        name: manager
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 200m
+            memory: 200Mi
+      terminationGracePeriodSeconds: 10
