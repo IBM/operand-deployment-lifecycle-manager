@@ -1,0 +1,20 @@
+# permissions for end users to view operandrequests.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: operandrequest-viewer-role
+rules:
+- apiGroups:
+  - operator.ibm.com
+  resources:
+  - operandrequests
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - operator.ibm.com
+  resources:
+  - operandrequests/status
+  verbs:
+  - get

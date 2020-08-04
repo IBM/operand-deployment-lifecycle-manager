@@ -33,8 +33,57 @@ get-cluster-credentials: activate-serviceaccount
 config-docker: get-cluster-credentials
 	@common/scripts/config_docker.sh
 
-install-operator-sdk:
-	@operator-sdk version 2> /dev/null ; if [ $$? -ne 0 ]; then ./common/scripts/install-operator-sdk.sh; fi
+# find or download operator-sdk
+# download operator-sdk if necessary
+operator-sdk:
+ifeq (, $(OPERATOR_SDK))
+	@./common/scripts/install-operator-sdk.sh
+OPERATOR_SDK=/usr/local/bin/operator-sdk
+endif
+
+# find or download kubebuilder
+# download kubebuilder if necessary
+kube-builder:
+ifeq (, $(wildcard /usr/local/kubebuilder))
+	@./common/scripts/install-kubebuilder.sh
+endif
+
+# find or download controller-gen
+# download controller-gen if necessary
+controller-gen:
+ifeq (, $(CONTROLLER_GEN))
+	@{ \
+	set -e ;\
+	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
+	cd $$CONTROLLER_GEN_TMP_DIR ;\
+	go mod init tmp ;\
+	GO111MODULE=on go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.3.0 ;\
+	rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
+	}
+CONTROLLER_GEN=$(GOBIN)/controller-gen
+endif
+
+fetch-olm-crds:
+	@{ \
+	curl -L -O "https://github.com/operator-framework/api/archive/v0.3.8.tar.gz" ;\
+	tar -zxf v0.3.8.tar.gz api-0.3.8/crds && mv api-0.3.8/crds olmcrds ;\
+	rm -rf api-0.3.8 v0.3.8.tar.gz ;\
+	}
+
+# find or download kustomize
+# download kustomize if necessary
+kustomize:
+ifeq (, $(KUSTOMIZE))
+	@{ \
+	set -e ;\
+	KUSTOMIZE_GEN_TMP_DIR=$$(mktemp -d) ;\
+	cd $$KUSTOMIZE_GEN_TMP_DIR ;\
+	go mod init tmp ;\
+	go get sigs.k8s.io/kustomize/kustomize/v3@v3.5.4 ;\
+	rm -rf $$KUSTOMIZE_GEN_TMP_DIR ;\
+	}
+KUSTOMIZE=$(GOBIN)/kustomize
+endif
 
 FINDFILES=find . \( -path ./.git -o -path ./.github \) -prune -o -type f
 XARGS = xargs -0 ${XARGS_FLAGS}
@@ -64,16 +113,4 @@ code-tidy:
 	@echo go mod tidy
 	go mod tidy -v
 
-# Run the operator-sdk commands to generated code (k8s and openapi and csv)
-code-gen:
-	@echo Updating the deep copy files with the changes in the API
-	operator-sdk generate k8s
-	@echo Updating the CRD files with the OpenAPI validations
-	operator-sdk generate crds
-	@echo Updating/Generating a ClusterServiceVersion YAML manifest for the operator
-	operator-sdk generate csv --csv-version ${CSV_VERSION} --update-crds
-
-bundle:
-	@common/scripts/create_bundle.sh ${CSV_VERSION}
-
-.PHONY: code-vet code-fmt code-tidy code-gen csv-gen lint-copyright-banner lint-go lint-all config-docker install-operator-sdk bundle
+.PHONY: code-vet code-fmt code-tidy code-gen lint-copyright-banner lint-go lint-all config-docker operator-sdk kube-builder controller-gen fetch-olm-crds kustomize

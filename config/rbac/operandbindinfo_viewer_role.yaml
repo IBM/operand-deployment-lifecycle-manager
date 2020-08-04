@@ -1,0 +1,20 @@
+# permissions for end users to view operandbindinfoes.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: operandbindinfo-viewer-role
+rules:
+- apiGroups:
+  - operator.ibm.com
+  resources:
+  - operandbindinfoes
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - operator.ibm.com
+  resources:
+  - operandbindinfoes/status
+  verbs:
+  - get

@@ -1,0 +1,19 @@
+domain: ibm.com
+layout: go.kubebuilder.io/v2
+repo: github.com/IBM/operand-deployment-lifecycle-manager
+resources:
+- group: operator
+  kind: OperandRequest
+  version: v1alpha1
+- group: operator
+  kind: OperandRegistry
+  version: v1alpha1
+- group: operator
+  kind: OperandConfig
+  version: v1alpha1
+- group: operator
+  kind: OperandBindInfo
+  version: v1alpha1
+version: 3-alpha
+plugins:
+  go.operator-sdk.io/v2-alpha: {}

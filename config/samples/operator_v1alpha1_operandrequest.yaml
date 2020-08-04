@@ -1,0 +1,14 @@
+apiVersion: operator.ibm.com/v1alpha1
+kind: OperandRequest
+metadata:
+  labels:
+    app.kubernetes.io/instance: "operand-deployment-lifecycle-manager"
+    app.kubernetes.io/managed-by: "operand-deployment-lifecycle-manager"
+    app.kubernetes.io/name: "odlm"
+  name: example-service
+spec:
+  requests:
+  - registry: example-service
+    operands:
+    - name: etcd
+    - name: jenkins
