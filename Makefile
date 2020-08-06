@@ -15,10 +15,10 @@
 .DEFAULT_GOAL:=help
 
 # Dependence tools
-KUBECTL ?= $(shell command -v kubectl)
-OPERATOR_SDK ?= $(shell command -v operator-sdk)
-CONTROLLER_GEN ?= $(shell command -v controller-gen)
-KUSTOMIZE ?= $(shell command -v kustomize)
+KUBECTL ?= $(shell which kubectl)
+OPERATOR_SDK ?= $(shell which operator-sdk)
+CONTROLLER_GEN ?= $(shell which controller-gen)
+KUSTOMIZE ?= $(shell which kustomize)
 
 # Specify whether this repo is build locally or not, default values is '1';
 # If set to 1, then you need to also set 'DOCKER_USERNAME' and 'DOCKER_PASSWORD'
@@ -27,8 +27,7 @@ BUILD_LOCALLY ?= 1
 
 VCS_URL ?= https://github.com/IBM/operand-deployment-lifecycle-manager
 VCS_REF ?= $(shell git rev-parse HEAD)
-VERSION ?= $(shell git describe --exact-match 2> /dev/null || \
-				git describe --match=$(git rev-parse --short=8 HEAD) --always --dirty --abbrev=8)
+VERSION ?= $(shell cat ./version/version.go | grep "Version =" | awk '{ print $$3}' | tr -d '"')
 
 LOCAL_OS := $(shell uname)
 ifeq ($(LOCAL_OS),Linux)
@@ -57,12 +56,19 @@ endif
 
 # Default image repo
 IMAGE_REPO ?= quay.io/opencloudio
+
+ifeq ($(BUILD_LOCALLY),0)
+REGISTRY ?= "hyc-cloud-private-integration-docker-local.artifactory.swg-devops.com/ibmcom"
+else
+REGISTRY ?= "hyc-cloud-private-scratch-docker-local.artifactory.swg-devops.com/ibmcom"
+endif
+
 # Current Operator image name
 OPERATOR_IMAGE_NAME ?= odlm
 # Current Operator bundle image name
 BUNDLE_IMAGE_NAME ?= odlm-operator-bundle
 # Current Operator version
-OPERATOR_VERSION ?= 1.2.4
+OPERATOR_VERSION ?= 1.3.0
 
 # Options for 'bundle-build'
 ifneq ($(origin CHANNELS), undefined)
@@ -151,7 +157,10 @@ generate-all: manifests kustomize operator-sdk ## Generate bundle manifests, met
 
 ##@ Test
 
-test: generate code-fmt code-vet manifests ## Run unit test
+test: ## Run unit test on prow
+	@echo good
+
+unit-test: generate code-fmt code-vet manifests ## Run unit test
 ifeq (, $(USE_EXISTING_CLUSTER))
 	- make kube-builder
 	- make fetch-olm-crds
@@ -171,7 +180,7 @@ scorecard: operator-sdk ## Run scorecard test
 
 build-operator-image: ## Build the operator image.
 	@echo "Building the $(OPERATOR_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
-	@docker build -t $(IMAGE_REPO)/$(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) --build-arg VCS_REF=$(VCS_REF) --build-arg VCS_URL=$(VCS_URL) -f build/Dockerfile .
+	@docker build -t $(REGISTRY)/$(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) --build-arg VCS_REF=$(VCS_REF) --build-arg VCS_URL=$(VCS_URL) -f Dockerfile .
 
 build-bundle-image: ## Build the operator bundle image.
 	docker build -f bundle.Dockerfile -t $(IMAGE_REPO)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) .
@@ -180,13 +189,13 @@ build-bundle-image: ## Build the operator bundle image.
 
 build-push-image: build-operator-image build-bundle-image ## Build and push the operator and bundle images.
 	@echo "Pushing the $(OPERATOR_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
-	@docker push $(IMAGE_REPO)/$(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION)
+	@docker push $(REGISTRY)/$(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION)
 	@echo "Pushing the $(BUNDLE_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
-	@docker push $(IMAGE_REPO)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION)
+	@docker push $(REGISTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION)
 
 multiarch-image: $(CONFIG_DOCKER_TARGET) ## Generate multiarch images for operator and bundle image.
-	@MAX_PULLING_RETRY=20 RETRY_INTERVAL=30 common/scripts/multiarch_image.sh $(IMAGE_REPO) $(OPERATOR_IMAGE_NAME) $(VERSION)
-	@MAX_PULLING_RETRY=20 RETRY_INTERVAL=30 common/scripts/multiarch_image.sh $(IMAGE_REPO) $(BUNDLE_IMAGE_NAME) $(VERSION)
+	@MAX_PULLING_RETRY=20 RETRY_INTERVAL=30 common/scripts/multiarch_image.sh $(REGISTRY) $(OPERATOR_IMAGE_NAME) $(VERSION)
+	@MAX_PULLING_RETRY=20 RETRY_INTERVAL=30 common/scripts/multiarch_image.sh $(REGISTRY) $(BUNDLE_IMAGE_NAME) $(VERSION)
 
 ##@ Help
 help: ## Display this help
