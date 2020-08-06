@@ -31,7 +31,10 @@ get-cluster-credentials: activate-serviceaccount
 	gcloud container clusters get-credentials "$(CLUSTER)" --project="$(PROJECT)" --zone="$(ZONE)"
 
 config-docker: get-cluster-credentials
-	@common/scripts/config_docker.sh
+	@common/scripts/artifactory_config_docker.sh
+
+config-docker-quay: get-cluster-credentials
+	@common/scripts/quay_config_docker.sh
 
 # find or download operator-sdk
 # download operator-sdk if necessary
