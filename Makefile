@@ -187,7 +187,7 @@ build-bundle-image: ## Build the operator bundle image.
 
 ##@ Release
 
-build-push-image: build-operator-image build-bundle-image ## Build and push the operator and bundle images.
+build-push-image: $(CONFIG_DOCKER_TARGET) build-operator-image build-bundle-image ## Build and push the operator and bundle images.
 	@echo "Pushing the $(OPERATOR_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
 	@docker push $(REGISTRY)/$(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION)
 	@echo "Pushing the $(BUNDLE_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
