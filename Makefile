@@ -98,6 +98,10 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
+ifeq ($(BUILD_LOCALLY),0)
+    export CONFIG_DOCKER_TARGET = config-docker
+endif
+
 include common/Makefile.common.mk
 
 ##@ Development
