@@ -17,6 +17,8 @@
 package controllers
 
 import (
+	"crypto/rand"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -146,4 +148,11 @@ func UseExistingCluster() *bool {
 		use = true
 	}
 	return &use
+}
+
+// createNSName generates random namespace names. Namespaces are never deleted in test environment
+func createNSName(prefix string) string {
+	suffix := make([]byte, 20)
+	rand.Read(suffix)
+	return fmt.Sprintf("%s-%x", prefix, suffix)
 }

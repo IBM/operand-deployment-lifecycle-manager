@@ -167,6 +167,7 @@ test: ## Run unit test on prow
 
 unit-test: generate code-fmt code-vet manifests ## Run unit test
 ifeq (, $(USE_EXISTING_CLUSTER))
+	@rm -rf olmcrds
 	- make kube-builder
 	- make fetch-olm-crds
 endif
