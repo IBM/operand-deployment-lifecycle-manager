@@ -18,7 +18,6 @@ package common
 
 import (
 	"context"
-	"fmt"
 
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -47,7 +46,7 @@ func FetchOperandRegistry(c client.Client, key types.NamespacedName) (*apiv1alph
 	return reg, nil
 }
 
-// Fetch the OperandConfig
+// FetchOperandConfig fetch the OperandConfig
 func FetchOperandConfig(c client.Client, key types.NamespacedName) (*apiv1alpha1.OperandConfig, error) {
 	config := &apiv1alpha1.OperandConfig{}
 	if err := c.Get(context.TODO(), key, config); err != nil {
@@ -95,7 +94,7 @@ func FetchOperandRequest(c client.Client, key types.NamespacedName) (*apiv1alpha
 	return req, nil
 }
 
-// FetchSubscription fetch Subscription from name
+// FetchSubscription fetch Subscription from a name
 func FetchSubscription(c client.Client, name, namespace string, packageName ...string) (*olmv1alpha1.Subscription, error) {
 	sub := &olmv1alpha1.Subscription{}
 	subKey := types.NamespacedName{
@@ -144,7 +143,6 @@ func FetchClusterServiceVersion(c client.Client, sub *olmv1alpha1.Subscription) 
 		return nil, err
 	} else if !errors.IsNotFound(err) && ip.Status.Phase == olmv1alpha1.InstallPlanPhaseFailed {
 		klog.Errorf("Installplan %s in the namespace %s is failed", ipName, ipNamespace)
-		return nil, fmt.Errorf("installplan %s in the namespace %s is failed", ipName, ipNamespace)
 	} else if !errors.IsNotFound(err) && ip.Status.Phase != olmv1alpha1.InstallPlanPhaseComplete {
 		klog.Infof("Installplan %s in the namespace %s is not ready", ipName, ipNamespace)
 		return nil, nil
@@ -157,7 +155,7 @@ func FetchClusterServiceVersion(c client.Client, sub *olmv1alpha1.Subscription) 
 	}
 	if err := c.Get(context.TODO(), csvKey, csv); err != nil {
 		if errors.IsNotFound(err) {
-			klog.V(3).Infof("The Subscription %s is upgrading. Will check it when it is stable", sub.Name)
+			klog.V(3).Infof("ClusterServiceVersion %s is not ready. Will check it when it is stable", sub.Name)
 			return nil, nil
 		}
 		klog.Errorf("Failed to get ClusterServiceVersion %s in the namespace %s: %s", csvName, csvNamespace, err)
