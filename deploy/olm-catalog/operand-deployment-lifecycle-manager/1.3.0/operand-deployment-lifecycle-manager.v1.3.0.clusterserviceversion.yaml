@@ -315,9 +315,9 @@ spec:
           - '*'
           verbs:
           - '*'
-        serviceAccountName: operand-deployment-lifecycle-manager-manager-role
+        serviceAccountName: operand-deployment-lifecycle-manager
       deployments:
-      - name: operand-deployment-lifecycle-manager-controller-manager
+      - name: operand-deployment-lifecycle-manager
         spec:
           replicas: 1
           selector:
@@ -371,7 +371,7 @@ spec:
                   privileged: false
                   readOnlyRootFilesystem: true
                   runAsNonRoot: true
-              serviceAccountName: operand-deployment-lifecycle-manager-manager-role
+              serviceAccountName: operand-deployment-lifecycle-manager
               terminationGracePeriodSeconds: 10
       permissions:
       - rules:
