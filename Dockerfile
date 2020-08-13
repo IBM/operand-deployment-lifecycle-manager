@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM golang:1.13 as builder
+FROM golang:1.14.6 as builder
 
 WORKDIR /workspace
 # Copy the Go Modules manifests
@@ -19,9 +19,27 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o manager 
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM gcr.io/distroless/static:nonroot
+# FROM gcr.io/distroless/static:nonroot
+FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
+
+ARG VCS_REF
+ARG VCS_URL
+
+LABEL org.label-schema.vendor="IBM" \
+  org.label-schema.name="odlm" \
+  org.label-schema.description="Manager the lifecycle of the operands" \
+  org.label-schema.vcs-ref=$VCS_REF \
+  org.label-schema.vcs-url=$VCS_URL \
+  org.label-schema.license="Licensed Materials - Property of IBM" \
+  org.label-schema.schema-version="1.0" \
+  name="odlm" \
+  vendor="IBM" \
+  description="Manager the lifecycle of the operands" \
+  summary="Manager the lifecycle of the operands"
+
 WORKDIR /
 COPY --from=builder /workspace/manager .
-USER nonroot:nonroot
+# USER nonroot:nonroot
+USER 1001
 
 ENTRYPOINT ["/manager"]
