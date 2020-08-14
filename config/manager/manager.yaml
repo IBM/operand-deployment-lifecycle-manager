@@ -45,7 +45,7 @@ spec:
                 - amd64
                 - ppc64le
                 - s390x
-      serviceAccountName: operand-deployment-lifecycle-manager-manager-role
+      serviceAccountName: operand-deployment-lifecycle-manager
       containers:
       - command:
         - /manager

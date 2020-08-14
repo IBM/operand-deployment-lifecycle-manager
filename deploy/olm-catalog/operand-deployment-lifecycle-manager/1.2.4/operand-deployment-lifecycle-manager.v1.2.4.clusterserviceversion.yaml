@@ -315,9 +315,9 @@ spec:
           - '*'
           verbs:
           - '*'
-        serviceAccountName: operand-deployment-lifecycle-manager-manager-role
+        serviceAccountName: operand-deployment-lifecycle-manager
       deployments:
-      - name: operand-deployment-lifecycle-manager-controller-manager
+      - name: operand-deployment-lifecycle-manager
         spec:
           replicas: 1
           selector:
@@ -364,7 +364,7 @@ spec:
                   requests:
                     cpu: 200m
                     memory: 200Mi
-              serviceAccountName: operand-deployment-lifecycle-manager-manager-role
+              serviceAccountName: operand-deployment-lifecycle-manager
               terminationGracePeriodSeconds: 10
       permissions:
       - rules:
