@@ -352,6 +352,7 @@ spec:
               containers:
               - args:
                 - --enable-leader-election
+                - -v=2
                 command:
                 - /manager
                 image: quay.io/opencloudio/odlm:latest
@@ -402,7 +403,7 @@ spec:
           verbs:
           - create
           - patch
-        serviceAccountName: operand-deployment-lifecycle-manager-leader-election-role
+        serviceAccountName: leader-election-role
     strategy: deployment
   installModes:
   - supported: true

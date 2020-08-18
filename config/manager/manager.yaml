@@ -13,7 +13,7 @@ metadata:
     app.kubernetes.io/instance: "operand-deployment-lifecycle-manager"
     app.kubernetes.io/managed-by: "operand-deployment-lifecycle-manager"
     app.kubernetes.io/name: "odlm"
-  name: controller-manager
+  name: operand-deployment-lifecycle-manager
   namespace: system
 spec:
   selector:
@@ -51,6 +51,7 @@ spec:
         - /manager
         args:
         - --enable-leader-election
+        - -v=2
         image: quay.io/opencloudio/odlm:latest
         name: manager
         resources:
@@ -60,4 +61,12 @@ spec:
           requests:
             cpu: 200m
             memory: 200Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
       terminationGracePeriodSeconds: 10
