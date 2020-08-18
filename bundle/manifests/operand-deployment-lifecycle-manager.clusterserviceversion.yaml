@@ -106,7 +106,7 @@ metadata:
     createdAt: "2020-07-31T12:04:06Z"
     description: The Operand Deployment Lifecycle Manager provides a Kubernetes CRD-based
       API to manage the lifecycle of operands.
-    olm.skipRange: '>=1.1.0 <1.3.0'
+    olm.skipRange: '>=1.2.0 <1.3.0'
     operators.operatorframework.io/builder: operator-sdk-v0.19.2
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v2
     repository: https://github.com/IBM/operand-deployment-lifecycle-manager
@@ -352,6 +352,7 @@ spec:
               containers:
               - args:
                 - --enable-leader-election
+                - -v=2
                 command:
                 - /manager
                 image: quay.io/opencloudio/odlm:latest
@@ -402,7 +403,7 @@ spec:
           verbs:
           - create
           - patch
-        serviceAccountName: operand-deployment-lifecycle-manager-leader-election-role
+        serviceAccountName: leader-election-role
     strategy: deployment
   installModes:
   - supported: true

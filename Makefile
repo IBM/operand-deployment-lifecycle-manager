@@ -80,15 +80,6 @@ BUNDLE_DEFAULT_CHANNEL := --default-channel=$(DEFAULT_CHANNEL)
 endif
 BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 
-# Options for "packagemanifests".
-ifneq ($(origin CHANNEL), undefined)
-PKG_CHANNELS := --channel=$(CHANNEL)
-endif
-ifeq ($(IS_CHANNEL_DEFAULT), 1)
-PKG_IS_DEFAULT_CHANNEL := --default-channel
-endif
-PKG_MAN_OPTS ?= $(PKG_CHANNELS) $(PKG_IS_DEFAULT_CHANNEL)
-
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
 
@@ -112,9 +103,7 @@ check: lint-all ## Check all files lint error
 
 code-dev: ## Run the default dev commands which are the go tidy, fmt, vet then execute the $ make code-gen
 	@echo Running the common required commands for developments purposes
-	- make generate
-	- make manifests
-	- make bundle
+	- make generate-all
 	- make code-tidy
 	- make code-fmt
 	- make code-vet
@@ -141,7 +130,7 @@ deploy: manifests kustomize ## Deploy controller in the configured Kubernetes cl
 ##@ Generate code and manifests
 
 manifests: controller-gen ## Generate manifests e.g. CRD, RBAC etc.
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=operand-deployment-lifecycle-manager webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
 generate: controller-gen ## Generate code e.g. API etc.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
@@ -152,14 +141,21 @@ bundle-manifests:
 	$(OPERATOR_SDK) bundle validate ./bundle
 
 package-manifests:
-	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate packagemanifests \
-	-q --version $(OPERATOR_VERSION) $(PKG_MAN_OPTS) \
-	--output-dir deploy/olm-catalog/operand-deployment-lifecycle-manager
+	@{ \
+	PKG_MANIFESTS_DIR=deploy/olm-catalog/operand-deployment-lifecycle-manager/$(OPERATOR_VERSION) ;\
+	BUNDLE_MANIFESTS_DIR=bundle/manifests ;\
+	[[ ! -d $$PKG_MANIFESTS_DIR ]] && mkdir $$PKG_MANIFESTS_DIR ;\
+	cp $$BUNDLE_MANIFESTS_DIR/operand-deployment-lifecycle-manager.clusterserviceversion.yaml $$PKG_MANIFESTS_DIR/operand-deployment-lifecycle-manager.v$(OPERATOR_VERSION).clusterserviceversion.yaml ;\
+	cp $$BUNDLE_MANIFESTS_DIR/operator.ibm.com_operandbindinfos.yaml $$PKG_MANIFESTS_DIR/operator.ibm.com_operandbindinfos_crd.yaml ;\
+	cp $$BUNDLE_MANIFESTS_DIR/operator.ibm.com_operandconfigs.yaml $$PKG_MANIFESTS_DIR/operator.ibm.com_operandconfigs_crd.yaml ;\
+	cp $$BUNDLE_MANIFESTS_DIR/operator.ibm.com_operandregistries.yaml $$PKG_MANIFESTS_DIR/operator.ibm.com_operandregistries_crd.yaml ;\
+	cp $$BUNDLE_MANIFESTS_DIR/operator.ibm.com_operandrequests.yaml $$PKG_MANIFESTS_DIR/operator.ibm.com_operandrequests_crd.yaml ;\
+	}
 
 generate-all: manifests kustomize operator-sdk ## Generate bundle manifests, metadata and package manifests
 	$(OPERATOR_SDK) generate kustomize manifests -q
 	- make bundle-manifests CHANNELS=dev DEFAULT_CHANNEL=dev
-	- make package-manifests CHANNEL=dev IS_CHANNEL_DEFAULT=1
+	- make package-manifests
 
 ##@ Test
 
