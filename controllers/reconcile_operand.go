@@ -304,7 +304,7 @@ func (r *OperandRequestReconciler) createCustomResource(unstruct unstructured.Un
 	// Creat the CR
 	crCreateErr := r.Create(context.TODO(), &unstruct)
 	if crCreateErr != nil && !errors.IsAlreadyExists(crCreateErr) {
-		klog.Errorf("Failed to Create the Custom Resource %s: %s ", crName, crCreateErr)
+		klog.Errorf("Failed to create the Custom Resource %s: %s ", crName, crCreateErr)
 		return crCreateErr
 	}
 
@@ -374,7 +374,7 @@ func (r *OperandRequestReconciler) updateCustomResource(unstruct unstructured.Un
 
 		existingCR.Object["spec"] = mergedCR
 		if crUpdateErr := r.Update(context.TODO(), &existingCR); crUpdateErr != nil {
-			klog.Errorf("Failed to Update the Custom Resource %s: %s", crName, crUpdateErr)
+			klog.Errorf("Failed to update the Custom Resource %s: %s", crName, crUpdateErr)
 			return crUpdateErr
 		}
 		UpdatedCR := unstructured.Unstructured{
