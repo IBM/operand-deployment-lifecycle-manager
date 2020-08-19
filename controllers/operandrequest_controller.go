@@ -56,6 +56,11 @@ type clusterObjects struct {
 
 // +kubebuilder:rbac:groups=*,resources=*,verbs=*
 
+// Reconcile reads that state of the cluster for a OperandRequest object and makes changes based on the state read
+// and what is in the OperandRequest.Spec
+// Note:
+// The Controller will requeue the Request to be processed again if the returned error is non-nil or
+// Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *OperandRequestReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// Fetch the OperandRequest instance
 	requestInstance := &operatorv1alpha1.OperandRequest{}
@@ -200,6 +205,7 @@ func getConfigToRequestMapper(mgr manager.Manager) handler.ToRequestsFunc {
 	}
 }
 
+// SetupWithManager adds OperandRequest controller to the manager.
 func (r *OperandRequestReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&operatorv1alpha1.OperandRequest{}).

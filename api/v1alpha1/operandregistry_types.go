@@ -150,6 +150,7 @@ const (
 	RegistryPending  RegistryPhase = "Pending"
 	RegistryUpdating RegistryPhase = "Updating"
 	RegistryFailed   RegistryPhase = "Failed"
+	RegistryWaiting  RegistryPhase = "Waiting for CatalogSource being ready"
 	RegistryInit     RegistryPhase = "Initialized"
 	RegistryNone     RegistryPhase = ""
 )

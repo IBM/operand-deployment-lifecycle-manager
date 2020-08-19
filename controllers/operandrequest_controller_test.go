@@ -13,533 +13,81 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+
 package controllers
 
-// import (
-// 	"context"
-// 	"testing"
-// 	"time"
+import (
+	"context"
 
-// 	olmv1 "github.com/operator-framework/api/pkg/operators/v1"
-// 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
-// 	"github.com/stretchr/testify/assert"
-// 	corev1 "k8s.io/api/core/v1"
-// 	"k8s.io/apimachinery/pkg/api/errors"
-// 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-// 	"k8s.io/apimachinery/pkg/runtime"
-// 	"k8s.io/apimachinery/pkg/types"
-// 	"k8s.io/client-go/kubernetes/scheme"
-// 	"sigs.k8s.io/controller-runtime/pkg/client"
-// 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-// 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/types"
 
-// 	"github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
-// 	fetch "github.com/IBM/operand-deployment-lifecycle-manager/controllers/common"
-// 	constant "github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
-// )
+	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
+	testdata "github.com/IBM/operand-deployment-lifecycle-manager/controllers/common"
+)
 
-// // TestRequestController runs OperandRequestReconciler.Reconcile() against a
-// // fake client that tracks a OperandRequest object.
-// func TestRequestController(t *testing.T) {
-// 	var (
-// 		name              = "ibm-cloudpak-name"
-// 		namespace         = "ibm-cloudpak"
-// 		registryName      = "common-service"
-// 		registryNamespace = "ibm-common-service"
-// 		operatorNamespace = "ibm-operators"
-// 	)
+// +kubebuilder:docs-gen:collapse=Imports
 
-// 	req := getReconcileRequest(name, namespace)
-// 	r := getReconciler(name, namespace, registryName, registryNamespace, operatorNamespace)
-// 	requestInstance := &v1alpha1.OperandRequest{}
+var _ = Describe("OperandRegistry controller", func() {
+	const (
+		name              = "ibm-cloudpak-name"
+		namespace         = "ibm-cloudpak"
+		registryName      = "common-service"
+		registryNamespace = "ibm-common-service"
+		operatorNamespace = "ibm-operators"
+	)
 
-// 	initReconcile(t, r, req, requestInstance, registryName, registryNamespace, operatorNamespace)
+	var (
+		ctx context.Context
 
-// 	absentOperand(t, r, req, requestInstance, operatorNamespace)
+		registry   *operatorv1alpha1.OperandRegistry
+		config     *operatorv1alpha1.OperandConfig
+		request    *operatorv1alpha1.OperandRequest
+		requestKey types.NamespacedName
+	)
 
-// 	presentOperand(t, r, req, requestInstance, operatorNamespace)
+	BeforeEach(func() {
+		ctx = context.Background()
+		namespaceName := createNSName(namespace)
+		registryNamespaceName := createNSName(registryNamespace)
+		operatorNamespaceName := createNSName(operatorNamespace)
+		registry = testdata.OperandRegistryObj(registryName, registryNamespaceName, operatorNamespaceName)
+		config = testdata.OperandConfigObj(registryName, registryNamespaceName)
+		request = testdata.OperandRequestObj(registryName, registryNamespaceName, name, namespaceName)
+		requestKey = types.NamespacedName{Name: name, Namespace: namespaceName}
 
-// 	updateOperandCustomResource(t, r, req, registryName, registryNamespace)
+		Expect(k8sClient.Create(ctx, testdata.NamespaceObj(namespaceName))).Should(Succeed())
+		Expect(k8sClient.Create(ctx, testdata.NamespaceObj(registryNamespaceName))).Should(Succeed())
+		Expect(k8sClient.Create(ctx, testdata.NamespaceObj(operatorNamespaceName))).Should(Succeed())
 
-// 	absentOperandCustomResource(t, r, req, registryName, registryNamespace)
+		By("Creating the OperandRequest")
 
-// 	presentOperandCustomResource(t, r, req, registryName, registryNamespace)
+		Expect(k8sClient.Create(ctx, registry)).Should(Succeed())
+		Expect(k8sClient.Create(ctx, config)).Should(Succeed())
+		Expect(k8sClient.Create(ctx, request)).Should(Succeed())
 
-// 	deleteOperandRequest(t, r, req, requestInstance, operatorNamespace)
-// }
+	})
 
-// // Init reconcile the OperandRequest
-// func initReconcile(t *testing.T, r OperandRequestReconciler, req reconcile.Request, requestInstance *v1alpha1.OperandRequest, registryName, registryNamespace, operatorNamespace string) {
-// 	assert := assert.New(t)
-// 	res, err := r.Reconcile(req)
-// 	if res.Requeue {
-// 		t.Error("Reconcile requeued request as not expected")
-// 	}
-// 	assert.NoError(err)
+	AfterEach(func() {
 
-// 	registryKey := types.NamespacedName{Name: registryName, Namespace: registryNamespace}
-// 	// Retrieve OperandRegistry
-// 	registryInstance, err := fetch.FetchOperandRegistry(r, registryKey)
-// 	assert.NoError(err)
+		By("Deleting the OperandRequest")
+		Expect(k8sClient.Delete(ctx, request)).Should(Succeed())
+		Expect(k8sClient.Delete(ctx, config)).Should(Succeed())
+		Expect(k8sClient.Delete(ctx, registry)).Should(Succeed())
+	})
 
-// 	// Retrieve OperandRequest
-// 	retrieveOperandRequest(t, r, req, requestInstance, 2, operatorNamespace)
+	Context("Initializing OperandRequest Status", func() {
+		// Because OperandRequest depends on the status of InstallPlan and ClusterServiceVersion, which can't be simulated in the unit test.
+		// Therefore the status of the OperandRequest will keep in installing.
+		It("Should status of OperandRequest be installing", func() {
 
-// 	// err = checkOperandCustomResource(t, r, registryInstance, 3, 8081, "3.2.13")
-// 	// assert.NoError(err)
-// }
-
-// // Retrieve OperandRequest instance
-// func retrieveOperandRequest(t *testing.T, r OperandRequestReconciler, req reconcile.Request, requestInstance *v1alpha1.OperandRequest, expectedMemNum int, operatorNamespace string) {
-// 	assert := assert.New(t)
-// 	err := r.Get(context.TODO(), req.NamespacedName, requestInstance)
-// 	assert.NoError(err)
-// 	assert.Equal(expectedMemNum, len(requestInstance.Status.Members), "operandrequest member list should have two elements")
-
-// 	subs := &olmv1alpha1.SubscriptionList{}
-// 	err := r.List(context.TODO(), subs, &client.ListOptions{Namespace: operatorNamespace})
-// 	assert.NoError(err)
-// 	assert.Equalf(expectedMemNum, len(subs.Items), "subscription list should have %s Subscriptions", expectedMemNum)
-
-// 	csvs := &olmv1alpha1.ClusterServiceVersionList{}
-// 	err := r.List(context.TODO(), csvs, &client.ListOptions{Namespace: operatorNamespace})
-// 	assert.NoError(err)
-// 	assert.Equalf(expectedMemNum, len(csvs.Items), "csv list should have %s ClusterServiceVersions", expectedMemNum)
-
-// 	for _, m := range requestInstance.Status.Members {
-// 		assert.Equalf(v1alpha1.OperatorRunning, m.Phase.OperatorPhase, "operator(%s) phase should be Running", m.Name)
-// 		assert.Equalf(v1alpha1.ServiceRunning, m.Phase.OperandPhase, "operand(%s) phase should be Running", m.Name)
-// 	}
-// 	assert.Equalf(v1alpha1.ClusterPhaseRunning, requestInstance.Status.Phase, "request(%s/%s) phase should be Running", requestInstance.Namespace, requestInstance.Name)
-// }
-
-// // Absent an operator from request
-// func absentOperand(t *testing.T, r OperandRequestReconciler, req reconcile.Request, requestInstance *v1alpha1.OperandRequest, operatorNamespace string) {
-// 	assert := assert.New(t)
-// 	requestInstance.Spec.Requests[0].Operands = requestInstance.Spec.Requests[0].Operands[1:]
-// 	err := r.Update(context.TODO(), requestInstance)
-// 	assert.NoError(err)
-// 	res, err := r.Reconcile(req)
-// 	if res.Requeue {
-// 		t.Error("Reconcile requeued request as not expected")
-// 	}
-// 	assert.NoError(err)
-// 	retrieveOperandRequest(t, r, req, requestInstance, 1, operatorNamespace)
-// }
-
-// // Present an operator from request
-// func presentOperand(t *testing.T, r OperandRequestReconciler, req reconcile.Request, requestInstance *v1alpha1.OperandRequest, operatorNamespace string) {
-// 	assert := assert.New(t)
-// 	// Present an operator into request
-// 	requestInstance.Spec.Requests[0].Operands = append(requestInstance.Spec.Requests[0].Operands, v1alpha1.Operand{Name: "etcd"})
-// 	err := r.Update(context.TODO(), requestInstance)
-// 	assert.NoError(err)
-
-// 	err = r.createSubscription(requestInstance, &v1alpha1.Operator{
-// 		Name:            "etcd",
-// 		Namespace:       operatorNamespace,
-// 		SourceName:      "community-operators",
-// 		SourceNamespace: "openshift-marketplace",
-// 		PackageName:     "etcd",
-// 		Channel:         "singlenamespace-alpha",
-// 	})
-// 	assert.NoError(err)
-// 	err = r.reconcileOperator(req.NamespacedName)
-// 	assert.NoError(err)
-
-// 	sub := sub("etcd", operatorNamespace, "0.0.1")
-// 	err := r.Status().Update(context.TODO(), sub)
-// 	assert.NoError(err)
-
-// 	csv := csv("etcd-csv.v0.0.1", operatorNamespace, etcdExample)
-// 	err := r.Create(context.TODO(), csv)
-// 	assert.NoError(err)
-
-// 	multiErr := r.reconcileOperand(req.NamespacedName)
-// 	assert.Empty(multiErr.Errors, "all the operands reconcile should not be error")
-// 	// err = r.updateMemberStatus(requestInstance)
-// 	// assert.NoError(err)
-// 	retrieveOperandRequest(t, r, req, requestInstance, 2, operatorNamespace)
-// }
-
-// // Mock delete OperandRequest instance, mark OperandRequest instance as delete state
-// func deleteOperandRequest(t *testing.T, r OperandRequestReconciler, req reconcile.Request, requestInstance *v1alpha1.OperandRequest, operatorNamespace string) {
-// 	assert := assert.New(t)
-// 	deleteTime := metav1.NewTime(time.Now())
-// 	requestInstance.SetDeletionTimestamp(&deleteTime)
-// 	err := r.Update(context.TODO(), requestInstance)
-// 	assert.NoError(err)
-// 	res, err := r.Reconcile(req)
-// 	if res.Requeue {
-// 		t.Error("Reconcile requeued request as not expected")
-// 	}
-
-// 	subs := &olmv1alpha1.SubscriptionList{}
-// 	err := r.List(context.TODO(), subs, &client.ListOptions{Namespace: operatorNamespace})
-// 	assert.NoError(err)
-// 	assert.Empty(subs.Items, "all the Subscriptions should be deleted")
-
-// 	csvs := &olmv1alpha1.ClusterServiceVersionList{}
-// 	err := r.List(context.TODO(), csvs, &client.ListOptions{Namespace: operatorNamespace})
-// 	assert.NoError(err)
-// 	assert.Empty(csvs.Items, "all the ClusterServiceVersions should be deleted")
-
-// 	// Check if OperandRequest instance deleted
-// 	err = r.Delete(context.TODO(), requestInstance)
-// 	assert.NoError(err)
-// 	err = r.Get(context.TODO(), req.NamespacedName, requestInstance)
-// 	assert.True(errors.IsNotFound(err), "retrieve operand request should be return an error of type is 'NotFound'")
-// }
-
-// func getReconciler(name, namespace, registryName, registryNamespace, operatorNamespace string) OperandRequestReconciler {
-// 	s := scheme.Scheme
-// 	v1alpha1.SchemeBuilder.AddToScheme(s)
-// 	olmv1.SchemeBuilder.AddToScheme(s)
-// 	olmv1alpha1.SchemeBuilder.AddToScheme(s)
-
-// 	initData := initClientData(name, namespace, registryName, registryNamespace, operatorNamespace)
-
-// 	// Create a fake client to mock API calls.
-// 	client := fake.NewFakeClient(initData.odlmObjs...)
-
-// 	// Return a OperandRequestReconciler object with the scheme and fake client.
-// 	return OperandRequestReconciler{
-// 		Scheme: s,
-// 		Client: client,
-// 	}
-// }
-
-// // Mock request to simulate Reconcile() being called on an event for a watched resource
-// func getReconcileRequest(name, namespace string) reconcile.Request {
-// 	return reconcile.Request{
-// 		NamespacedName: types.NamespacedName{
-// 			Name:      name,
-// 			Namespace: namespace,
-// 		},
-// 	}
-// }
-
-// // Update an operand custom resource from config
-// func updateOperandCustomResource(t *testing.T, r OperandRequestReconciler, req reconcile.Request, registryName, registryNamespace string) {
-// 	assert := assert.New(t)
-// 	// Retrieve OperandConfig
-// 	configInstance, err := fetch.FetchOperandConfig(r, types.NamespacedName{Name: registryName, Namespace: registryNamespace})
-// 	assert.NoError(err)
-// 	for id, operator := range configInstance.Spec.Services {
-// 		if operator.Name == "etcd" {
-// 			configInstance.Spec.Services[id].Spec = map[string]runtime.RawExtension{
-// 				"etcdCluster": {Raw: []byte(`{"size": 1}`)},
-// 			}
-// 		}
-// 	}
-// 	err = r.Update(context.TODO(), configInstance)
-// 	assert.NoError(err)
-// 	res, err := r.Reconcile(req)
-// 	if res.Requeue {
-// 		t.Error("Reconcile requeued request as not expected")
-// 	}
-// 	assert.NoError(err)
-// 	updatedRequestInstance := &v1alpha1.OperandRequest{}
-// 	err = r.Get(context.TODO(), req.NamespacedName, updatedRequestInstance)
-// 	assert.NoError(err)
-// 	for _, operator := range updatedRequestInstance.Status.Members {
-// 		if operator.Name == "etcd" {
-// 			assert.Equal(v1alpha1.ServiceRunning, operator.Phase.OperandPhase, "The etcd phase status should be running in the OperandRequest")
-// 		}
-// 	}
-// 	assert.Equal(v1alpha1.ClusterPhaseRunning, updatedRequestInstance.Status.Phase, "The cluster phase status should be running in the OperandRequest")
-
-// 	registryInstance, err := fetch.FetchOperandRegistry(r, types.NamespacedName{Name: registryName, Namespace: registryNamespace})
-// 	assert.NoError(err)
-// 	err = checkOperandCustomResource(t, r, registryInstance, 1, 8081, "3.2.13")
-// 	assert.NoError(err)
-// }
-
-// // Absent an operand custom resource from config
-// func absentOperandCustomResource(t *testing.T, r OperandRequestReconciler, req reconcile.Request, registryName, registryNamespace string) {
-// 	assert := assert.New(t)
-// 	// Retrieve OperandConfig
-// 	registryKey := types.NamespacedName{Name: registryName, Namespace: registryNamespace}
-// 	configInstance, err := fetch.FetchOperandConfig(r, registryKey)
-// 	assert.NoError(err)
-// 	for id, operator := range configInstance.Spec.Services {
-// 		if operator.Name == "etcd" {
-// 			configInstance.Spec.Services[id].Spec = make(map[string]runtime.RawExtension)
-// 		}
-// 	}
-// 	err = r.Update(context.TODO(), configInstance)
-// 	assert.NoError(err)
-// 	res, err := r.Reconcile(req)
-// 	if res.Requeue {
-// 		t.Error("Reconcile requeued request as not expected")
-// 	}
-// 	assert.NoError(err)
-// 	configInstance, err = fetch.FetchOperandConfig(r, registryKey)
-// 	assert.NoError(err)
-// 	assert.Equal(v1alpha1.ServiceNone, configInstance.Status.ServiceStatus["etcd"].CrStatus["etcdCluster"], "The status of etcdCluster should be cleaned up in the OperandConfig")
-// 	updatedRequestInstance := &v1alpha1.OperandRequest{}
-// 	err = r.Get(context.TODO(), req.NamespacedName, updatedRequestInstance)
-// 	assert.NoError(err)
-// 	// for _, operator := range updatedRequestInstance.Status.Members {
-// 	// 	if operator.Name == "etcd" {
-// 	// 		assert.Equal(v1alpha1.ServiceNone, operator.Phase.OperandPhase, "The etcd phase status should be none in the OperandRequest")
-// 	// 	}
-// 	// }
-// 	assert.Equal(v1alpha1.ClusterPhaseRunning, updatedRequestInstance.Status.Phase, "The cluster phase status should be running in the OperandRequest")
-// }
-
-// // Present an operand custom resource from config
-// func presentOperandCustomResource(t *testing.T, r OperandRequestReconciler, req reconcile.Request, registryName, registryNamespace string) {
-// 	assert := assert.New(t)
-// 	// Retrieve OperandConfig
-// 	configInstance := operandConfig(registryName, registryNamespace)
-// 	err := r.Update(context.TODO(), configInstance)
-// 	assert.NoError(err)
-// 	res, err := r.Reconcile(req)
-// 	if res.Requeue {
-// 		t.Error("Reconcile requeued request as not expected")
-// 	}
-// 	assert.NoError(err)
-// 	updatedRequestInstance := &v1alpha1.OperandRequest{}
-// 	err = r.Get(context.TODO(), req.NamespacedName, updatedRequestInstance)
-// 	assert.NoError(err)
-// 	for _, operator := range updatedRequestInstance.Status.Members {
-// 		if operator.Name == "etcd" {
-// 			assert.Equal(v1alpha1.ServiceRunning, operator.Phase.OperandPhase, "The etcd phase status should be none in the OperandRequest")
-// 		}
-// 	}
-// 	assert.Equal(v1alpha1.ClusterPhaseRunning, updatedRequestInstance.Status.Phase, "The cluster phase status should be running in the OperandRequest")
-// }
-
-// // func checkOperandCustomResource(t *testing.T, r OperandRequestReconciler, registryInstance *v1alpha1.OperandRegistry, etcdSize, jenkinsPort int, etcdVersion string) error {
-// // 	assert := assert.New(t)
-// // 	for _, operator := range registryInstance.Spec.Operators {
-// // 		if operator.Name == "etcd" {
-// // 			etcdCluster := &v1beta2.EtcdCluster{}
-// // 			err := r.Get(context.TODO(), types.NamespacedName{
-// // 				Name:      "example",
-// // 				Namespace: operator.Namespace,
-// // 			}, etcdCluster)
-// // 			if err != nil {
-// // 				return err
-// // 			}
-// // 			assert.Equalf(etcdCluster.Spec.Size, etcdSize, "The size of etcdCluster should be %d, but it is %d", etcdSize, etcdCluster.Spec.Size)
-// // 			assert.Equalf(etcdCluster.Spec.Version, etcdVersion, "The version of etcdCluster should be %s, but it is %s", etcdVersion, etcdCluster.Spec.Version)
-// // 		}
-// // 		if operator.Name == "jenkins" {
-// // 			jenkins := &v1alpha2.Jenkins{}
-// // 			err := r.Get(context.TODO(), types.NamespacedName{
-// // 				Name:      "example",
-// // 				Namespace: operator.Namespace,
-// // 			}, jenkins)
-// // 			if err != nil {
-// // 				return err
-// // 			}
-// // 			assert.Equalf(jenkins.Spec.Service.Port, int32(jenkinsPort), "The post of jenkins service should be %d, but it is %d", int32(jenkinsPort), jenkins.Spec.Service.Port)
-// // 		}
-// // 	}
-// // 	return nil
-// // }
-
-// type DataObj struct {
-// 	odlmObjs []runtime.Object
-// 	olmObjs  []runtime.Object
-// }
-
-// func initClientData(name, namespace, registryName, registryNamespace, operatorNamespace string) *DataObj {
-// 	return &DataObj{
-// 		odlmObjs: []runtime.Object{
-// 			operandRegistry(registryName, registryNamespace, operatorNamespace),
-// 			operandRequest(name, namespace, registryName, registryNamespace),
-// 			operandConfig(registryName, registryNamespace)},
-// 		olmObjs: []runtime.Object{
-// 			sub("etcd", operatorNamespace, "0.0.1"),
-// 			sub("jenkins", operatorNamespace, "0.0.1"),
-// 			csv("etcd-csv.v0.0.1", operatorNamespace, etcdExample),
-// 			csv("jenkins-csv.v0.0.1", operatorNamespace, jenkinsExample),
-// 			ip("etcd-install-plan", operatorNamespace),
-// 			ip("jenkins-install-plan", operatorNamespace)},
-// 	}
-// }
-
-// // Return OperandRegistry obj
-// func operandRegistry(registryName, registryNamespace, operatorNamespace string) *v1alpha1.OperandRegistry {
-// 	return &v1alpha1.OperandRegistry{
-// 		ObjectMeta: metav1.ObjectMeta{
-// 			Name:      registryName,
-// 			Namespace: registryNamespace,
-// 		},
-// 		Spec: v1alpha1.OperandRegistrySpec{
-// 			Operators: []v1alpha1.Operator{
-// 				{
-// 					Name:            "etcd",
-// 					Namespace:       operatorNamespace,
-// 					SourceName:      "community-operators",
-// 					SourceNamespace: "openshift-marketplace",
-// 					PackageName:     "etcd",
-// 					Channel:         "singlenamespace-alpha",
-// 					Scope:           v1alpha1.ScopePublic,
-// 				},
-// 				{
-// 					Name:            "jenkins",
-// 					Namespace:       operatorNamespace,
-// 					SourceName:      "community-operators",
-// 					SourceNamespace: "openshift-marketplace",
-// 					PackageName:     "jenkins-operator",
-// 					Channel:         "alpha",
-// 					Scope:           v1alpha1.ScopePublic,
-// 				},
-// 			},
-// 		},
-// 	}
-// }
-
-// // Return OperandConfig obj
-// func operandConfig(configName, configNamespace string) *v1alpha1.OperandConfig {
-// 	return &v1alpha1.OperandConfig{
-// 		ObjectMeta: metav1.ObjectMeta{
-// 			Name:      configName,
-// 			Namespace: configNamespace,
-// 		},
-// 		Spec: v1alpha1.OperandConfigSpec{
-// 			Services: []v1alpha1.ConfigService{
-// 				{
-// 					Name: "etcd",
-// 					Spec: map[string]runtime.RawExtension{
-// 						"etcdCluster": {Raw: []byte(`{"size": 3}`)},
-// 					},
-// 				},
-// 				{
-// 					Name: "jenkins",
-// 					Spec: map[string]runtime.RawExtension{
-// 						"jenkins": {Raw: []byte(`{"service":{"port": 8081}}`)},
-// 					},
-// 				},
-// 			},
-// 		},
-// 	}
-// }
-
-// // Return OperandRequest obj
-// func operandRequest(name, namespace, registryName, registryNamespace string) *v1alpha1.OperandRequest {
-// 	return &v1alpha1.OperandRequest{
-// 		ObjectMeta: metav1.ObjectMeta{
-// 			Name:      name,
-// 			Namespace: namespace,
-// 		},
-// 		Spec: v1alpha1.OperandRequestSpec{
-// 			Requests: []v1alpha1.Request{
-// 				{
-// 					Registry:          registryName,
-// 					RegistryNamespace: registryNamespace,
-// 					Operands: []v1alpha1.Operand{
-// 						{
-// 							Name: "etcd",
-// 						},
-// 						{
-// 							Name: "jenkins",
-// 						},
-// 					},
-// 				},
-// 			},
-// 		},
-// 	}
-// }
-
-// // Return Subscription obj
-// func sub(name, namespace, csvVersion string) *olmv1alpha1.Subscription {
-// 	labels := map[string]string{
-// 		constant.OpreqLabel: "true",
-// 	}
-// 	return &olmv1alpha1.Subscription{
-// 		ObjectMeta: metav1.ObjectMeta{
-// 			Name:      name,
-// 			Namespace: namespace,
-// 			Labels:    labels,
-// 		},
-// 		Spec: &olmv1alpha1.SubscriptionSpec{
-// 			Channel:                "alpha",
-// 			Package:                name,
-// 			CatalogSource:          "community-operators",
-// 			CatalogSourceNamespace: "openshift-marketplace",
-// 		},
-// 		Status: olmv1alpha1.SubscriptionStatus{
-// 			CurrentCSV:   name + "-csv.v" + csvVersion,
-// 			InstalledCSV: name + "-csv.v" + csvVersion,
-// 			Install: &olmv1alpha1.InstallPlanReference{
-// 				APIVersion: "operators.coreos.com/v1alpha1",
-// 				Kind:       "InstallPlan",
-// 				Name:       name + "-install-plan",
-// 				UID:        types.UID("install-plan-uid"),
-// 			},
-// 			InstallPlanRef: &corev1.ObjectReference{
-// 				APIVersion: "operators.coreos.com/v1alpha1",
-// 				Kind:       "InstallPlan",
-// 				Name:       name + "-install-plan",
-// 				Namespace:  namespace,
-// 				UID:        types.UID("install-plan-uid"),
-// 			},
-// 		},
-// 	}
-// }
-
-// // Return CSV obj
-// func csv(name, namespace, example string) *olmv1alpha1.ClusterServiceVersion {
-// 	return &olmv1alpha1.ClusterServiceVersion{
-// 		ObjectMeta: metav1.ObjectMeta{
-// 			Name:      name,
-// 			Namespace: namespace,
-// 			Annotations: map[string]string{
-// 				"alm-examples": example,
-// 			},
-// 		},
-// 		Spec: olmv1alpha1.ClusterServiceVersionSpec{},
-// 		Status: olmv1alpha1.ClusterServiceVersionStatus{
-// 			Phase: olmv1alpha1.CSVPhaseSucceeded,
-// 		},
-// 	}
-// }
-
-// // Return InstallPlan obj
-// func ip(name, namespace string) *olmv1alpha1.InstallPlan {
-// 	return &olmv1alpha1.InstallPlan{
-// 		ObjectMeta: metav1.ObjectMeta{
-// 			Name:      name,
-// 			Namespace: namespace,
-// 		},
-// 		Spec: olmv1alpha1.InstallPlanSpec{},
-// 		Status: olmv1alpha1.InstallPlanStatus{
-// 			Phase: olmv1alpha1.InstallPlanPhaseComplete,
-// 		},
-// 	}
-// }
-
-// const etcdExample string = `
-// [
-// 	{
-// 	  "apiVersion": "etcd.database.coreos.com/v1beta2",
-// 	  "kind": "EtcdCluster",
-// 	  "metadata": {
-// 		"name": "example"
-// 	  },
-// 	  "spec": {
-// 		"size": 3,
-// 		"version": "3.2.13"
-// 	  }
-// 	}
-// ]
-// `
-// const jenkinsExample string = `
-// [
-// 	{
-// 	  "apiVersion": "jenkins.io/v1alpha2",
-// 	  "kind": "Jenkins",
-// 	  "metadata": {
-// 		"name": "example"
-// 	  },
-// 	  "spec": {
-// 		"service": {"port": 8081}
-// 	  }
-// 	}
-// ]
-// `
+			By("Checking status of the OperandRegquest")
+			Eventually(func() operatorv1alpha1.ClusterPhase {
+				requestInstance := &operatorv1alpha1.OperandRequest{}
+				Expect(k8sClient.Get(ctx, requestKey, requestInstance)).Should(Succeed())
+				return requestInstance.Status.Phase
+			}, timeout, interval).Should(Equal(operatorv1alpha1.ClusterPhaseInstalling))
+		})
+	})
+})

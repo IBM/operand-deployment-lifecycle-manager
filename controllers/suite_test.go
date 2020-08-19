@@ -52,8 +52,8 @@ var (
 	testEnv   *envtest.Environment
 	// scheme    = runtime.NewScheme()
 
-	timeout  = time.Second * 10
-	interval = time.Millisecond * 250
+	timeout  = time.Second * 60
+	interval = time.Second * 3
 )
 
 func TestAPIs(t *testing.T) {
@@ -134,7 +134,7 @@ var _ = BeforeSuite(func(done Done) {
 	// End your controllers test logic
 
 	close(done)
-}, 60)
+}, 600)
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")

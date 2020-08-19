@@ -164,7 +164,11 @@ generate-all: manifests kustomize operator-sdk ## Generate bundle manifests, met
 ##@ Test
 
 test: ## Run unit test on prow
-	@echo good
+	@rm -rf olmcrds
+	- make fetch-olm-crds
+	@echo "Running unit tests for the controllers."
+	@go test ./controllers/... -coverprofile cover.out
+	@rm -rf olmcrds
 
 unit-test: generate code-fmt code-vet manifests ## Run unit test
 ifeq (, $(USE_EXISTING_CLUSTER))

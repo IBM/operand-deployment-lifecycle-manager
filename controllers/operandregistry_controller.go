@@ -50,6 +50,11 @@ type OperandRegistryReconciler struct {
 
 // +kubebuilder:rbac:groups=*,resources=*,verbs=*
 
+// Reconcile reads that state of the cluster for a OperandRegistry object and makes changes based on the state read
+// and what is in the OperandRegistry.Spec
+// Note:
+// The Controller will requeue the Request to be processed again if the returned error is non-nil or
+// Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *OperandRegistryReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// Fetch the OperandRegistry instance
@@ -62,11 +67,14 @@ func (r *OperandRegistryReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 
 	// Update all the operator status
 	if err := r.updateRegistryOperatorsStatus(instance); err != nil {
+		klog.Errorf("Failed to update the status for OperandRegistry %s/%s : %v", req.NamespacedName.Namespace, req.NamespacedName.Name, err)
+
 		return ctrl.Result{}, err
 	}
 	// Check if all the catalog sources ready for deployment
 	isReady, err := r.checkCatalogSourceStatus(instance)
 	if err != nil {
+		klog.Errorf("Failed to check the CatalogSource status for OperandRegistry %s/%s : %v", req.NamespacedName.Namespace, req.NamespacedName.Name, err)
 		return ctrl.Result{}, err
 	}
 
@@ -77,11 +85,13 @@ func (r *OperandRegistryReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 			instance.UpdateRegistryPhase(operatorv1alpha1.RegistryRunning)
 		}
 		if err := r.Status().Update(context.TODO(), instance); err != nil {
+			klog.Errorf("Failed to update the status for OperandRegistry %s/%s : %v", req.NamespacedName.Namespace, req.NamespacedName.Name, err)
 			return ctrl.Result{}, err
 		}
 	} else {
-		instance.UpdateRegistryPhase(operatorv1alpha1.RegistryFailed)
+		instance.UpdateRegistryPhase(operatorv1alpha1.RegistryWaiting)
 		if err := r.Status().Update(context.TODO(), instance); err != nil {
+			klog.Errorf("Failed to update the status for OperandRegistry %s/%s : %v", req.NamespacedName.Namespace, req.NamespacedName.Name, err)
 			return ctrl.Result{}, err
 		}
 		// When catalog source not ready, reconcile every 1 minute to check the status
@@ -151,6 +161,7 @@ func (r *OperandRegistryReconciler) checkCatalogSourceStatus(instance *operatorv
 	return isReady, nil
 }
 
+// SetupWithManager adds OperandRegistry controller to the manager.
 func (r *OperandRegistryReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&operatorv1alpha1.OperandRegistry{}).

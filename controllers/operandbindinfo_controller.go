@@ -54,6 +54,11 @@ type OperandBindInfoReconciler struct {
 
 // +kubebuilder:rbac:groups=*,resources=*,verbs=*
 
+// Reconcile reads that state of the cluster for a OperandBindInfo object and makes changes based on the state read
+// and what is in the OperandBindInfo.Spec
+// Note:
+// The Controller will requeue the Request to be processed again if the returned error is non-nil or
+// Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *OperandBindInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 
@@ -500,6 +505,7 @@ func unique(stringSlice []string) []string {
 	return list
 }
 
+// SetupWithManager adds OperandBindInfo controller to the manager.
 func (r *OperandBindInfoReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&operatorv1alpha1.OperandBindInfo{}).
