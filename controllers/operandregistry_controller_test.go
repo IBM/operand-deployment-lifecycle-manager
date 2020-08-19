@@ -13,150 +13,72 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+
 package controllers
 
-// import (
-// 	"context"
-// 	"testing"
+import (
+	"context"
 
-// 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
-// 	corev1 "k8s.io/api/core/v1"
-// 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-// 	"k8s.io/apimachinery/pkg/runtime"
-// 	"k8s.io/apimachinery/pkg/types"
-// 	"k8s.io/client-go/kubernetes/scheme"
-// 	"k8s.io/client-go/tools/record"
-// 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-// 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/types"
 
-// 	v1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
-// )
+	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
+	testdata "github.com/IBM/operand-deployment-lifecycle-manager/controllers/common"
+)
 
-// // TestRegistryController runs OperandRegistryReconciler.Reconcile() against a
-// // fake client that tracks a OperandRegistry object.
-// func TestRegistryController(t *testing.T) {
-// 	var (
-// 		name              = "common-service"
-// 		namespace         = "ibm-common-service"
-// 		operatorNamespace = "ibm-operators"
-// 	)
+// +kubebuilder:docs-gen:collapse=Imports
 
-// 	req := getReconcileRequest(name, namespace)
-// 	r := getReconciler(name, namespace, operatorNamespace)
+var _ = Describe("OperandRegistry controller", func() {
+	const (
+		name              = "common-service"
+		namespace         = "ibm-common-services"
+		operatorNamespace = "ibm-operators"
+	)
 
-// 	initReconcile(t, r, req)
+	var (
+		ctx context.Context
 
-// }
+		registry    *operatorv1alpha1.OperandRegistry
+		config      *operatorv1alpha1.OperandConfig
+		registryKey types.NamespacedName
+	)
 
-// func initReconcile(t *testing.T, r OperandRegistryReconciler, req reconcile.Request) {
-// 	assert := assert.New(t)
+	BeforeEach(func() {
+		ctx = context.Background()
+		namespaceName := createNSName(namespace)
+		operatorNamespaceName := createNSName(operatorNamespace)
+		registry = testdata.OperandRegistryObj(name, namespaceName, operatorNamespace)
+		config = testdata.OperandConfigObj(name, namespaceName)
+		registryKey = types.NamespacedName{Name: name, Namespace: namespaceName}
 
-// 	_, err := r.Reconcile(req)
-// 	assert.NoError(err)
+		Expect(k8sClient.Create(ctx, testdata.NamespaceObj(namespaceName))).Should(Succeed())
+		Expect(k8sClient.Create(ctx, testdata.NamespaceObj(operatorNamespaceName))).Should(Succeed())
 
-// 	registry := &v1alpha1.OperandRegistry{}
-// 	err = r.Get(context.TODO(), req.NamespacedName, registry)
-// 	assert.NoError(err)
-// 	assert.Equalf(v1alpha1.RegistryReady, registry.Status.Phase, "OperandRegistry(%s) phase should be %s", req.NamespacedName, v1alpha1.RegistryReady)
+		By("Creating the OperandRegistry")
 
-// }
+		Expect(k8sClient.Create(ctx, registry)).Should(Succeed())
+		Expect(k8sClient.Create(ctx, config)).Should(Succeed())
+	})
 
-// func getReconciler(name, namespace, operatorNamespace string) OperandRegistryReconciler {
-// 	s := scheme.Scheme
-// 	v1alpha1.SchemeBuilder.AddToScheme(s)
-// 	corev1.SchemeBuilder.AddToScheme(s)
-// 	olmv1alpha1.SchemeBuilder.AddToScheme(s)
+	AfterEach(func() {
 
-// 	initData := initClientData(name, namespace, operatorNamespace)
+		By("Deleting the OperandRegistry")
+		Expect(k8sClient.Delete(ctx, config)).Should(Succeed())
+		Expect(k8sClient.Delete(ctx, registry)).Should(Succeed())
+	})
 
-// 	// Create a fake client to mock API calls.
-// 	client := fake.NewFakeClient(initData.objs...)
+	Context("Initializing OperandRegistry Status", func() {
+		// Because OperandRegistry depends on the status of CatalogSource, which can't be simulated in the unit test.
+		// Therefore the status of the OperandRegistry will keep in waiting.
+		It("Should status of OperandRegistry be waiting for CatalogSource", func() {
 
-// 	// Return a OperandRegistryReconciler object with the scheme and fake client.
-// 	return OperandRegistryReconciler{
-// 		Scheme:   s,
-// 		Client:   client,
-// 		Recorder: record.NewFakeRecorder(10),
-// 	}
-// }
-
-// // Mock request to simulate Reconcile() being called on an event for a watched resource
-// func getReconcileRequest(name, namespace string) reconcile.Request {
-// 	return reconcile.Request{
-// 		NamespacedName: types.NamespacedName{
-// 			Name:      name,
-// 			Namespace: namespace,
-// 		},
-// 	}
-// }
-
-// type DataObj struct {
-// 	objs []runtime.Object
-// }
-
-// func initClientData(name, namespace, operatorNamespace string) *DataObj {
-// 	return &DataObj{
-// 		objs: []runtime.Object{
-// 			operandRegistry(name, namespace, operatorNamespace),
-// 			catalogSource(),
-// 		},
-// 	}
-// }
-
-// // Return OperandRegistry obj
-// func operandRegistry(name, namespace, operatorNamespace string) *v1alpha1.OperandRegistry {
-// 	return &v1alpha1.OperandRegistry{
-// 		ObjectMeta: metav1.ObjectMeta{
-// 			Name:      name,
-// 			Namespace: namespace,
-// 		},
-// 		Spec: v1alpha1.OperandRegistrySpec{
-// 			Operators: []v1alpha1.Operator{
-// 				{
-// 					Name:            "etcd",
-// 					Namespace:       operatorNamespace,
-// 					SourceName:      "community-operators",
-// 					SourceNamespace: "openshift-marketplace",
-// 					PackageName:     "etcd",
-// 					Channel:         "singlenamespace-alpha",
-// 				},
-// 				{
-// 					Name:            "jenkins",
-// 					Namespace:       operatorNamespace,
-// 					SourceName:      "community-operators",
-// 					SourceNamespace: "openshift-marketplace",
-// 					PackageName:     "jenkins-operator",
-// 					Channel:         "alpha",
-// 				},
-// 			},
-// 		},
-// 	}
-// }
-
-// func catalogSource() *olmv1alpha1.CatalogSource {
-// 	return &olmv1alpha1.CatalogSource{
-// 		ObjectMeta: metav1.ObjectMeta{
-// 			Name:      "community-operators",
-// 			Namespace: "openshift-marketplace",
-// 		},
-// 		Spec: olmv1alpha1.CatalogSourceSpec{
-// 			Address:     "community-operators.openshift-marketplace.svc:50051",
-// 			DisplayName: "Community Operators",
-// 			Icon: olmv1alpha1.Icon{
-// 				Data:      "",
-// 				MediaType: "",
-// 			},
-// 			Publisher:  "Red Hat",
-// 			SourceType: "grpc",
-// 		},
-// 		Status: olmv1alpha1.CatalogSourceStatus{
-// 			GRPCConnectionState: &olmv1alpha1.GRPCConnectionState{
-// 				Address:           "community-operators.openshift-marketplace.svc:50051",
-// 				LastObservedState: "READY",
-// 			},
-// 			RegistryServiceStatus: &olmv1alpha1.RegistryServiceStatus{
-// 				Protocol: "grpc",
-// 			},
-// 		},
-// 	}
-// }
+			By("Checking status of the OperandRegistry")
+			Eventually(func() operatorv1alpha1.RegistryPhase {
+				registryInstance := &operatorv1alpha1.OperandRegistry{}
+				Expect(k8sClient.Get(ctx, registryKey, registryInstance)).Should(Succeed())
+				return registryInstance.Status.Phase
+			}, timeout, interval).Should(Equal(operatorv1alpha1.RegistryWaiting))
+		})
+	})
+})

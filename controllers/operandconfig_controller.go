@@ -53,6 +53,11 @@ type OperandConfigReconciler struct {
 
 // +kubebuilder:rbac:groups=*,resources=*,verbs=*
 
+// Reconcile reads that state of the cluster for a OperandConfig object and makes changes based on the state read
+// and what is in the OperandConfig.Spec
+// Note:
+// The Controller will requeue the Request to be processed again if the returned error is non-nil or
+// Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *OperandConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// Fetch the OperandConfig instance
 	instance := &operatorv1alpha1.OperandConfig{}
@@ -66,11 +71,13 @@ func (r *OperandConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 	if !instance.InitConfigStatus() {
 		klog.V(3).Infof("Initializing the status of OperandConfig: %s", req.NamespacedName)
 		if err := r.Status().Update(context.TODO(), instance); err != nil {
+			klog.Errorf("Failed to initialize the status for OperandConfig %s/%s : %v", req.NamespacedName.Namespace, req.NamespacedName.Name, err)
 			return ctrl.Result{}, err
 		}
 	}
 
 	if err := r.updateConfigOperatorsStatus(instance); err != nil {
+		klog.Errorf("Failed to update the status for OperandConfig %s/%s : %v", req.NamespacedName.Namespace, req.NamespacedName.Name, err)
 		return ctrl.Result{}, err
 	}
 
@@ -233,6 +240,7 @@ func (r *OperandConfigReconciler) getRequestToConfigMapper() handler.ToRequestsF
 	}
 }
 
+// SetupWithManager adds OperandConfig controller to the manager.
 func (r *OperandConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&operatorv1alpha1.OperandConfig{}).

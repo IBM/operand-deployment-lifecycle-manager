@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -33,7 +32,6 @@ import (
 // +kubebuilder:docs-gen:collapse=Imports
 
 var _ = Describe("OperandBindInfo controller", func() {
-	// Define utility constants for object names and testing timeouts/durations and intervals.
 	const (
 		name              = "ibm-operators-bindinfo"
 		namespace         = "ibm-operators"
@@ -98,7 +96,7 @@ var _ = Describe("OperandBindInfo controller", func() {
 	})
 
 	Context("Sharing the the secret and configmap with public scope", func() {
-		It("Should BindInfo is completed", func() {
+		It("Should Status of the OperandBindInfo be completed", func() {
 
 			By("Prepare init resources for OperandBindInfo controller")
 			Expect(k8sClient.Create(ctx, secret1)).Should(Succeed())
@@ -116,13 +114,15 @@ var _ = Describe("OperandBindInfo controller", func() {
 			}, timeout, interval).Should(BeTrue())
 
 			By("Checking status of the OperandBindInfo")
-			bindInfoInstance := &operatorv1alpha1.OperandBindInfo{}
-			Expect(k8sClient.Get(ctx, bindInfoKey, bindInfoInstance)).Should(Succeed())
 			Eventually(func() operatorv1alpha1.BindInfoPhase {
+				bindInfoInstance := &operatorv1alpha1.OperandBindInfo{}
+				Expect(k8sClient.Get(ctx, bindInfoKey, bindInfoInstance)).Should(Succeed())
 				return bindInfoInstance.Status.Phase
-			}).Should(Equal(operatorv1alpha1.BindInfoCompleted))
+			}, timeout, interval).Should(Equal(operatorv1alpha1.BindInfoCompleted))
 
 			Eventually(func() int {
+				bindInfoInstance := &operatorv1alpha1.OperandBindInfo{}
+				Expect(k8sClient.Get(ctx, bindInfoKey, bindInfoInstance)).Should(Succeed())
 				return len(bindInfoInstance.Status.RequestNamespaces)
 			}, timeout, interval).Should(Equal(1))
 
@@ -141,7 +141,7 @@ var _ = Describe("OperandBindInfo controller", func() {
 	})
 
 	Context("Sharing the secret and configmap with private scope", func() {
-		It("Should BindInfo be initialized", func() {
+		It("Should Status of the OperandBindInfo be initialized", func() {
 
 			By("Prepare init resources for OperandBindInfo controller")
 			Expect(k8sClient.Create(ctx, secret2)).Should(Succeed())
@@ -157,14 +157,15 @@ var _ = Describe("OperandBindInfo controller", func() {
 			}, timeout, interval).Should(BeTrue())
 
 			By("Checking status of the OperandBindInfo")
-			bindInfoInstance := &operatorv1alpha1.OperandBindInfo{}
-			Expect(k8sClient.Get(ctx, bindInfoKey, bindInfoInstance)).Should(Succeed())
 			Eventually(func() operatorv1alpha1.BindInfoPhase {
-				fmt.Println(bindInfoInstance.Status.Phase)
+				bindInfoInstance := &operatorv1alpha1.OperandBindInfo{}
+				Expect(k8sClient.Get(ctx, bindInfoKey, bindInfoInstance)).Should(Succeed())
 				return bindInfoInstance.Status.Phase
 			}).Should(Equal(operatorv1alpha1.BindInfoInit))
 
 			Eventually(func() int {
+				bindInfoInstance := &operatorv1alpha1.OperandBindInfo{}
+				Expect(k8sClient.Get(ctx, bindInfoKey, bindInfoInstance)).Should(Succeed())
 				return len(bindInfoInstance.Status.RequestNamespaces)
 			}, timeout, interval).Should(Equal(0))
 
@@ -174,7 +175,7 @@ var _ = Describe("OperandBindInfo controller", func() {
 	})
 
 	Context("Sharing the not existing secret and configmap", func() {
-		It("Should BindInfo be initialized", func() {
+		It("Should Status of the OperandBindInfo be initialized", func() {
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, secret3Key, &corev1.Secret{})
 				return err != nil && errors.IsNotFound(err)
@@ -185,14 +186,15 @@ var _ = Describe("OperandBindInfo controller", func() {
 			}, timeout, interval).Should(BeTrue())
 
 			By("Checking status of the OperandBindInfo")
-			bindInfoInstance := &operatorv1alpha1.OperandBindInfo{}
-			Expect(k8sClient.Get(ctx, bindInfoKey, bindInfoInstance)).Should(Succeed())
 			Eventually(func() operatorv1alpha1.BindInfoPhase {
-				fmt.Println(bindInfoInstance.Status.Phase)
+				bindInfoInstance := &operatorv1alpha1.OperandBindInfo{}
+				Expect(k8sClient.Get(ctx, bindInfoKey, bindInfoInstance)).Should(Succeed())
 				return bindInfoInstance.Status.Phase
 			}).Should(Equal(operatorv1alpha1.BindInfoInit))
 
 			Eventually(func() int {
+				bindInfoInstance := &operatorv1alpha1.OperandBindInfo{}
+				Expect(k8sClient.Get(ctx, bindInfoKey, bindInfoInstance)).Should(Succeed())
 				return len(bindInfoInstance.Status.RequestNamespaces)
 			}, timeout, interval).Should(Equal(0))
 

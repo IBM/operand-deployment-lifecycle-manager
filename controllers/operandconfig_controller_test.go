@@ -13,150 +13,75 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+
 package controllers
 
-// import (
-// 	"context"
-// 	"testing"
+import (
+	"context"
 
-// 	olmv1 "github.com/operator-framework/api/pkg/operators/v1"
-// 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
-// 	"github.com/stretchr/testify/assert"
-// 	corev1 "k8s.io/api/core/v1"
-// 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-// 	"k8s.io/apimachinery/pkg/runtime"
-// 	"k8s.io/apimachinery/pkg/types"
-// 	"k8s.io/client-go/kubernetes/scheme"
-// 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-// 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/types"
 
-// 	v1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
-// 	constant "github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
-// )
+	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
+	testdata "github.com/IBM/operand-deployment-lifecycle-manager/controllers/common"
+)
 
-// // TestConfigController runs OperandConfigReconciler.Reconcile() against a
-// // fake client that tracks a OperandConfig object.
-// func TestConfigController(t *testing.T) {
-// 	var (
-// 		name              = "ibm-cloudpak-name"
-// 		namespace         = "ibm-cloudpak"
-// 		registryName      = "ibm-cloudpak-name"
-// 		registryNamespace = "ibm-cloudpak"
-// 		operatorNamespace = "ibm-operators"
-// 	)
+// +kubebuilder:docs-gen:collapse=Imports
 
-// 	req := getReconcileRequest(name, namespace)
-// 	r := getReconciler(name, namespace, registryName, registryNamespace, operatorNamespace)
+var _ = Describe("OperandConfig controller", func() {
+	const (
+		name              = "common-service"
+		namespace         = "ibm-common-services"
+		operatorNamespace = "ibm-operators"
+	)
 
-// 	initReconcile(t, r, req)
+	var (
+		ctx context.Context
 
-// }
+		registry  *operatorv1alpha1.OperandRegistry
+		config    *operatorv1alpha1.OperandConfig
+		configKey types.NamespacedName
+	)
 
-// func initReconcile(t *testing.T, r OperandConfigReconciler, req reconcile.Request) {
-// 	assert := assert.New(t)
+	BeforeEach(func() {
+		ctx = context.Background()
+		namespaceName := createNSName(namespace)
+		operatorNamespaceName := createNSName(operatorNamespace)
+		registry = testdata.OperandRegistryObj(name, namespaceName, operatorNamespace)
+		config = testdata.OperandConfigObj(name, namespaceName)
+		configKey = types.NamespacedName{Name: name, Namespace: namespaceName}
 
-// 	_, err := r.Reconcile(req)
-// 	assert.NoError(err)
+		Expect(k8sClient.Create(ctx, testdata.NamespaceObj(namespaceName))).Should(Succeed())
+		Expect(k8sClient.Create(ctx, testdata.NamespaceObj(operatorNamespaceName))).Should(Succeed())
 
-// 	config := &v1alpha1.OperandConfig{}
-// 	err = r.Get(context.TODO(), req.NamespacedName, config)
-// 	assert.NoError(err)
-// 	// Check the config init status
-// 	assert.NotNil(config.Status, "init operator status should not be empty")
-// 	assert.Equal(v1alpha1.ServiceNotReady, config.Status.Phase, "Overall OperandConfig phase should be 'Not Ready'")
-// 	// TODO: Add a test case with CR deployed
-// }
+		By("Creating the OperandConfig")
 
-// func getReconciler(name, namespace, registryName, registryNamespace, operatorNamespace string) OperandConfigReconciler {
-// 	s := scheme.Scheme
-// 	v1alpha1.SchemeBuilder.AddToScheme(s)
+		Expect(k8sClient.Create(ctx, registry)).Should(Succeed())
+		Expect(k8sClient.Create(ctx, config)).Should(Succeed())
+	})
 
-// 	initData := initClientData(name, namespace, registryName, registryNamespace, operatorNamespace)
+	AfterEach(func() {
 
-// 	// Create a fake client to mock API calls.
-// 	client := fake.NewFakeClient(initData.odlmObjs...)
+		By("Deleting the OperandConfig")
+		Expect(k8sClient.Delete(ctx, config)).Should(Succeed())
+		Expect(k8sClient.Delete(ctx, registry)).Should(Succeed())
+	})
 
-// 	// Return a OperandConfigReconciler object with the scheme and fake client.
-// 	return OperandConfigReconciler{
-// 		Scheme: s,
-// 		Client: client,
-// 	}
-// }
+	Context("Initializing OperandConfig Status", func() {
+		// Because OperandConfig depends on the status of InstallPlan and ClusterServiceVersion, which can't be simulated in the unit test.
+		// Therefore the status of the OperandRegistry will keep in initialized.
+		It("Should the status of OperandConfig be initialized", func() {
 
-// type DataObj struct {
-// 	odlmObjs []runtime.Object
-// }
+			registryInstance := &operatorv1alpha1.OperandRegistry{}
+			Expect(k8sClient.Get(ctx, configKey, registryInstance)).Should(Succeed())
 
-// func initClientData(name, namespace, registryName, registryNamespace, operatorNamespace string) *DataObj {
-// 	return &DataObj{
-// 		odlmObjs: []runtime.Object{
-// 			operandRegistry(registryName, registryNamespace, operatorNamespace),
-// 			operandConfig(name, namespace)},
-// 	}
-// }
-
-// // Mock request to simulate Reconcile() being called on an event for a watched resource
-// func getReconcileRequest(name, namespace string) reconcile.Request {
-// 	return reconcile.Request{
-// 		NamespacedName: types.NamespacedName{
-// 			Name:      name,
-// 			Namespace: namespace,
-// 		},
-// 	}
-// }
-
-// // Return OperandConfig obj
-// func operandConfig(name, namespace string) *v1alpha1.OperandConfig {
-// 	return &v1alpha1.OperandConfig{
-// 		ObjectMeta: metav1.ObjectMeta{
-// 			Name:      name,
-// 			Namespace: namespace,
-// 		},
-// 		Spec: v1alpha1.OperandConfigSpec{
-// 			Services: []v1alpha1.ConfigService{
-// 				{
-// 					Name: "etcd",
-// 					Spec: map[string]runtime.RawExtension{
-// 						"etcdCluster": {Raw: []byte(`{"size": 3}`)},
-// 					},
-// 				},
-// 				{
-// 					Name: "jenkins",
-// 					Spec: map[string]runtime.RawExtension{
-// 						"jenkins": {Raw: []byte(`{"service":{"port": 8081}}`)},
-// 					},
-// 				},
-// 			},
-// 		},
-// 	}
-// }
-
-// // Return OperandRegistry obj
-// func operandRegistry(name, namespace, operatorNamespace string) *v1alpha1.OperandRegistry {
-// 	return &v1alpha1.OperandRegistry{
-// 		ObjectMeta: metav1.ObjectMeta{
-// 			Name:      name,
-// 			Namespace: namespace,
-// 		},
-// 		Spec: v1alpha1.OperandRegistrySpec{
-// 			Operators: []v1alpha1.Operator{
-// 				{
-// 					Name:            "etcd",
-// 					Namespace:       operatorNamespace,
-// 					SourceName:      "community-operators",
-// 					SourceNamespace: "openshift-marketplace",
-// 					PackageName:     "etcd",
-// 					Channel:         "singlenamespace-alpha",
-// 				},
-// 				{
-// 					Name:            "jenkins",
-// 					Namespace:       operatorNamespace,
-// 					SourceName:      "community-operators",
-// 					SourceNamespace: "openshift-marketplace",
-// 					PackageName:     "jenkins-operator",
-// 					Channel:         "alpha",
-// 				},
-// 			},
-// 		},
-// 	}
-// }
+			By("Checking status of the OperandConfig")
+			Eventually(func() operatorv1alpha1.ServicePhase {
+				configInstance := &operatorv1alpha1.OperandConfig{}
+				Expect(k8sClient.Get(ctx, configKey, configInstance)).Should(Succeed())
+				return configInstance.Status.Phase
+			}, timeout, interval).Should(Equal(operatorv1alpha1.ServiceInit))
+		})
+	})
+})
