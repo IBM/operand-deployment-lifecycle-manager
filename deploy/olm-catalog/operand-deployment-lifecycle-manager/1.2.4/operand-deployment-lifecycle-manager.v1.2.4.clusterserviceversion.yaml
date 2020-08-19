@@ -322,7 +322,6 @@ spec:
           replicas: 1
           selector:
             matchLabels:
-              control-plane: controller-manager
               name: operand-deployment-lifecycle-manager
           strategy: {}
           template:
@@ -336,7 +335,6 @@ spec:
                 app.kubernetes.io/instance: operand-deployment-lifecycle-manager
                 app.kubernetes.io/managed-by: operand-deployment-lifecycle-manager
                 app.kubernetes.io/name: odlm
-                control-plane: controller-manager
                 name: operand-deployment-lifecycle-manager
             spec:
               affinity:
