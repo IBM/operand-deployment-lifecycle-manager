@@ -17,9 +17,19 @@
 
 echo ">>> Installing Operator SDK"
 
-# Use version 0.10.0
-RELEASE_VERSION=v0.12.0
+arch=$(uname -m)
+local_os=$(uname)
+if [[ $local_os == "Linux" ]]; then
+    target_os="linux-gnu"
+elif [[ $local_os == "Darwin" ]]; then
+    target_os="apple-darwin"
+else
+    echo "This system's OS $local_os isn't recognized/supported"
+fi
+
+# Use version 0.19.2
+RELEASE_VERSION=v0.19.2
 # Download binary
-curl -LO https://github.com/operator-framework/operator-sdk/releases/download/${RELEASE_VERSION}/operator-sdk-${RELEASE_VERSION}-x86_64-linux-gnu
+curl -LO https://github.com/operator-framework/operator-sdk/releases/download/${RELEASE_VERSION}/operator-sdk-${RELEASE_VERSION}-${arch}-${target_os}
 # Install binary
-chmod +x operator-sdk-${RELEASE_VERSION}-x86_64-linux-gnu && mkdir -p /usr/local/bin/ && cp operator-sdk-${RELEASE_VERSION}-x86_64-linux-gnu /usr/local/bin/operator-sdk && rm operator-sdk-${RELEASE_VERSION}-x86_64-linux-gnu
+chmod +x operator-sdk-${RELEASE_VERSION}-${arch}-${target_os} && mkdir -p /usr/local/bin/ && cp operator-sdk-${RELEASE_VERSION}-${arch}-${target_os} /usr/local/bin/operator-sdk && rm operator-sdk-${RELEASE_VERSION}-${arch}-${target_os}

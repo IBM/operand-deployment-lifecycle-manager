@@ -74,7 +74,7 @@ func (r *OperandRequestReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 	// Update labels for the request
 	if requestInstance.UpdateLabels() {
 		if err := r.Update(context.TODO(), requestInstance); err != nil {
-			klog.Errorf("Failed to update the labels for OperandRequest %s : %v", req.NamespacedName.String(), err)
+			klog.Errorf("failed to update the labels for OperandRequest %s : %v", req.NamespacedName.String(), err)
 			return ctrl.Result{}, err
 		}
 	}
@@ -82,13 +82,13 @@ func (r *OperandRequestReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 	// Initialize the status for OperandRequest instance
 	if !requestInstance.InitRequestStatus() {
 		if err := r.Status().Update(context.TODO(), requestInstance); err != nil {
-			klog.Errorf("Failed to initialize the status for OperandRequest %s : %v", req.NamespacedName.String(), err)
+			klog.Errorf("failed to initialize the status for OperandRequest %s : %v", req.NamespacedName.String(), err)
 			return ctrl.Result{}, err
 		}
 	}
 
 	if err := r.addFinalizer(requestInstance); err != nil {
-		klog.Errorf("Failed to add finalizer for OperandRequest %s : %v", req.NamespacedName.String(), err)
+		klog.Errorf("failed to add finalizer for OperandRequest %s : %v", req.NamespacedName.String(), err)
 		return ctrl.Result{}, err
 	}
 
@@ -98,7 +98,7 @@ func (r *OperandRequestReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 		// Check and clean up the subscriptions
 		err := r.checkFinalizer(requestInstance)
 		if err != nil {
-			klog.Errorf("Failed to clean up the subscriptions for OperandRequest %s : %v", req.NamespacedName.String(), err)
+			klog.Errorf("failed to clean up the subscriptions for OperandRequest %s : %v", req.NamespacedName.String(), err)
 			return ctrl.Result{}, err
 		}
 		// Update finalizer to allow delete CR
@@ -106,7 +106,7 @@ func (r *OperandRequestReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 		if removed {
 			err = r.Update(context.TODO(), requestInstance)
 			if err != nil {
-				klog.Errorf("Failed to remove finalizer for OperandRequest %s : %v", req.NamespacedName.String(), err)
+				klog.Errorf("failed to remove finalizer for OperandRequest %s : %v", req.NamespacedName.String(), err)
 				return ctrl.Result{}, err
 			}
 		}
@@ -114,7 +114,7 @@ func (r *OperandRequestReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 	}
 
 	if err := r.reconcileOperator(req.NamespacedName); err != nil {
-		klog.Errorf("Failed to reconcile Operators for OperandRequest %s : %v", req.NamespacedName.String(), err)
+		klog.Errorf("failed to reconcile Operators for OperandRequest %s : %v", req.NamespacedName.String(), err)
 		return ctrl.Result{}, err
 	}
 
@@ -122,7 +122,7 @@ func (r *OperandRequestReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 	merr := r.reconcileOperand(req.NamespacedName)
 
 	if len(merr.Errors) != 0 {
-		klog.Errorf("Failed to reconcile Operands for OperandRequest %s : %v", req.NamespacedName.String(), merr)
+		klog.Errorf("failed to reconcile Operands for OperandRequest %s : %v", req.NamespacedName.String(), merr)
 		return ctrl.Result{}, merr
 	}
 
@@ -143,7 +143,7 @@ func (r *OperandRequestReconciler) addFinalizer(cr *operatorv1alpha1.OperandRequ
 			// Update CR
 			err := r.Update(context.TODO(), cr)
 			if err != nil {
-				klog.Errorf("Failed to update the OperandRequest %s in the namespace %s: %s", cr.Name, cr.Namespace, err)
+				klog.Errorf("failed to update the OperandRequest %s in the namespace %s: %s", cr.Name, cr.Namespace, err)
 				return err
 			}
 		}

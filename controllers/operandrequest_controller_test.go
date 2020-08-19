@@ -24,7 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
-	testdata "github.com/IBM/operand-deployment-lifecycle-manager/controllers/common"
+	testdata "github.com/IBM/operand-deployment-lifecycle-manager/controllers/testutil"
 )
 
 // +kubebuilder:docs-gen:collapse=Imports

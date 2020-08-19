@@ -17,23 +17,13 @@
 package util
 
 import (
-	"strings"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
+	"testing"
 )
 
-// MultiErr is a multiple error slice
-type MultiErr struct {
-	Errors []string
-}
-
-// Error is the error message
-func (mer *MultiErr) Error() string {
-	return "errors: " + strings.Join(mer.Errors, "; ") + ";"
-}
-
-// Add appends error message
-func (mer *MultiErr) Add(err error) {
-	if mer.Errors == nil {
-		mer.Errors = []string{}
-	}
-	mer.Errors = append(mer.Errors, err.Error())
+func TestStatus(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "util Suite")
 }

@@ -71,13 +71,13 @@ func (r *OperandConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 	if !instance.InitConfigStatus() {
 		klog.V(3).Infof("Initializing the status of OperandConfig: %s", req.NamespacedName)
 		if err := r.Status().Update(context.TODO(), instance); err != nil {
-			klog.Errorf("Failed to initialize the status for OperandConfig %s/%s : %v", req.NamespacedName.Namespace, req.NamespacedName.Name, err)
+			klog.Errorf("failed to initialize the status for OperandConfig %s/%s : %v", req.NamespacedName.Namespace, req.NamespacedName.Name, err)
 			return ctrl.Result{}, err
 		}
 	}
 
 	if err := r.updateConfigOperatorsStatus(instance); err != nil {
-		klog.Errorf("Failed to update the status for OperandConfig %s/%s : %v", req.NamespacedName.Namespace, req.NamespacedName.Name, err)
+		klog.Errorf("failed to update the status for OperandConfig %s/%s : %v", req.NamespacedName.Namespace, req.NamespacedName.Name, err)
 		return ctrl.Result{}, err
 	}
 
@@ -113,7 +113,7 @@ func (r *OperandConfigReconciler) updateConfigOperatorsStatus(instance *operator
 		}
 
 		if err != nil {
-			klog.Errorf("Failed to fetch Subscription %s or %s in the namespace %s", op.Name, op.PackageName, namespace)
+			klog.Errorf("failed to fetch Subscription %s or %s in the namespace %s", op.Name, op.PackageName, namespace)
 			return err
 		}
 
@@ -125,7 +125,7 @@ func (r *OperandConfigReconciler) updateConfigOperatorsStatus(instance *operator
 		csv, err := fetch.FetchClusterServiceVersion(r.Client, sub)
 
 		if err != nil {
-			klog.Errorf("Failed to fetch ClusterServiceVersion for the Subscription %s in the namespace %s", sub.Name, namespace)
+			klog.Errorf("failed to fetch ClusterServiceVersion for the Subscription %s in the namespace %s", sub.Name, namespace)
 			return err
 		}
 
@@ -154,7 +154,7 @@ func (r *OperandConfigReconciler) updateConfigOperatorsStatus(instance *operator
 		// Convert CR template string to slice
 		err = json.Unmarshal([]byte(almExamples), &crTemplates)
 		if err != nil {
-			klog.Errorf("Failed to convert alm-examples in the Subscription %s to slice: %s", sub.Name, err)
+			klog.Errorf("failed to convert alm-examples in the Subscription %s to slice: %s", sub.Name, err)
 			return err
 		}
 
