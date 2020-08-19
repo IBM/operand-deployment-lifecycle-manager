@@ -40,6 +40,11 @@ LABEL org.label-schema.vendor="IBM" \
 
 WORKDIR /
 COPY --from=builder /workspace/manager .
+
+# copy licenses
+RUN mkdir /licenses
+COPY LICENSE /licenses
+
 # USER nonroot:nonroot
 USER 1001
 
