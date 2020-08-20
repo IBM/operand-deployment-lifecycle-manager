@@ -67,14 +67,14 @@ func (r *OperandRegistryReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 
 	// Update all the operator status
 	if err := r.updateRegistryOperatorsStatus(instance); err != nil {
-		klog.Errorf("Failed to update the status for OperandRegistry %s/%s : %v", req.NamespacedName.Namespace, req.NamespacedName.Name, err)
+		klog.Errorf("failed to update the status for OperandRegistry %s/%s : %v", req.NamespacedName.Namespace, req.NamespacedName.Name, err)
 
 		return ctrl.Result{}, err
 	}
 	// Check if all the catalog sources ready for deployment
 	isReady, err := r.checkCatalogSourceStatus(instance)
 	if err != nil {
-		klog.Errorf("Failed to check the CatalogSource status for OperandRegistry %s/%s : %v", req.NamespacedName.Namespace, req.NamespacedName.Name, err)
+		klog.Errorf("failed to check the CatalogSource status for OperandRegistry %s/%s : %v", req.NamespacedName.Namespace, req.NamespacedName.Name, err)
 		return ctrl.Result{}, err
 	}
 
@@ -85,13 +85,13 @@ func (r *OperandRegistryReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 			instance.UpdateRegistryPhase(operatorv1alpha1.RegistryRunning)
 		}
 		if err := r.Status().Update(context.TODO(), instance); err != nil {
-			klog.Errorf("Failed to update the status for OperandRegistry %s/%s : %v", req.NamespacedName.Namespace, req.NamespacedName.Name, err)
+			klog.Errorf("failed to update the status for OperandRegistry %s/%s : %v", req.NamespacedName.Namespace, req.NamespacedName.Name, err)
 			return ctrl.Result{}, err
 		}
 	} else {
 		instance.UpdateRegistryPhase(operatorv1alpha1.RegistryWaiting)
 		if err := r.Status().Update(context.TODO(), instance); err != nil {
-			klog.Errorf("Failed to update the status for OperandRegistry %s/%s : %v", req.NamespacedName.Namespace, req.NamespacedName.Name, err)
+			klog.Errorf("failed to update the status for OperandRegistry %s/%s : %v", req.NamespacedName.Namespace, req.NamespacedName.Name, err)
 			return ctrl.Result{}, err
 		}
 		// When catalog source not ready, reconcile every 1 minute to check the status

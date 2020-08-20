@@ -48,7 +48,7 @@ func (r *OperandRequestReconciler) reconcileOperator(requestKey types.Namespaced
 		requestInstance.FreshMemberStatus()
 		requestInstance.UpdateClusterPhase()
 		if err := r.Status().Update(context.TODO(), requestInstance); err != nil {
-			klog.Error("Update request status failed: ", err)
+			klog.Error("update request status failed: ", err)
 		}
 	}()
 
@@ -201,7 +201,7 @@ func (r *OperandRequestReconciler) deleteSubscription(operandName string, reques
 	if csv != nil {
 		klog.V(2).Infof("Deleting all the Custom Resources for CSV, Namespace: %s, Name: %s", csv.Namespace, csv.Name)
 		if err := r.deleteAllCustomResource(csv, configInstance, operandName, op.Namespace); err != nil {
-			klog.Error("Failed to delete a Custom Resource: ", err)
+			klog.Error("failed to delete a Custom Resource: ", err)
 			return err
 		}
 
@@ -215,7 +215,7 @@ func (r *OperandRequestReconciler) deleteSubscription(operandName string, reques
 
 		klog.V(2).Infof("Deleting the ClusterServiceVersion, Namespace: %s, Name: %s", csv.Namespace, csv.Name)
 		if err := r.Delete(context.TODO(), csv); err != nil {
-			klog.Error("Failed to delete the ClusterServiceVersion: ", err)
+			klog.Error("failed to delete the ClusterServiceVersion: ", err)
 			requestInstance.SetDeletingCondition(csv.Name, operatorv1alpha1.ResourceTypeCsv, corev1.ConditionFalse)
 			return err
 		}
@@ -228,7 +228,7 @@ func (r *OperandRequestReconciler) deleteSubscription(operandName string, reques
 		if errors.IsNotFound(err) {
 			klog.Warningf("Subscription %s was not found in namespace %s", op.Name, namespace)
 		} else {
-			klog.Error("Failed to delete subscription: ", err)
+			klog.Error("failed to delete subscription: ", err)
 			requestInstance.SetDeletingCondition(op.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionFalse)
 			return err
 		}
@@ -386,7 +386,7 @@ func (r *OperandRequestReconciler) checkUninstallLabel(name, namespace string) b
 	sub := &olmv1alpha1.Subscription{}
 	subKey := types.NamespacedName{Name: name, Namespace: namespace}
 	if err := r.Get(context.TODO(), subKey, sub); err != nil {
-		klog.Warning("Failed to get subscription: ", err)
+		klog.Warning("failed to get subscription: ", err)
 		return true
 	}
 	subLabels := sub.GetLabels()

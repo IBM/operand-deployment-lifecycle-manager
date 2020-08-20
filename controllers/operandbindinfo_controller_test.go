@@ -26,7 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
-	testdata "github.com/IBM/operand-deployment-lifecycle-manager/controllers/common"
+	testdata "github.com/IBM/operand-deployment-lifecycle-manager/controllers/testutil"
 )
 
 // +kubebuilder:docs-gen:collapse=Imports
@@ -161,7 +161,7 @@ var _ = Describe("OperandBindInfo controller", func() {
 				bindInfoInstance := &operatorv1alpha1.OperandBindInfo{}
 				Expect(k8sClient.Get(ctx, bindInfoKey, bindInfoInstance)).Should(Succeed())
 				return bindInfoInstance.Status.Phase
-			}).Should(Equal(operatorv1alpha1.BindInfoInit))
+			}, timeout, interval).Should(Equal(operatorv1alpha1.BindInfoInit))
 
 			Eventually(func() int {
 				bindInfoInstance := &operatorv1alpha1.OperandBindInfo{}

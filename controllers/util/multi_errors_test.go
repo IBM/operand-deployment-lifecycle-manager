@@ -16,15 +16,26 @@
 
 package util
 
-// Equal is for checking if two string slices are equal
-func Equal(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i, v := range a {
-		if v != b[i] {
-			return false
-		}
-	}
-	return true
-}
+import (
+	"errors"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+)
+
+var _ = Describe("Multiple error list", func() {
+
+	Context("Combine multiple errors into one instance", func() {
+		It("Should return one instance includes multiple error message", func() {
+
+			By("Initialize a new multiple error")
+			merr := &MultiErr{}
+
+			merr.Add(errors.New("this is the First error"))
+			merr.Add(errors.New("this is the Second error"))
+
+			Expect(merr.Error()).Should(Equal("errors: this is the First error; this is the Second error;"))
+		})
+	})
+
+})
