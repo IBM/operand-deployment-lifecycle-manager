@@ -17,11 +17,16 @@
 package testutil
 
 import (
+	"time"
+
+	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 
 	apiv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
+	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
 )
 
 // Return OperandRegistry obj
@@ -88,6 +93,9 @@ func OperandRequestObj(registryName, registryNamespace, requestName, requestName
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      requestName,
 			Namespace: requestNamespace,
+			Labels: map[string]string{
+				registryNamespace + "." + registryName + "/registry": "true",
+			},
 		},
 		Spec: apiv1alpha1.OperandRequestSpec{
 			Requests: []apiv1alpha1.Request{
@@ -174,3 +182,140 @@ func SecretObj(name, namespace string) *corev1.Secret {
 		},
 	}
 }
+
+func CatalogSource(name, namespace string) *olmv1alpha1.CatalogSource {
+	return &olmv1alpha1.CatalogSource{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+}
+
+func CatalogSourceStatus() olmv1alpha1.CatalogSourceStatus {
+	return olmv1alpha1.CatalogSourceStatus{
+		GRPCConnectionState: &olmv1alpha1.GRPCConnectionState{
+			LastObservedState: "READY",
+			LastConnectTime: metav1.Time{
+				Time: time.Unix(10, 0),
+			},
+		},
+	}
+}
+
+// Return Subscription obj
+func Subscription(name, namespace string) *olmv1alpha1.Subscription {
+	labels := map[string]string{
+		constant.OpreqLabel: "true",
+	}
+	return &olmv1alpha1.Subscription{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+			Labels:    labels,
+		},
+		Spec: &olmv1alpha1.SubscriptionSpec{
+			Channel:                "alpha",
+			Package:                name,
+			CatalogSource:          "community-operators",
+			CatalogSourceNamespace: "openshift-marketplace",
+		},
+	}
+}
+
+func SubscriptionStatus(name, namespace, csvVersion string) olmv1alpha1.SubscriptionStatus {
+	return olmv1alpha1.SubscriptionStatus{
+		CurrentCSV:   name + "-csv.v" + csvVersion,
+		InstalledCSV: name + "-csv.v" + csvVersion,
+		Install: &olmv1alpha1.InstallPlanReference{
+			APIVersion: "operators.coreos.com/v1alpha1",
+			Kind:       "InstallPlan",
+			Name:       name + "-install-plan",
+			UID:        types.UID("install-plan-uid"),
+		},
+		InstallPlanRef: &corev1.ObjectReference{
+			APIVersion: "operators.coreos.com/v1alpha1",
+			Kind:       "InstallPlan",
+			Name:       name + "-install-plan",
+			Namespace:  namespace,
+			UID:        types.UID("install-plan-uid"),
+		},
+		LastUpdated: metav1.Time{
+			Time: time.Unix(10, 0),
+		},
+	}
+}
+
+func ClusterServiceVersion(name, namespace, example string) *olmv1alpha1.ClusterServiceVersion {
+	return &olmv1alpha1.ClusterServiceVersion{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+			Annotations: map[string]string{
+				"alm-examples": example,
+			},
+		},
+		Spec: olmv1alpha1.ClusterServiceVersionSpec{
+			InstallStrategy: olmv1alpha1.NamedInstallStrategy{
+				StrategySpec: olmv1alpha1.StrategyDetailsDeployment{
+					DeploymentSpecs: []olmv1alpha1.StrategyDeploymentSpec{},
+				},
+			},
+		},
+	}
+}
+
+func ClusterServiceVersionStatus() olmv1alpha1.ClusterServiceVersionStatus {
+	return olmv1alpha1.ClusterServiceVersionStatus{
+		Phase: olmv1alpha1.CSVPhaseSucceeded,
+	}
+}
+
+func InstallPlan(name, namespace string) *olmv1alpha1.InstallPlan {
+	return &olmv1alpha1.InstallPlan{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: olmv1alpha1.InstallPlanSpec{
+			ClusterServiceVersionNames: []string{},
+		},
+	}
+}
+
+func InstallPlanStatus() olmv1alpha1.InstallPlanStatus {
+	return olmv1alpha1.InstallPlanStatus{
+		Phase:          olmv1alpha1.InstallPlanPhaseComplete,
+		CatalogSources: []string{},
+	}
+}
+
+const EtcdExample string = `
+[
+	{
+	  "apiVersion": "etcd.database.coreos.com/v1beta2",
+	  "kind": "EtcdCluster",
+	  "metadata": {
+		"name": "example"
+	  },
+	  "spec": {
+		"size": 3,
+		"version": "3.2.13"
+	  }
+	}
+]
+`
+const JenkinsExample string = `
+[
+	{
+	  "apiVersion": "jenkins.io/v1alpha2",
+	  "kind": "Jenkins",
+	  "metadata": {
+		"name": "example"
+	  },
+	  "spec": {
+		"service": {"port": 8081}
+	  }
+	}
+]
+`

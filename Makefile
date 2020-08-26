@@ -160,24 +160,27 @@ generate-all: manifests kustomize operator-sdk ## Generate bundle manifests, met
 ##@ Test
 
 test: ## Run unit test on prow
-	@rm -rf olmcrds
+	@rm -rf crds
 	- make fetch-olm-crds
 	@echo "Running unit tests for the controllers."
 	@go test ./controllers/... -coverprofile cover.out
-	@rm -rf olmcrds
+	@rm -rf crds
 
 unit-test: generate code-fmt code-vet manifests ## Run unit test
 ifeq (, $(USE_EXISTING_CLUSTER))
-	@rm -rf olmcrds
+	@rm -rf crds
 	- make kube-builder
 	- make fetch-olm-crds
 endif
 	@echo "Running unit tests for the controllers."
 	@go test ./controllers/... -coverprofile cover.out
-	@rm -rf olmcrds
+	@rm -rf crds
 
 coverage: ## Run code coverage test
+	@rm -rf crds
+	- make fetch-olm-crds
 	@common/scripts/codecov.sh ${BUILD_LOCALLY} "controllers"
+	@rm -rf crds
 
 scorecard: operator-sdk ## Run scorecard test
 	@echo ... Running the scorecard test

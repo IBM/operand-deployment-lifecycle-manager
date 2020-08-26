@@ -24,6 +24,7 @@ import (
 	"testing"
 	"time"
 
+	etcdv1beta2 "github.com/coreos/etcd-operator/pkg/apis/etcd/v1beta2"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	olmv1 "github.com/operator-framework/api/pkg/operators/v1"
@@ -52,8 +53,8 @@ var (
 	testEnv   *envtest.Environment
 	// scheme    = runtime.NewScheme()
 
-	timeout  = time.Second * 60
-	interval = time.Second * 3
+	timeout  = time.Second * 300
+	interval = time.Second * 5
 )
 
 func TestAPIs(t *testing.T) {
@@ -70,7 +71,7 @@ var _ = BeforeSuite(func(done Done) {
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
 		UseExistingCluster: UseExistingCluster(),
-		CRDDirectoryPaths:  []string{filepath.Join("..", "config", "crd", "bases"), filepath.Join("..", "olmcrds")},
+		CRDDirectoryPaths:  []string{filepath.Join("..", "config", "crd", "bases"), filepath.Join("..", "crds")},
 	}
 
 	var err error
@@ -85,6 +86,8 @@ var _ = BeforeSuite(func(done Done) {
 	err = olmv1alpha1.AddToScheme(clientgoscheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 	err = olmv1.AddToScheme(clientgoscheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+	err = etcdv1beta2.AddToScheme(clientgoscheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	k8sClient, err = client.New(cfg, client.Options{Scheme: clientgoscheme.Scheme})

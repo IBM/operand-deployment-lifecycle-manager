@@ -44,24 +44,29 @@ var _ = Describe("OperandBindInfo controller", func() {
 	var (
 		ctx context.Context
 
-		registry    *operatorv1alpha1.OperandRegistry
-		config      *operatorv1alpha1.OperandConfig
-		request     *operatorv1alpha1.OperandRequest
-		bindInfo    *operatorv1alpha1.OperandBindInfo
-		bindInfoKey types.NamespacedName
-		secret1     *corev1.Secret
-		secret2     *corev1.Secret
-		configmap1  *corev1.ConfigMap
-		configmap2  *corev1.ConfigMap
-		secret3Key  types.NamespacedName
-		cm3Key      types.NamespacedName
+		namespaceName         string
+		registryNamespaceName string
+		requestNamespaceName  string
+		registry              *operatorv1alpha1.OperandRegistry
+		config                *operatorv1alpha1.OperandConfig
+		request               *operatorv1alpha1.OperandRequest
+		bindInfo              *operatorv1alpha1.OperandBindInfo
+		bindInfoKey           types.NamespacedName
+		secret1               *corev1.Secret
+		secret2               *corev1.Secret
+		secret3               *corev1.Secret
+		configmap1            *corev1.ConfigMap
+		configmap2            *corev1.ConfigMap
+		configmap3            *corev1.ConfigMap
+		secret3Key            types.NamespacedName
+		cm3Key                types.NamespacedName
 	)
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		namespaceName := createNSName(namespace)
-		registryNamespaceName := createNSName(registryNamespace)
-		requestNamespaceName := createNSName(requestNamespace)
+		namespaceName = createNSName(namespace)
+		registryNamespaceName = createNSName(registryNamespace)
+		requestNamespaceName = createNSName(requestNamespace)
 		registry = testdata.OperandRegistryObj(registryName, registryNamespaceName, namespaceName)
 		config = testdata.OperandConfigObj(registryName, registryNamespaceName)
 		request = testdata.OperandRequestObj(registryName, registryNamespaceName, requestName, requestNamespaceName)
@@ -70,8 +75,10 @@ var _ = Describe("OperandBindInfo controller", func() {
 
 		secret1 = testdata.SecretObj("secret1", namespaceName)
 		secret2 = testdata.SecretObj("secret2", namespaceName)
+		secret3 = testdata.SecretObj("secret3", requestNamespaceName)
 		configmap1 = testdata.ConfigmapObj("cm1", namespaceName)
 		configmap2 = testdata.ConfigmapObj("cm2", namespaceName)
+		configmap3 = testdata.ConfigmapObj("cm3", requestNamespaceName)
 		secret3Key = types.NamespacedName{Name: "secret3", Namespace: requestNamespaceName}
 		cm3Key = types.NamespacedName{Name: "cm3", Namespace: requestNamespaceName}
 
@@ -104,16 +111,22 @@ var _ = Describe("OperandBindInfo controller", func() {
 			Expect(k8sClient.Create(ctx, configmap1)).Should(Succeed())
 			Expect(k8sClient.Create(ctx, configmap2)).Should(Succeed())
 
+			By("Check if the public secret and configmap are shared")
+			Eventually(func() []byte {
+				secret3 := &corev1.Secret{}
+				err := k8sClient.Get(ctx, secret3Key, secret3)
+				if err != nil {
+					return []byte("")
+				}
+				return secret3.Data["test"]
+			}, timeout, interval).Should(Equal([]byte("secret1")))
 			Eventually(func() bool {
-				err := k8sClient.Get(ctx, secret3Key, &corev1.Secret{})
-				return err == nil
-			}, timeout, interval).Should(BeTrue())
-			Eventually(func() bool {
-				err := k8sClient.Get(ctx, cm3Key, &corev1.ConfigMap{})
-				return err == nil
+				cm3 := &corev1.ConfigMap{}
+				err := k8sClient.Get(ctx, cm3Key, cm3)
+				return err == nil && cm3.Data["test"] == "cm1"
 			}, timeout, interval).Should(BeTrue())
 
-			By("Checking status of the OperandBindInfo")
+			By("Check status of the OperandBindInfo")
 			Eventually(func() operatorv1alpha1.BindInfoPhase {
 				bindInfoInstance := &operatorv1alpha1.OperandBindInfo{}
 				Expect(k8sClient.Get(ctx, bindInfoKey, bindInfoInstance)).Should(Succeed())
@@ -129,6 +142,7 @@ var _ = Describe("OperandBindInfo controller", func() {
 			By("Deleting the OperandBindInfo")
 			Expect(k8sClient.Delete(ctx, bindInfo)).Should(Succeed())
 
+			By("Check if the public secret and configmap are deleted")
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, secret3Key, &corev1.Secret{})
 				return err != nil && errors.IsNotFound(err)
@@ -161,13 +175,13 @@ var _ = Describe("OperandBindInfo controller", func() {
 				bindInfoInstance := &operatorv1alpha1.OperandBindInfo{}
 				Expect(k8sClient.Get(ctx, bindInfoKey, bindInfoInstance)).Should(Succeed())
 				return bindInfoInstance.Status.Phase
-			}, timeout, interval).Should(Equal(operatorv1alpha1.BindInfoInit))
+			}, timeout, interval).Should(Equal(operatorv1alpha1.BindInfoWaiting))
 
 			Eventually(func() int {
 				bindInfoInstance := &operatorv1alpha1.OperandBindInfo{}
 				Expect(k8sClient.Get(ctx, bindInfoKey, bindInfoInstance)).Should(Succeed())
 				return len(bindInfoInstance.Status.RequestNamespaces)
-			}, timeout, interval).Should(Equal(0))
+			}, timeout, interval).Should(Equal(1))
 
 			By("Deleting the OperandBindInfo")
 			Expect(k8sClient.Delete(ctx, bindInfo)).Should(Succeed())
@@ -190,13 +204,70 @@ var _ = Describe("OperandBindInfo controller", func() {
 				bindInfoInstance := &operatorv1alpha1.OperandBindInfo{}
 				Expect(k8sClient.Get(ctx, bindInfoKey, bindInfoInstance)).Should(Succeed())
 				return bindInfoInstance.Status.Phase
-			}).Should(Equal(operatorv1alpha1.BindInfoInit))
+			}, timeout, interval).Should(Equal(operatorv1alpha1.BindInfoWaiting))
 
 			Eventually(func() int {
 				bindInfoInstance := &operatorv1alpha1.OperandBindInfo{}
 				Expect(k8sClient.Get(ctx, bindInfoKey, bindInfoInstance)).Should(Succeed())
 				return len(bindInfoInstance.Status.RequestNamespaces)
-			}, timeout, interval).Should(Equal(0))
+			}, timeout, interval).Should(Equal(1))
+
+			By("Deleting the OperandBindInfo")
+			Expect(k8sClient.Delete(ctx, bindInfo)).Should(Succeed())
+		})
+	})
+
+	Context("Updating the the secret and configmap with public scope", func() {
+		It("Should Status of the OperandBindInfo be completed", func() {
+
+			By("Prepare init resources for OperandBindInfo controller")
+			Expect(k8sClient.Create(ctx, secret3)).Should(Succeed())
+			Expect(k8sClient.Create(ctx, configmap3)).Should(Succeed())
+
+			Eventually(func() []byte {
+				secret3 := &corev1.Secret{}
+				err := k8sClient.Get(ctx, secret3Key, secret3)
+				if err != nil {
+					return []byte("")
+				}
+				return secret3.Data["test"]
+			}, timeout, interval).Should(Equal([]byte("secret3")))
+			Eventually(func() bool {
+				cm3 := &corev1.ConfigMap{}
+				err := k8sClient.Get(ctx, cm3Key, cm3)
+				return err == nil && cm3.Data["test"] == "cm3"
+			}, timeout, interval).Should(BeTrue())
+
+			Expect(k8sClient.Create(ctx, secret1)).Should(Succeed())
+			Expect(k8sClient.Create(ctx, configmap1)).Should(Succeed())
+
+			By("Check if the public secret and configmap are shared")
+			Eventually(func() []byte {
+				secret3 := &corev1.Secret{}
+				err := k8sClient.Get(ctx, secret3Key, secret3)
+				if err != nil {
+					return []byte("")
+				}
+				return secret3.Data["test"]
+			}, timeout, interval).Should(Equal([]byte("secret1")))
+			Eventually(func() bool {
+				cm3 := &corev1.ConfigMap{}
+				err := k8sClient.Get(ctx, cm3Key, cm3)
+				return err == nil && cm3.Data["test"] == "cm1"
+			}, timeout, interval).Should(BeTrue())
+
+			By("Check status of the OperandBindInfo")
+			Eventually(func() operatorv1alpha1.BindInfoPhase {
+				bindInfoInstance := &operatorv1alpha1.OperandBindInfo{}
+				Expect(k8sClient.Get(ctx, bindInfoKey, bindInfoInstance)).Should(Succeed())
+				return bindInfoInstance.Status.Phase
+			}, timeout, interval).Should(Equal(operatorv1alpha1.BindInfoCompleted))
+
+			Eventually(func() int {
+				bindInfoInstance := &operatorv1alpha1.OperandBindInfo{}
+				Expect(k8sClient.Get(ctx, bindInfoKey, bindInfoInstance)).Should(Succeed())
+				return len(bindInfoInstance.Status.RequestNamespaces)
+			}, timeout, interval).Should(Equal(1))
 
 			By("Deleting the OperandBindInfo")
 			Expect(k8sClient.Delete(ctx, bindInfo)).Should(Succeed())
