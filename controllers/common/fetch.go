@@ -18,10 +18,14 @@ package common
 
 import (
 	"context"
+	"strings"
+	"time"
 
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -164,6 +168,70 @@ func FetchClusterServiceVersion(c client.Client, sub *olmv1alpha1.Subscription) 
 
 	klog.V(3).Infof("Get ClusterServiceVersion %s in the namespace %s", csvName, csvNamespace)
 	return csv, nil
+}
+
+// FetchClusterServiceVersionForDelete fetch the ClusterServiceVersion from the subscription for delete
+func FetchClusterServiceVersionForDelete(c client.Client, sub *olmv1alpha1.Subscription) (*olmv1alpha1.ClusterServiceVersion, error) {
+	csvName := ""
+	csvNamespace := sub.Namespace
+
+	if sub.Status.InstallPlanRef != nil {
+		ip, err := FetchInstallPlan(c, sub.Status.InstallPlanRef.Name, sub.Status.InstallPlanRef.Namespace)
+		if err != nil {
+			return nil, err
+		}
+		for _, step := range ip.Status.Plan {
+			if step.Resource.Kind == "ClusterServiceVersion" && strings.HasPrefix(step.Resource.Name, sub.Name) {
+				csvName = step.Resource.Name
+			}
+		}
+	} else {
+		klog.Warningf("The Installplan for Subscription %s is not ready. Will check it again", sub.Name)
+		return nil, nil
+	}
+
+	if csvName == "" {
+		return nil, nil
+	}
+
+	csv := &olmv1alpha1.ClusterServiceVersion{}
+	csvKey := types.NamespacedName{
+		Name:      csvName,
+		Namespace: csvNamespace,
+	}
+	if err := getObjectWithRetry(c, csvKey, csv); err != nil {
+		return nil, err
+	}
+	return csv, nil
+}
+
+func FetchInstallPlan(c client.Client, name, namespace string) (*olmv1alpha1.InstallPlan, error) {
+	installPlan := &olmv1alpha1.InstallPlan{}
+	installPlanKey := types.NamespacedName{
+		Namespace: namespace,
+		Name:      name,
+	}
+	if err := getObjectWithRetry(c, installPlanKey, installPlan); err != nil {
+		return nil, err
+	}
+	return installPlan, nil
+}
+
+// Get object with retry
+func getObjectWithRetry(c client.Client, key types.NamespacedName, obj runtime.Object) error {
+	if err := wait.PollImmediate(time.Second*5, time.Second*15, func() (bool, error) {
+		if err := c.Get(context.TODO(), key, obj); err != nil {
+			if errors.IsNotFound(err) {
+				return false, nil
+			}
+			klog.Errorf("failed to get %s with %s: %v", obj.GetObjectKind(), key.String(), err)
+			return false, err
+		}
+		return true, nil
+	}); err != nil {
+		return err
+	}
+	return nil
 }
 
 // GetOperatorNamespace returns the operator namespace based on the install mode
