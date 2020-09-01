@@ -44,7 +44,7 @@ You can install the Operand Deployment Lifecycle Manager on Linux® x86_64 with 
 
 ## Prerequisites
 
-- [operator-sdk][operator_sdk] version v0.15.1.
+- [operator-sdk][operator_sdk] version v0.19.2.
 - [go][go_tool] version 1.13.4+
 - [oc][oc_tool] version v3.11+ or [kubectl][kubectl_tool] v1.11.3+
 - Access to an Openshift v4.2.0+ cluster
