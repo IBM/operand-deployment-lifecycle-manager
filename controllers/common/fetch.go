@@ -117,7 +117,7 @@ func FetchSubscription(c client.Client, name, namespace string, packageName ...s
 func FetchClusterServiceVersion(c client.Client, sub *olmv1alpha1.Subscription) (*olmv1alpha1.ClusterServiceVersion, error) {
 	// Check the ClusterServiceVersion status in the subscription
 	if sub.Status.CurrentCSV == "" {
-		klog.V(3).Infof("The ClusterServiceVersion for Subscription %s is not ready. Will check it again", sub.Name)
+		klog.Warningf("The ClusterServiceVersion for Subscription %s is not ready. Will check it again", sub.Name)
 		return nil, nil
 	}
 
@@ -125,7 +125,7 @@ func FetchClusterServiceVersion(c client.Client, sub *olmv1alpha1.Subscription) 
 	csvNamespace := sub.Namespace
 
 	if sub.Status.Install == nil || sub.Status.InstallPlanRef.Name == "" {
-		klog.V(3).Infof("The Installplan for Subscription %s is not ready. Will check it again", sub.Name)
+		klog.Warningf("The Installplan for Subscription %s is not ready. Will check it again", sub.Name)
 		return nil, nil
 	}
 
@@ -144,7 +144,7 @@ func FetchClusterServiceVersion(c client.Client, sub *olmv1alpha1.Subscription) 
 	} else if !errors.IsNotFound(err) && ip.Status.Phase == olmv1alpha1.InstallPlanPhaseFailed {
 		klog.Errorf("installplan %s in the namespace %s is failed", ipName, ipNamespace)
 	} else if !errors.IsNotFound(err) && ip.Status.Phase != olmv1alpha1.InstallPlanPhaseComplete {
-		klog.Infof("Installplan %s in the namespace %s is not ready", ipName, ipNamespace)
+		klog.Warningf("Installplan %s in the namespace %s is not ready", ipName, ipNamespace)
 		return nil, nil
 	}
 
