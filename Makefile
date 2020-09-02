@@ -69,7 +69,7 @@ OPERATOR_IMAGE_NAME ?= odlm
 # Current Operator bundle image name
 BUNDLE_IMAGE_NAME ?= odlm-operator-bundle
 # Current Operator version
-OPERATOR_VERSION ?= 1.3.0
+OPERATOR_VERSION ?= 1.3.1
 
 # Options for 'bundle-build'
 ifneq ($(origin CHANNELS), undefined)
