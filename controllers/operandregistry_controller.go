@@ -26,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -84,13 +85,13 @@ func (r *OperandRegistryReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		} else {
 			instance.UpdateRegistryPhase(operatorv1alpha1.RegistryRunning)
 		}
-		if err := r.Status().Update(context.TODO(), instance); err != nil {
+		if err := r.updateOperandRegistryStatus(instance); err != nil {
 			klog.Errorf("failed to update the status for OperandRegistry %s/%s : %v", req.NamespacedName.Namespace, req.NamespacedName.Name, err)
 			return ctrl.Result{}, err
 		}
 	} else {
 		instance.UpdateRegistryPhase(operatorv1alpha1.RegistryWaiting)
-		if err := r.Status().Update(context.TODO(), instance); err != nil {
+		if err := r.updateOperandRegistryStatus(instance); err != nil {
 			klog.Errorf("failed to update the status for OperandRegistry %s/%s : %v", req.NamespacedName.Namespace, req.NamespacedName.Name, err)
 			return ctrl.Result{}, err
 		}
@@ -182,4 +183,31 @@ func (r *OperandRegistryReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				return !e.DeleteStateUnknown
 			},
 		})).Complete(r)
+}
+
+func (r *OperandRegistryReconciler) updateOperandRegistryStatus(newRegistryInstance *operatorv1alpha1.OperandRegistry) error {
+	err := wait.PollImmediate(time.Millisecond*250, time.Second*5, func() (bool, error) {
+		existingRegistryInstance, err := fetch.FetchOperandRegistry(r.Client, types.NamespacedName{Name: newRegistryInstance.Name, Namespace: newRegistryInstance.Namespace})
+		if err != nil {
+			klog.Error("failed to fetch the existing OperandRegistry: ", err)
+			return false, err
+		}
+
+		existingStatus := existingRegistryInstance.Status.DeepCopy()
+		newStatus := newRegistryInstance.Status.DeepCopy()
+		if reflect.DeepEqual(existingStatus, newStatus) {
+			return true, nil
+		}
+		existingRegistryInstance.Status = *newStatus
+		if err := r.Status().Update(context.TODO(), existingRegistryInstance); err != nil {
+			return false, err
+		}
+		return true, nil
+	})
+
+	if err != nil {
+		klog.Error("update OperandRegistry status failed: ", err)
+		return err
+	}
+	return nil
 }

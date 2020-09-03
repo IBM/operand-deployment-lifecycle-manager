@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strings"
 	"time"
 
@@ -47,8 +48,9 @@ func (r *OperandRequestReconciler) reconcileOperand(requestKey types.NamespacedN
 	// Update request status
 	defer func() {
 		requestInstance.UpdateClusterPhase()
-		if err := r.Status().Update(context.TODO(), requestInstance); err != nil {
-			klog.Error("update request status failed: ", err)
+		err := r.updateOperandRequestStatus(requestInstance)
+		if err != nil {
+			klog.Errorf("failed to update the status for OperandRequest %s/%s : %v", requestInstance.Namespace, requestInstance.Name, err)
 		}
 	}()
 
@@ -346,56 +348,75 @@ func (r *OperandRequestReconciler) updateCustomResource(unstruct unstructured.Un
 	name := unstruct.Object["metadata"].(map[string]interface{})["name"].(string)
 
 	// Update the CR
-	existingCR := unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"apiVersion": apiversion,
-			"kind":       kind,
-		},
-	}
+	err := wait.PollImmediate(time.Millisecond*250, time.Second*5, func() (bool, error) {
 
-	crGetErr := r.Get(context.TODO(), types.NamespacedName{
-		Name:      name,
-		Namespace: namespace,
-	}, &existingCR)
-
-	if crGetErr != nil {
-		klog.Errorf("failed to get the Custom Resource %s: %s", crName, crGetErr)
-		return crGetErr
-	}
-
-	if checkLabel(existingCR, map[string]string{constant.OpreqLabel: "true"}) {
-
-		specJSONString, _ := json.Marshal(unstruct.Object["spec"])
-
-		// Merge CR template spec and OperandConfig spec
-		mergedCR := util.MergeCR(specJSONString, crConfig)
-
-		CRgeneration := existingCR.Object["metadata"].(map[string]interface{})["generation"]
-
-		existingCR.Object["spec"] = mergedCR
-		if crUpdateErr := r.Update(context.TODO(), &existingCR); crUpdateErr != nil {
-			klog.Errorf("failed to update the Custom Resource %s: %s", crName, crUpdateErr)
-			return crUpdateErr
-		}
-		UpdatedCR := unstructured.Unstructured{
+		existingCR := unstructured.Unstructured{
 			Object: map[string]interface{}{
 				"apiVersion": apiversion,
 				"kind":       kind,
 			},
 		}
 
-		crGetErr = r.Get(context.TODO(), types.NamespacedName{
+		crGetErr := r.Get(context.TODO(), types.NamespacedName{
 			Name:      name,
 			Namespace: namespace,
-		}, &UpdatedCR)
+		}, &existingCR)
 
 		if crGetErr != nil {
 			klog.Errorf("failed to get the Custom Resource %s: %s", crName, crGetErr)
-			return crGetErr
+			return false, crGetErr
 		}
-		if UpdatedCR.Object["metadata"].(map[string]interface{})["generation"] != CRgeneration {
-			klog.V(2).Info("Finish updating the Custom Resource: ", crName)
+
+		if checkLabel(existingCR, map[string]string{constant.OpreqLabel: "true"}) {
+
+			specJSONString, _ := json.Marshal(unstruct.Object["spec"])
+
+			// Merge CR template spec and OperandConfig spec
+			mergedCR := util.MergeCR(specJSONString, crConfig)
+
+			CRgeneration := existingCR.Object["metadata"].(map[string]interface{})["generation"]
+
+			if reflect.DeepEqual(existingCR.Object["spec"], mergedCR) {
+				return true, nil
+			}
+
+			klog.V(2).Infof("updating custom resource apiversion: %s kind: %s, %s/%s", apiversion, kind, namespace, name)
+
+			existingCR.Object["spec"] = mergedCR
+			crUpdateErr := r.Update(context.TODO(), &existingCR)
+
+			if crUpdateErr != nil {
+				klog.Errorf("failed to update the Custom Resource %s: %s", crName, crUpdateErr)
+				return false, crUpdateErr
+			}
+
+			UpdatedCR := unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": apiversion,
+					"kind":       kind,
+				},
+			}
+
+			err := r.Get(context.TODO(), types.NamespacedName{
+				Name:      name,
+				Namespace: namespace,
+			}, &UpdatedCR)
+
+			if err != nil {
+				klog.Errorf("failed to get the Custom Resource %s: %s", crName, err)
+				return false, err
+			}
+
+			if UpdatedCR.Object["metadata"].(map[string]interface{})["generation"] != CRgeneration {
+				klog.V(2).Info("Finish updating the Custom Resource: ", crName)
+			}
 		}
+		return true, nil
+	})
+
+	if err != nil {
+		klog.Error("failed to update the custom resource: ", err)
+		return err
 	}
 
 	return nil
