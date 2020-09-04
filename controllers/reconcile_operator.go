@@ -47,8 +47,9 @@ func (r *OperandRequestReconciler) reconcileOperator(requestKey types.Namespaced
 	defer func() {
 		requestInstance.FreshMemberStatus()
 		requestInstance.UpdateClusterPhase()
-		if err := r.Status().Update(context.TODO(), requestInstance); err != nil {
-			klog.Error("update request status failed: ", err)
+		err := r.updateOperandRequestStatus(requestInstance)
+		if err != nil {
+			klog.Errorf("failed to update the status for OperandRequest %s/%s : %v", requestInstance.Namespace, requestInstance.Name, err)
 		}
 	}()
 

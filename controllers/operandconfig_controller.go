@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -70,8 +71,7 @@ func (r *OperandConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 	// Set the init status for OperandConfig instance
 	if !instance.InitConfigStatus() {
 		klog.V(3).Infof("Initializing the status of OperandConfig: %s", req.NamespacedName)
-		if err := r.Status().Update(context.TODO(), instance); err != nil {
-			klog.Errorf("failed to initialize the status for OperandConfig %s/%s : %v", req.NamespacedName.Namespace, req.NamespacedName.Name, err)
+		if err := r.updateOperandConfigStatus(instance); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -207,7 +207,7 @@ func (r *OperandConfigReconciler) updateConfigOperatorsStatus(instance *operator
 
 	instance.UpdateOperandPhase()
 
-	if err := r.Status().Update(context.TODO(), instance); err != nil {
+	if err := r.updateOperandConfigStatus(instance); err != nil {
 		return err
 	}
 
@@ -260,4 +260,31 @@ func (r *OperandConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				return !reflect.DeepEqual(oldObject.Status, newObject.Status)
 			},
 		})).Complete(r)
+}
+
+func (r *OperandConfigReconciler) updateOperandConfigStatus(newConfigInstance *operatorv1alpha1.OperandConfig) error {
+	err := wait.PollImmediate(time.Millisecond*250, time.Second*5, func() (bool, error) {
+		existingConfigInstance, err := fetch.FetchOperandConfig(r.Client, types.NamespacedName{Name: newConfigInstance.Name, Namespace: newConfigInstance.Namespace})
+		if err != nil {
+			klog.Error("failed to fetch the existing OperandConfig: ", err)
+			return false, err
+		}
+
+		existingStatus := existingConfigInstance.Status.DeepCopy()
+		newStatus := newConfigInstance.Status.DeepCopy()
+		if reflect.DeepEqual(existingStatus, newStatus) {
+			return true, nil
+		}
+		existingConfigInstance.Status = *newStatus
+		if err := r.Status().Update(context.TODO(), existingConfigInstance); err != nil {
+			return false, err
+		}
+		return true, nil
+	})
+
+	if err != nil {
+		klog.Error("update OperandConfig status failed: ", err)
+		return err
+	}
+	return nil
 }

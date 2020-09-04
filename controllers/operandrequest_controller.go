@@ -21,9 +21,12 @@ import (
 	"reflect"
 	"time"
 
+	olmv1 "github.com/operator-framework/api/pkg/operators/v1"
+	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -35,10 +38,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	olmv1 "github.com/operator-framework/api/pkg/operators/v1"
-	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
-
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
+	fetch "github.com/IBM/operand-deployment-lifecycle-manager/controllers/common"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
 )
 
@@ -81,8 +82,7 @@ func (r *OperandRequestReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 
 	// Initialize the status for OperandRequest instance
 	if !requestInstance.InitRequestStatus() {
-		if err := r.Status().Update(context.TODO(), requestInstance); err != nil {
-			klog.Errorf("failed to initialize the status for OperandRequest %s : %v", req.NamespacedName.String(), err)
+		if err := r.updateOperandRequestStatus(requestInstance); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -242,4 +242,31 @@ func (r *OperandRequestReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				return !reflect.DeepEqual(oldObject.Spec, newObject.Spec)
 			},
 		})).Complete(r)
+}
+
+func (r *OperandRequestReconciler) updateOperandRequestStatus(newRequestInstance *operatorv1alpha1.OperandRequest) error {
+	err := wait.PollImmediate(time.Millisecond*250, time.Second*5, func() (bool, error) {
+		existingRequestInstance, err := fetch.FetchOperandRequest(r.Client, types.NamespacedName{Name: newRequestInstance.Name, Namespace: newRequestInstance.Namespace})
+		if err != nil {
+			klog.Error("failed to fetch the existing OperandRequest: ", err)
+			return false, err
+		}
+
+		existingStatus := existingRequestInstance.Status.DeepCopy()
+		newStatus := newRequestInstance.Status.DeepCopy()
+		if reflect.DeepEqual(existingStatus, newStatus) {
+			return true, nil
+		}
+		existingRequestInstance.Status = *newStatus
+		if err := r.Status().Update(context.TODO(), existingRequestInstance); err != nil {
+			return false, err
+		}
+		return true, nil
+	})
+
+	if err != nil {
+		klog.Error("update request status failed: ", err)
+		return err
+	}
+	return nil
 }
