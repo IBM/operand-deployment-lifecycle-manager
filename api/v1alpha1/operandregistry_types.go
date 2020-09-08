@@ -106,7 +106,7 @@ type OperatorStatus struct {
 	// Phase is the state of operator
 	// +optional
 	Phase OperatorPhase `json:"phase,omitempty"`
-	// RecondileRequests store the namespace/name of all the requests
+	// ReconcileRequests store the namespace/name of all the requests
 	// +optional
 	ReconcileRequests []ReconcileRequest `json:"reconcileRequests,omitempty"`
 }
