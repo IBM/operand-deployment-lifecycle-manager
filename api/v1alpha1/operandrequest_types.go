@@ -38,7 +38,7 @@ type OperandRequestSpec struct {
 
 // Request identifies a operand detail
 type Request struct {
-	// Operands deines a list of the OperandRegistry entry for the operand to be deployed
+	// Operands defines a list of the OperandRegistry entry for the operand to be deployed
 	Operands []Operand `json:"operands"`
 	// Specifies the name in which the OperandRegistry reside.
 	Registry string `json:"registry"`
