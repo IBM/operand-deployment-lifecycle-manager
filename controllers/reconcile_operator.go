@@ -193,7 +193,7 @@ func (r *OperandRequestReconciler) deleteSubscription(operandName string, reques
 		return nil
 	}
 
-	csv, err := fetch.FetchClusterServiceVersion(r.Client, sub)
+	csv, err := fetch.FetchClusterServiceVersionForDelete(r.Client, sub)
 	// If can't get CSV, requeue the request
 	if err != nil {
 		return err
