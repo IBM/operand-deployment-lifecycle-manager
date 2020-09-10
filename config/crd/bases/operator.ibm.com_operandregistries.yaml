@@ -64,7 +64,10 @@ spec:
                     description: Description of a common service
                     type: string
                   installMode:
-                    description: The install mode of an operator
+                    description: 'The install mode of an operator, either namespace
+                      or cluster Valid values are: - "namespace" (default): operator
+                      is deployed in namespace of OperandRegistry; - "clsuter": operator
+                      is deployed in "openshift-operators" namespace;'
                     type: string
                   installPlanApproval:
                     description: Approval mode for emitted InstallPlans
@@ -74,8 +77,9 @@ spec:
                       be deployed
                     type: string
                   namespace:
-                    description: The namespace in which operator's operand should
-                      be deployed
+                    description: The namespace in which operator CR should be deployed
+                      Also the namespace in which operator should be deployed when
+                      InstallMode is empty or set to "namespace"
                     type: string
                   packageName:
                     description: Name of the package that defines the application
@@ -155,7 +159,7 @@ spec:
                     description: Phase is the state of operator
                     type: string
                   reconcileRequests:
-                    description: RecondileRequests store the namespace/name of all
+                    description: ReconcileRequests store the namespace/name of all
                       the requests
                     items:
                       description: ReconcileRequest records the information of the

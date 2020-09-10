@@ -9,7 +9,7 @@ metadata:
   labels:
     app.kubernetes.io/instance: "operand-deployment-lifecycle-manager"
     app.kubernetes.io/managed-by: "operand-deployment-lifecycle-manager"
-    app.kubernetes.io/name: "odlm"
+    app.kubernetes.io/name: "operand-deployment-lifecycle-manager"
   name: operand-deployment-lifecycle-manager
   namespace: system
 spec:
@@ -23,7 +23,7 @@ spec:
         name: operand-deployment-lifecycle-manager
         app.kubernetes.io/instance: operand-deployment-lifecycle-manager
         app.kubernetes.io/managed-by: "operand-deployment-lifecycle-manager"
-        app.kubernetes.io/name: "odlm"
+        app.kubernetes.io/name: "operand-deployment-lifecycle-manager"
       annotations:
         productName: "IBM Cloud Platform Common Services"
         productID: "068a62892a1e4db39641342e592daa25"
@@ -40,7 +40,6 @@ spec:
                 - amd64
                 - ppc64le
                 - s390x
-      serviceAccountName: operand-deployment-lifecycle-manager
       containers:
       - command:
         - /manager

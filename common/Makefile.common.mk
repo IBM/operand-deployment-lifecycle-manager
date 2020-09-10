@@ -69,17 +69,17 @@ endif
 fetch-olm-crds:
 	@{ \
 	curl -L -O "https://github.com/operator-framework/api/archive/v0.3.8.tar.gz" ;\
-	tar -zxf v0.3.8.tar.gz api-0.3.8/crds && mv api-0.3.8/crds crds ;\
+	tar -zxf v0.3.8.tar.gz api-0.3.8/crds && mv api-0.3.8/crds ${ENVTEST_ASSETS_DIR}/crds ;\
 	rm -rf api-0.3.8 v0.3.8.tar.gz ;\
 	}
 	@{ \
 	curl -L -O "https://github.com/redhat-developer/jenkins-operator/archive/v0.3.3.tar.gz" ;\
-	tar -zxf v0.3.3.tar.gz jenkins-operator-0.3.3/deploy/crds && mv jenkins-operator-0.3.3/deploy/crds/jenkins_v1alpha2_jenkins_crd.yaml crds/jenkins_v1alpha2_jenkins_crd.yaml ;\
+	tar -zxf v0.3.3.tar.gz jenkins-operator-0.3.3/deploy/crds && mv jenkins-operator-0.3.3/deploy/crds/jenkins_v1alpha2_jenkins_crd.yaml ${ENVTEST_ASSETS_DIR}/crds/jenkins_v1alpha2_jenkins_crd.yaml ;\
 	rm -rf jenkins-operator-0.3.3 v0.3.3.tar.gz ;\
 	}
 	@{ \
 	curl -L -O "https://github.com/horis233/etcd-operator/archive/v0.9.4-crd.tar.gz" ;\
-	tar -zxf v0.9.4-crd.tar.gz etcd-operator-0.9.4-crd/deploy/crds && mv etcd-operator-0.9.4-crd/deploy/crds/etcdclusters.etcd.database.coreos.com.crd.yaml crds/etcdclusters.etcd.database.coreos.com.crd.yaml ;\
+	tar -zxf v0.9.4-crd.tar.gz etcd-operator-0.9.4-crd/deploy/crds && mv etcd-operator-0.9.4-crd/deploy/crds/etcdclusters.etcd.database.coreos.com.crd.yaml ${ENVTEST_ASSETS_DIR}/crds/etcdclusters.etcd.database.coreos.com.crd.yaml ;\
 	rm -rf etcd-operator-0.9.4-crd v0.9.4-crd.tar.gz ;\
 	}
 
@@ -98,7 +98,7 @@ ifeq (, $(KUSTOMIZE))
 KUSTOMIZE=$(GOBIN)/kustomize
 endif
 
-FINDFILES=find . \( -path ./.git -o -path ./.github \) -prune -o -type f
+FINDFILES=find . \( -path ./.git -o -path ./.github -o -path ./testbin \) -prune -o -type f
 XARGS = xargs -0 ${XARGS_FLAGS}
 CLEANXARGS = xargs ${XARGS_FLAGS}
 

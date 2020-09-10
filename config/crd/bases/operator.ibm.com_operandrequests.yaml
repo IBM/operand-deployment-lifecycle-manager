@@ -59,7 +59,7 @@ spec:
                     description: Description is an optional description for the request
                     type: string
                   operands:
-                    description: Operands deines a list of the OperandRegistry entry
+                    description: Operands defines a list of the OperandRegistry entry
                       for the operand to be deployed
                     items:
                       description: Operand defines the name and binding information
