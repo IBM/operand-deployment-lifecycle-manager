@@ -133,7 +133,7 @@ func (r *OperandRequestReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 	}
 
 	klog.V(1).Infof("Finished reconciling OperandRequest: %s", req.NamespacedName)
-	return ctrl.Result{}, nil
+	return ctrl.Result{RequeueAfter: 30 * time.Minute}, nil
 }
 
 func (r *OperandRequestReconciler) addFinalizer(cr *operatorv1alpha1.OperandRequest) error {
