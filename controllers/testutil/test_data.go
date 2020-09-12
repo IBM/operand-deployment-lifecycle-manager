@@ -287,32 +287,6 @@ func InstallPlanStatus() olmv1alpha1.InstallPlanStatus {
 	return olmv1alpha1.InstallPlanStatus{
 		Phase:          olmv1alpha1.InstallPlanPhaseComplete,
 		CatalogSources: []string{},
-		Plan: []*olmv1alpha1.Step{
-			{
-				Resolving: "etcd-csv.v0.0.1",
-				Resource: olmv1alpha1.StepResource{
-					CatalogSource:          "community-operators",
-					CatalogSourceNamespace: "openshift-marketplace",
-					Group:                  "operators.coreos.com",
-					Version:                "v1alpha1",
-					Kind:                   "ClusterServiceVersion",
-					Name:                   "etcd-csv.v0.0.1",
-				},
-				Status: olmv1alpha1.StepStatusPresent,
-			},
-			{
-				Resolving: "jenkins-csv.v0.0.1",
-				Resource: olmv1alpha1.StepResource{
-					CatalogSource:          "community-operators",
-					CatalogSourceNamespace: "openshift-marketplace",
-					Group:                  "operators.coreos.com",
-					Version:                "v1alpha1",
-					Kind:                   "ClusterServiceVersion",
-					Name:                   "jenkins-csv.v0.0.1",
-				},
-				Status: olmv1alpha1.StepStatusCreated,
-			},
-		},
 	}
 }
 

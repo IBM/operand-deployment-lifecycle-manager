@@ -32,7 +32,7 @@ import (
 
 // +kubebuilder:docs-gen:collapse=Imports
 
-var _ = Describe("OperandRequest controller", func() {
+var _ = Describe("OperandRegistry controller", func() {
 	const (
 		name              = "ibm-cloudpak-name"
 		namespace         = "ibm-cloudpak"
@@ -97,7 +97,7 @@ var _ = Describe("OperandRequest controller", func() {
 
 			Expect(k8sClient.Create(ctx, request)).Should(Succeed())
 
-			By("Checking status of the OperandRequest")
+			By("Checking status of the OperandRegquest")
 			Eventually(func() operatorv1alpha1.ClusterPhase {
 				requestInstance := &operatorv1alpha1.OperandRequest{}
 				Expect(k8sClient.Get(ctx, requestKey, requestInstance)).Should(Succeed())
