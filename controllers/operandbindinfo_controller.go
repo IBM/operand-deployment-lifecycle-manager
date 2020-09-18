@@ -43,12 +43,13 @@ import (
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
+	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/deploy"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/util"
 )
 
 // OperandBindInfoReconciler reconciles a OperandBindInfo object
 type OperandBindInfoReconciler struct {
-	client.Client
+	*deploy.ODLMManager
 	Recorder record.EventRecorder
 	Scheme   *runtime.Scheme
 }
@@ -63,7 +64,7 @@ func (r *OperandBindInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 
 	// Fetch the OperandBindInfo instance
 	bindInfoInstance := &operatorv1alpha1.OperandBindInfo{}
-	if err := r.Get(ctx, req.NamespacedName, bindInfoInstance); err != nil {
+	if err := r.Reader.Get(ctx, req.NamespacedName, bindInfoInstance); err != nil {
 		// Error reading the object - requeue the req.
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -106,7 +107,7 @@ func (r *OperandBindInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	// Fetch the OperandRegistry instance
 	registryKey := bindInfoInstance.GetRegistryKey()
 	registryInstance := &operatorv1alpha1.OperandRegistry{}
-	if err := r.Get(ctx, registryKey, registryInstance); err != nil {
+	if err := r.Reader.Get(ctx, registryKey, registryInstance); err != nil {
 		if errors.IsNotFound(err) {
 			klog.Errorf("failed to find OperandRegistry from the NamespacedName %s: %v", registryKey.String(), err)
 			r.Recorder.Eventf(bindInfoInstance, corev1.EventTypeWarning, "NotFound", "NotFound OperandRegistry from the NamespacedName %s", registryKey.String())
@@ -136,7 +137,7 @@ func (r *OperandBindInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	for _, bindRequest := range requestNamespaces {
 		// Get the OperandRequest of operandBindInfo
 		requestInstance := &operatorv1alpha1.OperandRequest{}
-		if err := r.Get(ctx, types.NamespacedName{Name: bindRequest.Name, Namespace: bindRequest.Namespace}, requestInstance); err != nil {
+		if err := r.Reader.Get(ctx, types.NamespacedName{Name: bindRequest.Name, Namespace: bindRequest.Namespace}, requestInstance); err != nil {
 			if errors.IsNotFound(err) {
 				klog.Errorf("failed to find OperandRequest %s in the namespace %s: %v", bindRequest.Name, bindRequest.Namespace, err)
 				r.Recorder.Eventf(bindInfoInstance, corev1.EventTypeWarning, "NotFound", "NotFound OperandRequest %s in the namespace %s", bindRequest.Name, bindRequest.Namespace)
@@ -210,7 +211,7 @@ func (r *OperandBindInfoReconciler) copySecret(sourceName, targetName, sourceNs,
 	}
 
 	secret := &corev1.Secret{}
-	if err := r.Get(context.TODO(), types.NamespacedName{Name: sourceName, Namespace: sourceNs}, secret); err != nil {
+	if err := r.Reader.Get(context.TODO(), types.NamespacedName{Name: sourceName, Namespace: sourceNs}, secret); err != nil {
 		if errors.IsNotFound(err) {
 			klog.V(3).Infof("Secret %s is not found from the namespace %s", sourceName, sourceNs)
 			r.Recorder.Eventf(bindInfoInstance, corev1.EventTypeNormal, "NotFound", "No Secret %s in the namespace %s", sourceName, sourceNs)
@@ -289,7 +290,7 @@ func (r *OperandBindInfoReconciler) copyConfigmap(sourceName, targetName, source
 	}
 
 	cm := &corev1.ConfigMap{}
-	if err := r.Get(context.TODO(), types.NamespacedName{Name: sourceName, Namespace: sourceNs}, cm); err != nil {
+	if err := r.Reader.Get(context.TODO(), types.NamespacedName{Name: sourceName, Namespace: sourceNs}, cm); err != nil {
 		if errors.IsNotFound(err) {
 			klog.V(3).Infof("Configmap %s is not found from the namespace %s", sourceName, sourceNs)
 			r.Recorder.Eventf(bindInfoInstance, corev1.EventTypeNormal, "NotFound", "No Configmap %s in the namespace %s", sourceName, sourceNs)
@@ -356,7 +357,7 @@ func (r *OperandBindInfoReconciler) getBindInfoInstance(name, namespace string) 
 	klog.V(3).Infof("Get the OperandBindInfo %s from the namespace %s", name, namespace)
 	// Fetch the OperandBindInfo instance
 	bindInfo := &operatorv1alpha1.OperandBindInfo{}
-	if err := r.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, bindInfo); err != nil {
+	if err := r.Reader.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, bindInfo); err != nil {
 		// Error reading the object - requeue the req.
 		return nil, err
 	}
@@ -370,10 +371,10 @@ func (r *OperandBindInfoReconciler) cleanupCopies(bindInfoInstance *operatorv1al
 	opts := []client.ListOption{
 		client.MatchingLabels(map[string]string{bindInfoInstance.Namespace + "." + bindInfoInstance.Name + "/bindinfo": "true"}),
 	}
-	if err := r.List(context.TODO(), secretList, opts...); err != nil {
+	if err := r.Reader.List(context.TODO(), secretList, opts...); err != nil {
 		return err
 	}
-	if err := r.List(context.TODO(), cmList, opts...); err != nil {
+	if err := r.Reader.List(context.TODO(), cmList, opts...); err != nil {
 		return err
 	}
 

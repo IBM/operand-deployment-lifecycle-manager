@@ -32,7 +32,6 @@ import (
 	"k8s.io/klog"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
-	fetch "github.com/IBM/operand-deployment-lifecycle-manager/controllers/common"
 	constant "github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
 	util "github.com/IBM/operand-deployment-lifecycle-manager/controllers/util"
 )
@@ -40,7 +39,7 @@ import (
 func (r *OperandRequestReconciler) reconcileOperand(requestKey types.NamespacedName) *util.MultiErr {
 	klog.V(1).Infof("Reconciling Operands for OperandRequest: %s", requestKey)
 	merr := &util.MultiErr{}
-	requestInstance, err := fetch.FetchOperandRequest(r.Client, requestKey)
+	requestInstance, err := r.FetchOperandRequest(requestKey)
 	if err != nil {
 		merr.Add(err)
 		return merr
@@ -61,13 +60,13 @@ func (r *OperandRequestReconciler) reconcileOperand(requestKey types.NamespacedN
 	}
 	for _, req := range requestInstance.Spec.Requests {
 		registryKey := requestInstance.GetRegistryKey(req)
-		configInstance, err := fetch.FetchOperandConfig(r.Client, registryKey)
+		configInstance, err := r.FetchOperandConfig(registryKey)
 		if err != nil {
 			klog.Error("failed to get the OperandConfig instance: ", err)
 			merr.Add(err)
 			continue
 		}
-		registryInstance, err := fetch.FetchOperandRegistry(r.Client, registryKey)
+		registryInstance, err := r.FetchOperandRegistry(registryKey)
 		if err != nil {
 			klog.Error("failed to get the OperandRegistry instance: ", err)
 			merr.Add(err)
@@ -86,9 +85,9 @@ func (r *OperandRequestReconciler) reconcileOperand(requestKey types.NamespacedN
 			klog.V(3).Info("Looking for csv for the operator: ", operatorName)
 
 			// Looking for the CSV
-			namespace := fetch.GetOperatorNamespace(opdRegistry.InstallMode, opdRegistry.Namespace)
+			namespace := r.GetOperatorNamespace(opdRegistry.InstallMode, opdRegistry.Namespace)
 
-			sub, err := fetch.FetchSubscription(r.Client, operatorName, namespace, opdRegistry.PackageName)
+			sub, err := r.FetchSubscription(operatorName, namespace, opdRegistry.PackageName)
 
 			if errors.IsNotFound(err) {
 				klog.V(2).Infof("There is no Subscription %s or %s in the namespace %s", operatorName, opdRegistry.PackageName, namespace)
@@ -100,7 +99,7 @@ func (r *OperandRequestReconciler) reconcileOperand(requestKey types.NamespacedN
 				klog.Warningf("Subscription %s in the namespace %s isn't created by ODLM", sub.Name, sub.Namespace)
 			}
 
-			csv, err := fetch.FetchClusterServiceVersion(r.Client, sub)
+			csv, err := r.FetchClusterServiceVersion(sub)
 
 			// If can't get CSV, requeue the request
 			if err != nil {
@@ -184,7 +183,7 @@ func (r *OperandRequestReconciler) reconcileCRwithConfig(service *operatorv1alph
 
 		name := unstruct.Object["metadata"].(map[string]interface{})["name"].(string)
 
-		getError := r.Get(context.TODO(), types.NamespacedName{
+		getError := r.Reader.Get(context.TODO(), types.NamespacedName{
 			Name:      name,
 			Namespace: namespace,
 		}, &unstruct)
@@ -257,7 +256,7 @@ func (r *OperandRequestReconciler) reconcileCRwithRequest(requestInstance *opera
 		unstruct.Object["metadata"].(map[string]interface{})["name"] = name
 		unstruct.Object["metadata"].(map[string]interface{})["namespace"] = requestKey.Namespace
 
-		err := r.Get(context.TODO(), types.NamespacedName{
+		err := r.Reader.Get(context.TODO(), types.NamespacedName{
 			Name:      name,
 			Namespace: requestKey.Namespace,
 		}, &unstruct)
@@ -361,7 +360,7 @@ func (r *OperandRequestReconciler) deleteAllCustomResource(csv *olmv1alpha1.Clus
 
 			// Compare the name of OperandConfig and CRD name
 			if strings.EqualFold(kind, crdName) {
-				getError := r.Get(context.TODO(), types.NamespacedName{
+				getError := r.Reader.Get(context.TODO(), types.NamespacedName{
 					Name:      name,
 					Namespace: namespace,
 				}, &unstruct)
@@ -477,7 +476,7 @@ func (r *OperandRequestReconciler) updateCustomResource(unstruct unstructured.Un
 			},
 		}
 
-		crGetErr := r.Get(context.TODO(), types.NamespacedName{
+		crGetErr := r.Reader.Get(context.TODO(), types.NamespacedName{
 			Name:      name,
 			Namespace: namespace,
 		}, &existingCR)
@@ -517,7 +516,7 @@ func (r *OperandRequestReconciler) updateCustomResource(unstruct unstructured.Un
 				},
 			}
 
-			err := r.Get(context.TODO(), types.NamespacedName{
+			err := r.Reader.Get(context.TODO(), types.NamespacedName{
 				Name:      name,
 				Namespace: namespace,
 			}, &UpdatedCR)
@@ -555,7 +554,7 @@ func (r *OperandRequestReconciler) deleteCustomResource(unstruct unstructured.Un
 			"kind":       kind,
 		},
 	}
-	getError := r.Get(context.TODO(), types.NamespacedName{
+	getError := r.Reader.Get(context.TODO(), types.NamespacedName{
 		Name:      name,
 		Namespace: namespace,
 	}, &crShouldBeDeleted)
@@ -578,7 +577,7 @@ func (r *OperandRequestReconciler) deleteCustomResource(unstruct unstructured.Un
 					return true, nil
 				}
 				klog.V(3).Infof("Waiting for CR %s is removed ...", kind)
-				err := r.Get(context.TODO(), types.NamespacedName{
+				err := r.Reader.Get(context.TODO(), types.NamespacedName{
 					Name:      name,
 					Namespace: namespace,
 				},

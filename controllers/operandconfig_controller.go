@@ -40,14 +40,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
-	fetch "github.com/IBM/operand-deployment-lifecycle-manager/controllers/common"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
+	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/deploy"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/util"
 )
 
 // OperandConfigReconciler reconciles a OperandConfig object
 type OperandConfigReconciler struct {
-	client.Client
+	*deploy.ODLMManager
 	Recorder record.EventRecorder
 	Scheme   *runtime.Scheme
 }
@@ -60,7 +60,7 @@ type OperandConfigReconciler struct {
 func (r *OperandConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// Fetch the OperandConfig instance
 	instance := &operatorv1alpha1.OperandConfig{}
-	if err := r.Get(context.TODO(), req.NamespacedName, instance); err != nil {
+	if err := r.Reader.Get(context.TODO(), req.NamespacedName, instance); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
@@ -95,15 +95,15 @@ func (r *OperandConfigReconciler) updateConfigOperatorsStatus(instance *operator
 	klog.V(3).Info("Initializing OperandConfig status")
 	instance.Status.ServiceStatus = make(map[string]operatorv1alpha1.CrStatus)
 
-	registryInstance, err := fetch.FetchOperandRegistry(r.Client, types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace})
+	registryInstance, err := r.FetchOperandRegistry(types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace})
 	if err != nil {
 		return err
 	}
 
 	for _, op := range registryInstance.Spec.Operators {
 		// Looking for the CSV
-		namespace := fetch.GetOperatorNamespace(op.InstallMode, op.Namespace)
-		sub, err := fetch.FetchSubscription(r.Client, op.Name, namespace, op.PackageName)
+		namespace := r.GetOperatorNamespace(op.InstallMode, op.Namespace)
+		sub, err := r.FetchSubscription(op.Name, namespace, op.PackageName)
 
 		if errors.IsNotFound(err) {
 			klog.V(3).Infof("There is no Subscription %s or %s in the namespace %s", op.Name, op.PackageName, namespace)
@@ -120,7 +120,7 @@ func (r *OperandConfigReconciler) updateConfigOperatorsStatus(instance *operator
 			klog.V(2).Infof("Subscription %s in the namespace %s isn't created by ODLM", sub.Name, sub.Namespace)
 		}
 
-		csv, err := fetch.FetchClusterServiceVersion(r.Client, sub)
+		csv, err := r.FetchClusterServiceVersion(sub)
 
 		if err != nil {
 			klog.Errorf("failed to fetch ClusterServiceVersion for the Subscription %s in the namespace %s: %v", sub.Name, namespace, err)
@@ -186,7 +186,7 @@ func (r *OperandConfigReconciler) updateConfigOperatorsStatus(instance *operator
 
 			name := unstruct.Object["metadata"].(map[string]interface{})["name"].(string)
 
-			getError := r.Get(context.TODO(), types.NamespacedName{
+			getError := r.Reader.Get(context.TODO(), types.NamespacedName{
 				Name:      name,
 				Namespace: op.Namespace,
 			}, &unstruct)
@@ -218,10 +218,10 @@ func (r *OperandConfigReconciler) getRequestToConfigMapper() handler.ToRequestsF
 	return func(object handler.MapObject) []reconcile.Request {
 		opreqInstance := &operatorv1alpha1.OperandRequest{}
 		requests := []reconcile.Request{}
-		// If the OperandRequest has been deleted, reconcile all the OperandConfig in the cluster
-		if err := r.Get(context.TODO(), types.NamespacedName{Name: object.Meta.GetName(), Namespace: object.Meta.GetNamespace()}, opreqInstance); errors.IsNotFound(err) {
+		// If the operandrequest has been deleted, reconcile all the OperandConfig in the cluster
+		if err := r.Reader.Get(context.TODO(), types.NamespacedName{Name: object.Meta.GetName(), Namespace: object.Meta.GetNamespace()}, opreqInstance); errors.IsNotFound(err) {
 			configList := &operatorv1alpha1.OperandConfigList{}
-			_ = r.List(context.TODO(), configList)
+			_ = r.Reader.List(context.TODO(), configList)
 			for _, config := range configList.Items {
 				namespaceName := types.NamespacedName{Name: config.Name, Namespace: config.Namespace}
 				req := reconcile.Request{NamespacedName: namespaceName}
@@ -264,7 +264,7 @@ func (r *OperandConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 func (r *OperandConfigReconciler) updateOperandConfigStatus(newConfigInstance *operatorv1alpha1.OperandConfig) error {
 	err := wait.PollImmediate(time.Millisecond*250, time.Second*5, func() (bool, error) {
-		existingConfigInstance, err := fetch.FetchOperandConfig(r.Client, types.NamespacedName{Name: newConfigInstance.Name, Namespace: newConfigInstance.Namespace})
+		existingConfigInstance, err := r.FetchOperandConfig(types.NamespacedName{Name: newConfigInstance.Name, Namespace: newConfigInstance.Namespace})
 		if err != nil {
 			klog.Errorf("failed to fetch the existing OperandConfig: %v", err)
 			return false, err

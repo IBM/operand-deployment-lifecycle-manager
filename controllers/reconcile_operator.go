@@ -32,14 +32,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
-	fetch "github.com/IBM/operand-deployment-lifecycle-manager/controllers/common"
 	constant "github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
 	util "github.com/IBM/operand-deployment-lifecycle-manager/controllers/util"
 )
 
 func (r *OperandRequestReconciler) reconcileOperator(requestKey types.NamespacedName) error {
 	klog.V(1).Infof("Reconciling Operators for OperandRequest: %s", requestKey)
-	requestInstance, err := fetch.FetchOperandRequest(r.Client, requestKey)
+	requestInstance, err := r.FetchOperandRequest(requestKey)
 	if err != nil {
 		return err
 	}
@@ -55,7 +54,7 @@ func (r *OperandRequestReconciler) reconcileOperator(requestKey types.Namespaced
 
 	for _, req := range requestInstance.Spec.Requests {
 		registryKey := requestInstance.GetRegistryKey(req)
-		registryInstance, err := fetch.FetchOperandRegistry(r.Client, registryKey)
+		registryInstance, err := r.FetchOperandRegistry(registryKey)
 		if err != nil {
 			if errors.IsNotFound(err) {
 				r.Recorder.Eventf(requestInstance, corev1.EventTypeWarning, "NotFound", "NotFound OperandRegistry in NamespacedName %s", registryKey.String())
@@ -73,8 +72,8 @@ func (r *OperandRequestReconciler) reconcileOperator(requestKey types.Namespaced
 				}
 
 				// Check subscription if exist
-				namespace := fetch.GetOperatorNamespace(opt.InstallMode, opt.Namespace)
-				sub, err := fetch.FetchSubscription(r.Client, opt.Name, namespace, opt.PackageName)
+				namespace := r.GetOperatorNamespace(opt.InstallMode, opt.Namespace)
+				sub, err := r.FetchSubscription(opt.Name, namespace, opt.PackageName)
 
 				if err != nil {
 					if errors.IsNotFound(err) {
@@ -121,10 +120,10 @@ func (r *OperandRequestReconciler) reconcileOperator(requestKey types.Namespaced
 }
 
 func (r *OperandRequestReconciler) createSubscription(cr *operatorv1alpha1.OperandRequest, opt *operatorv1alpha1.Operator) error {
-	namespace := fetch.GetOperatorNamespace(opt.InstallMode, opt.Namespace)
+	namespace := r.GetOperatorNamespace(opt.InstallMode, opt.Namespace)
 	klog.V(3).Info("Subscription Namespace: ", namespace)
 
-	co := generateClusterObjects(opt)
+	co := r.generateClusterObjects(opt)
 
 	// Create required namespace
 	ns := co.namespace
@@ -141,7 +140,7 @@ func (r *OperandRequestReconciler) createSubscription(cr *operatorv1alpha1.Opera
 	if namespace != constant.ClusterOperatorNamespace {
 		// Create required operatorgroup
 		existOG := &olmv1.OperatorGroupList{}
-		if err := r.List(context.TODO(), existOG, &client.ListOptions{Namespace: co.operatorGroup.Namespace}); err != nil {
+		if err := r.Reader.List(context.TODO(), existOG, &client.ListOptions{Namespace: co.operatorGroup.Namespace}); err != nil {
 			return err
 		}
 		if len(existOG.Items) == 0 {
@@ -184,8 +183,8 @@ func (r *OperandRequestReconciler) deleteSubscription(operandName string, reques
 		return nil
 	}
 
-	namespace := fetch.GetOperatorNamespace(op.InstallMode, op.Namespace)
-	sub, err := fetch.FetchSubscription(r.Client, operandName, namespace, op.PackageName)
+	namespace := r.GetOperatorNamespace(op.InstallMode, op.Namespace)
+	sub, err := r.FetchSubscription(operandName, namespace, op.PackageName)
 
 	if errors.IsNotFound(err) {
 		klog.V(3).Infof("There is no Subscription %s or %s in the namespace %s", operandName, op.PackageName, namespace)
@@ -198,7 +197,7 @@ func (r *OperandRequestReconciler) deleteSubscription(operandName string, reques
 		return nil
 	}
 
-	csv, err := fetch.FetchClusterServiceVersion(r.Client, sub)
+	csv, err := r.FetchClusterServiceVersion(sub)
 	// If can't get CSV, requeue the request
 	if err != nil {
 		return err
@@ -249,11 +248,11 @@ func (r *OperandRequestReconciler) absentOperatorsAndOperands(requestInstance *o
 	}
 	for _, req := range requestInstance.Spec.Requests {
 		registryKey := requestInstance.GetRegistryKey(req)
-		registryInstance, err := fetch.FetchOperandRegistry(r.Client, registryKey)
+		registryInstance, err := r.FetchOperandRegistry(registryKey)
 		if err != nil {
 			return err
 		}
-		configInstance, err := fetch.FetchOperandConfig(r.Client, registryKey)
+		configInstance, err := r.FetchOperandConfig(registryKey)
 		if err != nil {
 			return err
 		}
@@ -290,7 +289,7 @@ func (r *OperandRequestReconciler) getCurrentOperands(requestInstance *operatorv
 	deployedOperands := gset.NewSet()
 	for _, req := range requestInstance.Spec.Requests {
 		registryKey := requestInstance.GetRegistryKey(req)
-		requestList, err := fetch.FetchAllOperandRequests(r.Client, map[string]string{registryKey.Namespace + "." + registryKey.Name + "/registry": "true"})
+		requestList, err := r.FetchAllOperandRequests(map[string]string{registryKey.Namespace + "." + registryKey.Name + "/registry": "true"})
 		if err != nil {
 			return nil, err
 		}
@@ -312,7 +311,7 @@ func (r *OperandRequestReconciler) getCurrentOperands(requestInstance *operatorv
 	return deployedOperands, nil
 }
 
-func generateClusterObjects(o *operatorv1alpha1.Operator) *clusterObjects {
+func (r *OperandRequestReconciler) generateClusterObjects(o *operatorv1alpha1.Operator) *clusterObjects {
 	klog.V(3).Info("Generating Cluster Objects")
 	co := &clusterObjects{}
 	labels := map[string]string{
@@ -338,7 +337,7 @@ func generateClusterObjects(o *operatorv1alpha1.Operator) *clusterObjects {
 	co.operatorGroup = og
 
 	// The namespace is 'openshift-operators' when installMode is cluster
-	namespace := fetch.GetOperatorNamespace(o.InstallMode, o.Namespace)
+	namespace := r.GetOperatorNamespace(o.InstallMode, o.Namespace)
 
 	// Subscription Object
 	installPlanApproval := olmv1alpha1.ApprovalAutomatic
@@ -391,7 +390,7 @@ func generateOperatorGroup(namespace string, targetNamespaces []string) *olmv1.O
 func (r *OperandRequestReconciler) checkUninstallLabel(name, namespace string) bool {
 	sub := &olmv1alpha1.Subscription{}
 	subKey := types.NamespacedName{Name: name, Namespace: namespace}
-	if err := r.Get(context.TODO(), subKey, sub); err != nil {
+	if err := r.Reader.Get(context.TODO(), subKey, sub); err != nil {
 		klog.Warning("failed to get subscription: ", err)
 		return true
 	}

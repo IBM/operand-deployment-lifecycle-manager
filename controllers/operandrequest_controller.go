@@ -30,7 +30,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -45,15 +44,14 @@ import (
 	nssv1 "github.com/IBM/ibm-namespace-scope-operator/api/v1"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
-	fetch "github.com/IBM/operand-deployment-lifecycle-manager/controllers/common"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
+	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/deploy"
 	util "github.com/IBM/operand-deployment-lifecycle-manager/controllers/util"
 )
 
 // OperandRequestReconciler reconciles a OperandRequest object
 type OperandRequestReconciler struct {
-	client.Client
-	Config   *rest.Config
+	*deploy.ODLMManager
 	Recorder record.EventRecorder
 	Scheme   *runtime.Scheme
 }
@@ -71,7 +69,7 @@ type clusterObjects struct {
 func (r *OperandRequestReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// Fetch the OperandRequest instance
 	requestInstance := &operatorv1alpha1.OperandRequest{}
-	if err := r.Get(context.TODO(), req.NamespacedName, requestInstance); err != nil {
+	if err := r.Reader.Get(context.TODO(), req.NamespacedName, requestInstance); err != nil {
 		// Error reading the object - requeue the request.
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -173,7 +171,7 @@ func (r *OperandRequestReconciler) UpdateNamespaceScope(namespacedName types.Nam
 	}
 	nsScope := &nssv1.NamespaceScope{}
 	nsScopeKey := types.NamespacedName{Name: constant.NamespaceScopeCrName, Namespace: util.GetOperatorNamespace()}
-	if err := r.Get(context.TODO(), nsScopeKey, nsScope); err != nil {
+	if err := r.Reader.Get(context.TODO(), nsScopeKey, nsScope); err != nil {
 		if errors.IsNotFound(err) {
 			klog.V(2).Infof("Not found NamespaceScope CR %s, ignore update it.", nsScopeKey.String())
 			return nil
@@ -182,7 +180,7 @@ func (r *OperandRequestReconciler) UpdateNamespaceScope(namespacedName types.Nam
 	}
 	var nsMems []string
 
-	opreqList, err := fetch.FetchAllOperandRequests(r.Client, nil)
+	opreqList, err := r.FetchAllOperandRequests(nil)
 
 	if err != nil {
 		klog.Errorf("failed to list OperandRequest: %v", err)
@@ -241,7 +239,7 @@ func (r *OperandRequestReconciler) checkFinalizer(requestInstance *operatorv1alp
 		client.MatchingLabels(map[string]string{constant.OpreqLabel: "true"}),
 	}
 
-	if err := r.List(context.TODO(), existingSub, opts...); err != nil {
+	if err := r.Reader.List(context.TODO(), existingSub, opts...); err != nil {
 		return err
 	}
 	if len(existingSub.Items) == 0 {
@@ -328,7 +326,7 @@ func (r *OperandRequestReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 func (r *OperandRequestReconciler) updateOperandRequestStatus(newRequestInstance *operatorv1alpha1.OperandRequest) error {
 	err := wait.PollImmediate(time.Millisecond*250, time.Second*5, func() (bool, error) {
-		existingRequestInstance, err := fetch.FetchOperandRequest(r.Client, types.NamespacedName{Name: newRequestInstance.Name, Namespace: newRequestInstance.Namespace})
+		existingRequestInstance, err := r.FetchOperandRequest(types.NamespacedName{Name: newRequestInstance.Name, Namespace: newRequestInstance.Namespace})
 		if err != nil {
 			klog.Errorf("failed to fetch the existing OperandRequest: %v", err)
 			return false, err

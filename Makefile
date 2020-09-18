@@ -122,10 +122,10 @@ run: generate code-fmt code-vet manifests ## Run against the configured Kubernet
 	OPERATOR_NAMESPACE="ibm-common-services" INSTALL_SCOPE="namespaced" go run ./main.go -v=2
 
 install: manifests kustomize ## Install CRDs into a cluster
-	$(KUSTOMIZE) build config/crd | kubectl apply -f -
+	$(KUSTOMIZE) build config/devinstall | kubectl apply -f -
 
 uninstall: manifests kustomize ## Uninstall CRDs from a cluster
-	$(KUSTOMIZE) build config/crd | kubectl delete -f -
+	$(KUSTOMIZE) build config/devinstall | kubectl delete -f -
 
 deploy: manifests kustomize ## Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 	cd config/manager && $(KUSTOMIZE) edit set image quay.io/opencloudio/odlm=$(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_VERSION)
@@ -157,7 +157,6 @@ test: ## Run unit test on prow
 	|| curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/master/hack/setup-envtest.sh
 	@test -d ${ENVTEST_ASSETS_DIR}/crds || make fetch-olm-crds
 	@source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test ./controllers/... -coverprofile cover.out
-	@rm -rf ${ENVTEST_ASSETS_DIR}
 
 
 unit-test: generate code-fmt code-vet manifests ## Run unit test
@@ -170,7 +169,6 @@ coverage: ## Run code coverage test
 	|| curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/master/hack/setup-envtest.sh
 	@test -d ${ENVTEST_ASSETS_DIR}/crds || make fetch-olm-crds
 	@source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); common/scripts/codecov.sh ${BUILD_LOCALLY} "controllers"
-	@rm -rf ${ENVTEST_ASSETS_DIR}
 
 scorecard: operator-sdk ## Run scorecard test
 	@echo ... Running the scorecard test
