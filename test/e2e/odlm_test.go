@@ -131,8 +131,9 @@ var _ = Describe("Testing ODLM", func() {
 			Expect(bi).ToNot(BeNil())
 
 			By("Wait the OperandBindInfo is completed")
-			_, err = waitBindInfoStatus(operatorv1alpha1.BindInfoCompleted, OperatorNamespace)
+			bi, err = waitBindInfoStatus(operatorv1alpha1.BindInfoCompleted, OperatorNamespace)
 			Expect(err).ToNot(HaveOccurred())
+			Expect(bi).ToNot(BeNil())
 
 			By("Wait the OperandRegistry is running")
 			reg, err = waitRegistryStatus(operatorv1alpha1.RegistryRunning)
@@ -157,8 +158,9 @@ var _ = Describe("Testing ODLM", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(reg.Status.OperatorsStatus["jenkins"].ReconcileRequests)).Should(Equal(2))
 
-			_, err = waitBindInfoStatus(operatorv1alpha1.BindInfoCompleted, OperatorNamespace)
+			bi, err = waitBindInfoStatus(operatorv1alpha1.BindInfoCompleted, OperatorNamespace)
 			Expect(err).ToNot(HaveOccurred())
+			Expect(bi).ToNot(BeNil())
 
 			// Check if the secret and configmap are copied
 			By("Check if the secret and configmap are copied")

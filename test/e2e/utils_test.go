@@ -17,6 +17,8 @@
 package e2e
 
 import (
+	"strings"
+
 	etcdv1beta2 "github.com/coreos/etcd-operator/pkg/apis/etcd/v1beta2"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -30,6 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	kbtestutils "sigs.k8s.io/kubebuilder/test/e2e/utils"
 
 	apiv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
 )
@@ -89,4 +92,14 @@ func tearDownSuite() {
 	By("tearing down the test environment")
 	err := testEnv.Stop()
 	Expect(err).ToNot(HaveOccurred())
+}
+
+// isRunningOnKind returns true when the tests are executed in a Kind Cluster
+func isRunningOnKind() bool {
+	testContext, err := kbtestutils.NewTestContext("operand-deployment-lifecycle-mamanger", "GO111MODULE=on")
+	Expect(err).NotTo(HaveOccurred())
+	Expect(testContext.Prepare()).To(Succeed())
+	kubectx, err := testContext.Kubectl.Command("config", "current-context")
+	Expect(err).NotTo(HaveOccurred())
+	return strings.Contains(kubectx, "kind")
 }

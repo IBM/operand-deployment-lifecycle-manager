@@ -20,8 +20,11 @@ OPERATOR_SDK ?= $(shell which operator-sdk)
 CONTROLLER_GEN ?= $(shell which controller-gen)
 KUSTOMIZE ?= $(shell which kustomize)
 OPM ?= $(shell which opm)
+KIND ?= $(shell which kind)
 
 ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
+
+
 
 # Specify whether this repo is build locally or not, default values is '1';
 # If set to 1, then you need to also set 'DOCKER_USERNAME' and 'DOCKER_PASSWORD'
@@ -75,6 +78,8 @@ OPERATOR_IMAGE_NAME ?= odlm
 BUNDLE_IMAGE_NAME ?= odlm-operator-bundle
 # Current Operator version
 OPERATOR_VERSION ?= 1.5.0
+# Kind cluster name
+KIND_CLUSTER_NAME ?= "ODLM"
 
 # Options for 'bundle-build'
 ifneq ($(origin CHANNELS), undefined)
@@ -163,6 +168,11 @@ test: ## Run unit test on prow
 unit-test: generate code-fmt code-vet manifests ## Run unit test
 	@make test
 
+e2e-test:
+	@go test ./test/e2e/...
+
+e2e-test-kind: kind-start kind-load-img deploy e2e-test kind-delete
+
 coverage: ## Run code coverage test
 	@echo "Running unit tests for the controllers."
 	@mkdir -p ${ENVTEST_ASSETS_DIR}
@@ -175,6 +185,24 @@ coverage: ## Run code coverage test
 scorecard: operator-sdk ## Run scorecard test
 	@echo ... Running the scorecard test
 	- $(OPERATOR_SDK) scorecard bundle --verbose
+
+kind-install:
+	@common/scripts/install-kind.sh
+
+kind-start: kind-install
+	@${KIND} get clusters | grep $(KIND_CLUSTER_NAME)  >/dev/null 2>&1 && \
+	echo "KIND Cluster already exists" && exit 0 || \
+	echo "Creating KIND Cluster" && \
+	${KIND} create cluster --name ${KIND_CLUSTER_NAME} --config=./common/config/kind-config.yaml && \
+	common/scripts/install-olm.sh 0.15.1
+
+
+kind-delete:
+	@${KIND} delete cluster --name ${KIND_CLUSTER_NAME}
+
+kind-load-img:
+	@docker pull $(IMAGE_REPO)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_VERSION)
+	@${KIND} load docker-image $(IMAGE_REPO)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_VERSION) --name ${KIND_CLUSTER_NAME} -v 5
 
 ##@ Build
 
