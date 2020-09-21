@@ -37,7 +37,9 @@ func TestODLME2E(t *testing.T) {
 
 var _ = BeforeSuite(func(done Done) {
 
+	// Initialize the test suite
 	initSuite()
+
 	// End your controllers test logic
 	By("Creating the Namespace for the first OperandRequest")
 	createTestNamespace(OperandRequestNamespace1)
@@ -47,6 +49,7 @@ var _ = BeforeSuite(func(done Done) {
 	createTestNamespace(OperandRegistryNamespace)
 	By("Creating the Namespace for Operators")
 	createTestNamespace(OperatorNamespace)
+
 	close(done)
 
 }, 600)
@@ -62,5 +65,6 @@ var _ = AfterSuite(func() {
 	By("Delete the Namespace for Operators")
 	deleteTestNamespace(OperatorNamespace)
 
+	// Close the test suite
 	tearDownSuite()
 }, 1200)

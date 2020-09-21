@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	. "github.com/onsi/gomega"
+	olmv1 "github.com/operator-framework/api/pkg/operators/v1"
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -30,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
 )
@@ -91,6 +93,7 @@ func retrieveOperandRquest(obj runtime.Object, ns string) error {
 	return nil
 }
 
+// deleteOperandRequest is used to delete the OperandRequest
 func deleteOperandRequest(req *v1alpha1.OperandRequest) error {
 	fmt.Println("--- DELETE: OperandRequest Instance")
 	// Delete OperandRequest instance
@@ -111,6 +114,7 @@ func deleteOperandRequest(req *v1alpha1.OperandRequest) error {
 	return nil
 }
 
+// absentOperandFromRequest disables an Operand from the OperandRequest
 func absentOperandFromRequest(ns, opName string) (*v1alpha1.OperandRequest, error) {
 	fmt.Println("--- ABSENT: Operator and Operand")
 	// Delete the last operator and related operand
@@ -145,6 +149,7 @@ func absentOperandFromRequest(ns, opName string) (*v1alpha1.OperandRequest, erro
 	return req, nil
 }
 
+// presentOperandFromRequest enables an Operand from the OperandRequest
 func presentOperandFromRequest(ns, opName string) (*v1alpha1.OperandRequest, error) {
 	fmt.Println("--- PRESENT: Operator and Operand")
 	// Add an operator and related operand
@@ -326,7 +331,12 @@ func deleteOperandConfig(ci *v1alpha1.OperandConfig) error {
 func createOperandRegistry(ns, OperatorNamespace string) (*v1alpha1.OperandRegistry, error) {
 	// Create OperandRegistry instance
 	fmt.Println("--- CREATE: OperandRegistry Instance")
-	ri := newOperandRegistryCR(OperandRegistryCrName, ns, OperatorNamespace)
+	var ri *v1alpha1.OperandRegistry
+	if isRunningOnKind() {
+		ri = newOperandRegistryCRforKind(OperandRegistryCrName, ns, OperatorNamespace)
+	} else {
+		ri = newOperandRegistryCR(OperandRegistryCrName, ns, OperatorNamespace)
+	}
 	err := k8sClient.Create(context.TODO(), ri)
 	if err != nil {
 		return nil, err
@@ -365,6 +375,38 @@ func updateEtcdChannel(ns string) error {
 		if err := k8sClient.Update(context.TODO(), reg); err != nil {
 			fmt.Println("    --- Waiting for OperandRegistry instance stable ...")
 			return false, nil
+		}
+		return true, nil
+	}); err != nil {
+		return err
+	}
+	if err := checkNameSpaceandOperatorGroup("openshift-operators"); err != nil {
+		return err
+	}
+	return nil
+}
+
+//checkNameSpaceandOperatorGroup makes
+func checkNameSpaceandOperatorGroup(ns string) error {
+	if err := wait.PollImmediate(WaitForRetry, WaitForTimeout, func() (done bool, err error) {
+		createTestNamespace(ns)
+		existOG := &olmv1.OperatorGroupList{}
+		if err := k8sClient.List(context.TODO(), existOG, &client.ListOptions{Namespace: ns}); err != nil {
+			return false, err
+		}
+		if len(existOG.Items) == 0 {
+			og := &olmv1.OperatorGroup{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "olm",
+					Namespace: ns,
+				},
+				Spec: olmv1.OperatorGroupSpec{
+					TargetNamespaces: []string{},
+				},
+			}
+			if err := k8sClient.Create(context.TODO(), og); err != nil && !errors.IsAlreadyExists(err) {
+				return false, err
+			}
 		}
 		return true, nil
 	}); err != nil {
@@ -617,6 +659,37 @@ func newOperandRegistryCR(name, namespace, OperatorNamespace string) *v1alpha1.O
 					Namespace:       OperatorNamespace,
 					SourceName:      "community-operators",
 					SourceNamespace: "openshift-marketplace",
+					PackageName:     "jenkins-operator",
+					Channel:         "alpha",
+				},
+			},
+		},
+	}
+}
+
+// newOperandConfigCRforKind is return an OperandRegistry CR object
+func newOperandRegistryCRforKind(name, namespace, OperatorNamespace string) *v1alpha1.OperandRegistry {
+	return &v1alpha1.OperandRegistry{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: v1alpha1.OperandRegistrySpec{
+			Operators: []v1alpha1.Operator{
+				{
+					Name:            "etcd",
+					Namespace:       OperatorNamespace,
+					SourceName:      "operatorhubio-catalog",
+					SourceNamespace: "olm",
+					PackageName:     "etcd",
+					Channel:         "singlenamespace-alpha",
+					Scope:           v1alpha1.ScopePublic,
+				},
+				{
+					Name:            "jenkins",
+					Namespace:       OperatorNamespace,
+					SourceName:      "operatorhubio-catalog",
+					SourceNamespace: "olm",
 					PackageName:     "jenkins-operator",
 					Channel:         "alpha",
 				},
