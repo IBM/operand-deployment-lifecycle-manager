@@ -49,7 +49,7 @@ oc -n openshift-marketplace get operatorsource opencloud-operators -o jsonpath="
 The output is a list of operators
 
 ```yaml
-ibm-monitoring-prometheusext-operator-app,ibm-meta-operator-bridge-app,cp4foobar-operator-app,ibm-cert-manager-operator-app,ibm-management-ingress-operator-app,ibm-mgmt-repo-operator-app,ibm-platform-api-operator-app,ibm-ingress-nginx-operator-app,ibm-commonui-operator-app-test,ibm-auditlogging-operator-app,ibm-commonui-operator-app,operand-deployment-lifecycle-manager-app,ibm-healthcheck-operator-app,ibm-monitoring-exporters-operator-app,ibm-iam-operator-app,ibm-mongodb-operator-app,ibm-monitoring-grafana-operator-app,ibm-metering-operator-app,ibm-helm-repo-operator-app,ibm-helm-api-operator-app,ibm-catalog-ui-operator-app,ibm-licensing-operator-app,ibm-elastic-stack-operator-app
+ibm-monitoring-prometheusext-operator-app,ibm-meta-operator-bridge-app,cp4foobar-operator-app,ibm-cert-manager-operator-app,ibm-management-ingress-operator-app,ibm-mgmt-repo-operator-app,ibm-platform-api-operator-app,ibm-ingress-nginx-operator-app,ibm-commonui-operator-app-test,ibm-auditlogging-operator-app,ibm-commonui-operator-app,ibm-odlm,ibm-healthcheck-operator-app,ibm-monitoring-exporters-operator-app,ibm-iam-operator-app,ibm-mongodb-operator-app,ibm-monitoring-grafana-operator-app,ibm-metering-operator-app,ibm-helm-repo-operator-app,ibm-helm-api-operator-app,ibm-catalog-ui-operator-app,ibm-licensing-operator-app,ibm-elastic-stack-operator-app
 ```
 
 **Note:** During development, if you need to update the csv package frequently, but the operator source needs a long time to sync the new package, you can delete the catalog source to trigger a reload. Then the new packages will be updated immediately.
