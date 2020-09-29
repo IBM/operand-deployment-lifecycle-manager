@@ -137,7 +137,7 @@ generate: controller-gen ## Generate code e.g. API etc.
 
 bundle-manifests:
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle \
-	-q --overwrite --version $(OPERATOR_VERSION) $(BUNDLE_METADATA_OPTS)
+	-q --overwrite --version $(OPERATOR_VERSION) $(BUNDLE_METADATA_OPTS) --package ibm-odlm
 	$(OPERATOR_SDK) bundle validate ./bundle
 
 package-manifests:
