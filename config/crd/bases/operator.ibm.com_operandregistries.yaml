@@ -155,7 +155,7 @@ spec:
                     description: Phase is the state of operator
                     type: string
                   reconcileRequests:
-                    description: RecondileRequests store the namespace/name of all
+                    description: ReconcileRequests store the namespace/name of all
                       the requests
                     items:
                       description: ReconcileRequest records the information of the

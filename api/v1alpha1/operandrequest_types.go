@@ -22,6 +22,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -58,6 +59,19 @@ type Operand struct {
 	// The bindings section is used to specify names of secret and/or configmap.
 	// +optional
 	Bindings map[string]SecretConfigmap `json:"bindings,omitempty"`
+	// Kind is used when users want to deploy multiple custom resources
+	// Kind identifies the kind of the custom resource
+	// +optional
+	Kind string `json:"kind,omitempty"`
+	// InstanceName is used when users want to deploy multiple custom resources
+	// It is the name of the custom resource
+	// +optional
+	InstanceName string `json:"instanceName,omitempty"`
+	// Spec is used when users want to deploy multiple custom resources
+	// It is the configuration map of custom resource
+	// +nullable
+	// +optional
+	Spec runtime.RawExtension `json:"spec,omitempty"`
 }
 
 // ConditionType is the condition of a service
@@ -145,12 +159,25 @@ type OperandRequestStatus struct {
 
 // MemberPhase show the phase of the operator and operator instance
 type MemberPhase struct {
-	// OperatorPhase show the deploy phase of the operator
+	// OperatorPhase shows the deploy phase of the operator
 	// +optional
 	OperatorPhase OperatorPhase `json:"operatorPhase,omitempty"`
-	// OperandPhase show the deploy phase of the operator instance
+	// OperandPhase shows the deploy phase of the operator instance
 	// +optional
 	OperandPhase ServicePhase `json:"operandPhase,omitempty"`
+}
+
+// OperandCRMember defines a custom resource created by OperandRequest
+type OperandCRMember struct {
+	// Name is the name of the custom resource
+	// +optional
+	Name string `json:"name,omitempty"`
+	// Kind is the kind of the custom resource
+	// +optional
+	Kind string `json:"kind,omitempty"`
+	// APIVersion is the APIVersion of the custom resource
+	// +optional
+	APIVersion string `json:"apiVersion,omitempty"`
 }
 
 // MemberStatus show if the Operator is ready
@@ -160,6 +187,9 @@ type MemberStatus struct {
 	// The operand phase include None, Creating, Running, Failed
 	// +optional
 	Phase MemberPhase `json:"phase,omitempty"`
+	// OperandCRList shows the list of custom resource created by OperandRequest
+	// +optional
+	OperandCRList []OperandCRMember `json:"operandCRList,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -278,6 +308,32 @@ func (r *OperandRequest) SetMemberStatus(name string, operatorPhase OperatorPhas
 	}
 }
 
+// SetMemberCRStatus appends a Member CR in the Member status list
+func (r *OperandRequest) SetMemberCRStatus(name, CRName, CRKind, CRAPIVersion string) {
+	pos, m := getMemberStatus(&r.Status, name)
+	if m != nil {
+		for _, OperandCR := range r.Status.Members[pos].OperandCRList {
+			if OperandCR.Kind == CRKind && OperandCR.Name == CRName {
+				return
+			}
+		}
+		r.Status.Members[pos].OperandCRList = append(r.Status.Members[pos].OperandCRList, OperandCRMember{APIVersion: CRAPIVersion, Kind: CRKind, Name: CRName})
+	}
+}
+
+// RemoveMemberCRStatus remove a Member CR in the Member status list
+func (r *OperandRequest) RemoveMemberCRStatus(name, CRName, CRKind string) {
+	pos, m := getMemberStatus(&r.Status, name)
+	if m != nil {
+		for index, OperandCR := range r.Status.Members[pos].OperandCRList {
+			if OperandCR.Kind == CRKind && OperandCR.Name == CRName {
+				r.Status.Members[pos].OperandCRList = append(r.Status.Members[pos].OperandCRList[:index], r.Status.Members[pos].OperandCRList[index+1:]...)
+			}
+		}
+
+	}
+}
+
 func (r *OperandRequest) setOperatorReadyCondition(m *MemberStatus, name string) {
 	if m.Phase.OperatorPhase == OperatorRunning {
 		r.SetReadyCondition(name, ResourceTypeOperator, corev1.ConditionTrue)
@@ -369,8 +425,6 @@ func (r *OperandRequest) UpdateClusterPhase() {
 		}
 
 		switch m.Phase.OperandPhase {
-		case ServiceNotReady:
-			clusterStatusStat.creatingNum++
 		case ServiceRunning:
 			clusterStatusStat.runningNum++
 		case ServiceFailed:

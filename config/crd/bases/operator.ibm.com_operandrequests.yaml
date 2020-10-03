@@ -59,7 +59,7 @@ spec:
                     description: Description is an optional description for the request
                     type: string
                   operands:
-                    description: Operands deines a list of the OperandRegistry entry
+                    description: Operands defines a list of the OperandRegistry entry
                       for the operand to be deployed
                     items:
                       description: Operand defines the name and binding information
@@ -83,9 +83,25 @@ spec:
                           description: The bindings section is used to specify names
                             of secret and/or configmap.
                           type: object
+                        instanceName:
+                          description: InstanceName is used when users want to deploy
+                            multiple custom resources It is the name of the custom
+                            resource
+                          type: string
+                        kind:
+                          description: Kind is used when users want to deploy multiple
+                            custom resources Kind identifies the kind of the custom
+                            resource
+                          type: string
                         name:
                           description: Name of the operand to be deployed
                           type: string
+                        spec:
+                          description: Spec is used when users want to deploy multiple
+                            custom resources It is the configuration map of custom
+                            resource
+                          nullable: true
+                          type: object
                       required:
                       - name
                       type: object
@@ -150,16 +166,35 @@ spec:
                     description: The member name are the same as the subscription
                       name
                     type: string
+                  operandCRList:
+                    description: OperandCRList shows the list of custom resource created
+                      by OperandRequest
+                    items:
+                      description: OperandCRMember defines a custom resource created
+                        by OperandRequest
+                      properties:
+                        apiVersion:
+                          description: APIVersion is the APIVersion of the custom
+                            resource
+                          type: string
+                        kind:
+                          description: Kind is the kind of the custom resource
+                          type: string
+                        name:
+                          description: Name is the name of the custom resource
+                          type: string
+                      type: object
+                    type: array
                   phase:
                     description: The operand phase include None, Creating, Running,
                       Failed
                     properties:
                       operandPhase:
-                        description: OperandPhase show the deploy phase of the operator
+                        description: OperandPhase shows the deploy phase of the operator
                           instance
                         type: string
                       operatorPhase:
-                        description: OperatorPhase show the deploy phase of the operator
+                        description: OperatorPhase shows the deploy phase of the operator
                         type: string
                     type: object
                 required:

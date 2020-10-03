@@ -54,6 +54,11 @@ func (r *OperandRequestReconciler) reconcileOperand(requestKey types.NamespacedN
 		}
 	}()
 
+	if err := r.checkCustomResource(requestInstance); err != nil {
+		klog.Error(err)
+		merr.Add(err)
+		return merr
+	}
 	for _, req := range requestInstance.Spec.Requests {
 		registryKey := requestInstance.GetRegistryKey(req)
 		configInstance, err := fetch.FetchOperandConfig(r.Client, registryKey)
@@ -70,27 +75,34 @@ func (r *OperandRequestReconciler) reconcileOperand(requestKey types.NamespacedN
 		}
 		for _, operand := range req.Operands {
 
-			// Check the requested Service Config if exist in specific OperandConfig
-			opdConfig := configInstance.GetService(operand.Name)
-			if opdConfig == nil {
-				klog.Warningf("Cannot find %s in the operandconfig instance %s in the namespace %s ", operand.Name, req.Registry, req.RegistryNamespace)
-				continue
+			var opdConfig *operatorv1alpha1.ConfigService
+
+			if operand.Kind == "" {
+				// Check the requested Service Config if exist in specific OperandConfig
+				opdConfig = configInstance.GetService(operand.Name)
+				if opdConfig == nil {
+					klog.Warningf("Cannot find %s in the operandconfig instance %s in the namespace %s ", operand.Name, req.Registry, req.RegistryNamespace)
+					continue
+				}
 			}
+
 			opdRegistry := registryInstance.GetOperator(operand.Name)
 			if opdRegistry == nil {
 				klog.Warningf("Cannot find %s in the operandregistry instance %s in the namespace %s ", operand.Name, req.Registry, req.RegistryNamespace)
 				continue
 			}
 
-			klog.V(3).Info("Looking for csv for the operator: ", opdConfig.Name)
+			operatorName := opdRegistry.Name
+
+			klog.V(3).Info("Looking for csv for the operator: ", operatorName)
 
 			// Looking for the CSV
 			namespace := fetch.GetOperatorNamespace(opdRegistry.InstallMode, opdRegistry.Namespace)
 
-			sub, err := fetch.FetchSubscription(r.Client, opdConfig.Name, namespace, opdRegistry.PackageName)
+			sub, err := fetch.FetchSubscription(r.Client, operatorName, namespace, opdRegistry.PackageName)
 
 			if errors.IsNotFound(err) {
-				klog.V(2).Infof("There is no Subscription %s or %s in the namespace %s", opdConfig.Name, opdRegistry.PackageName, namespace)
+				klog.V(2).Infof("There is no Subscription %s or %s in the namespace %s", operatorName, opdRegistry.PackageName, namespace)
 				continue
 			}
 
@@ -103,26 +115,26 @@ func (r *OperandRequestReconciler) reconcileOperand(requestKey types.NamespacedN
 
 			// If can't get CSV, requeue the request
 			if err != nil {
-				klog.Errorf("failed to get the ClusterServiceVersion for the Subscription %s in the namespace %s: %s", opdConfig.Name, namespace, err)
+				klog.Errorf("failed to get the ClusterServiceVersion for the Subscription %s in the namespace %s: %s", operatorName, namespace, err)
 				merr.Add(err)
 				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "")
 				continue
 			}
 
 			if csv == nil {
-				klog.Warningf("ClusterServiceVersion for the Subscription %s in the namespace %s is not ready yet, retry", opdConfig.Name, namespace)
+				klog.Warningf("ClusterServiceVersion for the Subscription %s in the namespace %s is not ready yet, retry", operatorName, namespace)
 				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorInstalling, "")
 				continue
 			}
 
 			if csv.Status.Phase == olmv1alpha1.CSVPhaseFailed {
-				klog.Errorf("the ClusterServiceVersion for Subscription %s is Failed", opdConfig.Name)
-				merr.Add(fmt.Errorf("the ClusterServiceVersion for Subscription %s is Failed", opdConfig.Name))
+				klog.Errorf("the ClusterServiceVersion for Subscription %s is Failed", operatorName)
+				merr.Add(fmt.Errorf("the ClusterServiceVersion for Subscription %s is Failed", operatorName))
 				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "")
 				continue
 			}
 			if csv.Status.Phase != olmv1alpha1.CSVPhaseSucceeded {
-				klog.Errorf("the ClusterServiceVersion for Subscription %s is not Ready", opdConfig.Name)
+				klog.Errorf("the ClusterServiceVersion for Subscription %s is not Ready", operatorName)
 				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorInstalling, "")
 			}
 
@@ -130,7 +142,12 @@ func (r *OperandRequestReconciler) reconcileOperand(requestKey types.NamespacedN
 			requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorRunning, "")
 
 			// Merge and Generate CR
-			err = r.reconcileCr(opdConfig, opdRegistry.Namespace, csv)
+			if operand.Kind == "" {
+				err = r.reconcileCRwithConfig(opdConfig, opdRegistry.Namespace, csv)
+			} else {
+				err = r.reconcileCRwithRequest(requestInstance, operand, requestKey, csv)
+			}
+
 			if err != nil {
 				klog.Error("failed to get create or update customresource: ", err)
 				merr.Add(err)
@@ -146,8 +163,8 @@ func (r *OperandRequestReconciler) reconcileOperand(requestKey types.NamespacedN
 	return &util.MultiErr{}
 }
 
-// reconcileCr merge and create custom resource base on OperandConfig and CSV alm-examples
-func (r *OperandRequestReconciler) reconcileCr(service *operatorv1alpha1.ConfigService, namespace string, csv *olmv1alpha1.ClusterServiceVersion) error {
+// reconcileCRwithConfig merge and create custom resource base on OperandConfig and CSV alm-examples
+func (r *OperandRequestReconciler) reconcileCRwithConfig(service *operatorv1alpha1.ConfigService, namespace string, csv *olmv1alpha1.ClusterServiceVersion) error {
 	almExamples := csv.ObjectMeta.Annotations["alm-examples"]
 
 	// Create a slice for crTemplates
@@ -204,8 +221,117 @@ func (r *OperandRequestReconciler) reconcileCr(service *operatorv1alpha1.ConfigS
 	return nil
 }
 
+// reconcileCRwithRequest merge and create custom resource base on OperandRequest and CSV alm-examples
+func (r *OperandRequestReconciler) reconcileCRwithRequest(requestInstance *operatorv1alpha1.OperandRequest, operand operatorv1alpha1.Operand, requestKey types.NamespacedName, csv *olmv1alpha1.ClusterServiceVersion) error {
+	almExamples := csv.ObjectMeta.Annotations["alm-examples"]
+
+	// Create a slice for crTemplates
+	var crTemplates []interface{}
+
+	// Convert CR template string to slice
+	crTemplatesErr := json.Unmarshal([]byte(almExamples), &crTemplates)
+	if crTemplatesErr != nil {
+		klog.Errorf("failed to convert alm-examples in the Subscription %s to slice: %s", operand.Name, crTemplatesErr)
+		return crTemplatesErr
+	}
+
+	merr := &util.MultiErr{}
+
+	// Merge OperandConfig and ClusterServiceVersion alm-examples
+	var found bool
+	for _, crTemplate := range crTemplates {
+
+		// Create an unstruct object for CR and request its value to CR template
+		var unstruct unstructured.Unstructured
+
+		unstruct.Object = crTemplate.(map[string]interface{})
+
+		if unstruct.Object["kind"].(string) != operand.Kind {
+			continue
+		}
+
+		found = true
+		var name string
+		if operand.InstanceName == "" {
+			name = requestKey.Name
+		} else {
+			name = operand.InstanceName
+		}
+
+		unstruct.Object["metadata"].(map[string]interface{})["name"] = name
+		unstruct.Object["metadata"].(map[string]interface{})["namespace"] = requestKey.Namespace
+
+		err := r.Get(context.TODO(), types.NamespacedName{
+			Name:      name,
+			Namespace: requestKey.Namespace,
+		}, &unstruct)
+
+		if err != nil && !errors.IsNotFound(err) {
+			klog.Error("failed to get the custom resource should be deleted with name: ", name, err)
+			merr.Add(err)
+			continue
+		} else if errors.IsNotFound(err) {
+			// Create Custom resource
+			if err := r.createCustomResource(unstruct, requestKey.Namespace, operand.Kind, operand.Spec.Raw); err != nil {
+				merr.Add(err)
+				continue
+			}
+			requestInstance.SetMemberCRStatus(operand.Name, name, operand.Kind, unstruct.Object["apiVersion"].(string))
+		} else {
+			if checkLabel(unstruct, map[string]string{constant.OpreqLabel: "true"}) {
+				// Update or Delete Custom resource
+				klog.V(3).Info("Found OperandConfig spec for custom resource: " + operand.Kind)
+				if err := r.updateCustomResource(unstruct, requestKey.Namespace, operand.Kind, operand.Spec.Raw); err != nil {
+					klog.Error("failed to create custom resource: ", err)
+					return err
+				}
+			} else {
+				klog.V(2).Info("Skip the custom resource not created by ODLM")
+			}
+		}
+	}
+	if !found {
+		klog.Errorf("not found CRD with Kind %s in the alm-example", operand.Kind)
+	}
+	if len(merr.Errors) != 0 {
+		return merr
+	}
+	return nil
+}
+
 // deleteAllCustomResource remove custom resource base on OperandConfig and CSV alm-examples
-func (r *OperandRequestReconciler) deleteAllCustomResource(csv *olmv1alpha1.ClusterServiceVersion, csc *operatorv1alpha1.OperandConfig, operandName, namespace string) error {
+func (r *OperandRequestReconciler) deleteAllCustomResource(csv *olmv1alpha1.ClusterServiceVersion, requestInstance *operatorv1alpha1.OperandRequest, csc *operatorv1alpha1.OperandConfig, operandName, namespace string) error {
+
+	customeResourceMap := make(map[string]operatorv1alpha1.OperandCRMember)
+	for _, member := range requestInstance.Status.Members {
+		if len(member.OperandCRList) != 0 {
+			for _, cr := range member.OperandCRList {
+				customeResourceMap[member.Name+"/"+cr.Kind+"/"+cr.Name] = cr
+			}
+		}
+	}
+
+	merr := &util.MultiErr{}
+	for index, opdMember := range customeResourceMap {
+		crShouldBeDeleted := unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"apiVersion": opdMember.APIVersion,
+				"kind":       opdMember.Kind,
+				"metadata": map[string]interface{}{
+					"name": opdMember.Name,
+				},
+			},
+		}
+		if err := r.deleteCustomResource(crShouldBeDeleted, requestInstance.Namespace); err != nil {
+			merr.Add(err)
+		}
+		operatorName := strings.Split(index, "/")[0]
+		requestInstance.RemoveMemberCRStatus(operatorName, opdMember.Name, opdMember.Kind)
+	}
+
+	if len(merr.Errors) != 0 {
+		return merr
+	}
 
 	service := csc.GetService(operandName)
 	if service == nil {
@@ -223,8 +349,6 @@ func (r *OperandRequestReconciler) deleteAllCustomResource(csv *olmv1alpha1.Clus
 		klog.Errorf("failed to convert alm-examples in the Subscription %s to slice: %s", service.Name, crTemplatesErr)
 		return crTemplatesErr
 	}
-
-	merr := &util.MultiErr{}
 
 	// Merge OperandConfig and ClusterServiceVersion alm-examples
 	for _, crTemplate := range crTemplates {
@@ -276,11 +400,11 @@ func (r *OperandRequestReconciler) deleteAllCustomResource(csv *olmv1alpha1.Clus
 func (r *OperandRequestReconciler) compareConfigandExample(unstruct unstructured.Unstructured, service *operatorv1alpha1.ConfigService, namespace string) error {
 	kind := unstruct.Object["kind"].(string)
 
-	for crName, crdConfig := range service.Spec {
+	for crdName, crdConfig := range service.Spec {
 		// Compare the name of OperandConfig and CRD name
-		if strings.EqualFold(kind, crName) {
+		if strings.EqualFold(kind, crdName) {
 			klog.V(3).Info("Found OperandConfig spec for custom resource: " + kind)
-			createErr := r.createCustomResource(unstruct, namespace, crName, crdConfig.Raw)
+			createErr := r.createCustomResource(unstruct, namespace, crdName, crdConfig.Raw)
 			if createErr != nil {
 				klog.Error("failed to create custom resource: ", createErr)
 				return createErr
@@ -479,6 +603,58 @@ func (r *OperandRequestReconciler) deleteCustomResource(unstruct unstructured.Un
 			klog.V(2).Infof("Finish deleting custom resource: %s from custom resource definition: %s", name, kind)
 		}
 	}
+	return nil
+}
+
+func (r *OperandRequestReconciler) checkCustomResource(requestInstance *operatorv1alpha1.OperandRequest) error {
+	klog.V(2).Infof("checking the custom resource should be deleted from OperandRequest %s/%s", requestInstance.Namespace, requestInstance.Name)
+
+	members := requestInstance.Status.Members
+
+	customeResourceMap := make(map[string]operatorv1alpha1.OperandCRMember)
+	for _, member := range members {
+		if len(member.OperandCRList) != 0 {
+			for _, cr := range member.OperandCRList {
+				customeResourceMap[member.Name+"/"+cr.Kind+"/"+cr.Name] = cr
+			}
+		}
+	}
+	for _, req := range requestInstance.Spec.Requests {
+		for _, opd := range req.Operands {
+			if opd.Kind != "" {
+				var name string
+				if opd.InstanceName == "" {
+					name = requestInstance.Name
+				} else {
+					name = opd.InstanceName
+				}
+				delete(customeResourceMap, opd.Name+"/"+opd.Kind+"/"+name)
+			}
+		}
+	}
+
+	merr := &util.MultiErr{}
+	for index, opdMember := range customeResourceMap {
+		crShouldBeDeleted := unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"apiVersion": opdMember.APIVersion,
+				"kind":       opdMember.Kind,
+				"metadata": map[string]interface{}{
+					"name": opdMember.Name,
+				},
+			},
+		}
+		if err := r.deleteCustomResource(crShouldBeDeleted, requestInstance.Namespace); err != nil {
+			merr.Add(err)
+		}
+		operatorName := strings.Split(index, "/")[0]
+		requestInstance.RemoveMemberCRStatus(operatorName, opdMember.Name, opdMember.Kind)
+	}
+
+	if len(merr.Errors) != 0 {
+		return merr
+	}
+
 	return nil
 }
 
