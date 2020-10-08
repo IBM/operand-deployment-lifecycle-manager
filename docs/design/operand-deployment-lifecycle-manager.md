@@ -71,13 +71,13 @@ The Operand (Deployment) Registry Custom Resource (CR) lists OLM Operator inform
 1. `name` of the OperandRegistry
 2. `namespace` of the OperandRegistry
 3. `name` is the name of the operator, which should be the same as the services name in the OperandConfig and OperandRequest.
-4. `namespace` is the namespace where the operator will be deployed.
+4. `namespace` is the namespace where the operator CR will be deployed when InstallMode is `cluster`. Also is the namespace where the operator and operator CR will be deployed when InstallMode is empty or set to `namespace`.
 5. `channel` is the name of OLM channel that is subscribed for the operator.
 6. `packageName` is the name of the package in CatalogSource that is subscribed for the operator.
 7. `scope` is an indicator, either public or private, that dictates whether deployment can be requested from other namespaces (public) or only from the containing names (private). The default is private.
 8. `sourceName` is the name of the CatalogSource.
 9. `sourceNamespace` is the namespace of the CatalogSource.
-10. `installMode` is the install mode of the operator, can be either `namespace` (OLM one namespace) or `cluster` (OLM all namespaces), by default it is `namespace`.
+10. `installMode` is the install mode of the operator, can be either `namespace` (OLM one namespace) or `cluster` (OLM all namespaces), by default it is `namespace`. Operator is deployed in `openshift-operators` namespace when InstallMode is set to `cluster`.
 
 ## OperandConfigs Spec
 
