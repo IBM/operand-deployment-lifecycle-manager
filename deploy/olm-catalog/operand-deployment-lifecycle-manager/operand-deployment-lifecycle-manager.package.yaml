@@ -1,9 +1,9 @@
 channels:
-- currentCSV: operand-deployment-lifecycle-manager.v1.3.1
+- currentCSV: operand-deployment-lifecycle-manager.v1.4.0
   name: beta
-- currentCSV: operand-deployment-lifecycle-manager.v1.3.1
+- currentCSV: operand-deployment-lifecycle-manager.v1.4.0
   name: dev
-- currentCSV: operand-deployment-lifecycle-manager.v1.2.3
+- currentCSV: operand-deployment-lifecycle-manager.v1.3.1
   name: stable-v1
 defaultChannel: stable-v1
 packageName: operand-deployment-lifecycle-manager-app
