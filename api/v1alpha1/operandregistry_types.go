@@ -35,10 +35,14 @@ type Operator struct {
 	// - "public": deployment can be requested from other namespaces;
 	// +optional
 	Scope scope `json:"scope,omitempty"`
-	// The install mode of an operator
+	// The install mode of an operator, either namespace or cluster
+	// Valid values are:
+	// - "namespace" (default): operator is deployed in namespace of OperandRegistry;
+	// - "clsuter": operator is deployed in "openshift-operators" namespace;
 	// +optional
 	InstallMode string `json:"installMode,omitempty"`
-	// The namespace in which operator's operand should be deployed
+	// The namespace in which operator CR should be deployed
+	// Also the namespace in which operator should be deployed when InstallMode is empty or set to "namespace"
 	// +optional
 	Namespace string `json:"namespace,omitempty"`
 	// Name of a CatalogSource that defines where and how to find the channel
