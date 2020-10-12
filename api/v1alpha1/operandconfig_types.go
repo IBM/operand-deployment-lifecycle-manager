@@ -27,8 +27,8 @@ import (
 // OperandConfigSpec defines the desired state of OperandConfig
 type OperandConfigSpec struct {
 	// Services is a list of configuration of service
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Operand Services Config List"
 	// +optional
-	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
 	Services []ConfigService `json:"services,omitempty"`
 }
 
@@ -45,7 +45,7 @@ type ConfigService struct {
 // OperandConfigStatus defines the observed state of OperandConfig
 type OperandConfigStatus struct {
 	// Phase describes the overall phase of operands in the OperandConfig
-	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
+	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="Phase",xDescriptors="urn:alm:descriptor:io.kubernetes.phase"
 	// +optional
 	Phase ServicePhase `json:"phase,omitempty"`
 	// ServiceStatus defines all the status of a operator
@@ -65,7 +65,7 @@ type CrStatus struct {
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=.metadata.creationTimestamp
 // +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=.status.phase,description="Current Phase"
 // +kubebuilder:printcolumn:name="Created At",type=string,JSONPath=.metadata.creationTimestamp
-// +operator-sdk:gen-csv:customresourcedefinitions.displayName="OperandConfig"
+// +operator-sdk:csv:customresourcedefinitions:displayName="OperandConfig"
 type OperandConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

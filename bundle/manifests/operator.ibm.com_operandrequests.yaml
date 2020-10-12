@@ -7,7 +7,7 @@ metadata:
   labels:
     app.kubernetes.io/instance: operand-deployment-lifecycle-manager
     app.kubernetes.io/managed-by: operand-deployment-lifecycle-manager
-    app.kubernetes.io/name: odlm
+    app.kubernetes.io/name: operand-deployment-lifecycle-manager
   name: operandrequests.operator.ibm.com
 spec:
   additionalPrinterColumns:
@@ -30,27 +30,21 @@ spec:
     - opreq
     singular: operandrequest
   scope: Namespaced
-  subresources:
-    status: {}
+  subresources: {}
   validation:
     openAPIV3Schema:
       description: OperandRequest is the Schema for the operandrequests API
       properties:
         apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation
-            of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
           type: string
         kind:
-          description: 'Kind is a string value representing the REST resource this
-            object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
         spec:
-          description: The OperandRequestSpec identifies one or more specific operands
-            (from a specific Registry) that should actually be installed
+          description: The OperandRequestSpec identifies one or more specific operands (from a specific Registry) that should actually be installed
           properties:
             requests:
               description: Requests defines a list of operands installation
@@ -61,29 +55,22 @@ spec:
                     description: Description is an optional description for the request
                     type: string
                   operands:
-                    description: Operands deines a list of the OperandRegistry entry
-                      for the operand to be deployed
+                    description: Operands defines a list of the OperandRegistry entry for the operand to be deployed
                     items:
-                      description: Operand defines the name and binding information
-                        for one operator
+                      description: Operand defines the name and binding information for one operator
                       properties:
                         bindings:
                           additionalProperties:
-                            description: SecretConfigmap is a pair of Secret and/or
-                              Configmap
+                            description: SecretConfigmap is a pair of Secret and/or Configmap
                             properties:
                               configmap:
-                                description: The configmap field identifies a configmap
-                                  object, if any, that should be shared with the adopter/requestor
+                                description: The configmap field identifies a configmap object, if any, that should be shared with the adopter/requestor
                                 type: string
                               secret:
-                                description: The secret field names an existing secret,
-                                  if any, that has been created and holds information
-                                  that is to be shared with the adopter.
+                                description: The secret field names an existing secret, if any, that has been created and holds information that is to be shared with the adopter.
                                 type: string
                             type: object
-                          description: The bindings section is used to specify names
-                            of secret and/or configmap.
+                          description: The bindings section is used to specify names of secret and/or configmap.
                           type: object
                         name:
                           description: Name of the operand to be deployed
@@ -96,9 +83,7 @@ spec:
                     description: Specifies the name in which the OperandRegistry reside.
                     type: string
                   registryNamespace:
-                    description: Specifies the namespace in which the OperandRegistry
-                      reside. The default is the current namespace in which the request
-                      is defined.
+                    description: Specifies the namespace in which the OperandRegistry reside. The default is the current namespace in which the request is defined.
                     type: string
                 required:
                 - operands
@@ -112,22 +97,18 @@ spec:
           description: OperandRequestStatus defines the observed state of OperandRequest
           properties:
             conditions:
-              description: Conditions represents the current state of the Request
-                Service
+              description: Conditions represents the current state of the Request Service
               items:
-                description: Condition represents the current state of the Request
-                  Service A condition might not show up if it is not happening
+                description: Condition represents the current state of the Request Service A condition might not show up if it is not happening
                 properties:
                   lastTransitionTime:
-                    description: Last time the condition transitioned from one status
-                      to another
+                    description: Last time the condition transitioned from one status to another
                     type: string
                   lastUpdateTime:
                     description: The last time this condition was updated
                     type: string
                   message:
-                    description: A human readable message indicating details about
-                      the transition
+                    description: A human readable message indicating details about the transition
                     type: string
                   reason:
                     description: The reason for the condition's last transition
@@ -149,16 +130,13 @@ spec:
                 description: MemberStatus show if the Operator is ready
                 properties:
                   name:
-                    description: The member name are the same as the subscription
-                      name
+                    description: The member name are the same as the subscription name
                     type: string
                   phase:
-                    description: The operand phase include None, Creating, Running,
-                      Failed
+                    description: The operand phase include None, Creating, Running, Failed
                     properties:
                       operandPhase:
-                        description: OperandPhase show the deploy phase of the operator
-                          instance
+                        description: OperandPhase show the deploy phase of the operator instance
                         type: string
                       operatorPhase:
                         description: OperatorPhase show the deploy phase of the operator

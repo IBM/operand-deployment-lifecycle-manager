@@ -85,15 +85,15 @@ const (
 // OperandRegistrySpec defines the desired state of OperandRegistry
 type OperandRegistrySpec struct {
 	// Operators is a list of operator OLM definition
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Operators Registry List"
 	// +optional
-	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
 	Operators []Operator `json:"operators,omitempty"`
 }
 
 // OperandRegistryStatus defines the observed state of OperandRegistry
 type OperandRegistryStatus struct {
 	// Phase describes the overall phase of operators in the OperandRegistry
-	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
+	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="Phase",xDescriptors="urn:alm:descriptor:io.kubernetes.phase"
 	// +optional
 	Phase RegistryPhase `json:"phase,omitempty"`
 	// OperatorsStatus defines operators status and the number of reconcile request
@@ -101,7 +101,7 @@ type OperandRegistryStatus struct {
 	OperatorsStatus map[string]OperatorStatus `json:"operatorsStatus,omitempty"`
 	// Conditions represents the current state of the Request Service
 	// +optional
-	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
+	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="Conditions",xDescriptors="urn:alm:descriptor:io.kubernetes.conditions"
 	Conditions []Condition `json:"conditions,omitempty"`
 }
 
@@ -129,7 +129,7 @@ type ReconcileRequest struct {
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=.metadata.creationTimestamp
 // +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=.status.phase,description="Current Phase"
 // +kubebuilder:printcolumn:name="Created At",type=string,JSONPath=.metadata.creationTimestamp
-// +operator-sdk:gen-csv:customresourcedefinitions.displayName="OperandRegistry"
+// +operator-sdk:csv:customresourcedefinitions:displayName="OperandRegistry"
 
 // OperandRegistry is the Schema for the operandregistries API
 type OperandRegistry struct {

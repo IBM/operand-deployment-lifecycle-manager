@@ -72,7 +72,7 @@ type SecretConfigmap struct {
 // OperandBindInfoStatus defines the observed state of OperandBindInfo
 type OperandBindInfoStatus struct {
 	// Phase describes the overall phase of OperandBindInfo
-	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
+	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="Phase",xDescriptors="urn:alm:descriptor:io.kubernetes.phase"
 	// +optional
 	Phase BindInfoPhase `json:"phase,omitempty"`
 	// RequestNamespaces defines the namespaces of OperandRequest
@@ -89,7 +89,7 @@ type OperandBindInfoStatus struct {
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=.metadata.creationTimestamp
 // +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=.status.phase,description="Current Phase"
 // +kubebuilder:printcolumn:name="Created At",type=string,JSONPath=.metadata.creationTimestamp
-// +operator-sdk:gen-csv:customresourcedefinitions.displayName="OperandBindInfo"
+// +operator-sdk:csv:customresourcedefinitions:displayName="OperandBindInfo"
 type OperandBindInfo struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

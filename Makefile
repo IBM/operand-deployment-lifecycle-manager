@@ -20,6 +20,8 @@ OPERATOR_SDK ?= $(shell which operator-sdk)
 CONTROLLER_GEN ?= $(shell which controller-gen)
 KUSTOMIZE ?= $(shell which kustomize)
 
+ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
+
 # Specify whether this repo is build locally or not, default values is '1';
 # If set to 1, then you need to also set 'DOCKER_USERNAME' and 'DOCKER_PASSWORD'
 # environment variables before build the repo.
@@ -130,7 +132,7 @@ deploy: manifests kustomize ## Deploy controller in the configured Kubernetes cl
 ##@ Generate code and manifests
 
 manifests: controller-gen ## Generate manifests e.g. CRD, RBAC etc.
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=operand-deployment-lifecycle-manager webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
 generate: controller-gen ## Generate code e.g. API etc.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
@@ -160,11 +162,13 @@ generate-all: manifests kustomize operator-sdk ## Generate bundle manifests, met
 ##@ Test
 
 test: ## Run unit test on prow
-	@rm -rf crds
-	- make fetch-olm-crds
 	@echo "Running unit tests for the controllers."
-	@go test ./controllers/... -coverprofile cover.out
-	@rm -rf crds
+	@mkdir -p ${ENVTEST_ASSETS_DIR}
+	@test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh \
+	|| curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/master/hack/setup-envtest.sh
+	@test -d ${ENVTEST_ASSETS_DIR}/crds || make fetch-olm-crds
+	@source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test ./controllers/... -coverprofile cover.out
+
 
 unit-test: generate code-fmt code-vet manifests ## Run unit test
 ifeq (, $(USE_EXISTING_CLUSTER))
@@ -184,7 +188,7 @@ coverage: ## Run code coverage test
 
 scorecard: operator-sdk ## Run scorecard test
 	@echo ... Running the scorecard test
-	- $(OPERATOR_SDK) scorecard --verbose
+	- $(OPERATOR_SDK) scorecard bundle --verbose
 
 ##@ Build
 

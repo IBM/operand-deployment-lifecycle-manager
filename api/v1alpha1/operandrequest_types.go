@@ -32,7 +32,7 @@ import (
 // The OperandRequestSpec identifies one or more specific operands (from a specific Registry) that should actually be installed
 type OperandRequestSpec struct {
 	// Requests defines a list of operands installation
-	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Operators Request List"
 	Requests []Request `json:"requests"`
 }
 
@@ -132,13 +132,13 @@ type Condition struct {
 type OperandRequestStatus struct {
 	// Conditions represents the current state of the Request Service
 	// +optional
-	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
+	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="Conditions",xDescriptors="urn:alm:descriptor:io.kubernetes.conditions"
 	Conditions []Condition `json:"conditions,omitempty"`
 	// Members represnets the current operand status of the set
 	// +optional
 	Members []MemberStatus `json:"members,omitempty"`
 	// Phase is the cluster running phase
-	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
+	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="Phase",xDescriptors="urn:alm:descriptor:io.kubernetes.phase"
 	// +optional
 	Phase ClusterPhase `json:"phase,omitempty"`
 }
@@ -168,7 +168,7 @@ type MemberStatus struct {
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=.metadata.creationTimestamp
 // +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=.status.phase,description="Current Phase"
 // +kubebuilder:printcolumn:name="Created At",type=string,JSONPath=.metadata.creationTimestamp
-// +operator-sdk:gen-csv:customresourcedefinitions.displayName="OperandRequest"
+// +operator-sdk:csv:customresourcedefinitions:displayName="OperandRequest"
 
 // OperandRequest is the Schema for the operandrequests API
 type OperandRequest struct {

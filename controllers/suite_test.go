@@ -71,7 +71,7 @@ var _ = BeforeSuite(func(done Done) {
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
 		UseExistingCluster: UseExistingCluster(),
-		CRDDirectoryPaths:  []string{filepath.Join("..", "config", "crd", "bases"), filepath.Join("..", "crds")},
+		CRDDirectoryPaths:  []string{filepath.Join("..", "config", "crd", "bases"), filepath.Join("..", "testbin", "crds")},
 	}
 
 	var err error

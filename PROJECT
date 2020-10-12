@@ -1,5 +1,6 @@
 domain: ibm.com
 layout: go.kubebuilder.io/v2
+projectName: operand-deployment-lifecycle-manager
 repo: github.com/IBM/operand-deployment-lifecycle-manager
 resources:
 - group: operator
