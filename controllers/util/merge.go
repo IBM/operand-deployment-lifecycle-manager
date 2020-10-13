@@ -25,15 +25,32 @@ import (
 
 // MergeCR deep merge two custom resource spec
 func MergeCR(defaultCR, changedCR []byte) map[string]interface{} {
-	var defaultCRDecoded map[string]interface{}
+	if len(defaultCR) == 0 && len(changedCR) == 0 {
+		return make(map[string]interface{})
+	}
+
+	defaultCRDecoded := make(map[string]interface{})
+	changedCRDecoded := make(map[string]interface{})
+	if len(defaultCR) != 0 && len(changedCR) == 0 {
+		defaultCRUnmarshalErr := json.Unmarshal(defaultCR, &defaultCRDecoded)
+		if defaultCRUnmarshalErr != nil {
+			klog.Error("error unmarshalling CR Template: ", defaultCRUnmarshalErr)
+		}
+		return defaultCRDecoded
+	} else if len(defaultCR) == 0 && len(changedCR) != 0 {
+		changedCRUnmarshalErr := json.Unmarshal(changedCR, &changedCRDecoded)
+		if changedCRUnmarshalErr != nil {
+			klog.Error("error unmarshalling service spec: ", changedCRUnmarshalErr)
+		}
+		return changedCRDecoded
+	}
 	defaultCRUnmarshalErr := json.Unmarshal(defaultCR, &defaultCRDecoded)
 	if defaultCRUnmarshalErr != nil {
 		klog.Error("error unmarshalling CR Template: ", defaultCRUnmarshalErr)
 	}
-	var changedCRDecoded map[string]interface{}
 	changedCRUnmarshalErr := json.Unmarshal(changedCR, &changedCRDecoded)
 	if changedCRUnmarshalErr != nil {
-		klog.Error("error unmarshalling OperandConfig service spec: ", changedCRUnmarshalErr)
+		klog.Error("error unmarshalling service spec: ", changedCRUnmarshalErr)
 	}
 	for key := range defaultCRDecoded {
 		checkKeyBeforeMerging(key, defaultCRDecoded[key], changedCRDecoded[key], changedCRDecoded)

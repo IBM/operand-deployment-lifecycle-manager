@@ -193,7 +193,6 @@ func (r *OperandConfigReconciler) updateConfigOperatorsStatus(instance *operator
 			if getError != nil && !errors.IsNotFound(getError) {
 				instance.Status.ServiceStatus[op.Name].CrStatus[kind] = operatorv1alpha1.ServiceFailed
 			} else if errors.IsNotFound(getError) {
-				instance.Status.ServiceStatus[op.Name].CrStatus[kind] = operatorv1alpha1.ServiceNotReady
 			} else {
 				instance.Status.ServiceStatus[op.Name].CrStatus[kind] = operatorv1alpha1.ServiceRunning
 			}

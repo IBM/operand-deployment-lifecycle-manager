@@ -55,6 +55,7 @@ type OperandConfigStatus struct {
 
 // CrStatus defines the status of the custom resource
 type CrStatus struct {
+	// +optional
 	CrStatus map[string]ServicePhase `json:"customResourceStatus,omitempty"`
 }
 
@@ -92,11 +93,10 @@ const (
 	// reconciliation when an OperandConfig is deleted.
 	ConfigFinalizer = "finalizer.config.ibm.com"
 
-	ServiceNotReady ServicePhase = "NotReady"
-	ServiceRunning  ServicePhase = "Running"
-	ServiceFailed   ServicePhase = "Failed"
-	ServiceInit     ServicePhase = "Initialized"
-	ServiceNone     ServicePhase = ""
+	ServiceRunning ServicePhase = "Running"
+	ServiceFailed  ServicePhase = "Failed"
+	ServiceInit    ServicePhase = "Initialized"
+	ServiceNone    ServicePhase = ""
 )
 
 // GetService obtain the service definition with the operand name
@@ -146,8 +146,6 @@ func (r *OperandConfig) UpdateOperandPhase() {
 	for _, operator := range r.Status.ServiceStatus {
 		for _, service := range operator.CrStatus {
 			switch service {
-			case ServiceNotReady:
-				operandStatusStat.notReadyNum++
 			case ServiceRunning:
 				operandStatusStat.runningNum++
 			case ServiceFailed:
@@ -157,8 +155,6 @@ func (r *OperandConfig) UpdateOperandPhase() {
 	}
 	if operandStatusStat.failedNum > 0 {
 		r.Status.Phase = ServiceFailed
-	} else if operandStatusStat.notReadyNum > 0 {
-		r.Status.Phase = ServiceNotReady
 	} else if operandStatusStat.runningNum > 0 {
 		r.Status.Phase = ServiceRunning
 	} else {

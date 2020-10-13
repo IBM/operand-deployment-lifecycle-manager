@@ -201,7 +201,7 @@ func (r *OperandRequestReconciler) deleteSubscription(operandName string, reques
 
 	if csv != nil {
 		klog.V(2).Infof("Deleting all the Custom Resources for CSV, Namespace: %s, Name: %s", csv.Namespace, csv.Name)
-		if err := r.deleteAllCustomResource(csv, configInstance, operandName, op.Namespace); err != nil {
+		if err := r.deleteAllCustomResource(csv, requestInstance, configInstance, operandName, op.Namespace); err != nil {
 			klog.Error("failed to delete a Custom Resource: ", err)
 			return err
 		}
