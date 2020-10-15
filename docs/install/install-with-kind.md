@@ -82,8 +82,8 @@ metadata:
   name: operand-deployment-lifecycle-manager
   namespace: ibm-common-services
 spec:
-  channel: alpha
-  name: operand-deployment-lifecycle-manager-app
+  channel: beta
+  name: ibm-odlm
   source: opencloud-operators
   sourceNamespace: olm
 END

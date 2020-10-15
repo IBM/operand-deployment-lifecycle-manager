@@ -19,6 +19,7 @@ KUBECTL ?= $(shell which kubectl)
 OPERATOR_SDK ?= $(shell which operator-sdk)
 CONTROLLER_GEN ?= $(shell which controller-gen)
 KUSTOMIZE ?= $(shell which kustomize)
+OPM ?= $(shell which opm)
 
 ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
 
@@ -156,7 +157,7 @@ package-manifests:
 
 generate-all: manifests kustomize operator-sdk ## Generate bundle manifests, metadata and package manifests
 	$(OPERATOR_SDK) generate kustomize manifests -q
-	- make bundle-manifests CHANNELS=dev DEFAULT_CHANNEL=dev
+	- make bundle-manifests CHANNELS=stable-v1,beta DEFAULT_CHANNEL=stable-v1
 	- make package-manifests
 
 ##@ Test

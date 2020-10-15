@@ -27,19 +27,18 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// The OperandRequestSpec identifies one or more specific operands (from a specific Registry) that should actually be installed
+// The OperandRequestSpec identifies one or more specific operands (from a specific Registry) that should actually be installed.
 type OperandRequestSpec struct {
-	// Requests defines a list of operands installation
+	// Requests defines a list of operands installation.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Operators Request List"
 	Requests []Request `json:"requests"`
 }
 
-// Request identifies a operand detail
+// Request identifies a operand detail.
 type Request struct {
-	// Operands defines a list of the OperandRegistry entry for the operand to be deployed
+	// Operands defines a list of the OperandRegistry entry for the operand to be deployed.
 	Operands []Operand `json:"operands"`
 	// Specifies the name in which the OperandRegistry reside.
 	Registry string `json:"registry"`
@@ -47,48 +46,48 @@ type Request struct {
 	// The default is the current namespace in which the request is defined.
 	// +optional
 	RegistryNamespace string `json:"registryNamespace,omitempty"`
-	// Description is an optional description for the request
+	// Description is an optional description for the request.
 	// +optional
 	Description string `json:"description,omitempty"`
 }
 
-// Operand defines the name and binding information for one operator
+// Operand defines the name and binding information for one operator.
 type Operand struct {
-	// Name of the operand to be deployed
+	// Name of the operand to be deployed.
 	Name string `json:"name"`
 	// The bindings section is used to specify names of secret and/or configmap.
 	// +optional
 	Bindings map[string]SecretConfigmap `json:"bindings,omitempty"`
-	// Kind is used when users want to deploy multiple custom resources
-	// Kind identifies the kind of the custom resource
+	// Kind is used when users want to deploy multiple custom resources.
+	// Kind identifies the kind of the custom resource.
 	// +optional
 	Kind string `json:"kind,omitempty"`
-	// InstanceName is used when users want to deploy multiple custom resources
-	// It is the name of the custom resource
+	// InstanceName is used when users want to deploy multiple custom resources.
+	// It is the name of the custom resource.
 	// +optional
 	InstanceName string `json:"instanceName,omitempty"`
-	// Spec is used when users want to deploy multiple custom resources
-	// It is the configuration map of custom resource
+	// Spec is used when users want to deploy multiple custom resources.
+	// It is the configuration map of custom resource.
 	// +nullable
 	// +optional
 	Spec runtime.RawExtension `json:"spec,omitempty"`
 }
 
-// ConditionType is the condition of a service
+// ConditionType is the condition of a service.
 type ConditionType string
 
-// ClusterPhase is the phase of the installation
+// ClusterPhase is the phase of the installation.
 type ClusterPhase string
 
-// ResourceType is the type of condition use
+// ResourceType is the type of condition use.
 type ResourceType string
 
-// OperatorPhase defines the operator status
+// OperatorPhase defines the operator status.
 type OperatorPhase string
 
-// Constants are used for state
+// Constants are used for state.
 const (
-	// RequestFinalizer is the name for the finalizer to allow for deletion
+	// RequestFinalizer is the name for the finalizer to allow for deletion.
 	// reconciliation when an OperandRequest is deleted.
 	RequestFinalizer = "finalizer.request.ibm.com"
 
@@ -126,68 +125,68 @@ const (
 type Condition struct {
 	// Type of condition.
 	Type ConditionType `json:"type"`
-	// Status of the condition, one of True, False, Unknown
+	// Status of the condition, one of True, False, Unknown.
 	Status corev1.ConditionStatus `json:"status"`
-	// The last time this condition was updated
+	// The last time this condition was updated.
 	// +optional
 	LastUpdateTime string `json:"lastUpdateTime,omitempty"`
-	// Last time the condition transitioned from one status to another
+	// Last time the condition transitioned from one status to another.
 	// +optional
 	LastTransitionTime string `json:"lastTransitionTime,omitempty"`
-	// The reason for the condition's last transition
+	// The reason for the condition's last transition.
 	// +optional
 	Reason string `json:"reason,omitempty"`
-	// A human readable message indicating details about the transition
+	// A human readable message indicating details about the transition.
 	// +optional
 	Message string `json:"message,omitempty"`
 }
 
-// OperandRequestStatus defines the observed state of OperandRequest
+// OperandRequestStatus defines the observed state of OperandRequest.
 type OperandRequestStatus struct {
-	// Conditions represents the current state of the Request Service
+	// Conditions represents the current state of the Request Service.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="Conditions",xDescriptors="urn:alm:descriptor:io.kubernetes.conditions"
 	Conditions []Condition `json:"conditions,omitempty"`
-	// Members represnets the current operand status of the set
+	// Members represnets the current operand status of the set.
 	// +optional
 	Members []MemberStatus `json:"members,omitempty"`
-	// Phase is the cluster running phase
+	// Phase is the cluster running phase.
 	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="Phase",xDescriptors="urn:alm:descriptor:io.kubernetes.phase"
 	// +optional
 	Phase ClusterPhase `json:"phase,omitempty"`
 }
 
-// MemberPhase show the phase of the operator and operator instance
+// MemberPhase show the phase of the operator and operator instance.
 type MemberPhase struct {
-	// OperatorPhase shows the deploy phase of the operator
+	// OperatorPhase shows the deploy phase of the operator.
 	// +optional
 	OperatorPhase OperatorPhase `json:"operatorPhase,omitempty"`
-	// OperandPhase shows the deploy phase of the operator instance
+	// OperandPhase shows the deploy phase of the operator instance.
 	// +optional
 	OperandPhase ServicePhase `json:"operandPhase,omitempty"`
 }
 
-// OperandCRMember defines a custom resource created by OperandRequest
+// OperandCRMember defines a custom resource created by OperandRequest.
 type OperandCRMember struct {
-	// Name is the name of the custom resource
+	// Name is the name of the custom resource.
 	// +optional
 	Name string `json:"name,omitempty"`
-	// Kind is the kind of the custom resource
+	// Kind is the kind of the custom resource.
 	// +optional
 	Kind string `json:"kind,omitempty"`
-	// APIVersion is the APIVersion of the custom resource
+	// APIVersion is the APIVersion of the custom resource.
 	// +optional
 	APIVersion string `json:"apiVersion,omitempty"`
 }
 
-// MemberStatus show if the Operator is ready
+// MemberStatus show if the Operator is ready.
 type MemberStatus struct {
-	// The member name are the same as the subscription name
+	// The member name are the same as the subscription name.
 	Name string `json:"name"`
-	// The operand phase include None, Creating, Running, Failed
+	// The operand phase include None, Creating, Running, Failed.
 	// +optional
 	Phase MemberPhase `json:"phase,omitempty"`
-	// OperandCRList shows the list of custom resource created by OperandRequest
+	// OperandCRList shows the list of custom resource created by OperandRequest.
 	// +optional
 	OperandCRList []OperandCRMember `json:"operandCRList,omitempty"`
 }
@@ -200,7 +199,7 @@ type MemberStatus struct {
 // +kubebuilder:printcolumn:name="Created At",type=string,JSONPath=.metadata.creationTimestamp
 // +operator-sdk:csv:customresourcedefinitions:displayName="OperandRequest"
 
-// OperandRequest is the Schema for the operandrequests API
+// OperandRequest is the Schema for the operandrequests API.
 type OperandRequest struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -211,44 +210,44 @@ type OperandRequest struct {
 
 // +kubebuilder:object:root=true
 
-// OperandRequestList contains a list of OperandRequest
+// OperandRequestList contains a list of OperandRequest.
 type OperandRequestList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []OperandRequest `json:"items"`
 }
 
-// SetCreatingCondition creates a new condition status
+// SetCreatingCondition creates a new condition status.
 func (r *OperandRequest) SetCreatingCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
 	c := newCondition(ConditionCreating, cs, "Creating "+string(rt), "Creating "+string(rt)+" "+name)
 	r.setCondition(*c)
 }
 
-// SetUpdatingCondition creates an updating condition status
+// SetUpdatingCondition creates an updating condition status.
 func (r *OperandRequest) SetUpdatingCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
 	c := newCondition(ConditionUpdating, cs, "Updating "+string(rt), "Updating "+string(rt)+" "+name)
 	r.setCondition(*c)
 }
 
-// SetDeletingCondition creates a deleting condition status
+// SetDeletingCondition creates a deleting condition status.
 func (r *OperandRequest) SetDeletingCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
 	c := newCondition(ConditionDeleting, cs, "Deleting "+string(rt), "Deleting "+string(rt)+" "+name)
 	r.setCondition(*c)
 }
 
-// SetNotFoundOperatorFromRegistryCondition creates a NotFoundCondition
+// SetNotFoundOperatorFromRegistryCondition creates a NotFoundCondition.
 func (r *OperandRequest) SetNotFoundOperatorFromRegistryCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
 	c := newCondition(ConditionNotFound, cs, "Not found "+string(rt), "Not found "+string(rt)+" "+name+" from registry")
 	r.setCondition(*c)
 }
 
-// SetOutofScopeCondition creates a NotFoundCondition
+// SetOutofScopeCondition creates a NotFoundCondition.
 func (r *OperandRequest) SetOutofScopeCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
 	c := newCondition(ConditionOutofScope, cs, string(rt)+" "+name+" is a private operator", string(rt)+" "+name+" is a private operator. It can only be request within the OperandRegistry namespace")
 	r.setCondition(*c)
 }
 
-// SetReadyCondition creates a Condition to claim Ready
+// SetReadyCondition creates a Condition to claim Ready.
 func (r *OperandRequest) SetReadyCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
 	c := &Condition{}
 	if rt == ResourceTypeOperator {

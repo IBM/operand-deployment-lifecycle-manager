@@ -98,6 +98,11 @@ ifeq (, $(KUSTOMIZE))
 KUSTOMIZE=$(GOBIN)/kustomize
 endif
 
+opm:
+ifeq (,$(OPM))
+	@./common/scripts/install-opm.sh
+endif
+
 FINDFILES=find . \( -path ./.git -o -path ./.github -o -path ./testbin \) -prune -o -type f
 XARGS = xargs -0 ${XARGS_FLAGS}
 CLEANXARGS = xargs ${XARGS_FLAGS}
@@ -126,4 +131,4 @@ code-tidy:
 	@echo go mod tidy
 	go mod tidy -v
 
-.PHONY: code-vet code-fmt code-tidy code-gen lint-copyright-banner lint-go lint-all config-docker operator-sdk kube-builder controller-gen fetch-olm-crds kustomize
+.PHONY: code-vet code-fmt code-tidy code-gen lint-copyright-banner lint-go lint-all config-docker operator-sdk kube-builder opm controller-gen fetch-olm-crds kustomize
