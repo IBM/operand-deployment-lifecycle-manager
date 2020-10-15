@@ -30,7 +30,8 @@ spec:
     - opreq
     singular: operandrequest
   scope: Namespaced
-  subresources: {}
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       description: OperandRequest is the Schema for the operandrequests API
@@ -72,9 +73,19 @@ spec:
                             type: object
                           description: The bindings section is used to specify names of secret and/or configmap.
                           type: object
+                        instanceName:
+                          description: InstanceName is used when users want to deploy multiple custom resources It is the name of the custom resource
+                          type: string
+                        kind:
+                          description: Kind is used when users want to deploy multiple custom resources Kind identifies the kind of the custom resource
+                          type: string
                         name:
                           description: Name of the operand to be deployed
                           type: string
+                        spec:
+                          description: Spec is used when users want to deploy multiple custom resources It is the configuration map of custom resource
+                          nullable: true
+                          type: object
                       required:
                       - name
                       type: object
@@ -132,14 +143,30 @@ spec:
                   name:
                     description: The member name are the same as the subscription name
                     type: string
+                  operandCRList:
+                    description: OperandCRList shows the list of custom resource created by OperandRequest
+                    items:
+                      description: OperandCRMember defines a custom resource created by OperandRequest
+                      properties:
+                        apiVersion:
+                          description: APIVersion is the APIVersion of the custom resource
+                          type: string
+                        kind:
+                          description: Kind is the kind of the custom resource
+                          type: string
+                        name:
+                          description: Name is the name of the custom resource
+                          type: string
+                      type: object
+                    type: array
                   phase:
                     description: The operand phase include None, Creating, Running, Failed
                     properties:
                       operandPhase:
-                        description: OperandPhase show the deploy phase of the operator instance
+                        description: OperandPhase shows the deploy phase of the operator instance
                         type: string
                       operatorPhase:
-                        description: OperatorPhase show the deploy phase of the operator
+                        description: OperatorPhase shows the deploy phase of the operator
                         type: string
                     type: object
                 required:

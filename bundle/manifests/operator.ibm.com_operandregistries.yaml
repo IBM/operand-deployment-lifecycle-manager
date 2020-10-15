@@ -30,7 +30,8 @@ spec:
     - opreg
     singular: operandregistry
   scope: Namespaced
-  subresources: {}
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       description: OperandRegistry is the Schema for the operandregistries API

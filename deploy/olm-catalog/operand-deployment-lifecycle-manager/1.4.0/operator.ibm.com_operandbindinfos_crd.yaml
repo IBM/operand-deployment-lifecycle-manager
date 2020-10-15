@@ -30,7 +30,8 @@ spec:
     - opbi
     singular: operandbindinfo
   scope: Namespaced
-  subresources: {}
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       description: OperandBindInfo is the Schema for the operandbindinfoes API
