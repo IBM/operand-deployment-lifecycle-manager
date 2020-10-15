@@ -34,7 +34,7 @@ spec:
     status: {}
   validation:
     openAPIV3Schema:
-      description: OperandRequest is the Schema for the operandrequests API
+      description: OperandRequest is the Schema for the operandrequests API.
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
@@ -45,20 +45,20 @@ spec:
         metadata:
           type: object
         spec:
-          description: The OperandRequestSpec identifies one or more specific operands (from a specific Registry) that should actually be installed
+          description: The OperandRequestSpec identifies one or more specific operands (from a specific Registry) that should actually be installed.
           properties:
             requests:
-              description: Requests defines a list of operands installation
+              description: Requests defines a list of operands installation.
               items:
-                description: Request identifies a operand detail
+                description: Request identifies a operand detail.
                 properties:
                   description:
-                    description: Description is an optional description for the request
+                    description: Description is an optional description for the request.
                     type: string
                   operands:
-                    description: Operands defines a list of the OperandRegistry entry for the operand to be deployed
+                    description: Operands defines a list of the OperandRegistry entry for the operand to be deployed.
                     items:
-                      description: Operand defines the name and binding information for one operator
+                      description: Operand defines the name and binding information for one operator.
                       properties:
                         bindings:
                           additionalProperties:
@@ -74,16 +74,16 @@ spec:
                           description: The bindings section is used to specify names of secret and/or configmap.
                           type: object
                         instanceName:
-                          description: InstanceName is used when users want to deploy multiple custom resources It is the name of the custom resource
+                          description: InstanceName is used when users want to deploy multiple custom resources. It is the name of the custom resource.
                           type: string
                         kind:
-                          description: Kind is used when users want to deploy multiple custom resources Kind identifies the kind of the custom resource
+                          description: Kind is used when users want to deploy multiple custom resources. Kind identifies the kind of the custom resource.
                           type: string
                         name:
-                          description: Name of the operand to be deployed
+                          description: Name of the operand to be deployed.
                           type: string
                         spec:
-                          description: Spec is used when users want to deploy multiple custom resources It is the configuration map of custom resource
+                          description: Spec is used when users want to deploy multiple custom resources. It is the configuration map of custom resource.
                           nullable: true
                           type: object
                       required:
@@ -105,27 +105,27 @@ spec:
           - requests
           type: object
         status:
-          description: OperandRequestStatus defines the observed state of OperandRequest
+          description: OperandRequestStatus defines the observed state of OperandRequest.
           properties:
             conditions:
-              description: Conditions represents the current state of the Request Service
+              description: Conditions represents the current state of the Request Service.
               items:
                 description: Condition represents the current state of the Request Service A condition might not show up if it is not happening
                 properties:
                   lastTransitionTime:
-                    description: Last time the condition transitioned from one status to another
+                    description: Last time the condition transitioned from one status to another.
                     type: string
                   lastUpdateTime:
-                    description: The last time this condition was updated
+                    description: The last time this condition was updated.
                     type: string
                   message:
-                    description: A human readable message indicating details about the transition
+                    description: A human readable message indicating details about the transition.
                     type: string
                   reason:
-                    description: The reason for the condition's last transition
+                    description: The reason for the condition's last transition.
                     type: string
                   status:
-                    description: Status of the condition, one of True, False, Unknown
+                    description: Status of the condition, one of True, False, Unknown.
                     type: string
                   type:
                     description: Type of condition.
@@ -136,37 +136,37 @@ spec:
                 type: object
               type: array
             members:
-              description: Members represnets the current operand status of the set
+              description: Members represnets the current operand status of the set.
               items:
-                description: MemberStatus show if the Operator is ready
+                description: MemberStatus show if the Operator is ready.
                 properties:
                   name:
-                    description: The member name are the same as the subscription name
+                    description: The member name are the same as the subscription name.
                     type: string
                   operandCRList:
-                    description: OperandCRList shows the list of custom resource created by OperandRequest
+                    description: OperandCRList shows the list of custom resource created by OperandRequest.
                     items:
-                      description: OperandCRMember defines a custom resource created by OperandRequest
+                      description: OperandCRMember defines a custom resource created by OperandRequest.
                       properties:
                         apiVersion:
-                          description: APIVersion is the APIVersion of the custom resource
+                          description: APIVersion is the APIVersion of the custom resource.
                           type: string
                         kind:
-                          description: Kind is the kind of the custom resource
+                          description: Kind is the kind of the custom resource.
                           type: string
                         name:
-                          description: Name is the name of the custom resource
+                          description: Name is the name of the custom resource.
                           type: string
                       type: object
                     type: array
                   phase:
-                    description: The operand phase include None, Creating, Running, Failed
+                    description: The operand phase include None, Creating, Running, Failed.
                     properties:
                       operandPhase:
-                        description: OperandPhase shows the deploy phase of the operator instance
+                        description: OperandPhase shows the deploy phase of the operator instance.
                         type: string
                       operatorPhase:
-                        description: OperatorPhase shows the deploy phase of the operator
+                        description: OperatorPhase shows the deploy phase of the operator.
                         type: string
                     type: object
                 required:
@@ -174,7 +174,7 @@ spec:
                 type: object
               type: array
             phase:
-              description: Phase is the cluster running phase
+              description: Phase is the cluster running phase.
               type: string
           type: object
       type: object

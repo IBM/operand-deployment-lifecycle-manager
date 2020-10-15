@@ -108,19 +108,19 @@ spec:
                 description: Condition represents the current state of the Request Service A condition might not show up if it is not happening
                 properties:
                   lastTransitionTime:
-                    description: Last time the condition transitioned from one status to another
+                    description: Last time the condition transitioned from one status to another.
                     type: string
                   lastUpdateTime:
-                    description: The last time this condition was updated
+                    description: The last time this condition was updated.
                     type: string
                   message:
-                    description: A human readable message indicating details about the transition
+                    description: A human readable message indicating details about the transition.
                     type: string
                   reason:
-                    description: The reason for the condition's last transition
+                    description: The reason for the condition's last transition.
                     type: string
                   status:
-                    description: Status of the condition, one of True, False, Unknown
+                    description: Status of the condition, one of True, False, Unknown.
                     type: string
                   type:
                     description: Type of condition.
