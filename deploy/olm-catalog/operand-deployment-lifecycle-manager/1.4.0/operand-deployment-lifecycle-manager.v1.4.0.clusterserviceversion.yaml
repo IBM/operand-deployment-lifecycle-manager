@@ -121,47 +121,47 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-    - description: OperandBindInfo is the Schema for the operandbindinfoes API
+    - description: OperandBindInfo is the Schema for the operandbindinfoes API.
       displayName: OperandBindInfo
       kind: OperandBindInfo
       name: operandbindinfos.operator.ibm.com
       statusDescriptors:
-      - description: Phase describes the overall phase of OperandBindInfo
+      - description: Phase describes the overall phase of OperandBindInfo.
         displayName: Phase
         path: phase
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.phase
       version: v1alpha1
-    - description: OperandConfig is the Schema for the operandconfigs API
+    - description: OperandConfig is the Schema for the operandconfigs API.
       displayName: OperandConfig
       kind: OperandConfig
       name: operandconfigs.operator.ibm.com
       specDescriptors:
-      - description: Services is a list of configuration of service
+      - description: Services is a list of configuration of service.
         displayName: Operand Services Config List
         path: services
       statusDescriptors:
-      - description: Phase describes the overall phase of operands in the OperandConfig
+      - description: Phase describes the overall phase of operands in the OperandConfig.
         displayName: Phase
         path: phase
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.phase
       version: v1alpha1
-    - description: OperandRegistry is the Schema for the operandregistries API
+    - description: OperandRegistry is the Schema for the operandregistries API.
       displayName: OperandRegistry
       kind: OperandRegistry
       name: operandregistries.operator.ibm.com
       specDescriptors:
-      - description: Operators is a list of operator OLM definition
+      - description: Operators is a list of operator OLM definition.
         displayName: Operators Registry List
         path: operators
       statusDescriptors:
-      - description: Conditions represents the current state of the Request Service
+      - description: Conditions represents the current state of the Request Service.
         displayName: Conditions
         path: conditions
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.conditions
-      - description: Phase describes the overall phase of operators in the OperandRegistry
+      - description: Phase describes the overall phase of operators in the OperandRegistry.
         displayName: Phase
         path: phase
         x-descriptors:

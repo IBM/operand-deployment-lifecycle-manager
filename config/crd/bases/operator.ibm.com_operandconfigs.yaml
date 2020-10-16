@@ -32,7 +32,7 @@ spec:
     status: {}
   validation:
     openAPIV3Schema:
-      description: OperandConfig is the Schema for the operandconfigs API
+      description: OperandConfig is the Schema for the operandconfigs API.
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -47,23 +47,23 @@ spec:
         metadata:
           type: object
         spec:
-          description: OperandConfigSpec defines the desired state of OperandConfig
+          description: OperandConfigSpec defines the desired state of OperandConfig.
           properties:
             services:
-              description: Services is a list of configuration of service
+              description: Services is a list of configuration of service.
               items:
-                description: ConfigService defines the configuration of the service
+                description: ConfigService defines the configuration of the service.
                 properties:
                   name:
-                    description: Name is the subscription name
+                    description: Name is the subscription name.
                     type: string
                   spec:
                     additionalProperties:
                       type: object
-                    description: Spec is the configuration map of custom resource
+                    description: Spec is the configuration map of custom resource.
                     type: object
                   state:
-                    description: State is a flag to enable or disable service
+                    description: State is a flag to enable or disable service.
                     type: string
                 required:
                 - name
@@ -72,22 +72,22 @@ spec:
               type: array
           type: object
         status:
-          description: OperandConfigStatus defines the observed state of OperandConfig
+          description: OperandConfigStatus defines the observed state of OperandConfig.
           properties:
             phase:
-              description: Phase describes the overall phase of operands in the OperandConfig
+              description: Phase describes the overall phase of operands in the OperandConfig.
               type: string
             serviceStatus:
               additionalProperties:
-                description: CrStatus defines the status of the custom resource
+                description: CrStatus defines the status of the custom resource.
                 properties:
                   customResourceStatus:
                     additionalProperties:
-                      description: ServicePhase defines the service status
+                      description: ServicePhase defines the service status.
                       type: string
                     type: object
                 type: object
-              description: ServiceStatus defines all the status of a operator
+              description: ServiceStatus defines all the status of a operator.
               type: object
           type: object
       type: object

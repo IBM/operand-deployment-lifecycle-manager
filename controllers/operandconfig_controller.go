@@ -217,7 +217,7 @@ func (r *OperandConfigReconciler) getRequestToConfigMapper() handler.ToRequestsF
 	return func(object handler.MapObject) []reconcile.Request {
 		opreqInstance := &operatorv1alpha1.OperandRequest{}
 		requests := []reconcile.Request{}
-		// If the operandrequest has been deleted, reconcile all the OperandConfig in the cluster
+		// If the OperandRequest has been deleted, reconcile all the OperandConfig in the cluster
 		if err := r.Get(context.TODO(), types.NamespacedName{Name: object.Meta.GetName(), Namespace: object.Meta.GetNamespace()}, opreqInstance); errors.IsNotFound(err) {
 			configList := &operatorv1alpha1.OperandConfigList{}
 			_ = r.List(context.TODO(), configList)
@@ -229,7 +229,7 @@ func (r *OperandConfigReconciler) getRequestToConfigMapper() handler.ToRequestsF
 			return requests
 		}
 
-		// If the operandrequest exist, reconcile OperandConfigs specific in the operandrequest instance.
+		// If the OperandRequest exist, reconcile OperandConfigs specific in the OperandRequest instance.
 		for _, request := range opreqInstance.Spec.Requests {
 			registryKey := opreqInstance.GetRegistryKey(request)
 			req := reconcile.Request{NamespacedName: registryKey}

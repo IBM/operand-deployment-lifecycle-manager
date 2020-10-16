@@ -52,7 +52,7 @@ metadata:
   namespace: olm
 spec:
   sourceType: grpc
-  image: quay.io/opencloudio/operator-registry:latest
+  image: docker.io/ibmcom/ibm-common-service-catalog:latest
 END
 ```
 
@@ -63,24 +63,24 @@ kubectl apply -f - <<END
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: ibm-common-services
+  name: odlm
 
 ---
 apiVersion: operators.coreos.com/v1alpha2
 kind: OperatorGroup
 metadata:
   name: operatorgroup
-  namespace: ibm-common-services
+  namespace: odlm
 spec:
   targetNamespaces:
-  - ibm-common-services
+  - odlm
 
 ---
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
   name: operand-deployment-lifecycle-manager
-  namespace: ibm-common-services
+  namespace: odlm
 spec:
   channel: beta
   name: ibm-odlm
@@ -105,11 +105,11 @@ apiVersion: operator.ibm.com/v1alpha1
 kind: OperandRequest
 metadata:
   name: common-service
-  namespace: ibm-common-services
+  namespace: odlm
 spec:
   requests:
   - registry: common-service
-    registryNamespace: ibm-common-services
+    registryNamespace: odlm
     operands:
     - name: ibm-cert-manager-operator
     - name: ibm-mongodb-operator

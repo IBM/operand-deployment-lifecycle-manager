@@ -23,42 +23,42 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-// Operator defines the desired state of Operators
+
+// Operator defines the desired state of Operators.
 type Operator struct {
-	// A unique name for the operator whose operand may be deployed
+	// A unique name for the operator whose operand may be deployed.
 	Name string `json:"name"`
-	// A scope indicator, either public or private
+	// A scope indicator, either public or private.
 	// Valid values are:
 	// - "private" (default): deployment only request from the containing names;
 	// - "public": deployment can be requested from other namespaces;
 	// +optional
 	Scope scope `json:"scope,omitempty"`
-	// The install mode of an operator, either namespace or cluster
+	// The install mode of an operator, either namespace or cluster.
 	// Valid values are:
 	// - "namespace" (default): operator is deployed in namespace of OperandRegistry;
-	// - "clsuter": operator is deployed in "openshift-operators" namespace;
+	// - "cluster": operator is deployed in "openshift-operators" namespace;
 	// +optional
 	InstallMode string `json:"installMode,omitempty"`
-	// The namespace in which operator CR should be deployed
-	// Also the namespace in which operator should be deployed when InstallMode is empty or set to "namespace"
+	// The namespace in which operator CR should be deployed.
+	// Also the namespace in which operator should be deployed when InstallMode is empty or set to "namespace".
 	// +optional
 	Namespace string `json:"namespace,omitempty"`
-	// Name of a CatalogSource that defines where and how to find the channel
+	// Name of a CatalogSource that defines where and how to find the channel.
 	SourceName string `json:"sourceName"`
-	// The Kubernetes namespace where the CatalogSource used is located
+	// The Kubernetes namespace where the CatalogSource used is located.
 	SourceNamespace string `json:"sourceNamespace"`
-	// The target namespace of the OperatorGroup
+	// The target namespace of the OperatorGroups.
 	TargetNamespaces []string `json:"targetNamespaces,omitempty"`
-	// Name of the package that defines the application
+	// Name of the package that defines the applications.
 	PackageName string `json:"packageName"`
-	// Name of the channel to track
+	// Name of the channel to track.
 	Channel string `json:"channel"`
-	// Description of a common service
+	// Description of a common service.
 	// +optional
 	Description string `json:"description,omitempty"`
-	// Approval mode for emitted InstallPlans
+	// Approval mode for emitted InstallPlans.
 	// +optional
 	InstallPlanApproval string `json:"installPlanApproval,omitempty"`
 }
@@ -76,50 +76,50 @@ const (
 )
 
 const (
-	// InstallModeCluster means install the operator in all namespaces mode
+	// InstallModeCluster means install the operator in all namespaces mode.
 	InstallModeCluster string = "cluster"
-	// InstallModeNamespace means install the operator in one namespace mode
+	// InstallModeNamespace means install the operator in one namespace mode.
 	InstallModeNamespace string = "namespace"
 )
 
-// OperandRegistrySpec defines the desired state of OperandRegistry
+// OperandRegistrySpec defines the desired state of OperandRegistry.
 type OperandRegistrySpec struct {
-	// Operators is a list of operator OLM definition
+	// Operators is a list of operator OLM definition.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Operators Registry List"
 	// +optional
 	Operators []Operator `json:"operators,omitempty"`
 }
 
-// OperandRegistryStatus defines the observed state of OperandRegistry
+// OperandRegistryStatus defines the observed state of OperandRegistry.
 type OperandRegistryStatus struct {
-	// Phase describes the overall phase of operators in the OperandRegistry
+	// Phase describes the overall phase of operators in the OperandRegistry.
 	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="Phase",xDescriptors="urn:alm:descriptor:io.kubernetes.phase"
 	// +optional
 	Phase RegistryPhase `json:"phase,omitempty"`
-	// OperatorsStatus defines operators status and the number of reconcile request
+	// OperatorsStatus defines operators status and the number of reconcile request.
 	// +optional
 	OperatorsStatus map[string]OperatorStatus `json:"operatorsStatus,omitempty"`
-	// Conditions represents the current state of the Request Service
+	// Conditions represents the current state of the Request Service.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="Conditions",xDescriptors="urn:alm:descriptor:io.kubernetes.conditions"
 	Conditions []Condition `json:"conditions,omitempty"`
 }
 
-// OperatorStatus defines operators status and the number of reconcile request
+// OperatorStatus defines operators status and the number of reconcile request.
 type OperatorStatus struct {
-	// Phase is the state of operator
+	// Phase is the state of operator.
 	// +optional
 	Phase OperatorPhase `json:"phase,omitempty"`
-	// ReconcileRequests store the namespace/name of all the requests
+	// ReconcileRequests stores the namespace/name of all the requests.
 	// +optional
 	ReconcileRequests []ReconcileRequest `json:"reconcileRequests,omitempty"`
 }
 
-// ReconcileRequest records the information of the operandRequest
+// ReconcileRequest records the information of the operandRequest.
 type ReconcileRequest struct {
-	// Name defines the name of request
+	// Name defines the name of request.
 	Name string `json:"name"`
-	// Namespace defines the namespace of request
+	// Namespace defines the namespace of request.
 	Namespace string `json:"namespace"`
 }
 
@@ -131,7 +131,7 @@ type ReconcileRequest struct {
 // +kubebuilder:printcolumn:name="Created At",type=string,JSONPath=.metadata.creationTimestamp
 // +operator-sdk:csv:customresourcedefinitions:displayName="OperandRegistry"
 
-// OperandRegistry is the Schema for the operandregistries API
+// OperandRegistry is the Schema for the operandregistries API.
 type OperandRegistry struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -140,13 +140,13 @@ type OperandRegistry struct {
 	Status OperandRegistryStatus `json:"status,omitempty"`
 }
 
-// RegistryPhase defines the operator status
+// RegistryPhase defines the operator status.
 type RegistryPhase string
 
 // Registry phase
 const (
 	// RegistryFinalizer is the name for the finalizer to allow for deletion
-	// reconciliation when an OperandRegistry is deleted.
+	// when an OperandRegistry is deleted.
 	RegistryFinalizer = "finalizer.registry.ibm.com"
 
 	RegistryReady    RegistryPhase = "Ready for Deployment"
@@ -161,14 +161,14 @@ const (
 
 // +kubebuilder:object:root=true
 
-// OperandRegistryList contains a list of OperandRegistry
+// OperandRegistryList contains a list of OperandRegistry.
 type OperandRegistryList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []OperandRegistry `json:"items"`
 }
 
-// InitRegistryStatus Init Phase in the OperandRegistry status
+// InitRegistryStatus initializes Phase in the OperandRegistry status.
 func (r *OperandRegistry) InitRegistryStatus() bool {
 	isInitialized := true
 	if r.Status.Phase == "" {
@@ -178,7 +178,7 @@ func (r *OperandRegistry) InitRegistryStatus() bool {
 	return isInitialized
 }
 
-// GetReconcileRequest gets the position of request from OperandRegistry status
+// GetReconcileRequest gets the position of request from OperandRegistry status.
 func (r *OperandRegistry) GetReconcileRequest(name string, reconcileRequest reconcile.Request) int {
 	s := r.Status.OperatorsStatus[name]
 	for pos, r := range s.ReconcileRequests {
@@ -189,7 +189,7 @@ func (r *OperandRegistry) GetReconcileRequest(name string, reconcileRequest reco
 	return -1
 }
 
-// SetOperatorStatus sets the operator status in the operandRegistry
+// SetOperatorStatus sets the operator status in the OperandRegistry.
 func (r *OperandRegistry) SetOperatorStatus(name string, phase OperatorPhase, request reconcile.Request) {
 	s := r.Status.OperatorsStatus[name]
 	if s.Phase != phase {
@@ -202,7 +202,7 @@ func (r *OperandRegistry) SetOperatorStatus(name string, phase OperatorPhase, re
 	r.Status.OperatorsStatus[name] = s
 }
 
-// GetOperator obtain the operator definition with the operand name
+// GetOperator obtains the operator definition with the operand name.
 func (r *OperandRegistry) GetOperator(operandName string) *Operator {
 	for _, o := range r.Spec.Operators {
 		if o.Name == operandName {
@@ -212,7 +212,7 @@ func (r *OperandRegistry) GetOperator(operandName string) *Operator {
 	return nil
 }
 
-// GetAllReconcileRequest gets all the ReconcileRequest from OperandRegistry status
+// GetAllReconcileRequest gets all the ReconcileRequest from OperandRegistry status.
 func (r *OperandRegistry) GetAllReconcileRequest() []reconcile.Request {
 	maprrs := make(map[string]reconcile.Request)
 	for _, os := range r.Status.OperatorsStatus {
@@ -232,13 +232,13 @@ func (r *OperandRegistry) GetAllReconcileRequest() []reconcile.Request {
 	return rrs
 }
 
-// SetReadyCondition creates a Condition to claim Ready
+// SetReadyCondition creates a Condition to claim Ready.
 func (r *OperandRegistry) SetReadyCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
 	c := newCondition(ConditionReady, cs, string(rt)+" is ready", string(rt)+" "+name+" is ready")
 	r.setCondition(*c)
 }
 
-// SetNoneCondition creates a Condition to claim NotFound
+// SetNotFoundCondition creates a Condition to claim NotFound.
 func (r *OperandRegistry) SetNotFoundCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
 	c := newCondition(ConditionNotFound, cs, "Not found "+string(rt), "Not found "+string(rt)+" "+name)
 	r.setCondition(*c)
@@ -253,7 +253,7 @@ func (r *OperandRegistry) setCondition(c Condition) {
 	}
 }
 
-// UpdateRegistryPhase sets the current Phase status
+// UpdateRegistryPhase sets the current Phase status.
 func (r *OperandRegistry) UpdateRegistryPhase(phase RegistryPhase) {
 	r.Status.Phase = phase
 }
