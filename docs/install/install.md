@@ -23,22 +23,22 @@
 Before install ODLM, this operator source should be created to get operator bundles from `quay.io`.
 
 ```yaml
-apiVersion: operators.coreos.com/v1
-kind: OperatorSource
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
 metadata:
   name: opencloud-operators
   namespace: openshift-marketplace
 spec:
-  authorizationToken: {}
   displayName: IBMCS Operators
-  endpoint: https://quay.io/cnr
   publisher: IBM
-  registryNamespace: opencloudio
-  type: appregistry
+  sourceType: grpc
+  image: docker.io/ibmcom/ibm-common-service-catalog:latest
+  updateStrategy:
+    registryPoll:
+      interval: 45m
 ```
 
-Click the plus button, and then copy the above operator source into the editor.
-![Create OperatorSource](../images/create-operator-source.png)
+Click the plus button, and then copy the above catalog source into the editor.
 
 Check if operator packages are loaded, run command:
 
@@ -49,7 +49,7 @@ oc -n openshift-marketplace get operatorsource opencloud-operators -o jsonpath="
 The output is a list of operators
 
 ```yaml
-ibm-monitoring-prometheusext-operator-app,ibm-meta-operator-bridge-app,cp4foobar-operator-app,ibm-cert-manager-operator-app,ibm-management-ingress-operator-app,ibm-mgmt-repo-operator-app,ibm-platform-api-operator-app,ibm-ingress-nginx-operator-app,ibm-commonui-operator-app-test,ibm-auditlogging-operator-app,ibm-commonui-operator-app,ibm-odlm,ibm-healthcheck-operator-app,ibm-monitoring-exporters-operator-app,ibm-iam-operator-app,ibm-mongodb-operator-app,ibm-monitoring-grafana-operator-app,ibm-metering-operator-app,ibm-helm-repo-operator-app,ibm-helm-api-operator-app,ibm-catalog-ui-operator-app,ibm-licensing-operator-app,ibm-elastic-stack-operator-app
+ibm-cert-manager-operator-app,ibm-management-ingress-operator-app...
 ```
 
 **Note:** During development, if you need to update the csv package frequently, but the operator source needs a long time to sync the new package, you can delete the catalog source to trigger a reload. Then the new packages will be updated immediately.

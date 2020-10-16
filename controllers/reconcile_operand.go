@@ -63,13 +63,13 @@ func (r *OperandRequestReconciler) reconcileOperand(requestKey types.NamespacedN
 		registryKey := requestInstance.GetRegistryKey(req)
 		configInstance, err := fetch.FetchOperandConfig(r.Client, registryKey)
 		if err != nil {
-			klog.Error("failed to get the operandconfig instance: ", err)
+			klog.Error("failed to get the OperandConfig instance: ", err)
 			merr.Add(err)
 			continue
 		}
 		registryInstance, err := fetch.FetchOperandRegistry(r.Client, registryKey)
 		if err != nil {
-			klog.Error("failed to get the operandregistry instance: ", err)
+			klog.Error("failed to get the OperandRegistry instance: ", err)
 			merr.Add(err)
 			continue
 		}
@@ -81,14 +81,14 @@ func (r *OperandRequestReconciler) reconcileOperand(requestKey types.NamespacedN
 				// Check the requested Service Config if exist in specific OperandConfig
 				opdConfig = configInstance.GetService(operand.Name)
 				if opdConfig == nil {
-					klog.Warningf("Cannot find %s in the operandconfig instance %s in the namespace %s ", operand.Name, req.Registry, req.RegistryNamespace)
+					klog.Warningf("Cannot find %s in the OperandConfig instance %s in the namespace %s ", operand.Name, req.Registry, req.RegistryNamespace)
 					continue
 				}
 			}
 
 			opdRegistry := registryInstance.GetOperator(operand.Name)
 			if opdRegistry == nil {
-				klog.Warningf("Cannot find %s in the operandregistry instance %s in the namespace %s ", operand.Name, req.Registry, req.RegistryNamespace)
+				klog.Warningf("Cannot find %s in the OperandRegistry instance %s in the namespace %s ", operand.Name, req.Registry, req.RegistryNamespace)
 				continue
 			}
 

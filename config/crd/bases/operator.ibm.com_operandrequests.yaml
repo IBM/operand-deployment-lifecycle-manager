@@ -68,16 +68,17 @@ spec:
                         bindings:
                           additionalProperties:
                             description: SecretConfigmap is a pair of Secret and/or
-                              Configmap
+                              Configmap.
                             properties:
                               configmap:
-                                description: The configmap field identifies a configmap
-                                  object, if any, that should be shared with the adopter/requestor
+                                description: The configmap identifies an existing
+                                  configmap object. if it exists, the ODLM will share
+                                  to the namespace of the OperandRequest.
                                 type: string
                               secret:
-                                description: The secret field names an existing secret,
-                                  if any, that has been created and holds information
-                                  that is to be shared with the adopter.
+                                description: The secret identifies an existing secret.
+                                  if it exists, the ODLM will share to the namespace
+                                  of the OperandRequest.
                                 type: string
                             type: object
                           description: The bindings section is used to specify names
@@ -130,7 +131,7 @@ spec:
                 Service.
               items:
                 description: Condition represents the current state of the Request
-                  Service A condition might not show up if it is not happening
+                  Service. A condition might not show up if it is not happening.
                 properties:
                   lastTransitionTime:
                     description: Last time the condition transitioned from one status
@@ -160,7 +161,7 @@ spec:
             members:
               description: Members represnets the current operand status of the set.
               items:
-                description: MemberStatus show if the Operator is ready.
+                description: MemberStatus shows if the Operator is ready.
                 properties:
                   name:
                     description: The member name are the same as the subscription

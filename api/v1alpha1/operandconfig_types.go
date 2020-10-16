@@ -21,45 +21,44 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// OperandConfigSpec defines the desired state of OperandConfig
+// OperandConfigSpec defines the desired state of OperandConfig.
 type OperandConfigSpec struct {
-	// Services is a list of configuration of service
+	// Services is a list of configuration of service.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Operand Services Config List"
 	// +optional
 	Services []ConfigService `json:"services,omitempty"`
 }
 
-// ConfigService defines the configuration of the service
+// ConfigService defines the configuration of the service.
 type ConfigService struct {
-	// Name is the subscription name
+	// Name is the subscription name.
 	Name string `json:"name"`
-	// Spec is the configuration map of custom resource
+	// Spec is the configuration map of custom resource.
 	Spec map[string]runtime.RawExtension `json:"spec"`
-	// State is a flag to enable or disable service
+	// State is a flag to enable or disable service.
 	State string `json:"state,omitempty"`
 }
 
-// OperandConfigStatus defines the observed state of OperandConfig
+// OperandConfigStatus defines the observed state of OperandConfig.
 type OperandConfigStatus struct {
-	// Phase describes the overall phase of operands in the OperandConfig
+	// Phase describes the overall phase of operands in the OperandConfig.
 	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="Phase",xDescriptors="urn:alm:descriptor:io.kubernetes.phase"
 	// +optional
 	Phase ServicePhase `json:"phase,omitempty"`
-	// ServiceStatus defines all the status of a operator
+	// ServiceStatus defines all the status of a operator.
 	// +optional
 	ServiceStatus map[string]CrStatus `json:"serviceStatus,omitempty"`
 }
 
-// CrStatus defines the status of the custom resource
+// CrStatus defines the status of the custom resource.
 type CrStatus struct {
 	// +optional
 	CrStatus map[string]ServicePhase `json:"customResourceStatus,omitempty"`
 }
 
-// OperandConfig is the Schema for the operandconfigs API
+// OperandConfig is the Schema for the operandconfigs API.
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=operandconfigs,shortName=opcon,scope=Namespaced
@@ -77,20 +76,20 @@ type OperandConfig struct {
 
 // +kubebuilder:object:root=true
 
-// OperandConfigList contains a list of OperandConfig
+// OperandConfigList contains a list of OperandConfig.
 type OperandConfigList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []OperandConfig `json:"items"`
 }
 
-// ServicePhase defines the service status
+// ServicePhase defines the service status.
 type ServicePhase string
 
-// Service status
+// Service status.
 const (
 	// ConfigFinalizer is the name for the finalizer to allow for deletion
-	// reconciliation when an OperandConfig is deleted.
+	// when an OperandConfig is deleted.
 	ConfigFinalizer = "finalizer.config.ibm.com"
 
 	ServiceRunning ServicePhase = "Running"
@@ -99,7 +98,7 @@ const (
 	ServiceNone    ServicePhase = ""
 )
 
-// GetService obtain the service definition with the operand name
+// GetService obtains the service definition with the operand name.
 func (r *OperandConfig) GetService(operandName string) *ConfigService {
 	for _, s := range r.Spec.Services {
 		if s.Name == operandName {
@@ -109,7 +108,7 @@ func (r *OperandConfig) GetService(operandName string) *ConfigService {
 	return nil
 }
 
-// InitConfigStatus OperandConfig status
+// InitConfigStatus c OperandConfig status.
 func (r *OperandConfig) InitConfigStatus() bool {
 	isInitialized := true
 	if r.Status.Phase == "" {
@@ -119,7 +118,7 @@ func (r *OperandConfig) InitConfigStatus() bool {
 	return isInitialized
 }
 
-//InitConfigServiceStatus service status in the OperandConfig instance
+//InitConfigServiceStatus initializes service status in the OperandConfig instance.
 func (r *OperandConfig) InitConfigServiceStatus() {
 	r.Status.ServiceStatus = make(map[string]CrStatus)
 
@@ -132,7 +131,7 @@ func (r *OperandConfig) InitConfigServiceStatus() {
 	r.UpdateOperandPhase()
 }
 
-// UpdateOperandPhase sets the current Phase status
+// UpdateOperandPhase sets the current Phase status.
 func (r *OperandConfig) UpdateOperandPhase() {
 	operandStatusStat := struct {
 		notReadyNum int
@@ -175,7 +174,7 @@ func (r *OperandConfig) EnsureFinalizer() bool {
 	return EnsureFinalizer(&r.ObjectMeta, ConfigFinalizer)
 }
 
-// CheckPhase checks if the OperandConfig phase are running
+// CheckPhase checks if the OperandConfig phase are running.
 func (r *OperandConfig) CheckPhase() bool {
 	return r.Status.Phase == ServiceRunning
 }
