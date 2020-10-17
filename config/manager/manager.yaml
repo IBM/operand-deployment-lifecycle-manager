@@ -63,3 +63,4 @@ spec:
           readOnlyRootFilesystem: true
           runAsNonRoot: true
       terminationGracePeriodSeconds: 10
+      serviceAccount: operand-deployment-lifecycle-manager
