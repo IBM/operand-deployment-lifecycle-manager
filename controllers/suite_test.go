@@ -137,7 +137,7 @@ var _ = BeforeSuite(func(done Done) {
 	// End your controllers test logic
 
 	close(done)
-}, 600)
+}, 60)
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")
