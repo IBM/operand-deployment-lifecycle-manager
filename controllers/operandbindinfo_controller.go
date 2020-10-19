@@ -42,6 +42,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
+	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/util"
 )
 
@@ -220,17 +221,18 @@ func (r *OperandBindInfoReconciler) copySecret(sourceName, targetName, sourceNs,
 		return false, err
 	}
 	// Create the Secret to the OperandRequest namespace
-	secretlabel := make(map[string]string)
+	secretLabel := make(map[string]string)
 	// Copy from the original labels to the target labels
 	for k, v := range secret.Labels {
-		secretlabel[k] = v
+		secretLabel[k] = v
 	}
-	secretlabel[bindInfoInstance.Namespace+"."+bindInfoInstance.Name+"/bindinfo"] = "true"
+	secretLabel[bindInfoInstance.Namespace+"."+bindInfoInstance.Name+"/bindinfo"] = "true"
+	secretLabel[constant.OpbiTypeLabel] = "copy"
 	secretCopy := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      targetName,
 			Namespace: targetNs,
-			Labels:    secretlabel,
+			Labels:    secretLabel,
 		},
 		Type:       secret.Type,
 		Data:       secret.Data,
@@ -267,11 +269,13 @@ func (r *OperandBindInfoReconciler) copySecret(sourceName, targetName, sourceNs,
 		klog.Errorf("failed to create secret %s in the namespace %s: %s", targetName, targetNs, err)
 		return false, err
 	}
-	// Set the OperandBindInfo as the controller of the operand Secret
-	if err := controllerutil.SetOwnerReference(bindInfoInstance, secret, r.Scheme); err != nil {
-		klog.Errorf("failed to set OperandRequest %s as the owner of Secret %s: %s", secret.Name, sourceName, err)
-		return false, err
-	}
+
+	ensureLabelsForSecret(secret, map[string]string{
+		constant.OpbiNsLabel:   bindInfoInstance.Namespace,
+		constant.OpbiNameLabel: bindInfoInstance.Name,
+		constant.OpbiTypeLabel: "original",
+	})
+
 	// Update the operand Secret
 	if err := r.Update(context.TODO(), secret); err != nil {
 		klog.Errorf("failed to update Secret %s in the namespace %s: %s", secret.Name, secret.Namespace, err)
@@ -305,17 +309,18 @@ func (r *OperandBindInfoReconciler) copyConfigmap(sourceName, targetName, source
 		return false, err
 	}
 	// Create the ConfigMap to the OperandRequest namespace
-	cmlabel := make(map[string]string)
+	cmLabel := make(map[string]string)
 	// Copy from the original labels to the target labels
 	for k, v := range cm.Labels {
-		cmlabel[k] = v
+		cmLabel[k] = v
 	}
-	cmlabel[bindInfoInstance.Namespace+"."+bindInfoInstance.Name+"/bindinfo"] = "true"
+	cmLabel[bindInfoInstance.Namespace+"."+bindInfoInstance.Name+"/bindinfo"] = "true"
+	cmLabel[constant.OpbiTypeLabel] = "copy"
 	cmCopy := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      targetName,
 			Namespace: targetNs,
-			Labels:    cmlabel,
+			Labels:    cmLabel,
 		},
 		Data:       cm.Data,
 		BinaryData: cm.BinaryData,
@@ -352,11 +357,13 @@ func (r *OperandBindInfoReconciler) copyConfigmap(sourceName, targetName, source
 		return false, err
 
 	}
-	// Set the OperandBindInfo as the controller of the operand Configmap
-	if err := controllerutil.SetOwnerReference(bindInfoInstance, cm, r.Scheme); err != nil {
-		klog.Errorf("failed to set OperandRequest %s as the owner of Configmap %s: %s", bindInfoInstance.Name, sourceName, err)
-		return false, err
-	}
+	// Set the OperandBindInfo label for the ConfigMap
+	ensureLabelsForConfigMap(cm, map[string]string{
+		constant.OpbiNsLabel:   bindInfoInstance.Namespace,
+		constant.OpbiNameLabel: bindInfoInstance.Name,
+		constant.OpbiTypeLabel: "original",
+	})
+
 	// Update the operand Configmap
 	if err := r.Update(context.TODO(), cm); err != nil {
 		klog.Errorf("failed to update Configmap %s in the namespace %s: %s", cm.Name, cm.Namespace, err)
@@ -505,27 +512,100 @@ func unique(stringSlice []string) []string {
 	return list
 }
 
+func toOpbiRequest() handler.ToRequestsFunc {
+	return func(object handler.MapObject) []reconcile.Request {
+		opbiInstance := []reconcile.Request{}
+		lables := object.Meta.GetLabels()
+		name, nameOk := lables[constant.OpbiNameLabel]
+		ns, namespaceOK := lables[constant.OpbiNsLabel]
+		if nameOk && namespaceOK {
+			opbiInstance = append(opbiInstance, reconcile.Request{NamespacedName: types.NamespacedName{Name: name, Namespace: ns}})
+		}
+		return opbiInstance
+	}
+}
+
 // SetupWithManager adds OperandBindInfo controller to the manager.
 func (r *OperandBindInfoReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	cmSecretPredicates := predicate.Funcs{
+		CreateFunc: func(e event.CreateEvent) bool {
+			labels := e.Meta.GetLabels()
+			for labelKey, labelValue := range labels {
+				if labelKey == constant.OpbiTypeLabel {
+					return labelValue == "original"
+				}
+			}
+			return false
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			labels := e.MetaNew.GetLabels()
+			for labelKey, labelValue := range labels {
+				if labelKey == constant.OpbiTypeLabel {
+					return labelValue == "original"
+				}
+			}
+			return false
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			labels := e.Meta.GetLabels()
+			for labelKey, labelValue := range labels {
+				if labelKey == constant.OpbiTypeLabel {
+					return labelValue == "original"
+				}
+			}
+			return false
+		},
+	}
+
+	opregPredicates := predicate.Funcs{
+		CreateFunc: func(e event.CreateEvent) bool {
+			return true
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return false
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			oldObject := e.ObjectOld.(*operatorv1alpha1.OperandRegistry)
+			newObject := e.ObjectNew.(*operatorv1alpha1.OperandRegistry)
+			return !reflect.DeepEqual(oldObject.Status.OperatorsStatus, newObject.Status.OperatorsStatus)
+		},
+		GenericFunc: func(e event.GenericEvent) bool {
+			return false
+		},
+	}
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&operatorv1alpha1.OperandBindInfo{}).
-		Owns(&corev1.Secret{}).Owns(&corev1.ConfigMap{}).
-		Watches(&source.Kind{Type: &operatorv1alpha1.OperandRegistry{}}, &handler.EnqueueRequestsFromMapFunc{
-			ToRequests: r.getRegistryToRequestMapper(mgr),
-		}, builder.WithPredicates(predicate.Funcs{
-			CreateFunc: func(e event.CreateEvent) bool {
-				return true
-			},
-			DeleteFunc: func(e event.DeleteEvent) bool {
-				return false
-			},
-			UpdateFunc: func(e event.UpdateEvent) bool {
-				oldObject := e.ObjectOld.(*operatorv1alpha1.OperandRegistry)
-				newObject := e.ObjectNew.(*operatorv1alpha1.OperandRegistry)
-				return !reflect.DeepEqual(oldObject.Status.OperatorsStatus, newObject.Status.OperatorsStatus)
-			},
-			GenericFunc: func(e event.GenericEvent) bool {
-				return false
-			},
-		})).Complete(r)
+		Watches(
+			&source.Kind{Type: &corev1.ConfigMap{}},
+			&handler.EnqueueRequestsFromMapFunc{ToRequests: toOpbiRequest()},
+			builder.WithPredicates(cmSecretPredicates),
+		).
+		Watches(
+			&source.Kind{Type: &corev1.Secret{}},
+			&handler.EnqueueRequestsFromMapFunc{ToRequests: toOpbiRequest()},
+			builder.WithPredicates(cmSecretPredicates),
+		).
+		Watches(
+			&source.Kind{Type: &operatorv1alpha1.OperandRegistry{}},
+			&handler.EnqueueRequestsFromMapFunc{ToRequests: r.getRegistryToRequestMapper(mgr)},
+			builder.WithPredicates(opregPredicates),
+		).Complete(r)
+}
+
+func ensureLabelsForSecret(secret *corev1.Secret, labels map[string]string) {
+	if secret.Labels == nil {
+		secret.Labels = make(map[string]string)
+	}
+	for k, v := range labels {
+		secret.Labels[k] = v
+	}
+}
+
+func ensureLabelsForConfigMap(cm *corev1.ConfigMap, labels map[string]string) {
+	if cm.Labels == nil {
+		cm.Labels = make(map[string]string)
+	}
+	for k, v := range labels {
+		cm.Labels[k] = v
+	}
 }
