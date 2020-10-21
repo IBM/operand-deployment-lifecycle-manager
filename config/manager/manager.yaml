@@ -29,6 +29,7 @@ spec:
         productID: "068a62892a1e4db39641342e592daa25"
         productMetric: "FREE"
     spec:
+      serviceAccountName: operand-deployment-lifecycle-manager
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
