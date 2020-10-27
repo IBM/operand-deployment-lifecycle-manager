@@ -202,7 +202,7 @@ spec:
           - '*'
           verbs:
           - '*'
-        serviceAccountName: default
+        serviceAccountName: operand-deployment-lifecycle-manager
       deployments:
       - name: operand-deployment-lifecycle-manager
         spec:
@@ -256,6 +256,7 @@ spec:
                   privileged: false
                   readOnlyRootFilesystem: true
                   runAsNonRoot: true
+              serviceAccountName: operand-deployment-lifecycle-manager
               terminationGracePeriodSeconds: 10
       permissions:
       - rules:
@@ -286,7 +287,7 @@ spec:
           verbs:
           - create
           - patch
-        serviceAccountName: default
+        serviceAccountName: operand-deployment-lifecycle-manager
     strategy: deployment
   installModes:
   - supported: true
@@ -311,5 +312,4 @@ spec:
   maturity: stable
   provider:
     name: IBM
-  replaces: operand-deployment-lifecycle-manager.v1.3.1
   version: 1.4.0
