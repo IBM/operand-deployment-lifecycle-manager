@@ -118,7 +118,7 @@ manager: generate code-fmt code-vet ## Build manager binary
 	go build -o bin/manager main.go
 
 run: generate code-fmt code-vet manifests ## Run against the configured Kubernetes cluster in ~/.kube/config
-	go run ./main.go -v=2
+	OPERATOR_NAMESPACE="" go run ./main.go -v=2
 
 install: manifests kustomize ## Install CRDs into a cluster
 	$(KUSTOMIZE) build config/crd | kubectl apply -f -
@@ -172,20 +172,16 @@ test: ## Run unit test on prow
 
 
 unit-test: generate code-fmt code-vet manifests ## Run unit test
-ifeq (, $(USE_EXISTING_CLUSTER))
-	@rm -rf crds
-	- make kube-builder
-	- make fetch-olm-crds
-endif
-	@echo "Running unit tests for the controllers."
-	@go test ./controllers/... -coverprofile cover.out
-	@rm -rf crds
+	@make test
 
 coverage: ## Run code coverage test
-	@rm -rf crds
-	- make fetch-olm-crds
+	@echo "Running unit tests for the controllers."
+	@mkdir -p ${ENVTEST_ASSETS_DIR}
+	@test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh \
+	|| curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/master/hack/setup-envtest.sh
+	@test -d ${ENVTEST_ASSETS_DIR}/crds || make fetch-olm-crds
+	@source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR);
 	@common/scripts/codecov.sh ${BUILD_LOCALLY} "controllers"
-	@rm -rf crds
 
 scorecard: operator-sdk ## Run scorecard test
 	@echo ... Running the scorecard test
