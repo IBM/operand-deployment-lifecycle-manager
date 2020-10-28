@@ -55,8 +55,6 @@ type clusterObjects struct {
 	subscription  *olmv1alpha1.Subscription
 }
 
-// +kubebuilder:rbac:groups=*,resources=*,verbs=*
-
 // Reconcile reads that state of the cluster for a OperandRequest object and makes changes based on the state read
 // and what is in the OperandRequest.Spec
 // Note:

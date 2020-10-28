@@ -106,7 +106,6 @@ check: lint-all ## Check all files lint error
 
 code-dev: ## Run the default dev commands which are the go tidy, fmt, vet then execute the $ make code-gen
 	@echo Running the common required commands for developments purposes
-	- make generate-all
 	- make code-tidy
 	- make code-fmt
 	- make code-vet
@@ -118,7 +117,7 @@ manager: generate code-fmt code-vet ## Build manager binary
 	go build -o bin/manager main.go
 
 run: generate code-fmt code-vet manifests ## Run against the configured Kubernetes cluster in ~/.kube/config
-	OPERATOR_NAMESPACE="" go run ./main.go -v=2
+	OPERATOR_NAMESPACE="ibm-common-services" INSTALL_SCOPE="namespaced" go run ./main.go -v=2
 
 install: manifests kustomize ## Install CRDs into a cluster
 	$(KUSTOMIZE) build config/crd | kubectl apply -f -
@@ -169,6 +168,7 @@ test: ## Run unit test on prow
 	|| curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/master/hack/setup-envtest.sh
 	@test -d ${ENVTEST_ASSETS_DIR}/crds || make fetch-olm-crds
 	@source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test ./controllers/... -coverprofile cover.out
+	@rm -rf ${ENVTEST_ASSETS_DIR}
 
 
 unit-test: generate code-fmt code-vet manifests ## Run unit test
@@ -180,8 +180,8 @@ coverage: ## Run code coverage test
 	@test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh \
 	|| curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/master/hack/setup-envtest.sh
 	@test -d ${ENVTEST_ASSETS_DIR}/crds || make fetch-olm-crds
-	@source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR);
-	@common/scripts/codecov.sh ${BUILD_LOCALLY} "controllers"
+	@source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); common/scripts/codecov.sh ${BUILD_LOCALLY} "controllers"
+	@rm -rf ${ENVTEST_ASSETS_DIR}
 
 scorecard: operator-sdk ## Run scorecard test
 	@echo ... Running the scorecard test

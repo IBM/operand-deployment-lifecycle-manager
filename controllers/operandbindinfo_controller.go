@@ -53,8 +53,6 @@ type OperandBindInfoReconciler struct {
 	Scheme   *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=*,resources=*,verbs=*
-
 // Reconcile reads that state of the cluster for a OperandBindInfo object and makes changes based on the state read
 // and what is in the OperandBindInfo.Spec
 // Note:
@@ -247,20 +245,7 @@ func (r *OperandBindInfoReconciler) copySecret(sourceName, targetName, sourceNs,
 	if err := r.Create(context.TODO(), secretCopy); err != nil {
 		if errors.IsAlreadyExists(err) {
 			// If already exist, update the Secret
-			existingSecret := &corev1.Secret{}
-			if err := r.Get(context.TODO(), types.NamespacedName{
-				Name:      targetName,
-				Namespace: targetNs,
-			}, existingSecret); err != nil {
-				klog.Errorf("failed to get the existing secret %s in the namespace %s: %s", sourceName, targetNs, err)
-				return false, err
-			}
-			if reflect.DeepEqual(existingSecret.Data, secretCopy.Data) && reflect.DeepEqual(existingSecret.StringData, secretCopy.StringData) {
-				klog.V(3).Infof("There is no change in Secret %s in the namespace %s. Skip the update", targetName, targetNs)
-				return false, nil
-			}
-			existingSecret.Data, existingSecret.StringData = secretCopy.Data, secretCopy.StringData
-			if err := r.Update(context.TODO(), existingSecret); err != nil {
+			if err := r.Update(context.TODO(), secretCopy); err != nil {
 				klog.Errorf("failed to update secret %s in the namespace %s: %s", targetName, targetNs, err)
 				return false, err
 			}
@@ -334,20 +319,7 @@ func (r *OperandBindInfoReconciler) copyConfigmap(sourceName, targetName, source
 	if err := r.Create(context.TODO(), cmCopy); err != nil {
 		if errors.IsAlreadyExists(err) {
 			// If already exist, update the ConfigMap
-			existingCm := &corev1.ConfigMap{}
-			if err := r.Get(context.TODO(), types.NamespacedName{
-				Name:      targetName,
-				Namespace: targetNs,
-			}, existingCm); err != nil {
-				klog.Errorf("failed to get the existing ConfigMap %s in the namespace %s: %s", sourceName, targetNs, err)
-				return false, err
-			}
-			if reflect.DeepEqual(existingCm.Data, cmCopy.Data) && reflect.DeepEqual(existingCm.BinaryData, cmCopy.BinaryData) {
-				klog.V(3).Infof("There is no change in ConfigMap %s in the namespace %s. Skip the update", targetName, targetNs)
-				return false, nil
-			}
-			existingCm.Data, existingCm.BinaryData = cmCopy.Data, cmCopy.BinaryData
-			if err := r.Update(context.TODO(), existingCm); err != nil {
+			if err := r.Update(context.TODO(), cmCopy); err != nil {
 				klog.Errorf("failed to update ConfigMap %s in the namespace %s: %s", sourceName, targetNs, err)
 				return false, err
 			}

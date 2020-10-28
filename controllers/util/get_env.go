@@ -28,3 +28,12 @@ func GetOperatorNamespace() string {
 	}
 	return ns
 }
+
+// GetInstallScope returns the scope of the installation
+func GetInstallScope() string {
+	ns, found := os.LookupEnv("INSTALL_SCOPE")
+	if !found {
+		return "cluster"
+	}
+	return ns
+}

@@ -197,11 +197,20 @@ spec:
       clusterPermissions:
       - rules:
         - apiGroups:
-          - '*'
+          - operator.ibm.com
           resources:
-          - '*'
+          - operandbindinfos
+          - operandconfigs
+          - operandregistries
+          - operandrequests
           verbs:
-          - '*'
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
         serviceAccountName: operand-deployment-lifecycle-manager
       deployments:
       - name: operand-deployment-lifecycle-manager
@@ -267,32 +276,11 @@ spec:
       permissions:
       - rules:
         - apiGroups:
-          - ""
+          - '*'
           resources:
-          - configmaps
+          - '*'
           verbs:
-          - get
-          - list
-          - watch
-          - create
-          - update
-          - patch
-          - delete
-        - apiGroups:
-          - ""
-          resources:
-          - configmaps/status
-          verbs:
-          - get
-          - update
-          - patch
-        - apiGroups:
-          - ""
-          resources:
-          - events
-          verbs:
-          - create
-          - patch
+          - '*'
         serviceAccountName: operand-deployment-lifecycle-manager
     strategy: deployment
   installModes:
@@ -318,4 +306,5 @@ spec:
   maturity: stable
   provider:
     name: IBM
+  replaces: operand-deployment-lifecycle-manager.v1.3.1
   version: 1.4.0

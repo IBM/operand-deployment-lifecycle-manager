@@ -36,6 +36,8 @@ import (
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
+	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/k8sutil"
+	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/util"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -63,19 +65,32 @@ func main() {
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.Parse()
 
-	gvkLabelMap := map[schema.GroupVersionKind]string{
-		corev1.SchemeGroupVersion.WithKind("Secret"):    constant.OpbiTypeLabel,
-		corev1.SchemeGroupVersion.WithKind("ConfigMap"): constant.OpbiTypeLabel,
+	gvkLabelMap := map[schema.GroupVersionKind]cache.Selector{
+		corev1.SchemeGroupVersion.WithKind("Secret"): {
+			LabelSelector: constant.OpbiTypeLabel,
+		},
+		corev1.SchemeGroupVersion.WithKind("ConfigMap"): {
+			LabelSelector: constant.OpbiTypeLabel,
+		},
 	}
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	options := ctrl.Options{
 		Scheme:             scheme,
 		MetricsBindAddress: metricsAddr,
 		Port:               9443,
 		LeaderElection:     enableLeaderElection,
 		LeaderElectionID:   "ab89bbb1.ibm.com",
-		NewCache:           cache.NewFilteredCacheBuilder(gvkLabelMap),
-	})
+	}
+
+	scope := util.GetInstallScope()
+	operatorNs := util.GetOperatorNamespace()
+	if scope == "namespaced" {
+		options.NewCache = k8sutil.NewODLMCache(operatorNs)
+	} else {
+		options.NewCache = cache.NewFilteredCacheBuilder(gvkLabelMap)
+	}
+
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
 	if err != nil {
 		klog.Error(err, "unable to start manager")
 		os.Exit(1)
