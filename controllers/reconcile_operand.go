@@ -136,6 +136,7 @@ func (r *OperandRequestReconciler) reconcileOperand(requestKey types.NamespacedN
 			if csv.Status.Phase != olmv1alpha1.CSVPhaseSucceeded {
 				klog.Errorf("the ClusterServiceVersion for Subscription %s is not Ready", operatorName)
 				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorInstalling, "")
+				continue
 			}
 
 			klog.V(3).Info("Generating customresource base on ClusterServiceVersion: ", csv.ObjectMeta.Name)
