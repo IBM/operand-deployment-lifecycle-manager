@@ -46,6 +46,12 @@ spec:
         - /manager
         args:
         - -v=2
+        env:
+        - name: OPERATOR_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
         image: quay.io/opencloudio/odlm:latest
         name: manager
         resources:
