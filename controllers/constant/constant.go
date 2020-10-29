@@ -26,4 +26,13 @@ const (
 
 	//OpreqLabel is the label used to label the subscription/CR managed by ODLM
 	OpreqLabel string = "operator.ibm.com/opreq-control"
+
+	//OpbiNsLabel is the label used to add OperandBindInfo namespace to the secrets/configmaps watched by ODLM
+	OpbiNsLabel string = "operator.ibm.com/watched-by-opbi-with-namespace"
+
+	//OpbiNameLabel is the label used to add OperandBindInfo name to the secrets/configmaps watched by ODLM
+	OpbiNameLabel string = "operator.ibm.com/watched-by-opbi-with-name"
+
+	//OpbiTypeLabel is the label used to label if secrets/configmaps are "original" or "copy"
+	OpbiTypeLabel string = "operator.ibm.com/managedBy-opbi"
 )

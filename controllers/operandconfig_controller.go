@@ -52,8 +52,6 @@ type OperandConfigReconciler struct {
 	Scheme   *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=*,resources=*,verbs=*
-
 // Reconcile reads that state of the cluster for a OperandConfig object and makes changes based on the state read
 // and what is in the OperandConfig.Spec
 // Note:

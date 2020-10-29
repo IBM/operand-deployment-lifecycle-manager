@@ -34,5 +34,14 @@ var _ = Describe("Get environmental variables", func() {
 			ns := GetOperatorNamespace()
 			Expect(ns).Should(Equal(testNs))
 		})
+
+		It("Should get INSTALL_SCOPE", func() {
+			scope := "namespaced"
+			err := os.Setenv("INSTALL_SCOPE", scope)
+			Expect(err).NotTo(HaveOccurred())
+
+			ns := GetInstallScope()
+			Expect(ns).Should(Equal(scope))
+		})
 	})
 })

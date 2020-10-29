@@ -22,15 +22,22 @@ import (
 
 	olmv1 "github.com/operator-framework/api/pkg/operators/v1"
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	cache "github.com/IBM/controller-filtered-cache/filteredcache"
+
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers"
+	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
+	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/k8sutil"
+	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/util"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -58,13 +65,32 @@ func main() {
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.Parse()
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	gvkLabelMap := map[schema.GroupVersionKind]cache.Selector{
+		corev1.SchemeGroupVersion.WithKind("Secret"): {
+			LabelSelector: constant.OpbiTypeLabel,
+		},
+		corev1.SchemeGroupVersion.WithKind("ConfigMap"): {
+			LabelSelector: constant.OpbiTypeLabel,
+		},
+	}
+
+	options := ctrl.Options{
 		Scheme:             scheme,
 		MetricsBindAddress: metricsAddr,
 		Port:               9443,
 		LeaderElection:     enableLeaderElection,
 		LeaderElectionID:   "ab89bbb1.ibm.com",
-	})
+	}
+
+	scope := util.GetInstallScope()
+	operatorNs := util.GetOperatorNamespace()
+	if scope == "namespaced" {
+		options.NewCache = k8sutil.NewODLMCache(operatorNs)
+	} else {
+		options.NewCache = cache.NewFilteredCacheBuilder(gvkLabelMap)
+	}
+
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
 	if err != nil {
 		klog.Error(err, "unable to start manager")
 		os.Exit(1)

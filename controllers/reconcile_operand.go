@@ -608,7 +608,7 @@ func (r *OperandRequestReconciler) deleteCustomResource(unstruct unstructured.Un
 }
 
 func (r *OperandRequestReconciler) checkCustomResource(requestInstance *operatorv1alpha1.OperandRequest) error {
-	klog.V(2).Infof("checking the custom resource should be deleted from OperandRequest %s/%s", requestInstance.Namespace, requestInstance.Name)
+	klog.V(3).Infof("checking the custom resource should be deleted from OperandRequest %s/%s", requestInstance.Namespace, requestInstance.Name)
 
 	members := requestInstance.Status.Members
 
