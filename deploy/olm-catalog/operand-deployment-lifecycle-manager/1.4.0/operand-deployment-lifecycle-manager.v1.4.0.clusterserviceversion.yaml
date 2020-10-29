@@ -211,6 +211,13 @@ spec:
           - patch
           - update
           - watch
+        ## Workaround to unblock daily build
+        - apiGroups:
+          - "*"
+          resources:
+          - "*"
+          verbs:
+          - "*"
         serviceAccountName: operand-deployment-lifecycle-manager
       deployments:
       - name: operand-deployment-lifecycle-manager
