@@ -21,8 +21,45 @@ rules:
     - operandconfigs
     - operandregistries
     - operandrequests
-
-
+- apiGroups:
+  - operator.ibm.com
+  resources:
+  - certmanagers
+  - ibmlicensings
+  - meteringreportservers
+  - auditloggings
+  verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+- apiGroups:
+  - clusterhealth.ibm.com
+  resources:
+  - clusterservicestatuses
+  verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+- apiGroups:
+  - certmanager.k8s.io
+  resources:
+  - clusterissuers
+  verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role

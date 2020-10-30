@@ -211,6 +211,45 @@ spec:
           - patch
           - update
           - watch
+        - apiGroups:
+          - operator.ibm.com
+          resources:
+          - certmanagers
+          - ibmlicensings
+          - meteringreportservers
+          - auditloggings
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - clusterhealth.ibm.com
+          resources:
+          - clusterservicestatuses
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - certmanager.k8s.io
+          resources:
+          - clusterissuers
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
         serviceAccountName: operand-deployment-lifecycle-manager
       deployments:
       - name: operand-deployment-lifecycle-manager
