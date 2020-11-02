@@ -19,6 +19,7 @@ package main
 import (
 	"flag"
 	"os"
+	"strings"
 
 	olmv1 "github.com/operator-framework/api/pkg/operators/v1"
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
@@ -84,9 +85,9 @@ func main() {
 	}
 
 	scope := util.GetInstallScope()
-	operatorNs := util.GetOperatorNamespace()
+	watchNamespace := util.GetWatchNamespace()
 	if scope == "namespaced" {
-		options.NewCache = k8sutil.NewODLMCache(operatorNs)
+		options.NewCache = k8sutil.NewODLMCache(strings.Split(watchNamespace, ","))
 	} else {
 		options.NewCache = cache.NewFilteredCacheBuilder(gvkLabelMap)
 	}

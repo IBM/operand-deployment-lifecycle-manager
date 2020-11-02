@@ -41,7 +41,7 @@ import (
 )
 
 // NewODLMCache implements a customized cache with a for ODLM
-func NewODLMCache(namespace string) cache.NewCacheFunc {
+func NewODLMCache(namespaces []string) cache.NewCacheFunc {
 	return func(config *rest.Config, opts cache.Options) (cache.Cache, error) {
 
 		// Get the frequency that informers are resynced
@@ -56,9 +56,9 @@ func NewODLMCache(namespace string) cache.NewCacheFunc {
 			return nil, err
 		}
 
-		opts.Namespace = namespace
+		NewCache := cache.MultiNamespacedCacheBuilder(namespaces)
 		// Create a default cache for the other resources
-		fallback, err := cache.New(config, opts)
+		fallback, err := NewCache(config, opts)
 		if err != nil {
 			klog.Error(err, "Failed to init fallback cache")
 			return nil, err
