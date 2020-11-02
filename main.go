@@ -32,7 +32,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	cache "github.com/IBM/controller-filtered-cache/filteredcache"
-
+	nssv1 "github.com/IBM/ibm-namespace-scope-operator/api/v1"
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
@@ -48,6 +48,7 @@ var (
 func init() {
 	utilruntime.Must(olmv1.AddToScheme(scheme))
 	utilruntime.Must(olmv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(nssv1.AddToScheme(scheme))
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(operatorv1alpha1.AddToScheme(scheme))
@@ -98,6 +99,7 @@ func main() {
 
 	if err = (&controllers.OperandRequestReconciler{
 		Client:   mgr.GetClient(),
+		Config:   mgr.GetConfig(),
 		Recorder: mgr.GetEventRecorderFor("OperandRequest"),
 		Scheme:   mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
