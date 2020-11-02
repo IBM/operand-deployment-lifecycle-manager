@@ -38,6 +38,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	nssv1 "github.com/IBM/ibm-namespace-scope-operator/api/v1"
 	apiv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
 	// +kubebuilder:scaffold:imports
 )
@@ -83,6 +84,8 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).NotTo(HaveOccurred())
 	// +kubebuilder:scaffold:scheme
 
+	err = nssv1.AddToScheme(clientgoscheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
 	err = olmv1alpha1.AddToScheme(clientgoscheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 	err = olmv1.AddToScheme(clientgoscheme.Scheme)
@@ -124,6 +127,7 @@ var _ = BeforeSuite(func(done Done) {
 	// Setup Manager with OperandRequest Controller
 	err = (&OperandRequestReconciler{
 		Client:   k8sManager.GetClient(),
+		Config:   k8sManager.GetConfig(),
 		Recorder: k8sManager.GetEventRecorderFor("OperandRequest"),
 		Scheme:   k8sManager.GetScheme(),
 	}).SetupWithManager(k8sManager)

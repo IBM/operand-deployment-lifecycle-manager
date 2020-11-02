@@ -35,4 +35,7 @@ const (
 
 	//OpbiTypeLabel is the label used to label if secrets/configmaps are "original" or "copy"
 	OpbiTypeLabel string = "operator.ibm.com/managedBy-opbi"
+
+	//NamespaceScopeCrName is the name use to get NamespaceScopeCrName instance
+	NamespaceScopeCrName string = "common-service"
 )
