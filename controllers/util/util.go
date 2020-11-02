@@ -31,6 +31,15 @@ func GetOperatorNamespace() string {
 	return ns
 }
 
+// GetWatchNamespace returns the Namespace of the operator
+func GetWatchNamespace() string {
+	ns, found := os.LookupEnv("WATCH_NAMESPACE")
+	if !found {
+		return GetOperatorNamespace()
+	}
+	return ns
+}
+
 // GetInstallScope returns the scope of the installation
 func GetInstallScope() string {
 	ns, found := os.LookupEnv("INSTALL_SCOPE")

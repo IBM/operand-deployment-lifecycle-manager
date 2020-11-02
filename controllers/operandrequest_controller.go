@@ -163,7 +163,7 @@ func (r *OperandRequestReconciler) RemoveNamespaceMemberFromNamespaceScope(nsMem
 
 func (r *OperandRequestReconciler) UpdateNamespaceScope(nsMem string, delete bool) error {
 	dc := discovery.NewDiscoveryClientForConfigOrDie(r.Config)
-	if exist, err := util.ResourceExists(dc, "operator.ibm.com", "NamespaceScope"); err != nil {
+	if exist, err := util.ResourceExists(dc, "operator.ibm.com/v1", "NamespaceScope"); err != nil {
 		klog.Errorf("Check resource NamespaceScope exist failed: %v", err)
 		return err
 	} else if !exist {
