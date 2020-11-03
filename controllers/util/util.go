@@ -18,6 +18,7 @@ package util
 
 import (
 	"os"
+	"sort"
 
 	"k8s.io/client-go/discovery"
 )
@@ -95,4 +96,18 @@ func Remove(list []string, s string) ([]string, bool) {
 		}
 	}
 	return list, changed
+}
+
+func StringSliceContentEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	sort.Strings(a)
+	sort.Strings(b)
+	for i, v := range a {
+		if v != b[i] {
+			return false
+		}
+	}
+	return true
 }

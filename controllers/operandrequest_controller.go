@@ -107,7 +107,7 @@ func (r *OperandRequestReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 		}
 
 		// Check and remove namespaceMember from NamespaceScope CR
-		if err := r.RemoveNamespaceMemberFromNamespaceScope(req.Namespace); err != nil {
+		if err := r.RemoveNamespaceMemberFromNamespaceScope(req.NamespacedName); err != nil {
 			klog.Errorf("failed to remove NamespaceMember %s from NamespaceScope: %v", req.Namespace, err)
 			return ctrl.Result{}, err
 		}
@@ -125,7 +125,7 @@ func (r *OperandRequestReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 	}
 
 	// Update NamespaceScope CR if it exist
-	if err := r.AddNamespaceMemberIntoNamespaceScope(req.Namespace); err != nil {
+	if err := r.AddNamespaceMemberIntoNamespaceScope(req.NamespacedName); err != nil {
 		klog.Errorf("failed to add NamespaceMember %s to NamespaceScope: %v", req.Namespace, err)
 		return ctrl.Result{}, err
 	}
@@ -153,15 +153,15 @@ func (r *OperandRequestReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 	return ctrl.Result{RequeueAfter: 30 * time.Minute}, nil
 }
 
-func (r *OperandRequestReconciler) AddNamespaceMemberIntoNamespaceScope(nsMem string) error {
-	return r.UpdateNamespaceScope(nsMem, false)
+func (r *OperandRequestReconciler) AddNamespaceMemberIntoNamespaceScope(namespacedName types.NamespacedName) error {
+	return r.UpdateNamespaceScope(namespacedName, false)
 }
 
-func (r *OperandRequestReconciler) RemoveNamespaceMemberFromNamespaceScope(nsMem string) error {
-	return r.UpdateNamespaceScope(nsMem, true)
+func (r *OperandRequestReconciler) RemoveNamespaceMemberFromNamespaceScope(namespacedName types.NamespacedName) error {
+	return r.UpdateNamespaceScope(namespacedName, true)
 }
 
-func (r *OperandRequestReconciler) UpdateNamespaceScope(nsMem string, delete bool) error {
+func (r *OperandRequestReconciler) UpdateNamespaceScope(namespacedName types.NamespacedName, delete bool) error {
 	dc := discovery.NewDiscoveryClientForConfigOrDie(r.Config)
 	if exist, err := util.ResourceExists(dc, "operator.ibm.com/v1", "NamespaceScope"); err != nil {
 		klog.Errorf("Check resource NamespaceScope exist failed: %v", err)
@@ -179,14 +179,28 @@ func (r *OperandRequestReconciler) UpdateNamespaceScope(nsMem string, delete boo
 		}
 		return err
 	}
-	nsMems := nsScope.Spec.NamespaceMembers
-	changed := false
-	if delete {
-		nsMems, changed = util.Remove(nsMems, nsMem)
-	} else {
-		nsMems, changed = util.Add(nsMems, nsMem)
+	var nsMems []string
+
+	opreqList, err := fetch.FetchAllOperandRequests(r.Client, nil)
+
+	if err != nil {
+		klog.Errorf("Failed to list OperandRequest: %v", err)
+		return err
 	}
-	if changed {
+
+	operatorNs := util.GetOperatorNamespace()
+	if operatorNs != "" {
+		nsMems = append(nsMems, operatorNs)
+	}
+
+	for _, opreq := range opreqList.Items {
+		if delete && opreq.Namespace == namespacedName.Namespace && opreq.Name == namespacedName.Name {
+			continue
+		}
+		nsMems, _ = util.Add(nsMems, opreq.Namespace)
+	}
+
+	if !util.StringSliceContentEqual(nsMems, nsScope.Spec.NamespaceMembers) {
 		nsScope.Spec.NamespaceMembers = nsMems
 		if err := r.Update(context.TODO(), nsScope); err != nil {
 			klog.Errorf("Failed to update NamespaceScope %s: %v", nsScopeKey.String(), err)
