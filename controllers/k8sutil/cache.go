@@ -38,10 +38,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
+
+	filteredcache "github.com/IBM/controller-filtered-cache/filteredcache"
 )
 
 // NewODLMCache implements a customized cache with a for ODLM
-func NewODLMCache(namespaces []string) cache.NewCacheFunc {
+func NewODLMCache(namespaces []string, gvkLabelMap map[schema.GroupVersionKind]filteredcache.Selector) cache.NewCacheFunc {
 	return func(config *rest.Config, opts cache.Options) (cache.Cache, error) {
 
 		// Get the frequency that informers are resynced
@@ -56,7 +58,7 @@ func NewODLMCache(namespaces []string) cache.NewCacheFunc {
 			return nil, err
 		}
 
-		NewCache := cache.MultiNamespacedCacheBuilder(namespaces)
+		NewCache := filteredcache.MultiNamespacedFilteredCacheBuilder(gvkLabelMap, namespaces)
 		// Create a default cache for the other resources
 		fallback, err := NewCache(config, opts)
 		if err != nil {
@@ -65,7 +67,7 @@ func NewODLMCache(namespaces []string) cache.NewCacheFunc {
 		}
 
 		// Return the customized cache
-		return filteredCache{config: config, informerMap: informerMap, fallback: fallback, namespace: "", Scheme: opts.Scheme}, nil
+		return ODLMCache{config: config, informerMap: informerMap, fallback: fallback, Scheme: opts.Scheme}, nil
 	}
 }
 
@@ -74,16 +76,16 @@ func buildInformerMap(config *rest.Config, opts cache.Options, resync time.Durat
 	// Initialize informerMap
 	informerMap := make(map[schema.GroupVersionKind]toolscache.SharedIndexInformer)
 
-	gvkList := []schema.GroupVersionKind{
+	clusterGVKList := []schema.GroupVersionKind{
 		{Group: "operator.ibm.com", Kind: "OperandRequest", Version: "v1alpha1"},
 		{Group: "operator.ibm.com", Kind: "OperandRegistry", Version: "v1alpha1"},
 		{Group: "operator.ibm.com", Kind: "OperandConfig", Version: "v1alpha1"},
 		{Group: "operator.ibm.com", Kind: "OperandBindInfo", Version: "v1alpha1"},
 	}
 
-	for _, gvk := range gvkList {
+	for _, gvk := range clusterGVKList {
 
-		// Create ListerWatcher with the label by NewFilteredListWatchFromClient
+		// Create ListerWatcher by NewFilteredListWatchFromClient
 		client, err := getClientForGVK(gvk, config, opts.Scheme)
 		if err != nil {
 			return nil, err
@@ -115,19 +117,18 @@ func buildInformerMap(config *rest.Config, opts cache.Options, resync time.Durat
 	return informerMap, nil
 }
 
-// filteredCache is the customized cache by the specified label
-type filteredCache struct {
+// ODLMCache is the customized cache for ODLM
+type ODLMCache struct {
 	config      *rest.Config
 	informerMap map[schema.GroupVersionKind]toolscache.SharedIndexInformer
 	fallback    cache.Cache
-	namespace   string
 	Scheme      *runtime.Scheme
 }
 
 // Get implements Reader
 // If the resource is in the cache, Get function get fetch in from the informer
 // Otherwise, resource will be get by the k8s client
-func (c filteredCache) Get(ctx context.Context, key client.ObjectKey, obj runtime.Object) error {
+func (c ODLMCache) Get(ctx context.Context, key client.ObjectKey, obj runtime.Object) error {
 
 	// Get the GVK of the runtime object
 	gvk, err := apiutil.GVKForObject(obj, c.Scheme)
@@ -150,7 +151,7 @@ func (c filteredCache) Get(ctx context.Context, key client.ObjectKey, obj runtim
 }
 
 // getFromStore gets the resource from the cache
-func (c filteredCache) getFromStore(informer toolscache.SharedIndexInformer, key client.ObjectKey, obj runtime.Object, gvk schema.GroupVersionKind) error {
+func (c ODLMCache) getFromStore(informer toolscache.SharedIndexInformer, key client.ObjectKey, obj runtime.Object, gvk schema.GroupVersionKind) error {
 
 	// Different key for cluster scope resource and namespaced resource
 	var keyString string
@@ -189,7 +190,7 @@ func (c filteredCache) getFromStore(informer toolscache.SharedIndexInformer, key
 }
 
 // getFromClient gets the resource by the k8s client
-func (c filteredCache) getFromClient(ctx context.Context, key client.ObjectKey, obj runtime.Object, gvk schema.GroupVersionKind) error {
+func (c ODLMCache) getFromClient(ctx context.Context, key client.ObjectKey, obj runtime.Object, gvk schema.GroupVersionKind) error {
 
 	// Get resource by the kubeClient
 	resource := kindToResource(gvk.Kind)
@@ -227,13 +228,13 @@ func (c filteredCache) getFromClient(ctx context.Context, key client.ObjectKey, 
 }
 
 // List lists items out of the indexer and writes them to list
-func (c filteredCache) List(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
+func (c ODLMCache) List(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
 	gvk, err := apiutil.GVKForObject(list, c.Scheme)
 	if err != nil {
 		return err
 	}
 	if informer, ok := c.informerMap[gvk]; ok {
-		// Construct filter
+
 		var objList []interface{}
 
 		listOpts := client.ListOptions{}
@@ -278,12 +279,7 @@ func (c filteredCache) List(ctx context.Context, list runtime.Object, opts ...cl
 
 			var namespace string
 
-			if c.namespace != "" {
-				if listOpts.Namespace != "" && c.namespace != listOpts.Namespace {
-					return fmt.Errorf("unable to list from namespace : %v because of unknown namespace for the cache", listOpts.Namespace)
-				}
-				namespace = c.namespace
-			} else if listOpts.Namespace != "" {
+			if listOpts.Namespace != "" {
 				namespace = listOpts.Namespace
 			}
 
@@ -311,7 +307,7 @@ func (c filteredCache) List(ctx context.Context, list runtime.Object, opts ...cl
 
 // GetInformer fetches or constructs an informer for the given object that corresponds to a single
 // API kind and resource.
-func (c filteredCache) GetInformer(ctx context.Context, obj runtime.Object) (cache.Informer, error) {
+func (c ODLMCache) GetInformer(ctx context.Context, obj runtime.Object) (cache.Informer, error) {
 	gvk, err := apiutil.GVKForObject(obj, c.Scheme)
 	if err != nil {
 		return nil, err
@@ -326,7 +322,7 @@ func (c filteredCache) GetInformer(ctx context.Context, obj runtime.Object) (cac
 
 // GetInformerForKind is similar to GetInformer, except that it takes a group-version-kind, instead
 // of the underlying object.
-func (c filteredCache) GetInformerForKind(ctx context.Context, gvk schema.GroupVersionKind) (cache.Informer, error) {
+func (c ODLMCache) GetInformerForKind(ctx context.Context, gvk schema.GroupVersionKind) (cache.Informer, error) {
 	if informer, ok := c.informerMap[gvk]; ok {
 		return informer, nil
 	}
@@ -336,7 +332,7 @@ func (c filteredCache) GetInformerForKind(ctx context.Context, gvk schema.GroupV
 
 // Start runs all the informers known to this cache until the given channel is closed.
 // It blocks.
-func (c filteredCache) Start(stopCh <-chan struct{}) error {
+func (c ODLMCache) Start(stopCh <-chan struct{}) error {
 	klog.Info("Start ODLM cache")
 	for _, informer := range c.informerMap {
 		informer := informer
@@ -346,7 +342,7 @@ func (c filteredCache) Start(stopCh <-chan struct{}) error {
 }
 
 // WaitForCacheSync waits for all the caches to sync.  Returns false if it could not sync a cache.
-func (c filteredCache) WaitForCacheSync(stop <-chan struct{}) bool {
+func (c ODLMCache) WaitForCacheSync(stop <-chan struct{}) bool {
 	// Wait for informer to sync
 	waiting := true
 	for waiting {
@@ -365,7 +361,7 @@ func (c filteredCache) WaitForCacheSync(stop <-chan struct{}) bool {
 
 // IndexField adds an indexer to the underlying cache, using extraction function to get
 // value(s) from the given field. The filtered cache doesn't support the index yet.
-func (c filteredCache) IndexField(ctx context.Context, obj runtime.Object, field string, extractValue client.IndexerFunc) error {
+func (c ODLMCache) IndexField(ctx context.Context, obj runtime.Object, field string, extractValue client.IndexerFunc) error {
 	gvk, err := apiutil.GVKForObject(obj, c.Scheme)
 	if err != nil {
 		return err

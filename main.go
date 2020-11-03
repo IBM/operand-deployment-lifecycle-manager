@@ -87,7 +87,7 @@ func main() {
 	scope := util.GetInstallScope()
 	watchNamespace := util.GetWatchNamespace()
 	if scope == "namespaced" {
-		options.NewCache = k8sutil.NewODLMCache(strings.Split(watchNamespace, ","))
+		options.NewCache = k8sutil.NewODLMCache(strings.Split(watchNamespace, ","), gvkLabelMap)
 	} else {
 		options.NewCache = cache.NewFilteredCacheBuilder(gvkLabelMap)
 	}
