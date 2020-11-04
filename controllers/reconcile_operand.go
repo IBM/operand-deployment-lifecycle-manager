@@ -81,7 +81,7 @@ func (r *OperandRequestReconciler) reconcileOperand(requestKey types.NamespacedN
 				// Check the requested Service Config if exist in specific OperandConfig
 				opdConfig = configInstance.GetService(operand.Name)
 				if opdConfig == nil {
-					klog.Warningf("Cannot find %s in the OperandConfig instance %s in the namespace %s ", operand.Name, req.Registry, req.RegistryNamespace)
+					klog.V(2).Infof("There is no service: %s from the OperandConfig instance: %s/%s, Skip creating CR for it", operand.Name, req.RegistryNamespace, req.Registry)
 					continue
 				}
 			}
