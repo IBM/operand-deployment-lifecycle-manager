@@ -21,6 +21,12 @@ rules:
     - operandconfigs
     - operandregistries
     - operandrequests
+    - operandbindinfos/status
+    - operandconfigs/status
+    - operandregistries/status
+    - operandrequests/status
+    - operandbindinfos/finalizers
+    - operandrequests/finalizers
 - apiGroups:
   - operator.ibm.com
   resources:

@@ -203,6 +203,12 @@ spec:
           - operandconfigs
           - operandregistries
           - operandrequests
+          - operandbindinfos/status
+          - operandconfigs/status
+          - operandregistries/status
+          - operandrequests/status
+          - operandbindinfos/finalizers
+          - operandrequests/finalizers
           verbs:
           - create
           - delete
