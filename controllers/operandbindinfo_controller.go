@@ -134,11 +134,6 @@ func (r *OperandBindInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 
 	// Get OperandRequest instance and Copy Secret and/or ConfigMap
 	for _, bindRequest := range requestNamespaces {
-		if operandNamespace == bindRequest.Namespace {
-			// Skip the namespace of OperandBindInfo
-			klog.V(3).Infof("Skip to copy secret and/or configmap to themselves namespace %s", bindRequest.Namespace)
-			continue
-		}
 		// Get the OperandRequest of operandBindInfo
 		requestInstance := &operatorv1alpha1.OperandRequest{}
 		if err := r.Get(ctx, types.NamespacedName{Name: bindRequest.Name, Namespace: bindRequest.Namespace}, requestInstance); err != nil {
@@ -155,9 +150,11 @@ func (r *OperandBindInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		klog.V(3).Infof("Start to copy secret and/or configmap to the namespace %s", bindRequest.Namespace)
 		// Only copy the public bindInfo
 		for key, binding := range bindInfoInstance.Spec.Bindings {
-			reg, _ := regexp.Compile(`^public(.*)$`)
-			if !reg.MatchString(key) {
-				continue
+			if operandNamespace != bindRequest.Namespace {
+				reg, _ := regexp.Compile(`^public(.*)$`)
+				if !reg.MatchString(key) {
+					continue
+				}
 			}
 			// Copy Secret
 			requeueSec, err := r.copySecret(binding.Secret, secretReq[key], operandNamespace, bindRequest.Namespace, bindInfoInstance, requestInstance)
@@ -201,6 +198,10 @@ func (r *OperandBindInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 func (r *OperandBindInfoReconciler) copySecret(sourceName, targetName, sourceNs, targetNs string,
 	bindInfoInstance *operatorv1alpha1.OperandBindInfo, requestInstance *operatorv1alpha1.OperandRequest) (bool, error) {
 	if sourceName == "" || sourceNs == "" || targetNs == "" {
+		return false, nil
+	}
+
+	if sourceName == targetName && sourceNs == targetNs {
 		return false, nil
 	}
 
@@ -276,6 +277,10 @@ func (r *OperandBindInfoReconciler) copySecret(sourceName, targetName, sourceNs,
 func (r *OperandBindInfoReconciler) copyConfigmap(sourceName, targetName, sourceNs, targetNs string,
 	bindInfoInstance *operatorv1alpha1.OperandBindInfo, requestInstance *operatorv1alpha1.OperandRequest) (bool, error) {
 	if sourceName == "" || sourceNs == "" || targetNs == "" {
+		return false, nil
+	}
+
+	if sourceName == targetName && sourceNs == targetNs {
 		return false, nil
 	}
 
