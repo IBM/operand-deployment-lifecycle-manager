@@ -35,6 +35,23 @@ var _ = Describe("Get environmental variables", func() {
 			Expect(ns).Should(Equal(testNs))
 		})
 
+		It("Should get WATCH_NAMESPACE", func() {
+
+			operatorNs := "system"
+			err := os.Setenv("OPERATOR_NAMESPACE", operatorNs)
+			Expect(err).NotTo(HaveOccurred())
+
+			ns := GetWatchNamespace()
+			Expect(ns).Should(Equal(operatorNs))
+
+			watchNs := "system,cloudpak1"
+			err = os.Setenv("WATCH_NAMESPACE", watchNs)
+			Expect(err).NotTo(HaveOccurred())
+
+			ns = GetWatchNamespace()
+			Expect(ns).Should(Equal(watchNs))
+		})
+
 		It("Should get INSTALL_SCOPE", func() {
 			scope := "namespaced"
 			err := os.Setenv("INSTALL_SCOPE", scope)
@@ -42,6 +59,15 @@ var _ = Describe("Get environmental variables", func() {
 
 			ns := GetInstallScope()
 			Expect(ns).Should(Equal(scope))
+		})
+
+		It("Should string slice be equal", func() {
+			a := []string{"apple", "pine", "pineapple"}
+			b := []string{"apple", "pineapple", "pine"}
+			Expect(StringSliceContentEqual(a, b)).Should(BeTrue())
+			c := []string{"apple", "pear", "pineapple"}
+			d := []string{"apple", "pineapple", "pine"}
+			Expect(StringSliceContentEqual(c, d)).Should(BeFalse())
 		})
 	})
 })

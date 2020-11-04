@@ -63,18 +63,20 @@ func (r *OperandRegistryReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 
 	// Update all the operator status
 	if err := r.updateRegistryOperatorsStatus(instance); err != nil {
-		klog.Errorf("failed to update the status for OperandRegistry %s/%s : %v", req.NamespacedName.Namespace, req.NamespacedName.Name, err)
-
+		klog.Errorf("failed to update the status for OperandRegistry %s : %v", req.NamespacedName.String(), err)
 		return ctrl.Result{}, err
 	}
 
+	// Summarize instance status
 	if instance.Status.OperatorsStatus == nil || len(instance.Status.OperatorsStatus) == 0 {
 		instance.UpdateRegistryPhase(operatorv1alpha1.RegistryReady)
 	} else {
 		instance.UpdateRegistryPhase(operatorv1alpha1.RegistryRunning)
 	}
+
+	// Update instance status
 	if err := r.updateOperandRegistryStatus(instance); err != nil {
-		klog.Errorf("failed to update the status for OperandRegistry %s/%s : %v", req.NamespacedName.Namespace, req.NamespacedName.Name, err)
+		klog.Errorf("failed to update the status for OperandRegistry %s : %v", req.NamespacedName.String(), err)
 		return ctrl.Result{}, err
 	}
 
@@ -136,7 +138,7 @@ func (r *OperandRegistryReconciler) updateOperandRegistryStatus(newRegistryInsta
 	err := wait.PollImmediate(time.Millisecond*250, time.Second*5, func() (bool, error) {
 		existingRegistryInstance, err := fetch.FetchOperandRegistry(r.Client, types.NamespacedName{Name: newRegistryInstance.Name, Namespace: newRegistryInstance.Namespace})
 		if err != nil {
-			klog.Error("failed to fetch the existing OperandRegistry: ", err)
+			klog.Errorf("failed to fetch the existing OperandRegistry: %v", err)
 			return false, err
 		}
 
@@ -147,13 +149,13 @@ func (r *OperandRegistryReconciler) updateOperandRegistryStatus(newRegistryInsta
 		}
 		existingRegistryInstance.Status = *newStatus
 		if err := r.Status().Update(context.TODO(), existingRegistryInstance); err != nil {
-			return false, err
+			return false, nil
 		}
 		return true, nil
 	})
 
 	if err != nil {
-		klog.Error("update OperandRegistry status failed: ", err)
+		klog.Errorf("failed to update OperandRegistry %s/%s status: %v", newRegistryInstance.Namespace, newRegistryInstance.Name, err)
 		return err
 	}
 	return nil
