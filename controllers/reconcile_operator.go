@@ -207,7 +207,7 @@ func (r *OperandRequestReconciler) deleteSubscription(operandName string, reques
 	if csv != nil {
 		klog.V(2).Infof("Deleting all the Custom Resources for CSV, Namespace: %s, Name: %s", csv.Namespace, csv.Name)
 		if err := r.deleteAllCustomResource(csv, requestInstance, configInstance, operandName, op.Namespace); err != nil {
-			klog.Error("failed to delete a Custom Resource: ", err)
+			klog.Errorf("failed to delete a Custom Resource: %v", err)
 			return err
 		}
 
@@ -221,7 +221,7 @@ func (r *OperandRequestReconciler) deleteSubscription(operandName string, reques
 
 		klog.V(2).Infof("Deleting the ClusterServiceVersion, Namespace: %s, Name: %s", csv.Namespace, csv.Name)
 		if err := r.Delete(context.TODO(), csv); err != nil {
-			klog.Error("failed to delete the ClusterServiceVersion: ", err)
+			klog.Errorf("failed to delete the ClusterServiceVersion: %v", err)
 			requestInstance.SetDeletingCondition(csv.Name, operatorv1alpha1.ResourceTypeCsv, corev1.ConditionFalse)
 			return err
 		}
@@ -234,7 +234,7 @@ func (r *OperandRequestReconciler) deleteSubscription(operandName string, reques
 		if errors.IsNotFound(err) {
 			klog.Warningf("Subscription %s was not found in namespace %s", op.Name, namespace)
 		} else {
-			klog.Error("failed to delete subscription: ", err)
+			klog.Errorf("failed to delete subscription: %v", err)
 			requestInstance.SetDeletingCondition(op.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionFalse)
 			return err
 		}

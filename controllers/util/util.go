@@ -50,7 +50,7 @@ func GetInstallScope() string {
 	return ns
 }
 
-// resourceExists returns true if the given resource kind exists
+// ResourceExists returns true if the given resource kind exists
 // in the given api groupversion
 func ResourceExists(dc discovery.DiscoveryInterface, apiGroupVersion, kind string) (bool, error) {
 	_, apiLists, err := dc.ServerGroupsAndResources()
@@ -69,35 +69,7 @@ func ResourceExists(dc discovery.DiscoveryInterface, apiGroupVersion, kind strin
 	return false, nil
 }
 
-func Contains(list []string, s string) bool {
-	for _, v := range list {
-		if v == s {
-			return true
-		}
-	}
-	return false
-}
-
-func Add(list []string, s string) ([]string, bool) {
-	changed := false
-	if !Contains(list, s) {
-		changed = true
-		return append(list, s), changed
-	}
-	return list, changed
-}
-
-func Remove(list []string, s string) ([]string, bool) {
-	changed := false
-	for i, v := range list {
-		if v == s {
-			changed = true
-			return append(list[:i], list[i+1:]...), changed
-		}
-	}
-	return list, changed
-}
-
+//StringSliceContentEqual checks if the contant from two string slice are the same
 func StringSliceContentEqual(a, b []string) bool {
 	if len(a) != len(b) {
 		return false

@@ -139,7 +139,7 @@ func FetchClusterServiceVersion(c client.Client, sub *olmv1alpha1.Subscription) 
 		Namespace: ipNamespace,
 	}
 	if err := c.Get(context.TODO(), ipKey, ip); err != nil && !errors.IsNotFound(err) {
-		klog.Errorf("failed to get Installplan %s in the namespace %s: %s", ipName, ipNamespace, err)
+		klog.Errorf("failed to get Installplan %s in the namespace %s: %v", ipName, ipNamespace, err)
 		return nil, err
 	} else if !errors.IsNotFound(err) && ip.Status.Phase == olmv1alpha1.InstallPlanPhaseFailed {
 		klog.Errorf("installplan %s in the namespace %s is failed", ipName, ipNamespace)
@@ -158,7 +158,7 @@ func FetchClusterServiceVersion(c client.Client, sub *olmv1alpha1.Subscription) 
 			klog.V(3).Infof("ClusterServiceVersion %s is not ready. Will check it when it is stable", sub.Name)
 			return nil, nil
 		}
-		klog.Errorf("failed to get ClusterServiceVersion %s in the namespace %s: %s", csvName, csvNamespace, err)
+		klog.Errorf("failed to get ClusterServiceVersion %s in the namespace %s: %v", csvName, csvNamespace, err)
 		return nil, err
 	}
 

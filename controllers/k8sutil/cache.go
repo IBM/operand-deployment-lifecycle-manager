@@ -60,7 +60,7 @@ func NewODLMCache(namespaces []string) cache.NewCacheFunc {
 		// Create a default cache for the other resources
 		fallback, err := NewCache(config, opts)
 		if err != nil {
-			klog.Error(err, "Failed to init fallback cache")
+			klog.Errorf("failed to init fallback cache: %v", err)
 			return nil, err
 		}
 

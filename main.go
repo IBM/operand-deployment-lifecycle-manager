@@ -94,7 +94,7 @@ func main() {
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
 	if err != nil {
-		klog.Error(err, "unable to start manager")
+		klog.Errorf("unable to start manager: %v", err)
 		os.Exit(1)
 	}
 
@@ -104,7 +104,7 @@ func main() {
 		Recorder: mgr.GetEventRecorderFor("OperandRequest"),
 		Scheme:   mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		klog.Error(err, "unable to create controller", "controller", "OperandRequest")
+		klog.Errorf("unable to create controller OperandRequest: %v", err)
 		os.Exit(1)
 	}
 	if err = (&controllers.OperandConfigReconciler{
@@ -112,7 +112,7 @@ func main() {
 		Recorder: mgr.GetEventRecorderFor("OperandConfig"),
 		Scheme:   mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		klog.Error(err, "unable to create controller", "controller", "OperandConfig")
+		klog.Errorf("unable to create controller OperandConfig: %v", err)
 		os.Exit(1)
 	}
 	if err = (&controllers.OperandBindInfoReconciler{
@@ -120,7 +120,7 @@ func main() {
 		Recorder: mgr.GetEventRecorderFor("OperandBindInfo"),
 		Scheme:   mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		klog.Error(err, "unable to create controller", "controller", "OperandBindInfo")
+		klog.Errorf("unable to create controller OperandBindInfo: %v", err)
 		os.Exit(1)
 	}
 	if err = (&controllers.OperandRegistryReconciler{
@@ -128,14 +128,14 @@ func main() {
 		Recorder: mgr.GetEventRecorderFor("OperandRegistry"),
 		Scheme:   mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		klog.Error(err, "unable to create controller", "controller", "OperandRegistry")
+		klog.Errorf("unable to create controller OperandRegistry: %v", err)
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder
 
 	klog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		klog.Error(err, "problem running manager")
+		klog.Errorf("problem running manager: %v", err)
 		os.Exit(1)
 	}
 }

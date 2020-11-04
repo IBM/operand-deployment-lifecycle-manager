@@ -21,6 +21,7 @@ import (
 	"reflect"
 	"time"
 
+	gset "github.com/deckarep/golang-set"
 	olmv1 "github.com/operator-framework/api/pkg/operators/v1"
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -79,7 +80,7 @@ func (r *OperandRequestReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 	// Update labels for the request
 	if requestInstance.UpdateLabels() {
 		if err := r.Update(context.TODO(), requestInstance); err != nil {
-			klog.Errorf("failed to update the labels for OperandRequest %s : %v", req.NamespacedName.String(), err)
+			klog.Errorf("failed to update the labels for OperandRequest %s: %v", req.NamespacedName.String(), err)
 			return ctrl.Result{}, err
 		}
 	}
@@ -92,7 +93,7 @@ func (r *OperandRequestReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 	}
 
 	if err := r.addFinalizer(requestInstance); err != nil {
-		klog.Errorf("failed to add finalizer for OperandRequest %s : %v", req.NamespacedName.String(), err)
+		klog.Errorf("failed to add finalizer for OperandRequest %s: %v", req.NamespacedName.String(), err)
 		return ctrl.Result{}, err
 	}
 
@@ -102,7 +103,7 @@ func (r *OperandRequestReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 		// Check and clean up the subscriptions
 		err := r.checkFinalizer(requestInstance)
 		if err != nil {
-			klog.Errorf("failed to clean up the subscriptions for OperandRequest %s : %v", req.NamespacedName.String(), err)
+			klog.Errorf("failed to clean up the subscriptions for OperandRequest %s: %v", req.NamespacedName.String(), err)
 			return ctrl.Result{}, err
 		}
 
@@ -117,7 +118,7 @@ func (r *OperandRequestReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 		if removed {
 			err = r.Update(context.TODO(), requestInstance)
 			if err != nil {
-				klog.Errorf("failed to remove finalizer for OperandRequest %s : %v", req.NamespacedName.String(), err)
+				klog.Errorf("failed to remove finalizer for OperandRequest %s: %v", req.NamespacedName.String(), err)
 				return ctrl.Result{}, err
 			}
 		}
@@ -131,7 +132,7 @@ func (r *OperandRequestReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 	}
 
 	if err := r.reconcileOperator(req.NamespacedName); err != nil {
-		klog.Errorf("failed to reconcile Operators for OperandRequest %s : %v", req.NamespacedName.String(), err)
+		klog.Errorf("failed to reconcile Operators for OperandRequest %s: %v", req.NamespacedName.String(), err)
 		return ctrl.Result{}, err
 	}
 
@@ -139,7 +140,7 @@ func (r *OperandRequestReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 	merr := r.reconcileOperand(req.NamespacedName)
 
 	if len(merr.Errors) != 0 {
-		klog.Errorf("failed to reconcile Operands for OperandRequest %s : %v", req.NamespacedName.String(), merr)
+		klog.Errorf("failed to reconcile Operands for OperandRequest %s: %v", req.NamespacedName.String(), merr)
 		return ctrl.Result{}, merr
 	}
 
@@ -164,7 +165,7 @@ func (r *OperandRequestReconciler) RemoveNamespaceMemberFromNamespaceScope(names
 func (r *OperandRequestReconciler) UpdateNamespaceScope(namespacedName types.NamespacedName, delete bool) error {
 	dc := discovery.NewDiscoveryClientForConfigOrDie(r.Config)
 	if exist, err := util.ResourceExists(dc, "operator.ibm.com/v1", "NamespaceScope"); err != nil {
-		klog.Errorf("Check resource NamespaceScope exist failed: %v", err)
+		klog.Errorf("check resource NamespaceScope exist failed: %v", err)
 		return err
 	} else if !exist {
 		klog.V(1).Info("Not found NamespaceScope instance, ignore update it.")
@@ -184,26 +185,32 @@ func (r *OperandRequestReconciler) UpdateNamespaceScope(namespacedName types.Nam
 	opreqList, err := fetch.FetchAllOperandRequests(r.Client, nil)
 
 	if err != nil {
-		klog.Errorf("Failed to list OperandRequest: %v", err)
+		klog.Errorf("failed to list OperandRequest: %v", err)
 		return err
 	}
 
+	nsSet := gset.NewSet()
+
 	operatorNs := util.GetOperatorNamespace()
 	if operatorNs != "" {
-		nsMems = append(nsMems, operatorNs)
+		nsSet.Add(operatorNs)
 	}
 
 	for _, opreq := range opreqList.Items {
 		if delete && opreq.Namespace == namespacedName.Namespace && opreq.Name == namespacedName.Name {
 			continue
 		}
-		nsMems, _ = util.Add(nsMems, opreq.Namespace)
+		nsSet.Add(opreq.Namespace)
+	}
+
+	for ns := range nsSet.Iter() {
+		nsMems = append(nsMems, ns.(string))
 	}
 
 	if !util.StringSliceContentEqual(nsMems, nsScope.Spec.NamespaceMembers) {
 		nsScope.Spec.NamespaceMembers = nsMems
 		if err := r.Update(context.TODO(), nsScope); err != nil {
-			klog.Errorf("Failed to update NamespaceScope %s: %v", nsScopeKey.String(), err)
+			klog.Errorf("failed to update NamespaceScope %s: %v", nsScopeKey.String(), err)
 			return err
 		}
 		klog.V(1).Infof("Updated NamespaceScope %s", nsScopeKey.String())
@@ -218,7 +225,7 @@ func (r *OperandRequestReconciler) addFinalizer(cr *operatorv1alpha1.OperandRequ
 			// Update CR
 			err := r.Update(context.TODO(), cr)
 			if err != nil {
-				klog.Errorf("failed to update the OperandRequest %s in the namespace %s: %s", cr.Name, cr.Namespace, err)
+				klog.Errorf("failed to update the OperandRequest %s in the namespace %s: %v", cr.Name, cr.Namespace, err)
 				return err
 			}
 		}
@@ -323,7 +330,7 @@ func (r *OperandRequestReconciler) updateOperandRequestStatus(newRequestInstance
 	err := wait.PollImmediate(time.Millisecond*250, time.Second*5, func() (bool, error) {
 		existingRequestInstance, err := fetch.FetchOperandRequest(r.Client, types.NamespacedName{Name: newRequestInstance.Name, Namespace: newRequestInstance.Namespace})
 		if err != nil {
-			klog.Error("failed to fetch the existing OperandRequest: ", err)
+			klog.Errorf("failed to fetch the existing OperandRequest: %v", err)
 			return false, err
 		}
 
@@ -340,7 +347,7 @@ func (r *OperandRequestReconciler) updateOperandRequestStatus(newRequestInstance
 	})
 
 	if err != nil {
-		klog.Error("update request status failed: ", err)
+		klog.Errorf("failed to update OperandRequest %s/%s status: %v", newRequestInstance.Namespace, newRequestInstance.Name, err)
 		return err
 	}
 	return nil

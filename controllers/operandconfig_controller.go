@@ -75,7 +75,7 @@ func (r *OperandConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 	}
 
 	if err := r.updateConfigOperatorsStatus(instance); err != nil {
-		klog.Errorf("failed to update the status for OperandConfig %s/%s : %v", req.NamespacedName.Namespace, req.NamespacedName.Name, err)
+		klog.Errorf("failed to update the status for OperandConfig %s : %v", req.NamespacedName.String(), err)
 		return ctrl.Result{}, err
 	}
 
@@ -111,7 +111,7 @@ func (r *OperandConfigReconciler) updateConfigOperatorsStatus(instance *operator
 		}
 
 		if err != nil {
-			klog.Errorf("failed to fetch Subscription %s or %s in the namespace %s", op.Name, op.PackageName, namespace)
+			klog.Errorf("failed to fetch Subscription %s or %s in the namespace %s: %v", op.Name, op.PackageName, namespace, err)
 			return err
 		}
 
@@ -123,7 +123,7 @@ func (r *OperandConfigReconciler) updateConfigOperatorsStatus(instance *operator
 		csv, err := fetch.FetchClusterServiceVersion(r.Client, sub)
 
 		if err != nil {
-			klog.Errorf("failed to fetch ClusterServiceVersion for the Subscription %s in the namespace %s", sub.Name, namespace)
+			klog.Errorf("failed to fetch ClusterServiceVersion for the Subscription %s in the namespace %s: %v", sub.Name, namespace, err)
 			return err
 		}
 
@@ -152,7 +152,7 @@ func (r *OperandConfigReconciler) updateConfigOperatorsStatus(instance *operator
 		// Convert CR template string to slice
 		err = json.Unmarshal([]byte(almExamples), &crTemplates)
 		if err != nil {
-			klog.Errorf("failed to convert alm-examples in the Subscription %s to slice: %s", sub.Name, err)
+			klog.Errorf("failed to convert alm-examples in the Subscription %s to slice: %v", sub.Name, err)
 			return err
 		}
 
@@ -263,7 +263,7 @@ func (r *OperandConfigReconciler) updateOperandConfigStatus(newConfigInstance *o
 	err := wait.PollImmediate(time.Millisecond*250, time.Second*5, func() (bool, error) {
 		existingConfigInstance, err := fetch.FetchOperandConfig(r.Client, types.NamespacedName{Name: newConfigInstance.Name, Namespace: newConfigInstance.Namespace})
 		if err != nil {
-			klog.Error("failed to fetch the existing OperandConfig: ", err)
+			klog.Errorf("failed to fetch the existing OperandConfig: %v", err)
 			return false, err
 		}
 
@@ -274,13 +274,13 @@ func (r *OperandConfigReconciler) updateOperandConfigStatus(newConfigInstance *o
 		}
 		existingConfigInstance.Status = *newStatus
 		if err := r.Status().Update(context.TODO(), existingConfigInstance); err != nil {
-			return false, err
+			return false, nil
 		}
 		return true, nil
 	})
 
 	if err != nil {
-		klog.Error("update OperandConfig status failed: ", err)
+		klog.Errorf("failed to update OperandConfig %s/%s status: %v", newConfigInstance.Namespace, newConfigInstance.Name, err)
 		return err
 	}
 	return nil
