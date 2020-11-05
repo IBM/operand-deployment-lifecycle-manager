@@ -75,17 +75,6 @@ func (r *OperandRequestReconciler) reconcileOperand(requestKey types.NamespacedN
 		}
 		for _, operand := range req.Operands {
 
-			var opdConfig *operatorv1alpha1.ConfigService
-
-			if operand.Kind == "" {
-				// Check the requested Service Config if exist in specific OperandConfig
-				opdConfig = configInstance.GetService(operand.Name)
-				if opdConfig == nil {
-					klog.Warningf("Cannot find %s in the OperandConfig instance %s in the namespace %s ", operand.Name, req.Registry, req.RegistryNamespace)
-					continue
-				}
-			}
-
 			opdRegistry := registryInstance.GetOperator(operand.Name)
 			if opdRegistry == nil {
 				klog.Warningf("Cannot find %s in the OperandRegistry instance %s in the namespace %s ", operand.Name, req.Registry, req.RegistryNamespace)
@@ -144,6 +133,12 @@ func (r *OperandRequestReconciler) reconcileOperand(requestKey types.NamespacedN
 
 			// Merge and Generate CR
 			if operand.Kind == "" {
+				// Check the requested Service Config if exist in specific OperandConfig
+				opdConfig := configInstance.GetService(operand.Name)
+				if opdConfig == nil {
+					klog.V(2).Infof("There is no service: %s from the OperandConfig instance: %s/%s, Skip creating CR for it", operand.Name, req.RegistryNamespace, req.Registry)
+					continue
+				}
 				err = r.reconcileCRwithConfig(opdConfig, opdRegistry.Namespace, csv)
 			} else {
 				err = r.reconcileCRwithRequest(requestInstance, operand, requestKey, csv)

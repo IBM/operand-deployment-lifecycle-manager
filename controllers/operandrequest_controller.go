@@ -341,7 +341,7 @@ func (r *OperandRequestReconciler) updateOperandRequestStatus(newRequestInstance
 		}
 		existingRequestInstance.Status = *newStatus
 		if err := r.Status().Update(context.TODO(), existingRequestInstance); err != nil {
-			return false, err
+			return false, nil
 		}
 		return true, nil
 	})
