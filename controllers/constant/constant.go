@@ -37,5 +37,5 @@ const (
 	OpbiTypeLabel string = "operator.ibm.com/managedBy-opbi"
 
 	//NamespaceScopeCrName is the name use to get NamespaceScopeCrName instance
-	NamespaceScopeCrName string = "common-service"
+	NamespaceScopeCrName string = "nss-managedby-odlm"
 )
