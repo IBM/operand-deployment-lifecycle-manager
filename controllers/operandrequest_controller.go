@@ -107,6 +107,12 @@ func (r *OperandRequestReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 			return ctrl.Result{}, err
 		}
 
+		// Check and remove namespaceMember from NamespaceScope CR
+		if err := r.RemoveNamespaceMemberFromNamespaceScope(req.NamespacedName); err != nil {
+			klog.Errorf("failed to remove NamespaceMember %s from NamespaceScope: %v", req.Namespace, err)
+			return ctrl.Result{}, err
+		}
+
 		// Update finalizer to allow delete CR
 		removed := requestInstance.RemoveFinalizer()
 		if removed {
@@ -120,7 +126,7 @@ func (r *OperandRequestReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 	}
 
 	// Update NamespaceScope CR if it exist
-	if err := r.UpdateNamespaceScope(req.NamespacedName); err != nil {
+	if err := r.AddNamespaceMemberIntoNamespaceScope(req.NamespacedName); err != nil {
 		klog.Errorf("failed to add NamespaceMember %s to NamespaceScope: %v", req.Namespace, err)
 		return ctrl.Result{}, err
 	}
@@ -148,7 +154,15 @@ func (r *OperandRequestReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 	return ctrl.Result{RequeueAfter: 30 * time.Minute}, nil
 }
 
-func (r *OperandRequestReconciler) UpdateNamespaceScope(namespacedName types.NamespacedName) error {
+func (r *OperandRequestReconciler) AddNamespaceMemberIntoNamespaceScope(namespacedName types.NamespacedName) error {
+	return r.UpdateNamespaceScope(namespacedName, false)
+}
+
+func (r *OperandRequestReconciler) RemoveNamespaceMemberFromNamespaceScope(namespacedName types.NamespacedName) error {
+	return r.UpdateNamespaceScope(namespacedName, true)
+}
+
+func (r *OperandRequestReconciler) UpdateNamespaceScope(namespacedName types.NamespacedName, delete bool) error {
 	dc := discovery.NewDiscoveryClientForConfigOrDie(r.Config)
 	if exist, err := util.ResourceExists(dc, "operator.ibm.com/v1", "NamespaceScope"); err != nil {
 		klog.Errorf("check resource NamespaceScope exist failed: %v", err)
@@ -182,14 +196,10 @@ func (r *OperandRequestReconciler) UpdateNamespaceScope(namespacedName types.Nam
 		nsSet.Add(operatorNs)
 	}
 
-	for _, existNs := range nsScope.Spec.NamespaceMembers {
-		if existNs == "" {
+	for _, opreq := range opreqList.Items {
+		if delete && opreq.Namespace == namespacedName.Namespace && opreq.Name == namespacedName.Name {
 			continue
 		}
-		nsSet.Add(existNs)
-	}
-
-	for _, opreq := range opreqList.Items {
 		nsSet.Add(opreq.Namespace)
 	}
 
