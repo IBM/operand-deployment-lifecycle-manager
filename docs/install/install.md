@@ -121,9 +121,6 @@ This is the list of operators are going to be installed:
     - name: ibm-ingress-nginx-operator
     - name: ibm-auditlogging-operator
     - name: ibm-platform-api-operator
-    - name: ibm-helm-api-operator
-    - name: ibm-helm-repo-operator
-    - name: ibm-catalog-ui-operator
 ```
 
 After the `OperandRequest` created, you can click the left navigation tree `Installed Operators` to check if our common services install successfully.

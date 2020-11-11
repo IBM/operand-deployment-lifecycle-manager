@@ -144,22 +144,9 @@ bundle-manifests:
 	-q --overwrite --version $(OPERATOR_VERSION) $(BUNDLE_METADATA_OPTS)
 	$(OPERATOR_SDK) bundle validate ./bundle
 
-package-manifests:
-	@{ \
-	PKG_MANIFESTS_DIR=deploy/olm-catalog/operand-deployment-lifecycle-manager/$(OPERATOR_VERSION) ;\
-	BUNDLE_MANIFESTS_DIR=bundle/manifests ;\
-	[[ ! -d $$PKG_MANIFESTS_DIR ]] && mkdir $$PKG_MANIFESTS_DIR ;\
-	cp $$BUNDLE_MANIFESTS_DIR/operand-deployment-lifecycle-manager.clusterserviceversion.yaml $$PKG_MANIFESTS_DIR/operand-deployment-lifecycle-manager.v$(OPERATOR_VERSION).clusterserviceversion.yaml ;\
-	cp $$BUNDLE_MANIFESTS_DIR/operator.ibm.com_operandbindinfos.yaml $$PKG_MANIFESTS_DIR/operator.ibm.com_operandbindinfos_crd.yaml ;\
-	cp $$BUNDLE_MANIFESTS_DIR/operator.ibm.com_operandconfigs.yaml $$PKG_MANIFESTS_DIR/operator.ibm.com_operandconfigs_crd.yaml ;\
-	cp $$BUNDLE_MANIFESTS_DIR/operator.ibm.com_operandregistries.yaml $$PKG_MANIFESTS_DIR/operator.ibm.com_operandregistries_crd.yaml ;\
-	cp $$BUNDLE_MANIFESTS_DIR/operator.ibm.com_operandrequests.yaml $$PKG_MANIFESTS_DIR/operator.ibm.com_operandrequests_crd.yaml ;\
-	}
-
 generate-all: manifests kustomize operator-sdk ## Generate bundle manifests, metadata and package manifests
 	$(OPERATOR_SDK) generate kustomize manifests -q
 	- make bundle-manifests CHANNELS=stable-v1,beta DEFAULT_CHANNEL=stable-v1
-	- make package-manifests
 
 ##@ Test
 
