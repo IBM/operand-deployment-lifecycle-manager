@@ -7,9 +7,9 @@ metadata:
     categories: Developer Tools, Monitoring, Logging & Tracing, Security
     certified: "false"
     containerImage: quay.io/opencloudio/odlm:latest
-    createdAt: "2020-10-12T11:24:23Z"
+    createdAt: "2020-11-12T17:05:48Z"
     description: The Operand Deployment Lifecycle Manager provides a Kubernetes CRD-based API to manage the lifecycle of operands.
-    olm.skipRange: '>=1.3.0 <1.4.0'
+    olm.skipRange: '>=1.3.0 <1.4.1'
     operators.operatorframework.io/builder: operator-sdk-v1.0.1
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v2
     repository: https://github.com/IBM/operand-deployment-lifecycle-manager
@@ -123,4 +123,5 @@ spec:
   maturity: stable
   provider:
     name: IBM
+  replaces: operand-deployment-lifecycle-manager.v1.4.0
   version: 0.0.0
