@@ -500,7 +500,7 @@ func (r *OperandRequestReconciler) updateCustomResource(unstruct unstructured.Un
 				return true, nil
 			}
 
-			klog.V(2).Infof("updating custom resource apiversion: %s kind: %s, %s/%s", apiversion, kind, namespace, name)
+			klog.V(2).Infof("updating custom resource with apiversion: %s, kind: %s, %s/%s", apiversion, kind, namespace, name)
 
 			existingCR.Object["spec"] = mergedCR
 			crUpdateErr := r.Update(context.TODO(), &existingCR)

@@ -212,8 +212,8 @@ func (r *OperandBindInfoReconciler) copySecret(sourceName, targetName, sourceNs,
 	secret := &corev1.Secret{}
 	if err := r.Get(context.TODO(), types.NamespacedName{Name: sourceName, Namespace: sourceNs}, secret); err != nil {
 		if errors.IsNotFound(err) {
-			klog.Warningf("Secret %s is not found from the namespace %s", sourceName, sourceNs)
-			r.Recorder.Eventf(bindInfoInstance, corev1.EventTypeWarning, "NotFound", "No Secret %s in the namespace %s", sourceName, sourceNs)
+			klog.V(3).Infof("Secret %s is not found from the namespace %s", sourceName, sourceNs)
+			r.Recorder.Eventf(bindInfoInstance, corev1.EventTypeNormal, "NotFound", "No Secret %s in the namespace %s", sourceName, sourceNs)
 			return true, nil
 		}
 		klog.Errorf("failed to get Secret %s from the namespace %s: %v", sourceName, sourceNs, err)
@@ -291,8 +291,8 @@ func (r *OperandBindInfoReconciler) copyConfigmap(sourceName, targetName, source
 	cm := &corev1.ConfigMap{}
 	if err := r.Get(context.TODO(), types.NamespacedName{Name: sourceName, Namespace: sourceNs}, cm); err != nil {
 		if errors.IsNotFound(err) {
-			klog.Warningf("Configmap %s is not found from the namespace %s", sourceName, sourceNs)
-			r.Recorder.Eventf(bindInfoInstance, corev1.EventTypeWarning, "NotFound", "No Configmap %s in the namespace %s", sourceName, sourceNs)
+			klog.V(3).Infof("Configmap %s is not found from the namespace %s", sourceName, sourceNs)
+			r.Recorder.Eventf(bindInfoInstance, corev1.EventTypeNormal, "NotFound", "No Configmap %s in the namespace %s", sourceName, sourceNs)
 			return true, nil
 		}
 		klog.Errorf("failed to get Configmap %s from the namespace %s: %v", sourceName, sourceNs, err)
