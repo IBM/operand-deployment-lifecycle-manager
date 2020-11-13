@@ -7,7 +7,6 @@
 *.dylib
 bin
 testbin
-crds
 
 # Test binary, build with `go test -c`
 *.test
