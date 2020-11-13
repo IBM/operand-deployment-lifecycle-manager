@@ -145,7 +145,10 @@ func (r *OperandConfigReconciler) updateConfigOperatorsStatus(instance *operator
 		}
 
 		almExamples := csv.ObjectMeta.Annotations["alm-examples"]
-
+		if almExamples == "" {
+			klog.Warningf("Notfound alm-examples in the ClusterServiceVersion %s/%s", csv.Namespace, csv.Name)
+			continue
+		}
 		// Create a slice for crTemplates
 		var crTemplates []interface{}
 
