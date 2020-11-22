@@ -34,23 +34,23 @@ func MergeCR(defaultCR, changedCR []byte) map[string]interface{} {
 	if len(defaultCR) != 0 && len(changedCR) == 0 {
 		defaultCRUnmarshalErr := json.Unmarshal(defaultCR, &defaultCRDecoded)
 		if defaultCRUnmarshalErr != nil {
-			klog.Error("error unmarshalling CR Template: ", defaultCRUnmarshalErr)
+			klog.Errorf("failed to unmarshal CR Template: %v", defaultCRUnmarshalErr)
 		}
 		return defaultCRDecoded
 	} else if len(defaultCR) == 0 && len(changedCR) != 0 {
 		changedCRUnmarshalErr := json.Unmarshal(changedCR, &changedCRDecoded)
 		if changedCRUnmarshalErr != nil {
-			klog.Error("error unmarshalling service spec: ", changedCRUnmarshalErr)
+			klog.Errorf("failed to unmarshal service spec: %v", changedCRUnmarshalErr)
 		}
 		return changedCRDecoded
 	}
 	defaultCRUnmarshalErr := json.Unmarshal(defaultCR, &defaultCRDecoded)
 	if defaultCRUnmarshalErr != nil {
-		klog.Error("error unmarshalling CR Template: ", defaultCRUnmarshalErr)
+		klog.Errorf("failed to unmarshal CR Template: %v", defaultCRUnmarshalErr)
 	}
 	changedCRUnmarshalErr := json.Unmarshal(changedCR, &changedCRDecoded)
 	if changedCRUnmarshalErr != nil {
-		klog.Error("error unmarshalling service spec: ", changedCRUnmarshalErr)
+		klog.Errorf("failed to unmarshal service spec: %v", changedCRUnmarshalErr)
 	}
 	for key := range defaultCRDecoded {
 		checkKeyBeforeMerging(key, defaultCRDecoded[key], changedCRDecoded[key], changedCRDecoded)

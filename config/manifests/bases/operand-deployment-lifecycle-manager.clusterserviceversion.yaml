@@ -7,9 +7,9 @@ metadata:
     categories: Developer Tools, Monitoring, Logging & Tracing, Security
     certified: "false"
     containerImage: quay.io/opencloudio/odlm:latest
-    createdAt: "2020-10-12T11:24:23Z"
+    createdAt: "2020-11-12T17:05:48Z"
     description: The Operand Deployment Lifecycle Manager provides a Kubernetes CRD-based API to manage the lifecycle of operands.
-    olm.skipRange: '>=1.3.0 <1.4.0'
+    olm.skipRange: '>=1.3.0 <1.4.1'
     operators.operatorframework.io/builder: operator-sdk-v1.0.1
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v2
     repository: https://github.com/IBM/operand-deployment-lifecycle-manager
@@ -45,47 +45,47 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.phase
       version: v1alpha1
-    - description: OperandRegistry is the Schema for the operandregistries API
+    - description: OperandRegistry is the Schema for the operandregistries API.
       displayName: OperandRegistry
       kind: OperandRegistry
       name: operandregistries.operator.ibm.com
       specDescriptors:
-      - description: Operators is a list of operator OLM definition
+      - description: Operators is a list of operator OLM definition.
         displayName: Operators Registry List
         path: operators
       statusDescriptors:
-      - description: Conditions represents the current state of the Request Service
+      - description: Conditions represents the current state of the Request Service.
         displayName: Conditions
         path: conditions
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.conditions
-      - description: Phase describes the overall phase of operators in the OperandRegistry
+      - description: Phase describes the overall phase of operators in the OperandRegistry.
         displayName: Phase
         path: phase
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.phase
       version: v1alpha1
-    - description: OperandConfig is the Schema for the operandconfigs API
+    - description: OperandConfig is the Schema for the operandconfigs API.
       displayName: OperandConfig
       kind: OperandConfig
       name: operandconfigs.operator.ibm.com
       specDescriptors:
-      - description: Services is a list of configuration of service
+      - description: Services is a list of configuration of service.
         displayName: Operand Services Config List
         path: services
       statusDescriptors:
-      - description: Phase describes the overall phase of operands in the OperandConfig
+      - description: Phase describes the overall phase of operands in the OperandConfig.
         displayName: Phase
         path: phase
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.phase
       version: v1alpha1
-    - description: OperandBindInfo is the Schema for the operandbindinfoes API
+    - description: OperandBindInfo is the Schema for the operandbindinfoes API.
       displayName: OperandBindInfo
       kind: OperandBindInfo
       name: operandbindinfos.operator.ibm.com
       statusDescriptors:
-      - description: Phase describes the overall phase of OperandBindInfo
+      - description: Phase describes the overall phase of OperandBindInfo.
         displayName: Phase
         path: phase
         x-descriptors:
@@ -123,4 +123,5 @@ spec:
   maturity: stable
   provider:
     name: IBM
+  replaces: operand-deployment-lifecycle-manager.v1.4.0
   version: 0.0.0

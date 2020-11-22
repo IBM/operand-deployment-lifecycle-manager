@@ -52,8 +52,6 @@ type OperandConfigReconciler struct {
 	Scheme   *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=*,resources=*,verbs=*
-
 // Reconcile reads that state of the cluster for a OperandConfig object and makes changes based on the state read
 // and what is in the OperandConfig.Spec
 // Note:
@@ -77,7 +75,7 @@ func (r *OperandConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 	}
 
 	if err := r.updateConfigOperatorsStatus(instance); err != nil {
-		klog.Errorf("failed to update the status for OperandConfig %s/%s : %v", req.NamespacedName.Namespace, req.NamespacedName.Name, err)
+		klog.Errorf("failed to update the status for OperandConfig %s : %v", req.NamespacedName.String(), err)
 		return ctrl.Result{}, err
 	}
 
@@ -113,7 +111,7 @@ func (r *OperandConfigReconciler) updateConfigOperatorsStatus(instance *operator
 		}
 
 		if err != nil {
-			klog.Errorf("failed to fetch Subscription %s or %s in the namespace %s", op.Name, op.PackageName, namespace)
+			klog.Errorf("failed to fetch Subscription %s or %s in the namespace %s: %v", op.Name, op.PackageName, namespace, err)
 			return err
 		}
 
@@ -125,7 +123,7 @@ func (r *OperandConfigReconciler) updateConfigOperatorsStatus(instance *operator
 		csv, err := fetch.FetchClusterServiceVersion(r.Client, sub)
 
 		if err != nil {
-			klog.Errorf("failed to fetch ClusterServiceVersion for the Subscription %s in the namespace %s", sub.Name, namespace)
+			klog.Errorf("failed to fetch ClusterServiceVersion for the Subscription %s in the namespace %s: %v", sub.Name, namespace, err)
 			return err
 		}
 
@@ -147,14 +145,17 @@ func (r *OperandConfigReconciler) updateConfigOperatorsStatus(instance *operator
 		}
 
 		almExamples := csv.ObjectMeta.Annotations["alm-examples"]
-
+		if almExamples == "" {
+			klog.Warningf("Notfound alm-examples in the ClusterServiceVersion %s/%s", csv.Namespace, csv.Name)
+			continue
+		}
 		// Create a slice for crTemplates
 		var crTemplates []interface{}
 
 		// Convert CR template string to slice
 		err = json.Unmarshal([]byte(almExamples), &crTemplates)
 		if err != nil {
-			klog.Errorf("failed to convert alm-examples in the Subscription %s to slice: %s", sub.Name, err)
+			klog.Errorf("failed to convert alm-examples in the Subscription %s to slice: %v", sub.Name, err)
 			return err
 		}
 
@@ -217,7 +218,7 @@ func (r *OperandConfigReconciler) getRequestToConfigMapper() handler.ToRequestsF
 	return func(object handler.MapObject) []reconcile.Request {
 		opreqInstance := &operatorv1alpha1.OperandRequest{}
 		requests := []reconcile.Request{}
-		// If the operandrequest has been deleted, reconcile all the OperandConfig in the cluster
+		// If the OperandRequest has been deleted, reconcile all the OperandConfig in the cluster
 		if err := r.Get(context.TODO(), types.NamespacedName{Name: object.Meta.GetName(), Namespace: object.Meta.GetNamespace()}, opreqInstance); errors.IsNotFound(err) {
 			configList := &operatorv1alpha1.OperandConfigList{}
 			_ = r.List(context.TODO(), configList)
@@ -229,7 +230,7 @@ func (r *OperandConfigReconciler) getRequestToConfigMapper() handler.ToRequestsF
 			return requests
 		}
 
-		// If the operandrequest exist, reconcile OperandConfigs specific in the operandrequest instance.
+		// If the OperandRequest exist, reconcile OperandConfigs specific in the OperandRequest instance.
 		for _, request := range opreqInstance.Spec.Requests {
 			registryKey := opreqInstance.GetRegistryKey(request)
 			req := reconcile.Request{NamespacedName: registryKey}
@@ -265,7 +266,7 @@ func (r *OperandConfigReconciler) updateOperandConfigStatus(newConfigInstance *o
 	err := wait.PollImmediate(time.Millisecond*250, time.Second*5, func() (bool, error) {
 		existingConfigInstance, err := fetch.FetchOperandConfig(r.Client, types.NamespacedName{Name: newConfigInstance.Name, Namespace: newConfigInstance.Namespace})
 		if err != nil {
-			klog.Error("failed to fetch the existing OperandConfig: ", err)
+			klog.Errorf("failed to fetch the existing OperandConfig: %v", err)
 			return false, err
 		}
 
@@ -276,13 +277,13 @@ func (r *OperandConfigReconciler) updateOperandConfigStatus(newConfigInstance *o
 		}
 		existingConfigInstance.Status = *newStatus
 		if err := r.Status().Update(context.TODO(), existingConfigInstance); err != nil {
-			return false, err
+			return false, nil
 		}
 		return true, nil
 	})
 
 	if err != nil {
-		klog.Error("update OperandConfig status failed: ", err)
+		klog.Errorf("failed to update OperandConfig %s/%s status: %v", newConfigInstance.Namespace, newConfigInstance.Name, err)
 		return err
 	}
 	return nil

@@ -21,9 +21,6 @@ import (
 	"reflect"
 	"time"
 
-	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -49,8 +46,6 @@ type OperandRegistryReconciler struct {
 	Scheme   *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=*,resources=*,verbs=*
-
 // Reconcile reads that state of the cluster for a OperandRegistry object and makes changes based on the state read
 // and what is in the OperandRegistry.Spec
 // Note:
@@ -68,41 +63,25 @@ func (r *OperandRegistryReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 
 	// Update all the operator status
 	if err := r.updateRegistryOperatorsStatus(instance); err != nil {
-		klog.Errorf("failed to update the status for OperandRegistry %s/%s : %v", req.NamespacedName.Namespace, req.NamespacedName.Name, err)
-
-		return ctrl.Result{}, err
-	}
-	// Check if all the catalog sources ready for deployment
-	isReady, err := r.checkCatalogSourceStatus(instance)
-	if err != nil {
-		klog.Errorf("failed to check the CatalogSource status for OperandRegistry %s/%s : %v", req.NamespacedName.Namespace, req.NamespacedName.Name, err)
+		klog.Errorf("failed to update the status for OperandRegistry %s : %v", req.NamespacedName.String(), err)
 		return ctrl.Result{}, err
 	}
 
-	if isReady {
-		if instance.Status.OperatorsStatus == nil || len(instance.Status.OperatorsStatus) == 0 {
-			instance.UpdateRegistryPhase(operatorv1alpha1.RegistryReady)
-		} else {
-			instance.UpdateRegistryPhase(operatorv1alpha1.RegistryRunning)
-		}
-		if err := r.updateOperandRegistryStatus(instance); err != nil {
-			klog.Errorf("failed to update the status for OperandRegistry %s/%s : %v", req.NamespacedName.Namespace, req.NamespacedName.Name, err)
-			return ctrl.Result{}, err
-		}
+	// Summarize instance status
+	if instance.Status.OperatorsStatus == nil || len(instance.Status.OperatorsStatus) == 0 {
+		instance.UpdateRegistryPhase(operatorv1alpha1.RegistryReady)
 	} else {
-		instance.UpdateRegistryPhase(operatorv1alpha1.RegistryWaiting)
-		if err := r.updateOperandRegistryStatus(instance); err != nil {
-			klog.Errorf("failed to update the status for OperandRegistry %s/%s : %v", req.NamespacedName.Namespace, req.NamespacedName.Name, err)
-			return ctrl.Result{}, err
-		}
-		// When catalog source not ready, reconcile every 1 minute to check the status
-		klog.V(2).Info("Waiting for all catalog source ready ...")
-		return ctrl.Result{RequeueAfter: 1 * time.Minute}, nil
+		instance.UpdateRegistryPhase(operatorv1alpha1.RegistryRunning)
+	}
+
+	// Update instance status
+	if err := r.updateOperandRegistryStatus(instance); err != nil {
+		klog.Errorf("failed to update the status for OperandRegistry %s : %v", req.NamespacedName.String(), err)
+		return ctrl.Result{}, err
 	}
 
 	klog.V(1).Infof("Finished reconciling OperandRegistry: %s", req.NamespacedName)
-	// Reconcile every 10 minutes to check the catalog source status
-	return ctrl.Result{RequeueAfter: 10 * time.Minute}, nil
+	return ctrl.Result{}, nil
 }
 
 func (r *OperandRegistryReconciler) updateRegistryOperatorsStatus(instance *operatorv1alpha1.OperandRegistry) error {
@@ -132,36 +111,6 @@ func (r *OperandRegistryReconciler) updateRegistryOperatorsStatus(instance *oper
 	return nil
 }
 
-func (r *OperandRegistryReconciler) checkCatalogSourceStatus(instance *operatorv1alpha1.OperandRegistry) (bool, error) {
-	isReady := true
-	for _, o := range instance.Spec.Operators {
-		catsrcName := o.SourceName
-		catsrcNamespace := o.SourceNamespace
-		catsrcKey := types.NamespacedName{Namespace: catsrcNamespace, Name: catsrcName}
-		catsrc := &olmv1alpha1.CatalogSource{}
-		if err := r.Get(context.TODO(), catsrcKey, catsrc); err != nil {
-			isReady = false
-			if !errors.IsNotFound(err) {
-				return isReady, err
-			}
-			klog.V(3).Infof("NotFound CatalogSource in NamespacedName: %s", catsrcKey.String())
-			r.Recorder.Eventf(instance, corev1.EventTypeWarning, "NotFound", "NotFound CatalogSource in NamespacedName %s", catsrcKey.String())
-			instance.SetNotFoundCondition(catsrcName, operatorv1alpha1.ResourceTypeCatalogSource, corev1.ConditionTrue)
-			continue
-		}
-
-		if catsrc.Status.GRPCConnectionState.LastObservedState == "READY" {
-			instance.SetReadyCondition(catsrcName, operatorv1alpha1.ResourceTypeCatalogSource, corev1.ConditionTrue)
-		} else {
-			isReady = false
-			klog.V(3).Infof("NotReady CatalogSource in NamespacedName: %s", catsrcKey.String())
-			r.Recorder.Eventf(instance, corev1.EventTypeWarning, "NotReady", "NotReady CatalogSource in NamespacedName %s", catsrcKey.String())
-			instance.SetReadyCondition(catsrcName, operatorv1alpha1.ResourceTypeCatalogSource, corev1.ConditionFalse)
-		}
-	}
-	return isReady, nil
-}
-
 // SetupWithManager adds OperandRegistry controller to the manager.
 func (r *OperandRegistryReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
@@ -189,7 +138,7 @@ func (r *OperandRegistryReconciler) updateOperandRegistryStatus(newRegistryInsta
 	err := wait.PollImmediate(time.Millisecond*250, time.Second*5, func() (bool, error) {
 		existingRegistryInstance, err := fetch.FetchOperandRegistry(r.Client, types.NamespacedName{Name: newRegistryInstance.Name, Namespace: newRegistryInstance.Namespace})
 		if err != nil {
-			klog.Error("failed to fetch the existing OperandRegistry: ", err)
+			klog.Errorf("failed to fetch the existing OperandRegistry: %v", err)
 			return false, err
 		}
 
@@ -200,13 +149,13 @@ func (r *OperandRegistryReconciler) updateOperandRegistryStatus(newRegistryInsta
 		}
 		existingRegistryInstance.Status = *newStatus
 		if err := r.Status().Update(context.TODO(), existingRegistryInstance); err != nil {
-			return false, err
+			return false, nil
 		}
 		return true, nil
 	})
 
 	if err != nil {
-		klog.Error("update OperandRegistry status failed: ", err)
+		klog.Errorf("failed to update OperandRegistry %s/%s status: %v", newRegistryInstance.Namespace, newRegistryInstance.Name, err)
 		return err
 	}
 	return nil

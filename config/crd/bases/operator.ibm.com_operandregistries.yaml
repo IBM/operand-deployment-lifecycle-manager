@@ -32,7 +32,7 @@ spec:
     status: {}
   validation:
     openAPIV3Schema:
-      description: OperandRegistry is the Schema for the operandregistries API
+      description: OperandRegistry is the Schema for the operandregistries API.
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -47,45 +47,42 @@ spec:
         metadata:
           type: object
         spec:
-          description: OperandRegistrySpec defines the desired state of OperandRegistry
+          description: OperandRegistrySpec defines the desired state of OperandRegistry.
           properties:
             operators:
-              description: Operators is a list of operator OLM definition
+              description: Operators is a list of operator OLM definition.
               items:
-                description: 'EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-                  NOTE: json tags are required.  Any new fields you add must have
-                  json tags for the fields to be serialized. Operator defines the
-                  desired state of Operators'
+                description: Operator defines the desired state of Operators.
                 properties:
                   channel:
-                    description: Name of the channel to track
+                    description: Name of the channel to track.
                     type: string
                   description:
-                    description: Description of a common service
+                    description: Description of a common service.
                     type: string
                   installMode:
                     description: 'The install mode of an operator, either namespace
-                      or cluster Valid values are: - "namespace" (default): operator
-                      is deployed in namespace of OperandRegistry; - "clsuter": operator
+                      or cluster. Valid values are: - "namespace" (default): operator
+                      is deployed in namespace of OperandRegistry; - "cluster": operator
                       is deployed in "openshift-operators" namespace;'
                     type: string
                   installPlanApproval:
-                    description: Approval mode for emitted InstallPlans
+                    description: Approval mode for emitted InstallPlans.
                     type: string
                   name:
                     description: A unique name for the operator whose operand may
-                      be deployed
+                      be deployed.
                     type: string
                   namespace:
-                    description: The namespace in which operator CR should be deployed
+                    description: The namespace in which operator CR should be deployed.
                       Also the namespace in which operator should be deployed when
-                      InstallMode is empty or set to "namespace"
+                      InstallMode is empty or set to "namespace".
                     type: string
                   packageName:
-                    description: Name of the package that defines the application
+                    description: Name of the package that defines the applications.
                     type: string
                   scope:
-                    description: 'A scope indicator, either public or private Valid
+                    description: 'A scope indicator, either public or private. Valid
                       values are: - "private" (default): deployment only request from
                       the containing names; - "public": deployment can be requested
                       from other namespaces;'
@@ -95,14 +92,14 @@ spec:
                     type: string
                   sourceName:
                     description: Name of a CatalogSource that defines where and how
-                      to find the channel
+                      to find the channel.
                     type: string
                   sourceNamespace:
                     description: The Kubernetes namespace where the CatalogSource
-                      used is located
+                      used is located.
                     type: string
                   targetNamespaces:
-                    description: The target namespace of the OperatorGroup
+                    description: The target namespace of the OperatorGroups.
                     items:
                       type: string
                     type: array
@@ -116,14 +113,14 @@ spec:
               type: array
           type: object
         status:
-          description: OperandRegistryStatus defines the observed state of OperandRegistry
+          description: OperandRegistryStatus defines the observed state of OperandRegistry.
           properties:
             conditions:
               description: Conditions represents the current state of the Request
-                Service
+                Service.
               items:
                 description: Condition represents the current state of the Request
-                  Service A condition might not show up if it is not happening
+                  Service. A condition might not show up if it is not happening.
                 properties:
                   lastTransitionTime:
                     description: Last time the condition transitioned from one status
@@ -153,23 +150,23 @@ spec:
             operatorsStatus:
               additionalProperties:
                 description: OperatorStatus defines operators status and the number
-                  of reconcile request
+                  of reconcile request.
                 properties:
                   phase:
-                    description: Phase is the state of operator
+                    description: Phase is the state of operator.
                     type: string
                   reconcileRequests:
-                    description: ReconcileRequests store the namespace/name of all
-                      the requests
+                    description: ReconcileRequests stores the namespace/name of all
+                      the requests.
                     items:
                       description: ReconcileRequest records the information of the
-                        operandRequest
+                        operandRequest.
                       properties:
                         name:
-                          description: Name defines the name of request
+                          description: Name defines the name of request.
                           type: string
                         namespace:
-                          description: Namespace defines the namespace of request
+                          description: Namespace defines the namespace of request.
                           type: string
                       required:
                       - name
@@ -178,10 +175,10 @@ spec:
                     type: array
                 type: object
               description: OperatorsStatus defines operators status and the number
-                of reconcile request
+                of reconcile request.
               type: object
             phase:
-              description: Phase describes the overall phase of operators in the OperandRegistry
+              description: Phase describes the overall phase of operators in the OperandRegistry.
               type: string
           type: object
       type: object

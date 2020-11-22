@@ -6,10 +6,9 @@
   - [Goal](#goal)
   - [ODLM Workflow](#odlm-workflow)
   - [OperandRegistry Spec](#operandregistry-spec)
-  - [OperandConfigs Spec](#operandconfigs-spec)
-    - [How does Operator create the individual operator CR?](#how-does-operator-create-the-individual-operator-cr)
-  - [OperandRequests Spec](#operandrequests-spec)
-    - [Data Sharing Between Different Operands](#data-sharing-between-different-operands)
+  - [OperandConfig Spec](#operandconfig-spec)
+    - [How does Operator create the individual operator CR](#how-does-operator-create-the-individual-operator-cr)
+  - [OperandRequest Spec](#operandrequest-spec)
   - [OperandBindInfo Spec](#operandbindinfo-spec)
   - [E2E Use Case](#e2e-use-case)
   - [Operator/Operand Upgrade](#operatoroperand-upgrade)
@@ -18,7 +17,7 @@
 
 # Operand Deployment Lifecycle Manager (ODLM)
 
-Operand is the instance managed by the operator. ODLM is used to manage the lifecycle of for a group of operands, compared with operator lifecycle manager, ODLM focus on the management of operands but not operators.
+The operand is the instance managed by the operator. ODLM is used to manage the lifecycle of for a group of operands, compared with operator lifecycle manager, ODLM focus on the management of operands but not operators.
 
 The ODLM will have four CRDs:
 
@@ -31,7 +30,7 @@ The ODLM will have four CRDs:
 
 ## Goal
 
-1. A single entrypoint to manage a group of operands
+1. A single entry point to manage a group of operands
 1. User can select a set of operands to install
 1. The install can be invoked through either OCP UI or CLI
 
@@ -39,14 +38,13 @@ The ODLM will have four CRDs:
 
 ![w](../images/odlm-arch.png)
 
-
 ## OperandRegistry Spec
 
-OperandRegistry defines the OLM information, like channel and catalog source, for each operator.
+OperandRegistry defines the OLM information used for installation, like package name and catalog source, for each operator.
 
 Following is an example of the OperandRegistry CR:
 
-**NOTE:** The "name" parameter must be unique for each entry.
+**NOTE:** The "spec.operators[*].name" parameter must be unique for each entry.
 
 ```yaml
 apiVersion: operator.ibm.com/v1alpha1
@@ -66,22 +64,22 @@ spec:
     installMode: cluster [10]
 ```
 
-The Operand (Deployment) Registry Custom Resource (CR) lists OLM Operator information for operands that may be requested for installation and/or access by an application that runs in a namespace. The registry CR specifies:
+The OperandRegistry Custom Resource (CR) lists OLM Operator information for operands that may be requested for installation and/or access by an application that runs in a namespace. The registry CR specifies:
 
 1. `name` of the OperandRegistry
 2. `namespace` of the OperandRegistry
 3. `name` is the name of the operator, which should be the same as the services name in the OperandConfig and OperandRequest.
-4. `namespace` is the namespace where the operator CR will be deployed when InstallMode is `cluster`. Also is the namespace where the operator and operator CR will be deployed when InstallMode is empty or set to `namespace`.
+4. `namespace` defines the namespace where the operator and its CR will be deployed. (1) When InstallMode is `cluster`, the operator will be deployed into the `openshift-operators` namespace and the operator CRs will be deployed into the namespace this parameter defines. (2) When InstallMode is empty or set to `namespace`, it is the namespace where both operator and operator CR will be deployed.
 5. `channel` is the name of OLM channel that is subscribed for the operator.
 6. `packageName` is the name of the package in CatalogSource that is subscribed for the operator.
-7. `scope` is an indicator, either public or private, that dictates whether deployment can be requested from other namespaces (public) or only from the containing names (private). The default is private.
+7. (optional) `scope` is an indicator, either public or private, that dictates whether deployment can be requested from other namespaces (public) or only from the namespace of this OperandRegistry (private). The default value is private.
 8. `sourceName` is the name of the CatalogSource.
 9. `sourceNamespace` is the namespace of the CatalogSource.
-10. `installMode` is the install mode of the operator, can be either `namespace` (OLM one namespace) or `cluster` (OLM all namespaces), by default it is `namespace`. Operator is deployed in `openshift-operators` namespace when InstallMode is set to `cluster`.
+10. (optional) `installMode` is the install mode of the operator, can be either `namespace` (OLM one namespace) or `cluster` (OLM all namespaces). The default value is `namespace`. Operator is deployed in `openshift-operators` namespace when InstallMode is set to `cluster`.
 
-## OperandConfigs Spec
+## OperandConfig Spec
 
-OperandConfig defines the individual operand deployment configuration. The Operand Config Custom Resource (CR) defines the parameters for each operator that is listed in the OperandRegistry that should be used to install the operator instance by specifying an installation CR.
+OperandConfig defines the individual operand configuration. The OperandConfig Custom Resource (CR) defines the parameters for each operator that is listed in the OperandRegistry that should be used to install the operator instance by specifying an installation CR.
 
 ```yaml
 apiVersion: operator.ibm.com/v1alpha1
@@ -104,7 +102,7 @@ OperandConfig defines the individual operand deployment config:
 3. `name` is the name of the operator, which should be the same as the services name in the OperandRegistry and OperandRequest.
 4. `spec` defines a map. Its key is the kind name of the custom resource. Its value is merged to the spec field of custom resource. For more details, you can check the following topic How does ODLM create the individual operator CR?
 
-### How does Operator create the individual operator CR?
+### How does Operator create the individual operator CR
 
 Jenkins Operator has one CRD: Jenkins:
 
@@ -159,9 +157,7 @@ spec:
 
 For day2 operations, the ODLM will patch the OperandConfigs CR spec to the existing Jenkins CR.
 
-Typically, users update the individual operator CR for day2 operations, but OperandConfig still provides the ability for individual operator/operand day2 operation.
-
-## OperandRequests Spec
+## OperandRequest Spec
 
 OperandRequest defines which operator/operand you want to install in the cluster.
 
@@ -188,12 +184,12 @@ spec:
 1. `name` of the OperandRequest
 2. `namespace` of the OperandRequest
 3. `registry` identifies the name of the OperandRegistry CR from which this operand deployment is being requested.
-4. `registryNamespace` identifies the namespace in which the catalog CR is defined. Note: If the catalog name and namespace are not specified then it is assumed that the Request (1) is for a catalog in the current (requester's) namespace and (2) that only one catalog exists in the namespace.
+4. (optional) `registryNamespace` identifies the namespace in which the OperandRegistry CR is defined. **Note:** If the `registryNamespace` is not specified then it is assumed that the OperandRegistry CR is in the current (OperandRequest's) namespace.
 5. `operands` in the CR is a list of operands.
 6. `name` of operands in the CR must match a name specification in an OperandRegistry's CR.
-7. The `bindings` of the operands is a map to get and rename the secret and/or configmap from the provider and creat them in the requester's namespace. If the requester wants to rename the secret and/or configmap, they need to know the key of the binding in the OperandBindInfo. If the key of the bindings map is prefixed with public, it means the secret and/or configmap can be shared with the requester in the other namespace. If the key of the bindings map is prefixed with private, it means the secret and/or configmap can only be shared within its own namespace.
-8. The optional `secret` names a secret that should be created in the requester's namespace with formatted data that can be used to interact with the service.
-9. The optional `configmap` field names a configmap that should be created in the requester's namespace with formatted data that can be used to interact with the service.
+7. (optional) The `bindings` of the operands is a map to get and rename the secret and/or configmap from the provider and create them in the requester's namespace. If the requester wants to rename the secret and/or configmap, they need to know the key of the binding in the OperandBindInfo. If the key of the bindings map is prefixed with public, it means the secret and/or configmap can be shared with the requester in the other namespace. If the key of the bindings map is prefixed with private, it means the secret and/or configmap can only be shared within its own namespace.
+8. (optional) `secret` names a secret that should be created in the requester's namespace with formatted data that can be used to interact with the service.
+9. (optional) `configmap` names a configmap that should be created in the requester's namespace with formatted data that can be used to interact with the service.
 
 ## OperandBindInfo Spec
 
@@ -220,11 +216,11 @@ Fields in this CR are described below.
 1. `name` of the OperandBindInfo
 2. `namespace` of the OperandBindInfo
 3. The `operand` should be the the individual operator name.
-4. The `registry` section must match the name in the OperandRegistry in the current namespace.
+4. The `registry` section must match the name in the OperandRegistry CR in the current namespace.
 5. `description` is used to add a detailed description of a service.
 6. The `bindings` section is used to specify information about the access/configuration data that is to be shared. If the key of the bindings map is prefixed with public, it means the secret and/or configmap can be shared with the requester in the other namespace. If the key of the bindings map is prefixed with private, it means the secret and/or configmap can only be shared within its own namespace.
-7. The `secret` field names an existing secret, if any, that has been created and holds information that is to be shared with the adopter/requester.
-8. The `configmap` field identifies a configmap object, if any, that should be shared with the adopter/requester
+7. The `secret` field names an existing secret, if any, that has been created and holds information that is to be shared with the requester.
+8. The `configmap` field identifies a configmap object, if any, that should be shared with the requester
 
 ODLM will use the OperandBindInfo CR to pass information to an adopter when they create a OperandRequest to access the service, assuming that both have compatible scopes. ODLM will copy the information from the shared service's "OperandBindInfo.bindinfo[].secret" and/or "OperandBindInfo.bindinfo[].configmap" to the requester namespace.
 
@@ -234,11 +230,11 @@ ODLM will use the OperandBindInfo CR to pass information to an adopter when they
 
 1. User installs ODLM from OLM
 
-    The ODLM will automatically generate two default CRD CRs, since OperandReigstrt and OperandConfigs CRs don't define the state, so it should be fine.
+    The ODLM will automatically generate two default CRD CRs, since OperandRegistry and OperandConfigs CRs don't define the state, so it should be fine.
 
-2. Optional: User update the OperandConfigs CR with their own parameter values
+2. **Optional:** Users can update the OperandConfigs CR with their own parameter values
 
-    This should be optional if the default configurations match the requirement.
+    Users can skip this step if the default configurations match the requirement.
 
 3. User creates the OperandRequest CR from OLM
 
@@ -246,9 +242,9 @@ ODLM will use the OperandBindInfo CR to pass information to an adopter when they
 
 4. The rest works will be done by OLM and ODLM
 
-    And finally user will get what they want.
+    Finally, users will get what they want.
 
 ## Operator/Operand Upgrade
 
 - For operator/operand upgrade, you only need to publish your operator OLM to your operator channel, and OLM will handle the upgrade automatically.
-- If there are major version, then you may want to update `channel` in `OperandRegistry` to trgger upgrade.
+- If there are major version, then you may want to update `channel` in `OperandRegistry` to trigger upgrade.

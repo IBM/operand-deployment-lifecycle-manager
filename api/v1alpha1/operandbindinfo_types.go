@@ -23,15 +23,15 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-// BindInfoPhase defines the BindInfo status
+
+// BindInfoPhase defines the BindInfo status.
 type BindInfoPhase string
 
 // BindInfo status
 const (
 	// BindInfoFinalizer is the name for the finalizer to allow for deletion
-	// reconciliation when an OperandBindInfo is deleted.
+	// when an OperandBindInfo is deleted.
 	BindInfoFinalizer = "finalizer.bindinfo.ibm.com"
 
 	BindInfoCompleted BindInfoPhase = "Completed"
@@ -41,7 +41,7 @@ const (
 	BindInfoWaiting   BindInfoPhase = "Waiting for Secret and/or Configmap from provider"
 )
 
-// OperandBindInfoSpec defines the desired state of OperandBindInfo
+// OperandBindInfoSpec defines the desired state of OperandBindInfo.
 type OperandBindInfoSpec struct {
 	// The deployed service identifies itself with its operand.
 	// This must match the name in the OperandRegistry in the current namespace.
@@ -59,23 +59,23 @@ type OperandBindInfoSpec struct {
 	Bindings map[string]SecretConfigmap `json:"bindings,omitempty"`
 }
 
-// SecretConfigmap is a pair of Secret and/or Configmap
+// SecretConfigmap is a pair of Secret and/or Configmap.
 type SecretConfigmap struct {
-	// The secret field names an existing secret, if any, that has been created and holds information that is to be shared with the adopter.
+	// The secret identifies an existing secret. if it exists, the ODLM will share to the namespace of the OperandRequest.
 	// +optional
 	Secret string `json:"secret,omitempty"`
-	// The configmap field identifies a configmap object, if any, that should be shared with the adopter/requestor
+	// The configmap identifies an existing configmap object. if it exists, the ODLM will share to the namespace of the OperandRequest.
 	// +optional
 	Configmap string `json:"configmap,omitempty"`
 }
 
-// OperandBindInfoStatus defines the observed state of OperandBindInfo
+// OperandBindInfoStatus defines the observed state of OperandBindInfo.
 type OperandBindInfoStatus struct {
-	// Phase describes the overall phase of OperandBindInfo
+	// Phase describes the overall phase of OperandBindInfo.
 	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="Phase",xDescriptors="urn:alm:descriptor:io.kubernetes.phase"
 	// +optional
 	Phase BindInfoPhase `json:"phase,omitempty"`
-	// RequestNamespaces defines the namespaces of OperandRequest
+	// RequestNamespaces defines the namespaces of OperandRequest.
 	// +optional
 	RequestNamespaces []string `json:"requestNamespaces,omitempty"`
 }
@@ -83,7 +83,7 @@ type OperandBindInfoStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 
-// OperandBindInfo is the Schema for the operandbindinfoes API
+// OperandBindInfo is the Schema for the operandbindinfoes API.
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=operandbindinfos,shortName=opbi,scope=Namespaced
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=.metadata.creationTimestamp
@@ -100,14 +100,14 @@ type OperandBindInfo struct {
 
 // +kubebuilder:object:root=true
 
-// OperandBindInfoList contains a list of OperandBindInfo
+// OperandBindInfoList contains a list of OperandBindInfo.
 type OperandBindInfoList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []OperandBindInfo `json:"items"`
 }
 
-// InitBindInfoStatus OperandConfig status
+// InitBindInfoStatus initializes OperandConfig status.
 func (r *OperandBindInfo) InitBindInfoStatus() bool {
 	isInitialized := true
 	if r.Status.Phase == "" {
@@ -117,7 +117,7 @@ func (r *OperandBindInfo) InitBindInfoStatus() bool {
 	return isInitialized
 }
 
-// GetRegistryKey Set the default value for Request spec
+// GetRegistryKey sets the default value for Request spec.
 func (r *OperandBindInfo) GetRegistryKey() types.NamespacedName {
 	if r.Spec.RegistryNamespace != "" {
 		return types.NamespacedName{Namespace: r.Spec.RegistryNamespace, Name: r.Spec.Registry}
@@ -125,32 +125,33 @@ func (r *OperandBindInfo) GetRegistryKey() types.NamespacedName {
 	return types.NamespacedName{Namespace: r.Namespace, Name: r.Spec.Registry}
 }
 
-func (r *OperandBindInfo) GeneralLabels() map[string]string {
+// GenerateLabels generates the labels for the OperandBindInfo to include information about the OperandRegistry it uses.
+func (r *OperandBindInfo) GenerateLabels() map[string]string {
 	labels := make(map[string]string)
 	registryKey := r.GetRegistryKey()
 	labels[registryKey.Namespace+"."+registryKey.Name+"/registry"] = "true"
 	return labels
 }
 
-// UpdateLabels update the labels for the OperandConfig and OperandRegistry used by this OperandRequest
-// Return true if label changed, otherwise return false
+// UpdateLabels generates the labels for the OperandBindInfo to include information about the OperandRegistry it uses.
+// It will return true if label changed, otherwise return false.
 func (r *OperandBindInfo) UpdateLabels() bool {
 	isUpdated := false
 	if r.Labels == nil {
-		r.Labels = r.GeneralLabels()
+		r.Labels = r.GenerateLabels()
 		isUpdated = true
 	} else {
 		// Remove useless labels
 		for label := range r.Labels {
 			if strings.HasSuffix(label, "/registry") {
-				if _, ok := r.GeneralLabels()[label]; !ok {
+				if _, ok := r.GenerateLabels()[label]; !ok {
 					delete(r.Labels, label)
 					isUpdated = true
 				}
 			}
 		}
 		// Add new label
-		for label := range r.GeneralLabels() {
+		for label := range r.GenerateLabels() {
 			if _, ok := r.Labels[label]; !ok {
 				r.Labels[label] = "true"
 				isUpdated = true

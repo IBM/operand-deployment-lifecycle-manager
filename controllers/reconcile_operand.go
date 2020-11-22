@@ -63,32 +63,21 @@ func (r *OperandRequestReconciler) reconcileOperand(requestKey types.NamespacedN
 		registryKey := requestInstance.GetRegistryKey(req)
 		configInstance, err := fetch.FetchOperandConfig(r.Client, registryKey)
 		if err != nil {
-			klog.Error("failed to get the operandconfig instance: ", err)
+			klog.Error("failed to get the OperandConfig instance: ", err)
 			merr.Add(err)
 			continue
 		}
 		registryInstance, err := fetch.FetchOperandRegistry(r.Client, registryKey)
 		if err != nil {
-			klog.Error("failed to get the operandregistry instance: ", err)
+			klog.Error("failed to get the OperandRegistry instance: ", err)
 			merr.Add(err)
 			continue
 		}
 		for _, operand := range req.Operands {
 
-			var opdConfig *operatorv1alpha1.ConfigService
-
-			if operand.Kind == "" {
-				// Check the requested Service Config if exist in specific OperandConfig
-				opdConfig = configInstance.GetService(operand.Name)
-				if opdConfig == nil {
-					klog.Warningf("Cannot find %s in the operandconfig instance %s in the namespace %s ", operand.Name, req.Registry, req.RegistryNamespace)
-					continue
-				}
-			}
-
 			opdRegistry := registryInstance.GetOperator(operand.Name)
 			if opdRegistry == nil {
-				klog.Warningf("Cannot find %s in the operandregistry instance %s in the namespace %s ", operand.Name, req.Registry, req.RegistryNamespace)
+				klog.Warningf("Cannot find %s in the OperandRegistry instance %s in the namespace %s ", operand.Name, req.Registry, req.RegistryNamespace)
 				continue
 			}
 
@@ -136,6 +125,7 @@ func (r *OperandRequestReconciler) reconcileOperand(requestKey types.NamespacedN
 			if csv.Status.Phase != olmv1alpha1.CSVPhaseSucceeded {
 				klog.Errorf("the ClusterServiceVersion for Subscription %s is not Ready", operatorName)
 				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorInstalling, "")
+				continue
 			}
 
 			klog.V(3).Info("Generating customresource base on ClusterServiceVersion: ", csv.ObjectMeta.Name)
@@ -143,6 +133,12 @@ func (r *OperandRequestReconciler) reconcileOperand(requestKey types.NamespacedN
 
 			// Merge and Generate CR
 			if operand.Kind == "" {
+				// Check the requested Service Config if exist in specific OperandConfig
+				opdConfig := configInstance.GetService(operand.Name)
+				if opdConfig == nil {
+					klog.V(2).Infof("There is no service: %s from the OperandConfig instance: %s/%s, Skip creating CR for it", operand.Name, req.RegistryNamespace, req.Registry)
+					continue
+				}
 				err = r.reconcileCRwithConfig(opdConfig, opdRegistry.Namespace, csv)
 			} else {
 				err = r.reconcileCRwithRequest(requestInstance, operand, requestKey, csv)
@@ -504,7 +500,7 @@ func (r *OperandRequestReconciler) updateCustomResource(unstruct unstructured.Un
 				return true, nil
 			}
 
-			klog.V(2).Infof("updating custom resource apiversion: %s kind: %s, %s/%s", apiversion, kind, namespace, name)
+			klog.V(2).Infof("updating custom resource with apiversion: %s, kind: %s, %s/%s", apiversion, kind, namespace, name)
 
 			existingCR.Object["spec"] = mergedCR
 			crUpdateErr := r.Update(context.TODO(), &existingCR)
@@ -607,7 +603,7 @@ func (r *OperandRequestReconciler) deleteCustomResource(unstruct unstructured.Un
 }
 
 func (r *OperandRequestReconciler) checkCustomResource(requestInstance *operatorv1alpha1.OperandRequest) error {
-	klog.V(2).Infof("checking the custom resource should be deleted from OperandRequest %s/%s", requestInstance.Namespace, requestInstance.Name)
+	klog.V(3).Infof("checking the custom resource should be deleted from OperandRequest %s/%s", requestInstance.Namespace, requestInstance.Name)
 
 	members := requestInstance.Status.Members
 

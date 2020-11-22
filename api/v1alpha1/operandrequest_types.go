@@ -88,7 +88,7 @@ type OperatorPhase string
 // Constants are used for state.
 const (
 	// RequestFinalizer is the name for the finalizer to allow for deletion.
-	// reconciliation when an OperandRequest is deleted.
+	// when an OperandRequest is deleted.
 	RequestFinalizer = "finalizer.request.ibm.com"
 
 	ConditionCreating   ConditionType = "Creating"
@@ -120,8 +120,8 @@ const (
 	ResourceTypeOperand       ResourceType = "operands"
 )
 
-// Condition represents the current state of the Request Service
-// A condition might not show up if it is not happening
+// Condition represents the current state of the Request Service.
+// A condition might not show up if it is not happening.
 type Condition struct {
 	// Type of condition.
 	Type ConditionType `json:"type"`
@@ -156,7 +156,7 @@ type OperandRequestStatus struct {
 	Phase ClusterPhase `json:"phase,omitempty"`
 }
 
-// MemberPhase show the phase of the operator and operator instance.
+// MemberPhase shows the phase of the operator and operator instance.
 type MemberPhase struct {
 	// OperatorPhase shows the deploy phase of the operator.
 	// +optional
@@ -179,7 +179,7 @@ type OperandCRMember struct {
 	APIVersion string `json:"apiVersion,omitempty"`
 }
 
-// MemberStatus show if the Operator is ready.
+// MemberStatus shows if the Operator is ready.
 type MemberStatus struct {
 	// The member name are the same as the subscription name.
 	Name string `json:"name"`
@@ -288,7 +288,7 @@ func newCondition(condType ConditionType, status corev1.ConditionStatus, reason,
 	}
 }
 
-// SetMemberStatus appends a Member status in the Member status list
+// SetMemberStatus appends a Member status in the Member status list.
 func (r *OperandRequest) SetMemberStatus(name string, operatorPhase OperatorPhase, operandPhase ServicePhase) {
 	pos, m := getMemberStatus(&r.Status, name)
 	if m != nil {
@@ -307,7 +307,7 @@ func (r *OperandRequest) SetMemberStatus(name string, operatorPhase OperatorPhas
 	}
 }
 
-// SetMemberCRStatus appends a Member CR in the Member status list
+// SetMemberCRStatus appends a Member CR in the Member status list.
 func (r *OperandRequest) SetMemberCRStatus(name, CRName, CRKind, CRAPIVersion string) {
 	pos, m := getMemberStatus(&r.Status, name)
 	if m != nil {
@@ -320,7 +320,7 @@ func (r *OperandRequest) SetMemberCRStatus(name, CRName, CRKind, CRAPIVersion st
 	}
 }
 
-// RemoveMemberCRStatus remove a Member CR in the Member status list
+// RemoveMemberCRStatus removes a Member CR in the Member status list.
 func (r *OperandRequest) RemoveMemberCRStatus(name, CRName, CRKind string) {
 	pos, m := getMemberStatus(&r.Status, name)
 	if m != nil {
@@ -349,7 +349,7 @@ func (r *OperandRequest) setOperandReadyCondition(m *MemberStatus, name string) 
 	}
 }
 
-// FreshMemberStatus cleanup Member status from the Member status list
+// FreshMemberStatus cleanup Member status from the Member status list.
 func (r *OperandRequest) FreshMemberStatus() {
 	newMembers := []MemberStatus{}
 	for index, m := range r.Status.Members {
@@ -447,7 +447,7 @@ func (r *OperandRequest) UpdateClusterPhase() {
 	r.SetClusterPhase(clusterPhase)
 }
 
-// GetRegistryKey Set the default value for Request spec
+// GetRegistryKey Set the default value for Request spec.
 func (r *OperandRequest) GetRegistryKey(req Request) types.NamespacedName {
 	regName := req.Registry
 	regNs := req.RegistryNamespace
@@ -457,7 +457,7 @@ func (r *OperandRequest) GetRegistryKey(req Request) types.NamespacedName {
 	return types.NamespacedName{Namespace: regNs, Name: regName}
 }
 
-//InitRequestStatus OperandConfig status
+//InitRequestStatus OperandConfig status.
 func (r *OperandRequest) InitRequestStatus() bool {
 	isInitialized := true
 	if r.Status.Phase == "" {
@@ -467,7 +467,8 @@ func (r *OperandRequest) InitRequestStatus() bool {
 	return isInitialized
 }
 
-func (r *OperandRequest) GeneralLabels() map[string]string {
+// GenerateLabels generates the labels for the OperandRequest to include information about the OperandConfig and OperandRegistry it uses.
+func (r *OperandRequest) GenerateLabels() map[string]string {
 	labels := make(map[string]string)
 	for _, req := range r.Spec.Requests {
 		registryKey := r.GetRegistryKey(req)
@@ -477,25 +478,25 @@ func (r *OperandRequest) GeneralLabels() map[string]string {
 	return labels
 }
 
-// UpdateLabels update the labels for the OperandConfig and OperandRegistry used by this OperandRequest
-// Return true if label changed, otherwise return false
+// UpdateLabels updates the labels for the OperandRequest to include information about the OperandConfig and OperandRegistry it uses.
+// It will return true if label changed, otherwise return false.
 func (r *OperandRequest) UpdateLabels() bool {
 	isUpdated := false
 	if r.Labels == nil {
-		r.Labels = r.GeneralLabels()
+		r.Labels = r.GenerateLabels()
 		isUpdated = true
 	} else {
 		// Remove useless labels
 		for label := range r.Labels {
 			if strings.HasSuffix(label, "/registry") || strings.HasSuffix(label, "/config") {
-				if _, ok := r.GeneralLabels()[label]; !ok {
+				if _, ok := r.GenerateLabels()[label]; !ok {
 					delete(r.Labels, label)
 					isUpdated = true
 				}
 			}
 		}
 		// Add new label
-		for label := range r.GeneralLabels() {
+		for label := range r.GenerateLabels() {
 			if _, ok := r.Labels[label]; !ok {
 				r.Labels[label] = "true"
 				isUpdated = true
@@ -505,7 +506,7 @@ func (r *OperandRequest) UpdateLabels() bool {
 	return isUpdated
 }
 
-// GetAllRegistryReconcileRequest gets all the Registry ReconcileRequest
+// GetAllRegistryReconcileRequest gets all the Registry ReconcileRequest.
 func (r *OperandRequest) GetAllRegistryReconcileRequest() []reconcile.Request {
 	rrs := []reconcile.Request{}
 	for _, req := range r.Spec.Requests {

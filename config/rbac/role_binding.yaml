@@ -2,10 +2,22 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: operand-deployment-lifecycle-manager
-  namespace: system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
+  name: operand-deployment-lifecycle-manager
+subjects:
+- kind: ServiceAccount
+  name: operand-deployment-lifecycle-manager
+  namespace: system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: operand-deployment-lifecycle-manager
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
   name: operand-deployment-lifecycle-manager
 subjects:
 - kind: ServiceAccount

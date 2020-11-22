@@ -17,7 +17,7 @@
     oc delete namespace ibm-common-services
     ```
 
-1. Create the namespace **ibm-common-services** and swith to **ibm-common-services** namespace.
+1. Create the namespace **ibm-common-services** and switch to **ibm-common-services** namespace.
 
     ```bash
     oc create namespace ibm-common-services
