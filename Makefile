@@ -24,8 +24,6 @@ KIND ?= $(shell which kind)
 
 ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
 
-
-
 # Specify whether this repo is build locally or not, default values is '1';
 # If set to 1, then you need to also set 'DOCKER_USERNAME' and 'DOCKER_PASSWORD'
 # environment variables before build the repo.
@@ -138,6 +136,10 @@ deploy: manifests kustomize ## Deploy controller in the configured Kubernetes cl
 	cd config/manager && $(KUSTOMIZE) edit set image quay.io/opencloudio/odlm=$(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_VERSION)
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
+deploy-e2e: manifests kustomize ## Deploy controller in the configured Kubernetes cluster in ~/.kube/config
+	cd config/e2e/manager && $(KUSTOMIZE) edit set image quay.io/opencloudio/odlm=$(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG)
+	$(KUSTOMIZE) build config/e2e | kubectl apply -f -
+
 ##@ Generate code and manifests
 
 manifests: controller-gen ## Generate manifests e.g. CRD, RBAC etc.
@@ -174,7 +176,7 @@ e2e-test:
 	@echo ... Running the ODLM e2e test
 	@go test ./test/e2e/...
 
-e2e-test-kind: build-push-test-operrator-image kind-start kind-load-img deploy e2e-test kind-delete
+e2e-test-kind: build-push-test-operrator-image kind-start kind-load-img deploy-e2e e2e-test kind-delete
 
 coverage: ## Run code coverage test
 	@echo "Running unit tests for the controllers."
@@ -206,8 +208,8 @@ kind-delete:
 
 kind-load-img:
 	@echo Load ODLM images into Kind cluster
-	@docker pull $(IMAGE_REPO)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG)
-	@${KIND} load docker-image $(IMAGE_REPO)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG) --name ${KIND_CLUSTER_NAME} -v 5
+	@docker pull $(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG)
+	@${KIND} load docker-image $(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG) --name ${KIND_CLUSTER_NAME} -v 5
 
 ##@ Build
 
@@ -219,12 +221,12 @@ build-operator-image: ## Build the operator image.
 
 build-test-operator-image: ## Build the operator test image.
 	@echo "Building the $(OPERATOR_IMAGE_NAME) docker image for testing..."
-	@docker build -t $(IMAGE_REPO)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG) \
+	@docker build -t $(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG) \
 	--build-arg VCS_REF=$(VCS_REF) --build-arg VCS_URL=$(VCS_URL) \
 	--build-arg GOARCH=$(LOCAL_ARCH) -f Dockerfile .
 
 build-bundle-image: ## Build the operator bundle image.
-	docker build -f bundle.Dockerfile -t $(IMAGE_REPO)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) .
+	docker build -f bundle.Dockerfile -t $(QUAY_REGISTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) .
 
 ##@ Release
 
@@ -237,11 +239,11 @@ build-push-image: $(CONFIG_DOCKER_TARGET) $(CONFIG_DOCKER_TARGET_QUAY) build-ope
 
 build-push-test-operrator-image: $(CONFIG_DOCKER_TARGET_QUAY) build-test-operator-image  ## Build and push the operator test image.
 	@echo "Pushing the $(OPERATOR_IMAGE_NAME) docker image for testing..."
-	@docker push $(IMAGE_REPO)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG)
+	@docker push $(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG)
 
 build-push-bundle-image: $(CONFIG_DOCKER_TARGET_QUAY) build-bundle-image ## Build and push the bundle images.
 	@echo "Pushing the $(BUNDLE_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
-	@docker push $(IMAGE_REPO)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION)
+	@docker push $(QUAY_REGISTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION)
 
 multiarch-image: $(CONFIG_DOCKER_TARGET) $(CONFIG_DOCKER_TARGET_QUAY) ## Generate multiarch images for operator image.
 	@MAX_PULLING_RETRY=20 RETRY_INTERVAL=30 common/scripts/multiarch_image.sh $(ARTIFACTORYA_REGISTRY) $(OPERATOR_IMAGE_NAME) $(VERSION) $(RELEASE_VERSION)
