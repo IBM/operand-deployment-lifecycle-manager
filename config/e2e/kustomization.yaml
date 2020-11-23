@@ -1,0 +1,4 @@
+bases:
+- ../crd
+- rbac
+- manager
