@@ -294,16 +294,16 @@ func (r *OperandRequest) SetMemberStatus(name string, operatorPhase OperatorPhas
 	if m != nil {
 		if operatorPhase != "" && operatorPhase != m.Phase.OperatorPhase {
 			r.Status.Members[pos].Phase.OperatorPhase = operatorPhase
-			r.setOperatorReadyCondition(m, name)
+			r.setOperatorReadyCondition(operatorPhase, name)
 		}
 		if operandPhase != "" && operandPhase != m.Phase.OperandPhase {
 			r.Status.Members[pos].Phase.OperandPhase = operandPhase
-			r.setOperandReadyCondition(m, name)
+			r.setOperandReadyCondition(operandPhase, name)
 		}
 	} else {
 		newM := newMemberStatus(name, operatorPhase, operandPhase)
 		r.Status.Members = append(r.Status.Members, newM)
-		r.setOperatorReadyCondition(&newM, name)
+		r.setOperatorReadyCondition(operatorPhase, name)
 	}
 }
 
@@ -333,16 +333,16 @@ func (r *OperandRequest) RemoveMemberCRStatus(name, CRName, CRKind string) {
 	}
 }
 
-func (r *OperandRequest) setOperatorReadyCondition(m *MemberStatus, name string) {
-	if m.Phase.OperatorPhase == OperatorRunning {
+func (r *OperandRequest) setOperatorReadyCondition(operatorPhase OperatorPhase, name string) {
+	if operatorPhase == OperatorRunning {
 		r.SetReadyCondition(name, ResourceTypeOperator, corev1.ConditionTrue)
 	} else {
 		r.SetReadyCondition(name, ResourceTypeOperator, corev1.ConditionFalse)
 	}
 }
 
-func (r *OperandRequest) setOperandReadyCondition(m *MemberStatus, name string) {
-	if m.Phase.OperandPhase == ServiceRunning {
+func (r *OperandRequest) setOperandReadyCondition(operandPhase ServicePhase, name string) {
+	if operandPhase == ServiceRunning {
 		r.SetReadyCondition(name, ResourceTypeOperand, corev1.ConditionTrue)
 	} else {
 		r.SetReadyCondition(name, ResourceTypeOperand, corev1.ConditionFalse)
