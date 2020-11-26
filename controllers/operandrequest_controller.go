@@ -297,7 +297,7 @@ func getConfigToRequestMapper(mgr manager.Manager) handler.ToRequestsFunc {
 // SetupWithManager adds OperandRequest controller to the manager.
 func (r *OperandRequestReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&operatorv1alpha1.OperandRequest{}).
+		For(&operatorv1alpha1.OperandRequest{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Watches(&source.Kind{Type: &operatorv1alpha1.OperandRegistry{}}, &handler.EnqueueRequestsFromMapFunc{
 			ToRequests: getRegistryToRequestMapper(mgr),
 		}, builder.WithPredicates(predicate.Funcs{
