@@ -123,5 +123,5 @@ spec:
   maturity: stable
   provider:
     name: IBM
-  replaces: operand-deployment-lifecycle-manager.v1.4.0
+  replaces: operand-deployment-lifecycle-manager.v1.4.1
   version: 0.0.0
