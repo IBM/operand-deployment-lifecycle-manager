@@ -76,6 +76,7 @@ OPERATOR_IMAGE_NAME ?= odlm
 BUNDLE_IMAGE_NAME ?= odlm-operator-bundle
 # Current Operator version
 OPERATOR_VERSION ?= 1.5.0
+
 # Kind cluster name
 KIND_CLUSTER_NAME ?= "ODLM"
 # Operator image tag for test
@@ -237,6 +238,10 @@ build-push-image: $(CONFIG_DOCKER_TARGET) $(CONFIG_DOCKER_TARGET_QUAY) build-ope
 build-push-test-operator-image: $(CONFIG_DOCKER_TARGET_QUAY) build-test-operator-image  ## Build and push the operator test image.
 	@echo "Pushing the $(OPERATOR_IMAGE_NAME) docker image for testing..."
 	@docker push $(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG)
+
+build-push-bundle-image: $(CONFIG_DOCKER_TARGET_QUAY) build-bundle-image ## Build and push the bundle images.
+	@echo "Pushing the $(BUNDLE_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
+	@docker push $(QUAY_REGISTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION)
 
 multiarch-image: $(CONFIG_DOCKER_TARGET) $(CONFIG_DOCKER_TARGET_QUAY) ## Generate multiarch images for operator image.
 	@MAX_PULLING_RETRY=20 RETRY_INTERVAL=30 common/scripts/multiarch_image.sh $(ARTIFACTORYA_REGISTRY) $(OPERATOR_IMAGE_NAME) $(VERSION) $(RELEASE_VERSION)
