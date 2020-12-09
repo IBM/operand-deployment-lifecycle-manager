@@ -101,6 +101,12 @@ func (r *OperandConfigReconciler) updateConfigOperatorsStatus(instance *operator
 	}
 
 	for _, op := range registryInstance.Spec.Operators {
+
+		service := instance.GetService(op.Name)
+		if service == nil {
+			continue
+		}
+
 		// Looking for the CSV
 		namespace := fetch.GetOperatorNamespace(op.InstallMode, op.Namespace)
 		sub, err := fetch.FetchSubscription(r.Client, op.Name, namespace, op.PackageName)
@@ -169,8 +175,6 @@ func (r *OperandConfigReconciler) updateConfigOperatorsStatus(instance *operator
 			unstruct.Object = crTemplate.(map[string]interface{})
 
 			kind := unstruct.Object["kind"].(string)
-
-			service := instance.GetService(op.Name)
 
 			existinConfig := false
 			for crName := range service.Spec {
