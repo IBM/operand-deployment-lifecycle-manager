@@ -24,6 +24,7 @@ import (
 	gset "github.com/deckarep/golang-set"
 	olmv1 "github.com/operator-framework/api/pkg/operators/v1"
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
+	authorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -76,6 +77,16 @@ func (r *OperandRequestReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	// Add namespace member into NamespaceScope and check if has the update permission
+	hasPermission, err := r.addPermission(req)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if !hasPermission {
+		klog.Warningf("No permission to update OperandRequest")
+		return ctrl.Result{RequeueAfter: 3 * time.Second}, nil
+	}
+
 	klog.V(1).Infof("Reconciling OperandRequest: %s", req.NamespacedName)
 	// Update labels for the request
 	if requestInstance.UpdateLabels() {
@@ -125,12 +136,6 @@ func (r *OperandRequestReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 		return ctrl.Result{}, nil
 	}
 
-	// Update NamespaceScope CR if it exist
-	if err := r.AddNamespaceMemberIntoNamespaceScope(req.NamespacedName); err != nil {
-		klog.Errorf("failed to add NamespaceMember %s to NamespaceScope: %v", req.Namespace, err)
-		return ctrl.Result{}, err
-	}
-
 	if err := r.reconcileOperator(req.NamespacedName); err != nil {
 		klog.Errorf("failed to reconcile Operators for OperandRequest %s: %v", req.NamespacedName.String(), err)
 		return ctrl.Result{}, err
@@ -152,6 +157,43 @@ func (r *OperandRequestReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 
 	klog.V(1).Infof("Finished reconciling OperandRequest: %s", req.NamespacedName)
 	return ctrl.Result{RequeueAfter: 30 * time.Minute}, nil
+}
+
+func (r *OperandRequestReconciler) addPermission(req ctrl.Request) (bool, error) {
+	if err := r.AddNamespaceMemberIntoNamespaceScope(req.NamespacedName); err != nil {
+		klog.Errorf("failed to add NamespaceMember %s to NamespaceScope: %v", req.Namespace, err)
+		return false, err
+	}
+	// Check update permission
+	if !r.checkUpdateAuth(req.Namespace, "operator.ibm.com", "operandrequests") {
+		return false, nil
+	}
+	if !r.checkUpdateAuth(req.Namespace, "operator.ibm.com", "operandrequestss/status") {
+		return false, nil
+	}
+	return true, nil
+}
+
+// Check if operator has permission to update OperandRequest
+func (r *OperandRequestReconciler) checkUpdateAuth(namespace, group, resource string) bool {
+	sar := &authorizationv1.SelfSubjectAccessReview{
+		Spec: authorizationv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authorizationv1.ResourceAttributes{
+				Namespace: namespace,
+				Verb:      "update",
+				Group:     group,
+				Resource:  resource,
+			},
+		},
+	}
+
+	if err := r.Create(context.TODO(), sar); err != nil {
+		klog.Errorf("Failed to check operator update permission: %v", err)
+		return false
+	}
+
+	klog.V(3).Infof("Operator update permission in namesapce %s, Allowed: %t, Denied: %t, Reason: %s", namespace, sar.Status.Allowed, sar.Status.Denied, sar.Status.Reason)
+	return sar.Status.Allowed
 }
 
 func (r *OperandRequestReconciler) AddNamespaceMemberIntoNamespaceScope(namespacedName types.NamespacedName) error {
