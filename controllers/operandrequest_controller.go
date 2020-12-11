@@ -168,7 +168,7 @@ func (r *OperandRequestReconciler) addPermission(req ctrl.Request) (bool, error)
 	if !r.checkUpdateAuth(req.Namespace, "operator.ibm.com", "operandrequests") {
 		return false, nil
 	}
-	if !r.checkUpdateAuth(req.Namespace, "operator.ibm.com", "operandrequestss/status") {
+	if !r.checkUpdateAuth(req.Namespace, "operator.ibm.com", "operandrequests/status") {
 		return false, nil
 	}
 	return true, nil
