@@ -14,11 +14,9 @@
 // limitations under the License.
 //
 
-package controllers
+package operandregistry
 
 import (
-	"crypto/rand"
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -27,6 +25,7 @@ import (
 	etcdv1beta2 "github.com/coreos/etcd-operator/pkg/apis/etcd/v1beta2"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gexec"
 	olmv1 "github.com/operator-framework/api/pkg/operators/v1"
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -40,6 +39,8 @@ import (
 
 	nssv1 "github.com/IBM/ibm-namespace-scope-operator/api/v1"
 	apiv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
+	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/operandconfig"
+	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/operandrequest"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -58,11 +59,11 @@ var (
 	interval = time.Second * 5
 )
 
-func TestAPIs(t *testing.T) {
+func TestOperandRegistry(t *testing.T) {
 	RegisterFailHandler(Fail)
 
 	RunSpecsWithDefaultAndCustomReporters(t,
-		"Controller Suite",
+		"OperandRegistry Controller Suite",
 		[]Reporter{printer.NewlineReporter{}})
 }
 
@@ -72,7 +73,7 @@ var _ = BeforeSuite(func(done Done) {
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
 		UseExistingCluster: UseExistingCluster(),
-		CRDDirectoryPaths:  []string{filepath.Join("..", "config", "crd", "bases"), filepath.Join("..", "testbin", "crds")},
+		CRDDirectoryPaths:  []string{filepath.Join("../..", "config", "crd", "bases"), filepath.Join("../..", "testbin", "crds")},
 	}
 
 	var err error
@@ -99,33 +100,27 @@ var _ = BeforeSuite(func(done Done) {
 
 	// Start your controllers test logic
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
-		Scheme: clientgoscheme.Scheme,
+		Scheme:             clientgoscheme.Scheme,
+		MetricsBindAddress: "0",
 	})
 	Expect(err).ToNot(HaveOccurred())
 
-	// Setup Manager with OperandBindInfo Controller
-	err = (&OperandBindInfoReconciler{
-		Client:   k8sManager.GetClient(),
-		Recorder: k8sManager.GetEventRecorderFor("OperandBindInfo"),
-		Scheme:   k8sManager.GetScheme(),
-	}).SetupWithManager(k8sManager)
-	Expect(err).ToNot(HaveOccurred())
 	// Setup Manager with OperandRegistry Controller
-	err = (&OperandRegistryReconciler{
+	err = (&Reconciler{
 		Client:   k8sManager.GetClient(),
 		Recorder: k8sManager.GetEventRecorderFor("OperandRegistry"),
 		Scheme:   k8sManager.GetScheme(),
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 	// Setup Manager with OperandConfig Controller
-	err = (&OperandConfigReconciler{
+	err = (&operandconfig.Reconciler{
 		Client:   k8sManager.GetClient(),
 		Recorder: k8sManager.GetEventRecorderFor("OperandConfig"),
 		Scheme:   k8sManager.GetScheme(),
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 	// Setup Manager with OperandRequest Controller
-	err = (&OperandRequestReconciler{
+	err = (&operandrequest.Reconciler{
 		Client:   k8sManager.GetClient(),
 		Config:   k8sManager.GetConfig(),
 		Recorder: k8sManager.GetEventRecorderFor("OperandRequest"),
@@ -145,6 +140,7 @@ var _ = BeforeSuite(func(done Done) {
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")
+	gexec.KillAndWait(5 * time.Second)
 	err := testEnv.Stop()
 	Expect(err).ToNot(HaveOccurred())
 })
@@ -155,11 +151,4 @@ func UseExistingCluster() *bool {
 		use = true
 	}
 	return &use
-}
-
-// createNSName generates random namespace names. Namespaces are never deleted in test environment
-func createNSName(prefix string) string {
-	suffix := make([]byte, 20)
-	rand.Read(suffix)
-	return fmt.Sprintf("%s-%x", prefix, suffix)
 }

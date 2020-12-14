@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-package controllers
+package operandrequest
 
 import (
 	"context"
@@ -51,8 +51,8 @@ import (
 	util "github.com/IBM/operand-deployment-lifecycle-manager/controllers/util"
 )
 
-// OperandRequestReconciler reconciles a OperandRequest object
-type OperandRequestReconciler struct {
+// Reconciler reconciles a OperandRequest object
+type Reconciler struct {
 	client.Client
 	Config   *rest.Config
 	Recorder record.EventRecorder
@@ -69,7 +69,7 @@ type clusterObjects struct {
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *OperandRequestReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// Fetch the OperandRequest instance
 	requestInstance := &operatorv1alpha1.OperandRequest{}
 	if err := r.Get(context.TODO(), req.NamespacedName, requestInstance); err != nil {
@@ -159,7 +159,7 @@ func (r *OperandRequestReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 	return ctrl.Result{RequeueAfter: 30 * time.Minute}, nil
 }
 
-func (r *OperandRequestReconciler) addPermission(req ctrl.Request) (bool, error) {
+func (r *Reconciler) addPermission(req ctrl.Request) (bool, error) {
 	if err := r.AddNamespaceMemberIntoNamespaceScope(req.NamespacedName); err != nil {
 		klog.Errorf("failed to add NamespaceMember %s to NamespaceScope: %v", req.Namespace, err)
 		return false, err
@@ -175,7 +175,7 @@ func (r *OperandRequestReconciler) addPermission(req ctrl.Request) (bool, error)
 }
 
 // Check if operator has permission to update OperandRequest
-func (r *OperandRequestReconciler) checkUpdateAuth(namespace, group, resource string) bool {
+func (r *Reconciler) checkUpdateAuth(namespace, group, resource string) bool {
 	sar := &authorizationv1.SelfSubjectAccessReview{
 		Spec: authorizationv1.SelfSubjectAccessReviewSpec{
 			ResourceAttributes: &authorizationv1.ResourceAttributes{
@@ -196,15 +196,15 @@ func (r *OperandRequestReconciler) checkUpdateAuth(namespace, group, resource st
 	return sar.Status.Allowed
 }
 
-func (r *OperandRequestReconciler) AddNamespaceMemberIntoNamespaceScope(namespacedName types.NamespacedName) error {
+func (r *Reconciler) AddNamespaceMemberIntoNamespaceScope(namespacedName types.NamespacedName) error {
 	return r.UpdateNamespaceScope(namespacedName, false)
 }
 
-func (r *OperandRequestReconciler) RemoveNamespaceMemberFromNamespaceScope(namespacedName types.NamespacedName) error {
+func (r *Reconciler) RemoveNamespaceMemberFromNamespaceScope(namespacedName types.NamespacedName) error {
 	return r.UpdateNamespaceScope(namespacedName, true)
 }
 
-func (r *OperandRequestReconciler) UpdateNamespaceScope(namespacedName types.NamespacedName, delete bool) error {
+func (r *Reconciler) UpdateNamespaceScope(namespacedName types.NamespacedName, delete bool) error {
 	dc := discovery.NewDiscoveryClientForConfigOrDie(r.Config)
 	if exist, err := util.ResourceExists(dc, "operator.ibm.com/v1", "NamespaceScope"); err != nil {
 		klog.Errorf("check resource NamespaceScope exist failed: %v", err)
@@ -260,7 +260,7 @@ func (r *OperandRequestReconciler) UpdateNamespaceScope(namespacedName types.Nam
 	return nil
 }
 
-func (r *OperandRequestReconciler) addFinalizer(cr *operatorv1alpha1.OperandRequest) error {
+func (r *Reconciler) addFinalizer(cr *operatorv1alpha1.OperandRequest) error {
 	if cr.GetDeletionTimestamp() == nil {
 		added := cr.EnsureFinalizer()
 		if added {
@@ -275,7 +275,7 @@ func (r *OperandRequestReconciler) addFinalizer(cr *operatorv1alpha1.OperandRequ
 	return nil
 }
 
-func (r *OperandRequestReconciler) checkFinalizer(requestInstance *operatorv1alpha1.OperandRequest) error {
+func (r *Reconciler) checkFinalizer(requestInstance *operatorv1alpha1.OperandRequest) error {
 	klog.V(2).Infof("Deleting OperandRequest %s in the namespace %s", requestInstance.Name, requestInstance.Namespace)
 	existingSub := &olmv1alpha1.SubscriptionList{}
 
@@ -337,7 +337,7 @@ func getConfigToRequestMapper(mgr manager.Manager) handler.ToRequestsFunc {
 }
 
 // SetupWithManager adds OperandRequest controller to the manager.
-func (r *OperandRequestReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&operatorv1alpha1.OperandRequest{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Watches(&source.Kind{Type: &operatorv1alpha1.OperandRegistry{}}, &handler.EnqueueRequestsFromMapFunc{
@@ -368,7 +368,7 @@ func (r *OperandRequestReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		})).Complete(r)
 }
 
-func (r *OperandRequestReconciler) updateOperandRequestStatus(newRequestInstance *operatorv1alpha1.OperandRequest) error {
+func (r *Reconciler) updateOperandRequestStatus(newRequestInstance *operatorv1alpha1.OperandRequest) error {
 	err := wait.PollImmediate(time.Millisecond*250, time.Second*5, func() (bool, error) {
 		existingRequestInstance, err := fetch.FetchOperandRequest(r.Client, types.NamespacedName{Name: newRequestInstance.Name, Namespace: newRequestInstance.Namespace})
 		if err != nil {

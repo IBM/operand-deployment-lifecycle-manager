@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-package controllers
+package operandrequest
 
 import (
 	"context"
@@ -37,7 +37,7 @@ import (
 	util "github.com/IBM/operand-deployment-lifecycle-manager/controllers/util"
 )
 
-func (r *OperandRequestReconciler) reconcileOperand(requestKey types.NamespacedName) *util.MultiErr {
+func (r *Reconciler) reconcileOperand(requestKey types.NamespacedName) *util.MultiErr {
 	klog.V(1).Infof("Reconciling Operands for OperandRequest: %s", requestKey)
 	merr := &util.MultiErr{}
 	requestInstance, err := fetch.FetchOperandRequest(r.Client, requestKey)
@@ -160,7 +160,7 @@ func (r *OperandRequestReconciler) reconcileOperand(requestKey types.NamespacedN
 }
 
 // reconcileCRwithConfig merge and create custom resource base on OperandConfig and CSV alm-examples
-func (r *OperandRequestReconciler) reconcileCRwithConfig(service *operatorv1alpha1.ConfigService, namespace string, csv *olmv1alpha1.ClusterServiceVersion) error {
+func (r *Reconciler) reconcileCRwithConfig(service *operatorv1alpha1.ConfigService, namespace string, csv *olmv1alpha1.ClusterServiceVersion) error {
 	almExamples := csv.ObjectMeta.Annotations["alm-examples"]
 
 	// Create a slice for crTemplates
@@ -218,7 +218,7 @@ func (r *OperandRequestReconciler) reconcileCRwithConfig(service *operatorv1alph
 }
 
 // reconcileCRwithRequest merge and create custom resource base on OperandRequest and CSV alm-examples
-func (r *OperandRequestReconciler) reconcileCRwithRequest(requestInstance *operatorv1alpha1.OperandRequest, operand operatorv1alpha1.Operand, requestKey types.NamespacedName, csv *olmv1alpha1.ClusterServiceVersion) error {
+func (r *Reconciler) reconcileCRwithRequest(requestInstance *operatorv1alpha1.OperandRequest, operand operatorv1alpha1.Operand, requestKey types.NamespacedName, csv *olmv1alpha1.ClusterServiceVersion) error {
 	almExamples := csv.ObjectMeta.Annotations["alm-examples"]
 
 	// Create a slice for crTemplates
@@ -296,7 +296,7 @@ func (r *OperandRequestReconciler) reconcileCRwithRequest(requestInstance *opera
 }
 
 // deleteAllCustomResource remove custom resource base on OperandConfig and CSV alm-examples
-func (r *OperandRequestReconciler) deleteAllCustomResource(csv *olmv1alpha1.ClusterServiceVersion, requestInstance *operatorv1alpha1.OperandRequest, csc *operatorv1alpha1.OperandConfig, operandName, namespace string) error {
+func (r *Reconciler) deleteAllCustomResource(csv *olmv1alpha1.ClusterServiceVersion, requestInstance *operatorv1alpha1.OperandRequest, csc *operatorv1alpha1.OperandConfig, operandName, namespace string) error {
 
 	customeResourceMap := make(map[string]operatorv1alpha1.OperandCRMember)
 	for _, member := range requestInstance.Status.Members {
@@ -393,7 +393,7 @@ func (r *OperandRequestReconciler) deleteAllCustomResource(csv *olmv1alpha1.Clus
 	return nil
 }
 
-func (r *OperandRequestReconciler) compareConfigandExample(unstruct unstructured.Unstructured, service *operatorv1alpha1.ConfigService, namespace string) error {
+func (r *Reconciler) compareConfigandExample(unstruct unstructured.Unstructured, service *operatorv1alpha1.ConfigService, namespace string) error {
 	kind := unstruct.Object["kind"].(string)
 
 	for crdName, crdConfig := range service.Spec {
@@ -410,7 +410,7 @@ func (r *OperandRequestReconciler) compareConfigandExample(unstruct unstructured
 	return nil
 }
 
-func (r *OperandRequestReconciler) createCustomResource(unstruct unstructured.Unstructured, namespace, crName string, crConfig []byte) error {
+func (r *Reconciler) createCustomResource(unstruct unstructured.Unstructured, namespace, crName string, crConfig []byte) error {
 
 	//Convert CR template spec to string
 	specJSONString, _ := json.Marshal(unstruct.Object["spec"])
@@ -435,7 +435,7 @@ func (r *OperandRequestReconciler) createCustomResource(unstruct unstructured.Un
 	return nil
 }
 
-func (r *OperandRequestReconciler) existingCustomResource(unstruct unstructured.Unstructured, service *operatorv1alpha1.ConfigService, namespace string) error {
+func (r *Reconciler) existingCustomResource(unstruct unstructured.Unstructured, service *operatorv1alpha1.ConfigService, namespace string) error {
 	kind := unstruct.Object["kind"].(string)
 
 	var found bool
@@ -461,7 +461,7 @@ func (r *OperandRequestReconciler) existingCustomResource(unstruct unstructured.
 	return nil
 }
 
-func (r *OperandRequestReconciler) updateCustomResource(unstruct unstructured.Unstructured, namespace, crName string, crConfig []byte) error {
+func (r *Reconciler) updateCustomResource(unstruct unstructured.Unstructured, namespace, crName string, crConfig []byte) error {
 
 	kind := unstruct.Object["kind"].(string)
 	apiversion := unstruct.Object["apiVersion"].(string)
@@ -542,7 +542,7 @@ func (r *OperandRequestReconciler) updateCustomResource(unstruct unstructured.Un
 	return nil
 }
 
-func (r *OperandRequestReconciler) deleteCustomResource(unstruct unstructured.Unstructured, namespace string) error {
+func (r *Reconciler) deleteCustomResource(unstruct unstructured.Unstructured, namespace string) error {
 
 	// Get the kind of CR
 	kind := unstruct.Object["kind"].(string)
@@ -602,7 +602,7 @@ func (r *OperandRequestReconciler) deleteCustomResource(unstruct unstructured.Un
 	return nil
 }
 
-func (r *OperandRequestReconciler) checkCustomResource(requestInstance *operatorv1alpha1.OperandRequest) error {
+func (r *Reconciler) checkCustomResource(requestInstance *operatorv1alpha1.OperandRequest) error {
 	klog.V(3).Infof("checking the custom resource should be deleted from OperandRequest %s/%s", requestInstance.Namespace, requestInstance.Name)
 
 	members := requestInstance.Status.Members
