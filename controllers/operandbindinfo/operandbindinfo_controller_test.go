@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-package controllers
+package operandbindinfo
 
 import (
 	"context"
@@ -26,7 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
-	testdata "github.com/IBM/operand-deployment-lifecycle-manager/controllers/testutil"
+	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/testutil"
 )
 
 // +kubebuilder:docs-gen:collapse=Imports
@@ -64,27 +64,27 @@ var _ = Describe("OperandBindInfo controller", func() {
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		namespaceName = createNSName(namespace)
-		registryNamespaceName = createNSName(registryNamespace)
-		requestNamespaceName = createNSName(requestNamespace)
-		registry = testdata.OperandRegistryObj(registryName, registryNamespaceName, namespaceName)
-		config = testdata.OperandConfigObj(registryName, registryNamespaceName)
-		request = testdata.OperandRequestObj(registryName, registryNamespaceName, requestName, requestNamespaceName)
-		bindInfo = testdata.OperandBindInfoObj(name, namespaceName, registryName, registryNamespaceName)
+		namespaceName = testutil.CreateNSName(namespace)
+		registryNamespaceName = testutil.CreateNSName(registryNamespace)
+		requestNamespaceName = testutil.CreateNSName(requestNamespace)
+		registry = testutil.OperandRegistryObj(registryName, registryNamespaceName, namespaceName)
+		config = testutil.OperandConfigObj(registryName, registryNamespaceName)
+		request = testutil.OperandRequestObj(registryName, registryNamespaceName, requestName, requestNamespaceName)
+		bindInfo = testutil.OperandBindInfoObj(name, namespaceName, registryName, registryNamespaceName)
 		bindInfoKey = types.NamespacedName{Name: name, Namespace: namespaceName}
 
-		secret1 = testdata.SecretObj("secret1", namespaceName)
-		secret2 = testdata.SecretObj("secret2", namespaceName)
-		secret3 = testdata.SecretObj("secret3", requestNamespaceName)
-		configmap1 = testdata.ConfigmapObj("cm1", namespaceName)
-		configmap2 = testdata.ConfigmapObj("cm2", namespaceName)
-		configmap3 = testdata.ConfigmapObj("cm3", requestNamespaceName)
+		secret1 = testutil.SecretObj("secret1", namespaceName)
+		secret2 = testutil.SecretObj("secret2", namespaceName)
+		secret3 = testutil.SecretObj("secret3", requestNamespaceName)
+		configmap1 = testutil.ConfigmapObj("cm1", namespaceName)
+		configmap2 = testutil.ConfigmapObj("cm2", namespaceName)
+		configmap3 = testutil.ConfigmapObj("cm3", requestNamespaceName)
 		secret3Key = types.NamespacedName{Name: "secret3", Namespace: requestNamespaceName}
 		cm3Key = types.NamespacedName{Name: "cm3", Namespace: requestNamespaceName}
 
-		Expect(k8sClient.Create(ctx, testdata.NamespaceObj(namespaceName))).Should(Succeed())
-		Expect(k8sClient.Create(ctx, testdata.NamespaceObj(registryNamespaceName))).Should(Succeed())
-		Expect(k8sClient.Create(ctx, testdata.NamespaceObj(requestNamespaceName))).Should(Succeed())
+		Expect(k8sClient.Create(ctx, testutil.NamespaceObj(namespaceName))).Should(Succeed())
+		Expect(k8sClient.Create(ctx, testutil.NamespaceObj(registryNamespaceName))).Should(Succeed())
+		Expect(k8sClient.Create(ctx, testutil.NamespaceObj(requestNamespaceName))).Should(Succeed())
 
 		Expect(k8sClient.Create(ctx, registry)).Should(Succeed())
 		Expect(k8sClient.Create(ctx, config)).Should(Succeed())

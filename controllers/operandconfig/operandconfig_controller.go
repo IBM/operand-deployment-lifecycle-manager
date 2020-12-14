@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-package controllers
+package operandconfig
 
 import (
 	"context"
@@ -45,8 +45,8 @@ import (
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/util"
 )
 
-// OperandConfigReconciler reconciles a OperandConfig object
-type OperandConfigReconciler struct {
+// Reconciler reconciles a OperandConfig object
+type Reconciler struct {
 	client.Client
 	Recorder record.EventRecorder
 	Scheme   *runtime.Scheme
@@ -57,7 +57,7 @@ type OperandConfigReconciler struct {
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *OperandConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// Fetch the OperandConfig instance
 	instance := &operatorv1alpha1.OperandConfig{}
 	if err := r.Get(context.TODO(), req.NamespacedName, instance); err != nil {
@@ -90,7 +90,7 @@ func (r *OperandConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 	return ctrl.Result{}, nil
 }
 
-func (r *OperandConfigReconciler) updateConfigOperatorsStatus(instance *operatorv1alpha1.OperandConfig) error {
+func (r *Reconciler) updateConfigOperatorsStatus(instance *operatorv1alpha1.OperandConfig) error {
 	// Create an empty ServiceStatus map
 	klog.V(3).Info("Initializing OperandConfig status")
 	instance.Status.ServiceStatus = make(map[string]operatorv1alpha1.CrStatus)
@@ -218,7 +218,7 @@ func (r *OperandConfigReconciler) updateConfigOperatorsStatus(instance *operator
 	return nil
 }
 
-func (r *OperandConfigReconciler) getRequestToConfigMapper() handler.ToRequestsFunc {
+func (r *Reconciler) getRequestToConfigMapper() handler.ToRequestsFunc {
 	return func(object handler.MapObject) []reconcile.Request {
 		opreqInstance := &operatorv1alpha1.OperandRequest{}
 		requests := []reconcile.Request{}
@@ -245,7 +245,7 @@ func (r *OperandConfigReconciler) getRequestToConfigMapper() handler.ToRequestsF
 }
 
 // SetupWithManager adds OperandConfig controller to the manager.
-func (r *OperandConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&operatorv1alpha1.OperandConfig{}).
 		Watches(&source.Kind{Type: &operatorv1alpha1.OperandRequest{}}, &handler.EnqueueRequestsFromMapFunc{
@@ -266,7 +266,7 @@ func (r *OperandConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		})).Complete(r)
 }
 
-func (r *OperandConfigReconciler) updateOperandConfigStatus(newConfigInstance *operatorv1alpha1.OperandConfig) error {
+func (r *Reconciler) updateOperandConfigStatus(newConfigInstance *operatorv1alpha1.OperandConfig) error {
 	err := wait.PollImmediate(time.Millisecond*250, time.Second*5, func() (bool, error) {
 		existingConfigInstance, err := fetch.FetchOperandConfig(r.Client, types.NamespacedName{Name: newConfigInstance.Name, Namespace: newConfigInstance.Namespace})
 		if err != nil {
