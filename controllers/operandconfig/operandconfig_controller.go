@@ -107,6 +107,11 @@ func (r *Reconciler) updateConfigOperatorsStatus(instance *operatorv1alpha1.Oper
 			continue
 		}
 
+		// Check if the operator is request in the OperandRegistry
+		if !checkRegistryStatus(op.Name, registryInstance) {
+			continue
+		}
+
 		// Looking for the CSV
 		namespace := fetch.GetOperatorNamespace(op.InstallMode, op.Namespace)
 		sub, err := fetch.FetchSubscription(r.Client, op.Name, namespace, op.PackageName)
@@ -216,6 +221,16 @@ func (r *Reconciler) updateConfigOperatorsStatus(instance *operatorv1alpha1.Oper
 	}
 
 	return nil
+}
+
+func checkRegistryStatus(opName string, registryInstance *operatorv1alpha1.OperandRegistry) bool {
+	status := registryInstance.Status.OperatorsStatus
+	for opRegistryName := range status {
+		if opName == opRegistryName {
+			return true
+		}
+	}
+	return false
 }
 
 func (r *Reconciler) getRequestToConfigMapper() handler.ToRequestsFunc {
