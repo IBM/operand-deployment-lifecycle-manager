@@ -94,6 +94,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			klog.Errorf("failed to update the labels for OperandRequest %s: %v", req.NamespacedName.String(), err)
 			return ctrl.Result{}, err
 		}
+		return ctrl.Result{Requeue: true}, nil
 	}
 
 	// Initialize the status for OperandRequest instance
@@ -101,11 +102,14 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		if err := r.updateOperandRequestStatus(requestInstance); err != nil {
 			return ctrl.Result{}, err
 		}
+		return ctrl.Result{Requeue: true}, nil
 	}
 
-	if err := r.addFinalizer(requestInstance); err != nil {
+	if isAdded, err := r.addFinalizer(requestInstance); err != nil {
 		klog.Errorf("failed to add finalizer for OperandRequest %s: %v", req.NamespacedName.String(), err)
 		return ctrl.Result{}, err
+	} else if !isAdded {
+		return ctrl.Result{Requeue: true}, err
 	}
 
 	// Remove finalizer when DeletionTimestamp none zero
@@ -260,7 +264,7 @@ func (r *Reconciler) UpdateNamespaceScope(namespacedName types.NamespacedName, d
 	return nil
 }
 
-func (r *Reconciler) addFinalizer(cr *operatorv1alpha1.OperandRequest) error {
+func (r *Reconciler) addFinalizer(cr *operatorv1alpha1.OperandRequest) (bool, error) {
 	if cr.GetDeletionTimestamp() == nil {
 		added := cr.EnsureFinalizer()
 		if added {
@@ -268,11 +272,12 @@ func (r *Reconciler) addFinalizer(cr *operatorv1alpha1.OperandRequest) error {
 			err := r.Update(context.TODO(), cr)
 			if err != nil {
 				klog.Errorf("failed to update the OperandRequest %s in the namespace %s: %v", cr.Name, cr.Namespace, err)
-				return err
+				return false, err
 			}
 		}
+		return true, nil
 	}
-	return nil
+	return true, nil
 }
 
 func (r *Reconciler) checkFinalizer(requestInstance *operatorv1alpha1.OperandRequest) error {

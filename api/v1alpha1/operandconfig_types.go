@@ -108,16 +108,6 @@ func (r *OperandConfig) GetService(operandName string) *ConfigService {
 	return nil
 }
 
-// InitConfigStatus c OperandConfig status.
-func (r *OperandConfig) InitConfigStatus() bool {
-	isInitialized := true
-	if r.Status.Phase == "" {
-		isInitialized = false
-		r.Status.Phase = ServiceInit
-	}
-	return isInitialized
-}
-
 //InitConfigServiceStatus initializes service status in the OperandConfig instance.
 func (r *OperandConfig) InitConfigServiceStatus() {
 	r.Status.ServiceStatus = make(map[string]CrStatus)

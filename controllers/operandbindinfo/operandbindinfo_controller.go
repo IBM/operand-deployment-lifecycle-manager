@@ -72,12 +72,12 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// If the finalizer is added, EnsureFinalizer() will return true. If the finalizer is already there, EnsureFinalizer() will return false
 	if bindInfoInstance.EnsureFinalizer() {
-		// Update CR
 		err := r.Update(ctx, bindInfoInstance)
 		if err != nil {
 			klog.Errorf("failed to update the OperandBindinfo %s in the namespace %s: %v", bindInfoInstance.Name, bindInfoInstance.Namespace, err)
 			return ctrl.Result{}, err
 		}
+		return ctrl.Result{Requeue: true}, nil
 	}
 
 	// Remove finalizer when DeletionTimestamp none zero
@@ -93,6 +93,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		if err := r.Update(ctx, bindInfoInstance); err != nil {
 			return ctrl.Result{}, err
 		}
+		return ctrl.Result{Requeue: true}, nil
 	}
 
 	// Initialize OperandBindInfo status
@@ -101,6 +102,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		if err := r.Status().Update(ctx, bindInfoInstance); err != nil {
 			return ctrl.Result{}, err
 		}
+		return ctrl.Result{Requeue: true}, nil
 	}
 
 	// Fetch the OperandRegistry instance
