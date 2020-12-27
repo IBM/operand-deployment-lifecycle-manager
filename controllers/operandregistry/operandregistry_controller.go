@@ -114,7 +114,7 @@ func (r *Reconciler) updateRegistryOperatorsStatus(instance *operatorv1alpha1.Op
 // SetupWithManager adds OperandRegistry controller to the manager.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&operatorv1alpha1.OperandRegistry{}).
+		For(&operatorv1alpha1.OperandRegistry{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Watches(&source.Kind{Type: &operatorv1alpha1.OperandRequest{}}, &handler.EnqueueRequestsFromMapFunc{
 			ToRequests: handler.ToRequestsFunc(
 				func(a handler.MapObject) []reconcile.Request {

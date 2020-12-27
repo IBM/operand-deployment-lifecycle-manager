@@ -66,15 +66,14 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	klog.V(1).Infof("Reconciling OperandConfig: %s", req.NamespacedName)
 
-	// Set the init status for OperandConfig instance
-	if !instance.InitConfigStatus() {
-		klog.V(3).Infof("Initializing the status of OperandConfig: %s", req.NamespacedName)
-		if err := r.updateOperandConfigStatus(instance); err != nil {
-			return ctrl.Result{}, err
-		}
+	// Update status of OperandConfig by checking CRs
+	if err := r.updateConfigOperatorsStatus(instance); err != nil {
+		klog.Errorf("failed to update the status for OperandConfig %s : %v", req.NamespacedName.String(), err)
+		return ctrl.Result{}, err
 	}
 
-	if err := r.updateConfigOperatorsStatus(instance); err != nil {
+	// Put the updated status of OperandConfig to the kube-apiserver
+	if err := r.updateOperandConfigStatus(instance); err != nil {
 		klog.Errorf("failed to update the status for OperandConfig %s : %v", req.NamespacedName.String(), err)
 		return ctrl.Result{}, err
 	}
@@ -93,6 +92,12 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 func (r *Reconciler) updateConfigOperatorsStatus(instance *operatorv1alpha1.OperandConfig) error {
 	// Create an empty ServiceStatus map
 	klog.V(3).Info("Initializing OperandConfig status")
+
+	// Set the init status for OperandConfig instance
+	if instance.Status.Phase == "" {
+		instance.Status.Phase = operatorv1alpha1.ServiceInit
+	}
+
 	instance.Status.ServiceStatus = make(map[string]operatorv1alpha1.CrStatus)
 
 	registryInstance, err := fetch.FetchOperandRegistry(r.Client, types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace})
@@ -216,10 +221,6 @@ func (r *Reconciler) updateConfigOperatorsStatus(instance *operatorv1alpha1.Oper
 
 	instance.UpdateOperandPhase()
 
-	if err := r.updateOperandConfigStatus(instance); err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -262,7 +263,7 @@ func (r *Reconciler) getRequestToConfigMapper() handler.ToRequestsFunc {
 // SetupWithManager adds OperandConfig controller to the manager.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&operatorv1alpha1.OperandConfig{}).
+		For(&operatorv1alpha1.OperandConfig{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Watches(&source.Kind{Type: &operatorv1alpha1.OperandRequest{}}, &handler.EnqueueRequestsFromMapFunc{
 			ToRequests: r.getRequestToConfigMapper(),
 		}, builder.WithPredicates(predicate.Funcs{
