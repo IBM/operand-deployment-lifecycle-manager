@@ -64,6 +64,8 @@ type clusterObjects struct {
 	subscription  *olmv1alpha1.Subscription
 }
 
+var ctx = context.Background()
+
 // Reconcile reads that state of the cluster for a OperandRequest object and makes changes based on the state read
 // and what is in the OperandRequest.Spec
 // Note:
@@ -72,7 +74,7 @@ type clusterObjects struct {
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// Fetch the OperandRequest instance
 	requestInstance := &operatorv1alpha1.OperandRequest{}
-	if err := r.Get(context.TODO(), req.NamespacedName, requestInstance); err != nil {
+	if err := r.Get(ctx, req.NamespacedName, requestInstance); err != nil {
 		// Error reading the object - requeue the request.
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -90,7 +92,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	klog.V(1).Infof("Reconciling OperandRequest: %s", req.NamespacedName)
 	// Update labels for the request
 	if requestInstance.UpdateLabels() {
-		if err := r.Update(context.TODO(), requestInstance); err != nil {
+		if err := r.Update(ctx, requestInstance); err != nil {
 			klog.Errorf("failed to update the labels for OperandRequest %s: %v", req.NamespacedName.String(), err)
 			return ctrl.Result{}, err
 		}
@@ -105,6 +107,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{Requeue: true}, nil
 	}
 
+	// Add finalizer to the instance
 	if isAdded, err := r.addFinalizer(requestInstance); err != nil {
 		klog.Errorf("failed to add finalizer for OperandRequest %s: %v", req.NamespacedName.String(), err)
 		return ctrl.Result{}, err
@@ -129,9 +132,8 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 
 		// Update finalizer to allow delete CR
-		removed := requestInstance.RemoveFinalizer()
-		if removed {
-			err = r.Update(context.TODO(), requestInstance)
+		if requestInstance.RemoveFinalizer() {
+			err = r.Update(ctx, requestInstance)
 			if err != nil {
 				klog.Errorf("failed to remove finalizer for OperandRequest %s: %v", req.NamespacedName.String(), err)
 				return ctrl.Result{}, err
@@ -140,15 +142,14 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, nil
 	}
 
+	// Reconcile Operators
 	if err := r.reconcileOperator(req.NamespacedName); err != nil {
 		klog.Errorf("failed to reconcile Operators for OperandRequest %s: %v", req.NamespacedName.String(), err)
 		return ctrl.Result{}, err
 	}
 
-	// Reconcile the Operand
-	merr := r.reconcileOperand(req.NamespacedName)
-
-	if len(merr.Errors) != 0 {
+	// Reconcile Operands
+	if merr := r.reconcileOperand(req.NamespacedName); len(merr.Errors) != 0 {
 		klog.Errorf("failed to reconcile Operands for OperandRequest %s: %v", req.NamespacedName.String(), merr)
 		return ctrl.Result{}, merr
 	}
@@ -191,7 +192,7 @@ func (r *Reconciler) checkUpdateAuth(namespace, group, resource string) bool {
 		},
 	}
 
-	if err := r.Create(context.TODO(), sar); err != nil {
+	if err := r.Create(ctx, sar); err != nil {
 		klog.Errorf("Failed to check operator update permission: %v", err)
 		return false
 	}
@@ -219,7 +220,7 @@ func (r *Reconciler) UpdateNamespaceScope(namespacedName types.NamespacedName, d
 	}
 	nsScope := &nssv1.NamespaceScope{}
 	nsScopeKey := types.NamespacedName{Name: constant.NamespaceScopeCrName, Namespace: util.GetOperatorNamespace()}
-	if err := r.Get(context.TODO(), nsScopeKey, nsScope); err != nil {
+	if err := r.Get(ctx, nsScopeKey, nsScope); err != nil {
 		if errors.IsNotFound(err) {
 			klog.V(2).Infof("Not found NamespaceScope CR %s, ignore update it.", nsScopeKey.String())
 			return nil
@@ -255,7 +256,7 @@ func (r *Reconciler) UpdateNamespaceScope(namespacedName types.NamespacedName, d
 
 	if !util.StringSliceContentEqual(nsMems, nsScope.Spec.NamespaceMembers) {
 		nsScope.Spec.NamespaceMembers = nsMems
-		if err := r.Update(context.TODO(), nsScope); err != nil {
+		if err := r.Update(ctx, nsScope); err != nil {
 			klog.Errorf("failed to update NamespaceScope %s: %v", nsScopeKey.String(), err)
 			return err
 		}
@@ -269,13 +270,13 @@ func (r *Reconciler) addFinalizer(cr *operatorv1alpha1.OperandRequest) (bool, er
 		added := cr.EnsureFinalizer()
 		if added {
 			// Update CR
-			err := r.Update(context.TODO(), cr)
+			err := r.Update(ctx, cr)
 			if err != nil {
 				klog.Errorf("failed to update the OperandRequest %s in the namespace %s: %v", cr.Name, cr.Namespace, err)
 				return false, err
 			}
+			return false, nil
 		}
-		return true, nil
 	}
 	return true, nil
 }
@@ -288,7 +289,7 @@ func (r *Reconciler) checkFinalizer(requestInstance *operatorv1alpha1.OperandReq
 		client.MatchingLabels(map[string]string{constant.OpreqLabel: "true"}),
 	}
 
-	if err := r.List(context.TODO(), existingSub, opts...); err != nil {
+	if err := r.List(ctx, existingSub, opts...); err != nil {
 		return err
 	}
 	if len(existingSub.Items) == 0 {
@@ -309,7 +310,7 @@ func getRegistryToRequestMapper(mgr manager.Manager) handler.ToRequestsFunc {
 			client.MatchingLabels(map[string]string{object.Meta.GetNamespace() + "." + object.Meta.GetName() + "/registry": "true"}),
 		}
 
-		_ = mgrClient.List(context.TODO(), requestList, opts...)
+		_ = mgrClient.List(ctx, requestList, opts...)
 
 		requests := []ctrl.Request{}
 		for _, request := range requestList.Items {
@@ -329,7 +330,7 @@ func getConfigToRequestMapper(mgr manager.Manager) handler.ToRequestsFunc {
 			client.MatchingLabels(map[string]string{object.Meta.GetNamespace() + "." + object.Meta.GetName() + "/config": "true"}),
 		}
 
-		_ = mgrClient.List(context.TODO(), requestList, opts...)
+		_ = mgrClient.List(ctx, requestList, opts...)
 
 		requests := []ctrl.Request{}
 		for _, request := range requestList.Items {
@@ -387,7 +388,7 @@ func (r *Reconciler) updateOperandRequestStatus(newRequestInstance *operatorv1al
 			return true, nil
 		}
 		existingRequestInstance.Status = *newStatus
-		if err := r.Status().Update(context.TODO(), existingRequestInstance); err != nil {
+		if err := r.Status().Update(ctx, existingRequestInstance); err != nil {
 			return false, nil
 		}
 		return true, nil

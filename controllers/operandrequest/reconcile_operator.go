@@ -17,7 +17,6 @@
 package operandrequest
 
 import (
-	"context"
 	"fmt"
 
 	gset "github.com/deckarep/golang-set"
@@ -58,7 +57,9 @@ func (r *Reconciler) reconcileOperator(requestKey types.NamespacedName) error {
 		registryInstance, err := fetch.FetchOperandRegistry(r.Client, registryKey)
 		if err != nil {
 			if errors.IsNotFound(err) {
-				r.Recorder.Eventf(requestInstance, corev1.EventTypeWarning, "NotFound", "NotFound OperandRegistry in NamespacedName %s", registryKey.String())
+				r.Recorder.Eventf(requestInstance, corev1.EventTypeWarning, "NotFound", "NotFound OperandRegistry NamespacedName %s", registryKey.String())
+				klog.Errorf("failed to fnd OperandRegistry %s : %v", registryKey.String(), err)
+				requestInstance.SetNotFoundOperatorFromRegistryCondition(registryKey.String(), operatorv1alpha1.ResourceTypeOperandRegistry, corev1.ConditionTrue)
 			}
 			return err
 		}
@@ -133,7 +134,7 @@ func (r *Reconciler) createSubscription(cr *operatorv1alpha1.OperandRequest, opt
 	// Compare namespace and create namespace
 	oprNs := util.GetOperatorNamespace()
 	if ns.Name != oprNs || ns.Name != constant.ClusterOperatorNamespace {
-		if err := r.Create(context.TODO(), ns); err != nil && !errors.IsAlreadyExists(err) {
+		if err := r.Create(ctx, ns); err != nil && !errors.IsAlreadyExists(err) {
 			klog.Warningf("fail to create the namespace %s, please make sure it exists: %s", ns.Name, err)
 		}
 	}
@@ -141,13 +142,13 @@ func (r *Reconciler) createSubscription(cr *operatorv1alpha1.OperandRequest, opt
 	if namespace != constant.ClusterOperatorNamespace {
 		// Create required operatorgroup
 		existOG := &olmv1.OperatorGroupList{}
-		if err := r.List(context.TODO(), existOG, &client.ListOptions{Namespace: co.operatorGroup.Namespace}); err != nil {
+		if err := r.List(ctx, existOG, &client.ListOptions{Namespace: co.operatorGroup.Namespace}); err != nil {
 			return err
 		}
 		if len(existOG.Items) == 0 {
 			og := co.operatorGroup
 			klog.V(3).Info("Creating the OperatorGroup for Subscription: " + opt.Name)
-			if err := r.Create(context.TODO(), og); err != nil && !errors.IsAlreadyExists(err) {
+			if err := r.Create(ctx, og); err != nil && !errors.IsAlreadyExists(err) {
 				return err
 			}
 		}
@@ -158,7 +159,7 @@ func (r *Reconciler) createSubscription(cr *operatorv1alpha1.OperandRequest, opt
 	sub := co.subscription
 	cr.SetCreatingCondition(sub.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionTrue)
 
-	if err := r.Create(context.TODO(), sub); err != nil && !errors.IsAlreadyExists(err) {
+	if err := r.Create(ctx, sub); err != nil && !errors.IsAlreadyExists(err) {
 		cr.SetCreatingCondition(sub.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionFalse)
 		return err
 	}
@@ -170,7 +171,7 @@ func (r *Reconciler) updateSubscription(cr *operatorv1alpha1.OperandRequest, sub
 	klog.V(2).Info("Updating Subscription...", " Subscription Namespace: ", sub.Namespace, " Subscription Name: ", sub.Name)
 	cr.SetUpdatingCondition(sub.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionTrue)
 
-	if err := r.Update(context.TODO(), sub); err != nil {
+	if err := r.Update(ctx, sub); err != nil {
 		cr.SetUpdatingCondition(sub.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionFalse)
 		return err
 	}
@@ -220,7 +221,7 @@ func (r *Reconciler) deleteSubscription(operandName string, requestInstance *ope
 		requestInstance.SetDeletingCondition(csv.Name, operatorv1alpha1.ResourceTypeCsv, corev1.ConditionTrue)
 
 		klog.V(2).Infof("Deleting the ClusterServiceVersion, Namespace: %s, Name: %s", csv.Namespace, csv.Name)
-		if err := r.Delete(context.TODO(), csv); err != nil {
+		if err := r.Delete(ctx, csv); err != nil {
 			klog.Errorf("failed to delete the ClusterServiceVersion: %v", err)
 			requestInstance.SetDeletingCondition(csv.Name, operatorv1alpha1.ResourceTypeCsv, corev1.ConditionFalse)
 			return err
@@ -230,7 +231,7 @@ func (r *Reconciler) deleteSubscription(operandName string, requestInstance *ope
 	klog.V(2).Infof("Deleting the Subscription, Namespace: %s, Name: %s", namespace, op.Name)
 	requestInstance.SetDeletingCondition(op.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionTrue)
 
-	if err := r.Delete(context.TODO(), sub); err != nil {
+	if err := r.Delete(ctx, sub); err != nil {
 		if errors.IsNotFound(err) {
 			klog.Warningf("Subscription %s was not found in namespace %s", op.Name, namespace)
 		} else {
@@ -295,10 +296,10 @@ func (r *Reconciler) getCurrentOperands(requestInstance *operatorv1alpha1.Operan
 			return nil, err
 		}
 		for _, item := range requestList.Items {
+			if !item.DeletionTimestamp.IsZero() {
+				continue
+			}
 			for _, existingReq := range item.Spec.Requests {
-				if !item.DeletionTimestamp.IsZero() {
-					existingReq.Operands = nil
-				}
 				existRegistryKey := item.GetRegistryKey(existingReq)
 				if registryKey.String() != existRegistryKey.String() {
 					continue
@@ -391,7 +392,7 @@ func generateOperatorGroup(namespace string, targetNamespaces []string) *olmv1.O
 func (r *Reconciler) checkUninstallLabel(name, namespace string) bool {
 	sub := &olmv1alpha1.Subscription{}
 	subKey := types.NamespacedName{Name: name, Namespace: namespace}
-	if err := r.Get(context.TODO(), subKey, sub); err != nil {
+	if err := r.Get(ctx, subKey, sub); err != nil {
 		klog.Warning("failed to get subscription: ", err)
 		return true
 	}

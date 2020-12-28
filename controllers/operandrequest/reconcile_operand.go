@@ -17,7 +17,6 @@
 package operandrequest
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -184,7 +183,7 @@ func (r *Reconciler) reconcileCRwithConfig(service *operatorv1alpha1.ConfigServi
 
 		name := unstruct.Object["metadata"].(map[string]interface{})["name"].(string)
 
-		getError := r.Get(context.TODO(), types.NamespacedName{
+		getError := r.Get(ctx, types.NamespacedName{
 			Name:      name,
 			Namespace: namespace,
 		}, &unstruct)
@@ -257,7 +256,7 @@ func (r *Reconciler) reconcileCRwithRequest(requestInstance *operatorv1alpha1.Op
 		unstruct.Object["metadata"].(map[string]interface{})["name"] = name
 		unstruct.Object["metadata"].(map[string]interface{})["namespace"] = requestKey.Namespace
 
-		err := r.Get(context.TODO(), types.NamespacedName{
+		err := r.Get(ctx, types.NamespacedName{
 			Name:      name,
 			Namespace: requestKey.Namespace,
 		}, &unstruct)
@@ -324,7 +323,6 @@ func (r *Reconciler) deleteAllCustomResource(csv *olmv1alpha1.ClusterServiceVers
 		operatorName := strings.Split(index, "/")[0]
 		requestInstance.RemoveMemberCRStatus(operatorName, opdMember.Name, opdMember.Kind)
 	}
-
 	if len(merr.Errors) != 0 {
 		return merr
 	}
@@ -361,7 +359,7 @@ func (r *Reconciler) deleteAllCustomResource(csv *olmv1alpha1.ClusterServiceVers
 
 			// Compare the name of OperandConfig and CRD name
 			if strings.EqualFold(kind, crdName) {
-				getError := r.Get(context.TODO(), types.NamespacedName{
+				getError := r.Get(ctx, types.NamespacedName{
 					Name:      name,
 					Namespace: namespace,
 				}, &unstruct)
@@ -424,7 +422,7 @@ func (r *Reconciler) createCustomResource(unstruct unstructured.Unstructured, na
 	ensureLabel(unstruct, map[string]string{constant.OpreqLabel: "true"})
 
 	// Creat the CR
-	crCreateErr := r.Create(context.TODO(), &unstruct)
+	crCreateErr := r.Create(ctx, &unstruct)
 	if crCreateErr != nil && !errors.IsAlreadyExists(crCreateErr) {
 		klog.Errorf("failed to create the Custom Resource %s: %s ", crName, crCreateErr)
 		return crCreateErr
@@ -477,7 +475,7 @@ func (r *Reconciler) updateCustomResource(unstruct unstructured.Unstructured, na
 			},
 		}
 
-		crGetErr := r.Get(context.TODO(), types.NamespacedName{
+		crGetErr := r.Get(ctx, types.NamespacedName{
 			Name:      name,
 			Namespace: namespace,
 		}, &existingCR)
@@ -503,7 +501,7 @@ func (r *Reconciler) updateCustomResource(unstruct unstructured.Unstructured, na
 			klog.V(2).Infof("updating custom resource with apiversion: %s, kind: %s, %s/%s", apiversion, kind, namespace, name)
 
 			existingCR.Object["spec"] = mergedCR
-			crUpdateErr := r.Update(context.TODO(), &existingCR)
+			crUpdateErr := r.Update(ctx, &existingCR)
 
 			if crUpdateErr != nil {
 				klog.Errorf("failed to update the Custom Resource %s: %s", crName, crUpdateErr)
@@ -517,7 +515,7 @@ func (r *Reconciler) updateCustomResource(unstruct unstructured.Unstructured, na
 				},
 			}
 
-			err := r.Get(context.TODO(), types.NamespacedName{
+			err := r.Get(ctx, types.NamespacedName{
 				Name:      name,
 				Namespace: namespace,
 			}, &UpdatedCR)
@@ -555,7 +553,7 @@ func (r *Reconciler) deleteCustomResource(unstruct unstructured.Unstructured, na
 			"kind":       kind,
 		},
 	}
-	getError := r.Get(context.TODO(), types.NamespacedName{
+	getError := r.Get(ctx, types.NamespacedName{
 		Name:      name,
 		Namespace: namespace,
 	}, &crShouldBeDeleted)
@@ -568,7 +566,7 @@ func (r *Reconciler) deleteCustomResource(unstruct unstructured.Unstructured, na
 	} else {
 		if checkLabel(crShouldBeDeleted, map[string]string{constant.OpreqLabel: "true"}) && !checkLabel(crShouldBeDeleted, map[string]string{constant.NotUninstallLabel: "true"}) {
 			klog.V(3).Infof("Deleting custom resource: %s from custom resource definition: %s", name, kind)
-			deleteErr := r.Delete(context.TODO(), &crShouldBeDeleted)
+			deleteErr := r.Delete(ctx, &crShouldBeDeleted)
 			if deleteErr != nil {
 				klog.Error("failed to delete the custom resource should be deleted: ", deleteErr)
 				return deleteErr
@@ -578,7 +576,7 @@ func (r *Reconciler) deleteCustomResource(unstruct unstructured.Unstructured, na
 					return true, nil
 				}
 				klog.V(3).Infof("Waiting for CR %s is removed ...", kind)
-				err := r.Get(context.TODO(), types.NamespacedName{
+				err := r.Get(ctx, types.NamespacedName{
 					Name:      name,
 					Namespace: namespace,
 				},
