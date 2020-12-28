@@ -168,16 +168,6 @@ type OperandRegistryList struct {
 	Items           []OperandRegistry `json:"items"`
 }
 
-// InitRegistryStatus initializes Phase in the OperandRegistry status.
-func (r *OperandRegistry) InitRegistryStatus() bool {
-	isInitialized := true
-	if r.Status.Phase == "" {
-		isInitialized = false
-		r.Status.Phase = RegistryInit
-	}
-	return isInitialized
-}
-
 // GetReconcileRequest gets the position of request from OperandRegistry status.
 func (r *OperandRegistry) GetReconcileRequest(name string, reconcileRequest reconcile.Request) int {
 	s := r.Status.OperatorsStatus[name]

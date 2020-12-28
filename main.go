@@ -35,9 +35,12 @@ import (
 	cache "github.com/IBM/controller-filtered-cache/filteredcache"
 	nssv1 "github.com/IBM/ibm-namespace-scope-operator/api/v1"
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
-	"github.com/IBM/operand-deployment-lifecycle-manager/controllers"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/k8sutil"
+	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/operandbindinfo"
+	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/operandconfig"
+	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/operandregistry"
+	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/operandrequest"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/util"
 	// +kubebuilder:scaffold:imports
 )
@@ -98,7 +101,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.OperandRequestReconciler{
+	if err = (&operandrequest.Reconciler{
 		Client:   mgr.GetClient(),
 		Config:   mgr.GetConfig(),
 		Recorder: mgr.GetEventRecorderFor("OperandRequest"),
@@ -107,7 +110,7 @@ func main() {
 		klog.Errorf("unable to create controller OperandRequest: %v", err)
 		os.Exit(1)
 	}
-	if err = (&controllers.OperandConfigReconciler{
+	if err = (&operandconfig.Reconciler{
 		Client:   mgr.GetClient(),
 		Recorder: mgr.GetEventRecorderFor("OperandConfig"),
 		Scheme:   mgr.GetScheme(),
@@ -115,7 +118,7 @@ func main() {
 		klog.Errorf("unable to create controller OperandConfig: %v", err)
 		os.Exit(1)
 	}
-	if err = (&controllers.OperandBindInfoReconciler{
+	if err = (&operandbindinfo.Reconciler{
 		Client:   mgr.GetClient(),
 		Recorder: mgr.GetEventRecorderFor("OperandBindInfo"),
 		Scheme:   mgr.GetScheme(),
@@ -123,7 +126,7 @@ func main() {
 		klog.Errorf("unable to create controller OperandBindInfo: %v", err)
 		os.Exit(1)
 	}
-	if err = (&controllers.OperandRegistryReconciler{
+	if err = (&operandregistry.Reconciler{
 		Client:   mgr.GetClient(),
 		Recorder: mgr.GetEventRecorderFor("OperandRegistry"),
 		Scheme:   mgr.GetScheme(),

@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-package controllers
+package operandbindinfo
 
 import (
 	"context"
@@ -46,8 +46,8 @@ import (
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/util"
 )
 
-// OperandBindInfoReconciler reconciles a OperandBindInfo object
-type OperandBindInfoReconciler struct {
+// Reconciler reconciles a OperandBindInfo object
+type Reconciler struct {
 	client.Client
 	Recorder record.EventRecorder
 	Scheme   *runtime.Scheme
@@ -58,7 +58,7 @@ type OperandBindInfoReconciler struct {
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *OperandBindInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 
 	// Fetch the OperandBindInfo instance
@@ -72,12 +72,12 @@ func (r *OperandBindInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 
 	// If the finalizer is added, EnsureFinalizer() will return true. If the finalizer is already there, EnsureFinalizer() will return false
 	if bindInfoInstance.EnsureFinalizer() {
-		// Update CR
 		err := r.Update(ctx, bindInfoInstance)
 		if err != nil {
 			klog.Errorf("failed to update the OperandBindinfo %s in the namespace %s: %v", bindInfoInstance.Name, bindInfoInstance.Namespace, err)
 			return ctrl.Result{}, err
 		}
+		return ctrl.Result{Requeue: true}, nil
 	}
 
 	// Remove finalizer when DeletionTimestamp none zero
@@ -93,6 +93,7 @@ func (r *OperandBindInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		if err := r.Update(ctx, bindInfoInstance); err != nil {
 			return ctrl.Result{}, err
 		}
+		return ctrl.Result{Requeue: true}, nil
 	}
 
 	// Initialize OperandBindInfo status
@@ -101,6 +102,7 @@ func (r *OperandBindInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		if err := r.Status().Update(ctx, bindInfoInstance); err != nil {
 			return ctrl.Result{}, err
 		}
+		return ctrl.Result{Requeue: true}, nil
 	}
 
 	// Fetch the OperandRegistry instance
@@ -195,7 +197,7 @@ func (r *OperandBindInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 }
 
 // Copy secret `sourceName` from source namespace `sourceNs` to target namespace `targetNs`
-func (r *OperandBindInfoReconciler) copySecret(sourceName, targetName, sourceNs, targetNs string,
+func (r *Reconciler) copySecret(sourceName, targetName, sourceNs, targetNs string,
 	bindInfoInstance *operatorv1alpha1.OperandBindInfo, requestInstance *operatorv1alpha1.OperandRequest) (bool, error) {
 	if sourceName == "" || sourceNs == "" || targetNs == "" {
 		return false, nil
@@ -274,7 +276,7 @@ func (r *OperandBindInfoReconciler) copySecret(sourceName, targetName, sourceNs,
 
 // Copy configmap `sourceName` from namespace `sourceNs` to namespace `targetNs`
 // and rename it to `targetName`
-func (r *OperandBindInfoReconciler) copyConfigmap(sourceName, targetName, sourceNs, targetNs string,
+func (r *Reconciler) copyConfigmap(sourceName, targetName, sourceNs, targetNs string,
 	bindInfoInstance *operatorv1alpha1.OperandBindInfo, requestInstance *operatorv1alpha1.OperandRequest) (bool, error) {
 	if sourceName == "" || sourceNs == "" || targetNs == "" {
 		return false, nil
@@ -352,7 +354,7 @@ func (r *OperandBindInfoReconciler) copyConfigmap(sourceName, targetName, source
 }
 
 // Get the OperandBindInfo instance with the name and namespace
-func (r *OperandBindInfoReconciler) getBindInfoInstance(name, namespace string) (*operatorv1alpha1.OperandBindInfo, error) {
+func (r *Reconciler) getBindInfoInstance(name, namespace string) (*operatorv1alpha1.OperandBindInfo, error) {
 	klog.V(3).Infof("Get the OperandBindInfo %s from the namespace %s", name, namespace)
 	// Fetch the OperandBindInfo instance
 	bindInfo := &operatorv1alpha1.OperandBindInfo{}
@@ -363,7 +365,7 @@ func (r *OperandBindInfoReconciler) getBindInfoInstance(name, namespace string) 
 	return bindInfo, nil
 }
 
-func (r *OperandBindInfoReconciler) cleanupCopies(bindInfoInstance *operatorv1alpha1.OperandBindInfo) error {
+func (r *Reconciler) cleanupCopies(bindInfoInstance *operatorv1alpha1.OperandBindInfo) error {
 	secretList := &corev1.SecretList{}
 	cmList := &corev1.ConfigMapList{}
 
@@ -425,7 +427,7 @@ func getBindingInfofromRequest(bindInfoInstance *operatorv1alpha1.OperandBindInf
 	return secretReq, cmReq
 }
 
-func (r *OperandBindInfoReconciler) getRegistryToRequestMapper(mgr manager.Manager) handler.ToRequestsFunc {
+func (r *Reconciler) getRegistryToRequestMapper(mgr manager.Manager) handler.ToRequestsFunc {
 	return func(object handler.MapObject) []reconcile.Request {
 		mgrClient := mgr.GetClient()
 		bindInfoList := &operatorv1alpha1.OperandBindInfoList{}
@@ -445,7 +447,7 @@ func (r *OperandBindInfoReconciler) getRegistryToRequestMapper(mgr manager.Manag
 	}
 }
 
-func (r *OperandBindInfoReconciler) updateBindInfoPhase(cr *operatorv1alpha1.OperandBindInfo, phase operatorv1alpha1.BindInfoPhase, requestNamespaces []operatorv1alpha1.ReconcileRequest) error {
+func (r *Reconciler) updateBindInfoPhase(cr *operatorv1alpha1.OperandBindInfo, phase operatorv1alpha1.BindInfoPhase, requestNamespaces []operatorv1alpha1.ReconcileRequest) error {
 	if err := wait.PollImmediate(time.Second*20, time.Minute*10, func() (done bool, err error) {
 		bindInfoInstance, err := r.getBindInfoInstance(cr.Name, cr.Namespace)
 		if err != nil {
@@ -503,7 +505,7 @@ func toOpbiRequest() handler.ToRequestsFunc {
 }
 
 // SetupWithManager adds OperandBindInfo controller to the manager.
-func (r *OperandBindInfoReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	cmSecretPredicates := predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
 			labels := e.Meta.GetLabels()

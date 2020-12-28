@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-package controllers
+package operandregistry
 
 import (
 	"context"
@@ -39,8 +39,8 @@ import (
 	fetch "github.com/IBM/operand-deployment-lifecycle-manager/controllers/common"
 )
 
-// OperandRegistryReconciler reconciles a OperandRegistry object
-type OperandRegistryReconciler struct {
+// Reconciler reconciles a OperandRegistry object
+type Reconciler struct {
 	client.Client
 	Recorder record.EventRecorder
 	Scheme   *runtime.Scheme
@@ -51,7 +51,7 @@ type OperandRegistryReconciler struct {
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *OperandRegistryReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// Fetch the OperandRegistry instance
 	instance := &operatorv1alpha1.OperandRegistry{}
@@ -84,7 +84,7 @@ func (r *OperandRegistryReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 	return ctrl.Result{}, nil
 }
 
-func (r *OperandRegistryReconciler) updateRegistryOperatorsStatus(instance *operatorv1alpha1.OperandRegistry) error {
+func (r *Reconciler) updateRegistryOperatorsStatus(instance *operatorv1alpha1.OperandRegistry) error {
 	// List the OperandRequests refer the OperatorRegistry by label of the OperandRequests
 	requestList, err := fetch.FetchAllOperandRequests(r.Client, map[string]string{instance.Namespace + "." + instance.Name + "/registry": "true"})
 	if err != nil {
@@ -112,9 +112,9 @@ func (r *OperandRegistryReconciler) updateRegistryOperatorsStatus(instance *oper
 }
 
 // SetupWithManager adds OperandRegistry controller to the manager.
-func (r *OperandRegistryReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&operatorv1alpha1.OperandRegistry{}).
+		For(&operatorv1alpha1.OperandRegistry{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Watches(&source.Kind{Type: &operatorv1alpha1.OperandRequest{}}, &handler.EnqueueRequestsFromMapFunc{
 			ToRequests: handler.ToRequestsFunc(
 				func(a handler.MapObject) []reconcile.Request {
@@ -134,7 +134,7 @@ func (r *OperandRegistryReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		})).Complete(r)
 }
 
-func (r *OperandRegistryReconciler) updateOperandRegistryStatus(newRegistryInstance *operatorv1alpha1.OperandRegistry) error {
+func (r *Reconciler) updateOperandRegistryStatus(newRegistryInstance *operatorv1alpha1.OperandRegistry) error {
 	err := wait.PollImmediate(time.Millisecond*250, time.Second*5, func() (bool, error) {
 		existingRegistryInstance, err := fetch.FetchOperandRegistry(r.Client, types.NamespacedName{Name: newRegistryInstance.Name, Namespace: newRegistryInstance.Namespace})
 		if err != nil {

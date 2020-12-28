@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-package controllers
+package operandrequest
 
 import (
 	"context"
@@ -33,11 +33,11 @@ import (
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
 	fetch "github.com/IBM/operand-deployment-lifecycle-manager/controllers/common"
-	constant "github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
-	util "github.com/IBM/operand-deployment-lifecycle-manager/controllers/util"
+	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
+	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/util"
 )
 
-func (r *OperandRequestReconciler) reconcileOperator(requestKey types.NamespacedName) error {
+func (r *Reconciler) reconcileOperator(requestKey types.NamespacedName) error {
 	klog.V(1).Infof("Reconciling Operators for OperandRequest: %s", requestKey)
 	requestInstance, err := fetch.FetchOperandRequest(r.Client, requestKey)
 	if err != nil {
@@ -120,7 +120,7 @@ func (r *OperandRequestReconciler) reconcileOperator(requestKey types.Namespaced
 	return nil
 }
 
-func (r *OperandRequestReconciler) createSubscription(cr *operatorv1alpha1.OperandRequest, opt *operatorv1alpha1.Operator) error {
+func (r *Reconciler) createSubscription(cr *operatorv1alpha1.OperandRequest, opt *operatorv1alpha1.Operator) error {
 	namespace := fetch.GetOperatorNamespace(opt.InstallMode, opt.Namespace)
 	klog.V(3).Info("Subscription Namespace: ", namespace)
 
@@ -165,7 +165,7 @@ func (r *OperandRequestReconciler) createSubscription(cr *operatorv1alpha1.Opera
 	return nil
 }
 
-func (r *OperandRequestReconciler) updateSubscription(cr *operatorv1alpha1.OperandRequest, sub *olmv1alpha1.Subscription) error {
+func (r *Reconciler) updateSubscription(cr *operatorv1alpha1.OperandRequest, sub *olmv1alpha1.Subscription) error {
 
 	klog.V(2).Info("Updating Subscription...", " Subscription Namespace: ", sub.Namespace, " Subscription Name: ", sub.Name)
 	cr.SetUpdatingCondition(sub.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionTrue)
@@ -177,7 +177,7 @@ func (r *OperandRequestReconciler) updateSubscription(cr *operatorv1alpha1.Opera
 	return nil
 }
 
-func (r *OperandRequestReconciler) deleteSubscription(operandName string, requestInstance *operatorv1alpha1.OperandRequest, registryInstance *operatorv1alpha1.OperandRegistry, configInstance *operatorv1alpha1.OperandConfig) error {
+func (r *Reconciler) deleteSubscription(operandName string, requestInstance *operatorv1alpha1.OperandRequest, registryInstance *operatorv1alpha1.OperandRegistry, configInstance *operatorv1alpha1.OperandConfig) error {
 	op := registryInstance.GetOperator(operandName)
 	if op == nil {
 		klog.V(2).Infof("Operand %s not found", operandName)
@@ -242,7 +242,7 @@ func (r *OperandRequestReconciler) deleteSubscription(operandName string, reques
 	return nil
 }
 
-func (r *OperandRequestReconciler) absentOperatorsAndOperands(requestInstance *operatorv1alpha1.OperandRequest) error {
+func (r *Reconciler) absentOperatorsAndOperands(requestInstance *operatorv1alpha1.OperandRequest) error {
 	needDeletedOperands, err := r.getNeedDeletedOperands(requestInstance)
 	if err != nil {
 		return err
@@ -270,7 +270,7 @@ func (r *OperandRequestReconciler) absentOperatorsAndOperands(requestInstance *o
 	return nil
 }
 
-func (r *OperandRequestReconciler) getNeedDeletedOperands(requestInstance *operatorv1alpha1.OperandRequest) (gset.Set, error) {
+func (r *Reconciler) getNeedDeletedOperands(requestInstance *operatorv1alpha1.OperandRequest) (gset.Set, error) {
 	klog.V(3).Info("Getting the operater need to be delete")
 	deployedOperands := gset.NewSet()
 	for _, req := range requestInstance.Status.Members {
@@ -285,7 +285,7 @@ func (r *OperandRequestReconciler) getNeedDeletedOperands(requestInstance *opera
 	return needDeleteOperands, nil
 }
 
-func (r *OperandRequestReconciler) getCurrentOperands(requestInstance *operatorv1alpha1.OperandRequest) (gset.Set, error) {
+func (r *Reconciler) getCurrentOperands(requestInstance *operatorv1alpha1.OperandRequest) (gset.Set, error) {
 	klog.V(3).Info("Getting the operaters have been deployed")
 	deployedOperands := gset.NewSet()
 	for _, req := range requestInstance.Spec.Requests {
@@ -388,7 +388,7 @@ func generateOperatorGroup(namespace string, targetNamespaces []string) *olmv1.O
 	return og
 }
 
-func (r *OperandRequestReconciler) checkUninstallLabel(name, namespace string) bool {
+func (r *Reconciler) checkUninstallLabel(name, namespace string) bool {
 	sub := &olmv1alpha1.Subscription{}
 	subKey := types.NamespacedName{Name: name, Namespace: namespace}
 	if err := r.Get(context.TODO(), subKey, sub); err != nil {

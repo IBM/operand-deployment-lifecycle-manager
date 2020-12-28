@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-package controllers
+package operandregistry
 
 import (
 	"context"
@@ -25,7 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
-	testdata "github.com/IBM/operand-deployment-lifecycle-manager/controllers/testutil"
+	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/testutil"
 )
 
 // +kubebuilder:docs-gen:collapse=Imports
@@ -35,7 +35,6 @@ var _ = Describe("OperandRegistry controller", func() {
 		name              = "common-service"
 		namespace         = "ibm-common-services"
 		requestName       = "ibm-cloudpak-name"
-		requestNamespace  = "ibm-cloudpak"
 		operatorNamespace = "ibm-operators"
 	)
 
@@ -54,24 +53,24 @@ var _ = Describe("OperandRegistry controller", func() {
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		namespaceName = createNSName(namespace)
-		operatorNamespaceName = createNSName(operatorNamespace)
-		requestNamespaceName = createNSName(namespace)
-		registry = testdata.OperandRegistryObj(name, namespaceName, operatorNamespaceName)
-		config = testdata.OperandConfigObj(name, namespaceName)
-		request = testdata.OperandRequestObj(name, namespaceName, requestName, requestNamespaceName)
-		catalogSource = testdata.CatalogSource("community-operators", "openshift-marketplace")
+		namespaceName = testutil.CreateNSName(namespace)
+		operatorNamespaceName = testutil.CreateNSName(operatorNamespace)
+		requestNamespaceName = testutil.CreateNSName(namespace)
+		registry = testutil.OperandRegistryObj(name, namespaceName, operatorNamespaceName)
+		config = testutil.OperandConfigObj(name, namespaceName)
+		request = testutil.OperandRequestObj(name, namespaceName, requestName, requestNamespaceName)
+		catalogSource = testutil.CatalogSource("community-operators", "openshift-marketplace")
 		registryKey = types.NamespacedName{Name: name, Namespace: namespaceName}
 
 		By("Creating the Namespace")
-		Expect(k8sClient.Create(ctx, testdata.NamespaceObj(namespaceName))).Should(Succeed())
-		Expect(k8sClient.Create(ctx, testdata.NamespaceObj(operatorNamespaceName))).Should(Succeed())
-		Expect(k8sClient.Create(ctx, testdata.NamespaceObj(requestNamespaceName))).Should(Succeed())
-		Expect(k8sClient.Create(ctx, testdata.NamespaceObj("openshift-marketplace")))
+		Expect(k8sClient.Create(ctx, testutil.NamespaceObj(namespaceName))).Should(Succeed())
+		Expect(k8sClient.Create(ctx, testutil.NamespaceObj(operatorNamespaceName))).Should(Succeed())
+		Expect(k8sClient.Create(ctx, testutil.NamespaceObj(requestNamespaceName))).Should(Succeed())
+		Expect(k8sClient.Create(ctx, testutil.NamespaceObj("openshift-marketplace")))
 
 		By("Creating the CatalogSource")
 		Expect(k8sClient.Create(ctx, catalogSource)).Should(Succeed())
-		catalogSource.Status = testdata.CatalogSourceStatus()
+		catalogSource.Status = testutil.CatalogSourceStatus()
 		Expect(k8sClient.Status().Update(ctx, catalogSource)).Should(Succeed())
 		By("Creating the OperandRegistry")
 		Expect(k8sClient.Create(ctx, registry)).Should(Succeed())
@@ -106,51 +105,51 @@ var _ = Describe("OperandRegistry controller", func() {
 			Expect(k8sClient.Create(ctx, request)).Should(Succeed())
 
 			By("Setting status of the Subscriptions")
-			etcdSub := testdata.Subscription("etcd", operatorNamespaceName)
+			etcdSub := testutil.Subscription("etcd", operatorNamespaceName)
 			Eventually(func() error {
 				k8sClient.Get(ctx, types.NamespacedName{Name: "etcd", Namespace: operatorNamespaceName}, etcdSub)
-				etcdSub.Status = testdata.SubscriptionStatus("etcd", operatorNamespaceName, "0.0.1")
+				etcdSub.Status = testutil.SubscriptionStatus("etcd", operatorNamespaceName, "0.0.1")
 				return k8sClient.Status().Update(ctx, etcdSub)
 			}, timeout, interval).Should(Succeed())
 
-			jenkinsSub := testdata.Subscription("jenkins", operatorNamespaceName)
+			jenkinsSub := testutil.Subscription("jenkins", operatorNamespaceName)
 			Eventually(func() error {
 				k8sClient.Get(ctx, types.NamespacedName{Name: "jenkins", Namespace: operatorNamespaceName}, jenkinsSub)
-				jenkinsSub.Status = testdata.SubscriptionStatus("jenkins", operatorNamespaceName, "0.0.1")
+				jenkinsSub.Status = testutil.SubscriptionStatus("jenkins", operatorNamespaceName, "0.0.1")
 				return k8sClient.Status().Update(ctx, jenkinsSub)
 			}, timeout, interval).Should(Succeed())
 
 			By("Creating and Setting status of the ClusterServiceVersions")
-			etcdCSV := testdata.ClusterServiceVersion("etcd-csv.v0.0.1", operatorNamespaceName, testdata.EtcdExample)
+			etcdCSV := testutil.ClusterServiceVersion("etcd-csv.v0.0.1", operatorNamespaceName, testutil.EtcdExample)
 			Expect(k8sClient.Create(ctx, etcdCSV)).Should(Succeed())
 			Eventually(func() error {
 				k8sClient.Get(ctx, types.NamespacedName{Name: "etcd-csv.v0.0.1", Namespace: operatorNamespaceName}, etcdCSV)
-				etcdCSV.Status = testdata.ClusterServiceVersionStatus()
+				etcdCSV.Status = testutil.ClusterServiceVersionStatus()
 				return k8sClient.Status().Update(ctx, etcdCSV)
 			}, timeout, interval).Should(Succeed())
 
-			jenkinsCSV := testdata.ClusterServiceVersion("jenkins-csv.v0.0.1", operatorNamespaceName, testdata.JenkinsExample)
+			jenkinsCSV := testutil.ClusterServiceVersion("jenkins-csv.v0.0.1", operatorNamespaceName, testutil.JenkinsExample)
 			Expect(k8sClient.Create(ctx, jenkinsCSV)).Should(Succeed())
 			Eventually(func() error {
 				k8sClient.Get(ctx, types.NamespacedName{Name: "jenkins-csv.v0.0.1", Namespace: operatorNamespaceName}, jenkinsCSV)
-				jenkinsCSV.Status = testdata.ClusterServiceVersionStatus()
+				jenkinsCSV.Status = testutil.ClusterServiceVersionStatus()
 				return k8sClient.Status().Update(ctx, jenkinsCSV)
 			}, timeout, interval).Should(Succeed())
 
 			By("Creating and Setting status of the InstallPlan")
-			etcdIP := testdata.InstallPlan("etcd-install-plan", operatorNamespaceName)
+			etcdIP := testutil.InstallPlan("etcd-install-plan", operatorNamespaceName)
 			Expect(k8sClient.Create(ctx, etcdIP)).Should(Succeed())
 			Eventually(func() error {
 				k8sClient.Get(ctx, types.NamespacedName{Name: "etcd-install-plan", Namespace: operatorNamespaceName}, etcdIP)
-				etcdIP.Status = testdata.InstallPlanStatus()
+				etcdIP.Status = testutil.InstallPlanStatus()
 				return k8sClient.Status().Update(ctx, etcdIP)
 			}, timeout, interval).Should(Succeed())
 
-			jenkinsIP := testdata.InstallPlan("jenkins-install-plan", operatorNamespaceName)
+			jenkinsIP := testutil.InstallPlan("jenkins-install-plan", operatorNamespaceName)
 			Expect(k8sClient.Create(ctx, jenkinsIP)).Should(Succeed())
 			Eventually(func() error {
 				k8sClient.Get(ctx, types.NamespacedName{Name: "jenkins-install-plan", Namespace: operatorNamespaceName}, jenkinsIP)
-				jenkinsIP.Status = testdata.InstallPlanStatus()
+				jenkinsIP.Status = testutil.InstallPlanStatus()
 				return k8sClient.Status().Update(ctx, jenkinsIP)
 			}, timeout, interval).Should(Succeed())
 

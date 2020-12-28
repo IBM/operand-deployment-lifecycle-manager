@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-package controllers
+package operandconfig
 
 import (
 	"context"
@@ -45,8 +45,8 @@ import (
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/util"
 )
 
-// OperandConfigReconciler reconciles a OperandConfig object
-type OperandConfigReconciler struct {
+// Reconciler reconciles a OperandConfig object
+type Reconciler struct {
 	client.Client
 	Recorder record.EventRecorder
 	Scheme   *runtime.Scheme
@@ -57,7 +57,7 @@ type OperandConfigReconciler struct {
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *OperandConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// Fetch the OperandConfig instance
 	instance := &operatorv1alpha1.OperandConfig{}
 	if err := r.Get(context.TODO(), req.NamespacedName, instance); err != nil {
@@ -66,15 +66,14 @@ func (r *OperandConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 
 	klog.V(1).Infof("Reconciling OperandConfig: %s", req.NamespacedName)
 
-	// Set the init status for OperandConfig instance
-	if !instance.InitConfigStatus() {
-		klog.V(3).Infof("Initializing the status of OperandConfig: %s", req.NamespacedName)
-		if err := r.updateOperandConfigStatus(instance); err != nil {
-			return ctrl.Result{}, err
-		}
+	// Update status of OperandConfig by checking CRs
+	if err := r.updateConfigOperatorsStatus(instance); err != nil {
+		klog.Errorf("failed to update the status for OperandConfig %s : %v", req.NamespacedName.String(), err)
+		return ctrl.Result{}, err
 	}
 
-	if err := r.updateConfigOperatorsStatus(instance); err != nil {
+	// Put the updated status of OperandConfig to the kube-apiserver
+	if err := r.updateOperandConfigStatus(instance); err != nil {
 		klog.Errorf("failed to update the status for OperandConfig %s : %v", req.NamespacedName.String(), err)
 		return ctrl.Result{}, err
 	}
@@ -90,9 +89,15 @@ func (r *OperandConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 	return ctrl.Result{}, nil
 }
 
-func (r *OperandConfigReconciler) updateConfigOperatorsStatus(instance *operatorv1alpha1.OperandConfig) error {
+func (r *Reconciler) updateConfigOperatorsStatus(instance *operatorv1alpha1.OperandConfig) error {
 	// Create an empty ServiceStatus map
 	klog.V(3).Info("Initializing OperandConfig status")
+
+	// Set the init status for OperandConfig instance
+	if instance.Status.Phase == "" {
+		instance.Status.Phase = operatorv1alpha1.ServiceInit
+	}
+
 	instance.Status.ServiceStatus = make(map[string]operatorv1alpha1.CrStatus)
 
 	registryInstance, err := fetch.FetchOperandRegistry(r.Client, types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace})
@@ -101,6 +106,17 @@ func (r *OperandConfigReconciler) updateConfigOperatorsStatus(instance *operator
 	}
 
 	for _, op := range registryInstance.Spec.Operators {
+
+		service := instance.GetService(op.Name)
+		if service == nil {
+			continue
+		}
+
+		// Check if the operator is request in the OperandRegistry
+		if !checkRegistryStatus(op.Name, registryInstance) {
+			continue
+		}
+
 		// Looking for the CSV
 		namespace := fetch.GetOperatorNamespace(op.InstallMode, op.Namespace)
 		sub, err := fetch.FetchSubscription(r.Client, op.Name, namespace, op.PackageName)
@@ -170,8 +186,6 @@ func (r *OperandConfigReconciler) updateConfigOperatorsStatus(instance *operator
 
 			kind := unstruct.Object["kind"].(string)
 
-			service := instance.GetService(op.Name)
-
 			existinConfig := false
 			for crName := range service.Spec {
 				// Compare the name of OperandConfig and CRD name
@@ -207,14 +221,20 @@ func (r *OperandConfigReconciler) updateConfigOperatorsStatus(instance *operator
 
 	instance.UpdateOperandPhase()
 
-	if err := r.updateOperandConfigStatus(instance); err != nil {
-		return err
-	}
-
 	return nil
 }
 
-func (r *OperandConfigReconciler) getRequestToConfigMapper() handler.ToRequestsFunc {
+func checkRegistryStatus(opName string, registryInstance *operatorv1alpha1.OperandRegistry) bool {
+	status := registryInstance.Status.OperatorsStatus
+	for opRegistryName := range status {
+		if opName == opRegistryName {
+			return true
+		}
+	}
+	return false
+}
+
+func (r *Reconciler) getRequestToConfigMapper() handler.ToRequestsFunc {
 	return func(object handler.MapObject) []reconcile.Request {
 		opreqInstance := &operatorv1alpha1.OperandRequest{}
 		requests := []reconcile.Request{}
@@ -241,9 +261,9 @@ func (r *OperandConfigReconciler) getRequestToConfigMapper() handler.ToRequestsF
 }
 
 // SetupWithManager adds OperandConfig controller to the manager.
-func (r *OperandConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&operatorv1alpha1.OperandConfig{}).
+		For(&operatorv1alpha1.OperandConfig{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Watches(&source.Kind{Type: &operatorv1alpha1.OperandRequest{}}, &handler.EnqueueRequestsFromMapFunc{
 			ToRequests: r.getRequestToConfigMapper(),
 		}, builder.WithPredicates(predicate.Funcs{
@@ -262,7 +282,7 @@ func (r *OperandConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		})).Complete(r)
 }
 
-func (r *OperandConfigReconciler) updateOperandConfigStatus(newConfigInstance *operatorv1alpha1.OperandConfig) error {
+func (r *Reconciler) updateOperandConfigStatus(newConfigInstance *operatorv1alpha1.OperandConfig) error {
 	err := wait.PollImmediate(time.Millisecond*250, time.Second*5, func() (bool, error) {
 		existingConfigInstance, err := fetch.FetchOperandConfig(r.Client, types.NamespacedName{Name: newConfigInstance.Name, Namespace: newConfigInstance.Namespace})
 		if err != nil {
