@@ -36,7 +36,7 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
             - matchExpressions:
-              - key: kubernetes.io/arch
+              - key: beta.kubernetes.io/arch
                 operator: In
                 values:
                 - amd64
@@ -47,17 +47,6 @@ spec:
         - /manager
         args:
         - -v=2
-        env:
-        - name: OPERATOR_NAMESPACE
-          valueFrom:
-            fieldRef:
-              apiVersion: v1
-              fieldPath: metadata.namespace
-        - name: WATCH_NAMESPACE
-          valueFrom:
-            configMapKeyRef:
-              name: namespace-scope
-              key: namespaces
         image: quay.io/opencloudio/odlm:latest
         name: manager
         resources:
