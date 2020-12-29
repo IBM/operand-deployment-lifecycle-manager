@@ -113,11 +113,12 @@ const (
 	ClusterPhaseRunning    ClusterPhase = "Running"
 	ClusterPhaseFailed     ClusterPhase = "Failed"
 
-	ResourceTypeCatalogSource ResourceType = "catalogsource"
-	ResourceTypeSub           ResourceType = "subscription"
-	ResourceTypeCsv           ResourceType = "csv"
-	ResourceTypeOperator      ResourceType = "operator"
-	ResourceTypeOperand       ResourceType = "operands"
+	ResourceTypeOperandRegistry ResourceType = "operandregistry"
+	ResourceTypeCatalogSource   ResourceType = "catalogsource"
+	ResourceTypeSub             ResourceType = "subscription"
+	ResourceTypeCsv             ResourceType = "csv"
+	ResourceTypeOperator        ResourceType = "operator"
+	ResourceTypeOperand         ResourceType = "operands"
 )
 
 // Condition represents the current state of the Request Service.
@@ -235,15 +236,21 @@ func (r *OperandRequest) SetDeletingCondition(name string, rt ResourceType, cs c
 	r.setCondition(*c)
 }
 
-// SetNotFoundOperatorFromRegistryCondition creates a NotFoundCondition.
+// SetNotFoundOperatorFromRegistryCondition creates a NotFoundCondition when an operator is not found.
 func (r *OperandRequest) SetNotFoundOperatorFromRegistryCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
-	c := newCondition(ConditionNotFound, cs, "Not found "+string(rt), "Not found "+string(rt)+" "+name+" from registry")
+	c := newCondition(ConditionNotFound, cs, "Not found "+string(rt), "Not found "+string(rt)+" "+name+" in the cluster")
 	r.setCondition(*c)
 }
 
 // SetOutofScopeCondition creates a NotFoundCondition.
 func (r *OperandRequest) SetOutofScopeCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
 	c := newCondition(ConditionOutofScope, cs, string(rt)+" "+name+" is a private operator", string(rt)+" "+name+" is a private operator. It can only be request within the OperandRegistry namespace")
+	r.setCondition(*c)
+}
+
+// SetNotFoundOperandRegistryCondition creates a NotFoundCondition when an operandRegistry is not found.
+func (r *OperandRequest) SetNotFoundOperandRegistryCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
+	c := newCondition(ConditionNotFound, cs, "Not found "+string(rt), "Not found operandRegistry "+string(rt))
 	r.setCondition(*c)
 }
 
