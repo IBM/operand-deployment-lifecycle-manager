@@ -70,7 +70,7 @@ type Operand struct {
 	// It is the configuration map of custom resource.
 	// +nullable
 	// +optional
-	Spec runtime.RawExtension `json:"spec,omitempty"`
+	Spec *runtime.RawExtension `json:"spec,omitempty"`
 }
 
 // ConditionType is the condition of a service.
