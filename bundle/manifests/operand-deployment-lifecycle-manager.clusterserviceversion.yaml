@@ -200,6 +200,9 @@ spec:
           - operator.ibm.com
           resources:
           - operandrequests
+          - operandbindinfos
+          - operandconfigs
+          - operandregistries
           verbs:
           - get
           - list
