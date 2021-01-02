@@ -14,6 +14,9 @@ rules:
     - operator.ibm.com
   resources:
     - operandrequests
+    - operandbindinfos
+    - operandconfigs
+    - operandregistries
 - apiGroups:
   - operator.ibm.com
   resources:
