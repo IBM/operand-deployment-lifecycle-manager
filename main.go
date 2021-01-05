@@ -36,6 +36,7 @@ import (
 	nssv1 "github.com/IBM/ibm-namespace-scope-operator/api/v1"
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
+	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/deploy"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/k8sutil"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/operandbindinfo"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/operandconfig"
@@ -100,36 +101,35 @@ func main() {
 		klog.Errorf("unable to start manager: %v", err)
 		os.Exit(1)
 	}
-
+	odlmManager := deploy.NewODLMManager(mgr)
 	if err = (&operandrequest.Reconciler{
-		Client:   mgr.GetClient(),
-		Config:   mgr.GetConfig(),
-		Recorder: mgr.GetEventRecorderFor("OperandRequest"),
-		Scheme:   mgr.GetScheme(),
+		ODLMManager: odlmManager,
+		Recorder:    mgr.GetEventRecorderFor("OperandRequest"),
+		Scheme:      mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		klog.Errorf("unable to create controller OperandRequest: %v", err)
 		os.Exit(1)
 	}
 	if err = (&operandconfig.Reconciler{
-		Client:   mgr.GetClient(),
-		Recorder: mgr.GetEventRecorderFor("OperandConfig"),
-		Scheme:   mgr.GetScheme(),
+		ODLMManager: odlmManager,
+		Recorder:    mgr.GetEventRecorderFor("OperandConfig"),
+		Scheme:      mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		klog.Errorf("unable to create controller OperandConfig: %v", err)
 		os.Exit(1)
 	}
 	if err = (&operandbindinfo.Reconciler{
-		Client:   mgr.GetClient(),
-		Recorder: mgr.GetEventRecorderFor("OperandBindInfo"),
-		Scheme:   mgr.GetScheme(),
+		ODLMManager: odlmManager,
+		Recorder:    mgr.GetEventRecorderFor("OperandBindInfo"),
+		Scheme:      mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		klog.Errorf("unable to create controller OperandBindInfo: %v", err)
 		os.Exit(1)
 	}
 	if err = (&operandregistry.Reconciler{
-		Client:   mgr.GetClient(),
-		Recorder: mgr.GetEventRecorderFor("OperandRegistry"),
-		Scheme:   mgr.GetScheme(),
+		ODLMManager: odlmManager,
+		Recorder:    mgr.GetEventRecorderFor("OperandRegistry"),
+		Scheme:      mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		klog.Errorf("unable to create controller OperandRegistry: %v", err)
 		os.Exit(1)
