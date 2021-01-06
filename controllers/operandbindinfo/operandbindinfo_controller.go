@@ -213,7 +213,7 @@ func (r *Reconciler) copySecret(sourceName, targetName, sourceNs, targetNs strin
 	}
 
 	secret := &corev1.Secret{}
-	if err := r.Reader.Get(context.TODO(), types.NamespacedName{Name: sourceName, Namespace: sourceNs}, secret); err != nil {
+	if err := r.Client.Get(context.TODO(), types.NamespacedName{Name: sourceName, Namespace: sourceNs}, secret); err != nil {
 		if errors.IsNotFound(err) {
 			klog.V(3).Infof("Secret %s is not found from the namespace %s", sourceName, sourceNs)
 			r.Recorder.Eventf(bindInfoInstance, corev1.EventTypeNormal, "NotFound", "No Secret %s in the namespace %s", sourceName, sourceNs)
@@ -292,7 +292,7 @@ func (r *Reconciler) copyConfigmap(sourceName, targetName, sourceNs, targetNs st
 	}
 
 	cm := &corev1.ConfigMap{}
-	if err := r.Reader.Get(context.TODO(), types.NamespacedName{Name: sourceName, Namespace: sourceNs}, cm); err != nil {
+	if err := r.Client.Get(context.TODO(), types.NamespacedName{Name: sourceName, Namespace: sourceNs}, cm); err != nil {
 		if errors.IsNotFound(err) {
 			klog.V(3).Infof("Configmap %s is not found from the namespace %s", sourceName, sourceNs)
 			r.Recorder.Eventf(bindInfoInstance, corev1.EventTypeNormal, "NotFound", "No Configmap %s in the namespace %s", sourceName, sourceNs)

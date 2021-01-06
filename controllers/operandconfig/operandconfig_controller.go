@@ -200,7 +200,7 @@ func (r *Reconciler) updateConfigOperatorsStatus(instance *operatorv1alpha1.Oper
 
 			name := unstruct.Object["metadata"].(map[string]interface{})["name"].(string)
 
-			getError := r.Reader.Get(context.TODO(), types.NamespacedName{
+			getError := r.Client.Get(context.TODO(), types.NamespacedName{
 				Name:      name,
 				Namespace: op.Namespace,
 			}, &unstruct)

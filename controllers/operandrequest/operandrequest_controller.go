@@ -218,7 +218,7 @@ func (r *Reconciler) UpdateNamespaceScope(namespacedName types.NamespacedName, d
 	}
 	nsScope := &nssv1.NamespaceScope{}
 	nsScopeKey := types.NamespacedName{Name: constant.NamespaceScopeCrName, Namespace: util.GetOperatorNamespace()}
-	if err := r.Reader.Get(ctx, nsScopeKey, nsScope); err != nil {
+	if err := r.Client.Get(ctx, nsScopeKey, nsScope); err != nil {
 		if errors.IsNotFound(err) {
 			klog.V(2).Infof("Not found NamespaceScope CR %s, ignore update it.", nsScopeKey.String())
 			return nil
@@ -287,7 +287,7 @@ func (r *Reconciler) checkFinalizer(requestInstance *operatorv1alpha1.OperandReq
 		client.MatchingLabels(map[string]string{constant.OpreqLabel: "true"}),
 	}
 
-	if err := r.Reader.List(ctx, existingSub, opts...); err != nil {
+	if err := r.Client.List(ctx, existingSub, opts...); err != nil {
 		return err
 	}
 	if len(existingSub.Items) == 0 {
