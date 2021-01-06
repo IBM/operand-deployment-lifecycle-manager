@@ -182,7 +182,7 @@ func (r *Reconciler) reconcileCRwithConfig(service *operatorv1alpha1.ConfigServi
 
 		name := unstruct.Object["metadata"].(map[string]interface{})["name"].(string)
 
-		getError := r.Reader.Get(ctx, types.NamespacedName{
+		getError := r.Client.Get(ctx, types.NamespacedName{
 			Name:      name,
 			Namespace: namespace,
 		}, &unstruct)
@@ -255,7 +255,7 @@ func (r *Reconciler) reconcileCRwithRequest(requestInstance *operatorv1alpha1.Op
 		unstruct.Object["metadata"].(map[string]interface{})["name"] = name
 		unstruct.Object["metadata"].(map[string]interface{})["namespace"] = requestKey.Namespace
 
-		err := r.Reader.Get(ctx, types.NamespacedName{
+		err := r.Client.Get(ctx, types.NamespacedName{
 			Name:      name,
 			Namespace: requestKey.Namespace,
 		}, &unstruct)
@@ -358,7 +358,7 @@ func (r *Reconciler) deleteAllCustomResource(csv *olmv1alpha1.ClusterServiceVers
 
 			// Compare the name of OperandConfig and CRD name
 			if strings.EqualFold(kind, crdName) {
-				getError := r.Reader.Get(ctx, types.NamespacedName{
+				getError := r.Client.Get(ctx, types.NamespacedName{
 					Name:      name,
 					Namespace: namespace,
 				}, &unstruct)
@@ -474,7 +474,7 @@ func (r *Reconciler) updateCustomResource(unstruct unstructured.Unstructured, na
 			},
 		}
 
-		crGetErr := r.Reader.Get(ctx, types.NamespacedName{
+		crGetErr := r.Client.Get(ctx, types.NamespacedName{
 			Name:      name,
 			Namespace: namespace,
 		}, &existingCR)
@@ -514,7 +514,7 @@ func (r *Reconciler) updateCustomResource(unstruct unstructured.Unstructured, na
 				},
 			}
 
-			err := r.Reader.Get(ctx, types.NamespacedName{
+			err := r.Client.Get(ctx, types.NamespacedName{
 				Name:      name,
 				Namespace: namespace,
 			}, &UpdatedCR)
@@ -552,7 +552,7 @@ func (r *Reconciler) deleteCustomResource(unstruct unstructured.Unstructured, na
 			"kind":       kind,
 		},
 	}
-	getError := r.Reader.Get(ctx, types.NamespacedName{
+	getError := r.Client.Get(ctx, types.NamespacedName{
 		Name:      name,
 		Namespace: namespace,
 	}, &crShouldBeDeleted)
@@ -575,7 +575,7 @@ func (r *Reconciler) deleteCustomResource(unstruct unstructured.Unstructured, na
 					return true, nil
 				}
 				klog.V(3).Infof("Waiting for CR %s is removed ...", kind)
-				err := r.Reader.Get(ctx, types.NamespacedName{
+				err := r.Client.Get(ctx, types.NamespacedName{
 					Name:      name,
 					Namespace: namespace,
 				},

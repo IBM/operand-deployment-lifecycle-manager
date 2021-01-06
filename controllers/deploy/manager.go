@@ -34,7 +34,6 @@ import (
 // ODLMManager is the struct for ODLM controllers
 type ODLMManager struct {
 	client.Client
-	client.Reader
 	*rest.Config
 }
 
@@ -42,7 +41,6 @@ type ODLMManager struct {
 func NewODLMManager(mgr manager.Manager) *ODLMManager {
 	return &ODLMManager{
 		Client: mgr.GetClient(),
-		Reader: mgr.GetAPIReader(),
 		Config: mgr.GetConfig(),
 	}
 }
@@ -120,7 +118,7 @@ func (m *ODLMManager) FetchSubscription(name, namespace string, packageName ...s
 		Name:      name,
 		Namespace: namespace,
 	}
-	err := m.Reader.Get(context.TODO(), subKey, sub)
+	err := m.Client.Get(context.TODO(), subKey, sub)
 	if err == nil {
 		return sub, nil
 	} else if !errors.IsNotFound(err) {
@@ -130,7 +128,7 @@ func (m *ODLMManager) FetchSubscription(name, namespace string, packageName ...s
 		Name:      packageName[0],
 		Namespace: namespace,
 	}
-	err = m.Reader.Get(context.TODO(), subPkgKey, sub)
+	err = m.Client.Get(context.TODO(), subPkgKey, sub)
 	return sub, err
 }
 
@@ -159,7 +157,7 @@ func (m *ODLMManager) FetchClusterServiceVersion(sub *olmv1alpha1.Subscription) 
 		Name:      ipName,
 		Namespace: ipNamespace,
 	}
-	if err := m.Reader.Get(context.TODO(), ipKey, ip); err != nil {
+	if err := m.Client.Get(context.TODO(), ipKey, ip); err != nil {
 		if !errors.IsNotFound(err) {
 			klog.Errorf("failed to get Installplan %s in the namespace %s: %s", ipName, ipNamespace, err)
 			return nil, err
@@ -178,7 +176,7 @@ func (m *ODLMManager) FetchClusterServiceVersion(sub *olmv1alpha1.Subscription) 
 		Name:      csvName,
 		Namespace: csvNamespace,
 	}
-	if err := m.Reader.Get(context.TODO(), csvKey, csv); err != nil {
+	if err := m.Client.Get(context.TODO(), csvKey, csv); err != nil {
 		if errors.IsNotFound(err) {
 			klog.V(3).Infof("ClusterServiceVersion %s is not ready. Will check it when it is stable", sub.Name)
 			return nil, nil

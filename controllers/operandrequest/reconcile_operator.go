@@ -141,7 +141,7 @@ func (r *Reconciler) createSubscription(cr *operatorv1alpha1.OperandRequest, opt
 	if namespace != constant.ClusterOperatorNamespace {
 		// Create required operatorgroup
 		existOG := &olmv1.OperatorGroupList{}
-		if err := r.Reader.List(ctx, existOG, &client.ListOptions{Namespace: co.operatorGroup.Namespace}); err != nil {
+		if err := r.Client.List(ctx, existOG, &client.ListOptions{Namespace: co.operatorGroup.Namespace}); err != nil {
 			return err
 		}
 		if len(existOG.Items) == 0 {
@@ -391,7 +391,7 @@ func generateOperatorGroup(namespace string, targetNamespaces []string) *olmv1.O
 func (r *Reconciler) checkUninstallLabel(name, namespace string) bool {
 	sub := &olmv1alpha1.Subscription{}
 	subKey := types.NamespacedName{Name: name, Namespace: namespace}
-	if err := r.Reader.Get(ctx, subKey, sub); err != nil {
+	if err := r.Client.Get(ctx, subKey, sub); err != nil {
 		klog.Warning("failed to get subscription: ", err)
 		return true
 	}
