@@ -21,10 +21,8 @@ import (
 	"reflect"
 	"time"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -36,14 +34,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
-	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/deploy"
+	deploy "github.com/IBM/operand-deployment-lifecycle-manager/controllers/operator"
 )
 
 // Reconciler reconciles a OperandRegistry object
 type Reconciler struct {
-	*deploy.ODLMManager
-	Recorder record.EventRecorder
-	Scheme   *runtime.Scheme
+	*deploy.ODLMOperator
 }
 
 // Reconcile reads that state of the cluster for a OperandRegistry object and makes changes based on the state read
@@ -86,7 +82,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 func (r *Reconciler) updateRegistryOperatorsStatus(instance *operatorv1alpha1.OperandRegistry) error {
 	// List the OperandRequests refer the OperatorRegistry by label of the OperandRequests
-	requestList, err := r.FetchAllOperandRequests(map[string]string{instance.Namespace + "." + instance.Name + "/registry": "true"})
+	requestList, err := r.ListOperandRequests(map[string]string{instance.Namespace + "." + instance.Name + "/registry": "true"})
 	if err != nil {
 		instance.Status.OperatorsStatus = nil
 		return err
@@ -136,7 +132,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 func (r *Reconciler) updateOperandRegistryStatus(newRegistryInstance *operatorv1alpha1.OperandRegistry) error {
 	err := wait.PollImmediate(time.Millisecond*250, time.Second*5, func() (bool, error) {
-		existingRegistryInstance, err := r.FetchOperandRegistry(types.NamespacedName{Name: newRegistryInstance.Name, Namespace: newRegistryInstance.Namespace})
+		existingRegistryInstance, err := r.GetOperandRegistry(types.NamespacedName{Name: newRegistryInstance.Name, Namespace: newRegistryInstance.Namespace})
 		if err != nil {
 			klog.Errorf("failed to fetch the existing OperandRegistry: %v", err)
 			return false, err

@@ -25,10 +25,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -41,15 +39,13 @@ import (
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
-	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/deploy"
+	deploy "github.com/IBM/operand-deployment-lifecycle-manager/controllers/operator"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/util"
 )
 
 // Reconciler reconciles a OperandConfig object
 type Reconciler struct {
-	*deploy.ODLMManager
-	Recorder record.EventRecorder
-	Scheme   *runtime.Scheme
+	*deploy.ODLMOperator
 }
 
 // Reconcile reads that state of the cluster for a OperandConfig object and makes changes based on the state read
@@ -100,7 +96,7 @@ func (r *Reconciler) updateConfigOperatorsStatus(instance *operatorv1alpha1.Oper
 
 	instance.Status.ServiceStatus = make(map[string]operatorv1alpha1.CrStatus)
 
-	registryInstance, err := r.FetchOperandRegistry(types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace})
+	registryInstance, err := r.GetOperandRegistry(types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace})
 	if err != nil {
 		return err
 	}
@@ -119,7 +115,7 @@ func (r *Reconciler) updateConfigOperatorsStatus(instance *operatorv1alpha1.Oper
 
 		// Looking for the CSV
 		namespace := r.GetOperatorNamespace(op.InstallMode, op.Namespace)
-		sub, err := r.FetchSubscription(op.Name, namespace, op.PackageName)
+		sub, err := r.GetSubscription(op.Name, namespace, op.PackageName)
 
 		if errors.IsNotFound(err) {
 			klog.V(3).Infof("There is no Subscription %s or %s in the namespace %s", op.Name, op.PackageName, namespace)
@@ -136,7 +132,7 @@ func (r *Reconciler) updateConfigOperatorsStatus(instance *operatorv1alpha1.Oper
 			klog.V(2).Infof("Subscription %s in the namespace %s isn't created by ODLM", sub.Name, sub.Namespace)
 		}
 
-		csv, err := r.FetchClusterServiceVersion(sub)
+		csv, err := r.GetClusterServiceVersion(sub)
 
 		if err != nil {
 			klog.Errorf("failed to fetch ClusterServiceVersion for the Subscription %s in the namespace %s: %v", sub.Name, namespace, err)
@@ -284,7 +280,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 func (r *Reconciler) updateOperandConfigStatus(newConfigInstance *operatorv1alpha1.OperandConfig) error {
 	err := wait.PollImmediate(time.Millisecond*250, time.Second*5, func() (bool, error) {
-		existingConfigInstance, err := r.FetchOperandConfig(types.NamespacedName{Name: newConfigInstance.Name, Namespace: newConfigInstance.Namespace})
+		existingConfigInstance, err := r.GetOperandConfig(types.NamespacedName{Name: newConfigInstance.Name, Namespace: newConfigInstance.Namespace})
 		if err != nil {
 			klog.Errorf("failed to fetch the existing OperandConfig: %v", err)
 			return false, err

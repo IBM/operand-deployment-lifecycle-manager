@@ -27,11 +27,9 @@ import (
 	authorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -46,15 +44,13 @@ import (
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
-	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/deploy"
+	deploy "github.com/IBM/operand-deployment-lifecycle-manager/controllers/operator"
 	util "github.com/IBM/operand-deployment-lifecycle-manager/controllers/util"
 )
 
 // Reconciler reconciles a OperandRequest object
 type Reconciler struct {
-	*deploy.ODLMManager
-	Recorder record.EventRecorder
-	Scheme   *runtime.Scheme
+	*deploy.ODLMOperator
 }
 type clusterObjects struct {
 	namespace     *corev1.Namespace
@@ -195,7 +191,7 @@ func (r *Reconciler) checkUpdateAuth(namespace, group, resource string) bool {
 		return false
 	}
 
-	klog.V(3).Infof("Operator update permission in namesapce %s, Allowed: %t, Denied: %t, Reason: %s", namespace, sar.Status.Allowed, sar.Status.Denied, sar.Status.Reason)
+	klog.V(3).Infof("Operator update permission in namespace %s, Allowed: %t, Denied: %t, Reason: %s", namespace, sar.Status.Allowed, sar.Status.Denied, sar.Status.Reason)
 	return sar.Status.Allowed
 }
 
@@ -227,7 +223,7 @@ func (r *Reconciler) UpdateNamespaceScope(namespacedName types.NamespacedName, d
 	}
 	var nsMems []string
 
-	opreqList, err := r.FetchAllOperandRequests(nil)
+	opreqList, err := r.ListOperandRequests(nil)
 
 	if err != nil {
 		klog.Errorf("failed to list OperandRequest: %v", err)
@@ -374,7 +370,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 func (r *Reconciler) updateOperandRequestStatus(newRequestInstance *operatorv1alpha1.OperandRequest) error {
 	err := wait.PollImmediate(time.Millisecond*250, time.Second*5, func() (bool, error) {
-		existingRequestInstance, err := r.FetchOperandRequest(types.NamespacedName{Name: newRequestInstance.Name, Namespace: newRequestInstance.Namespace})
+		existingRequestInstance, err := r.GetOperandRequest(types.NamespacedName{Name: newRequestInstance.Name, Namespace: newRequestInstance.Namespace})
 		if err != nil {
 			klog.Errorf("failed to fetch the existing OperandRequest: %v", err)
 			return false, err

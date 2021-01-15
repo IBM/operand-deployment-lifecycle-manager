@@ -39,7 +39,7 @@ import (
 
 	nssv1 "github.com/IBM/ibm-namespace-scope-operator/api/v1"
 	apiv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
-	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/deploy"
+	deploy "github.com/IBM/operand-deployment-lifecycle-manager/controllers/operator"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -100,12 +100,9 @@ var _ = BeforeSuite(func(done Done) {
 	})
 	Expect(err).ToNot(HaveOccurred())
 
-	odlmManager := deploy.NewODLMManager(k8sManager)
 	// Setup Manager with OperandRequest Controller
 	err = (&Reconciler{
-		ODLMManager: odlmManager,
-		Recorder:    k8sManager.GetEventRecorderFor("OperandRequest"),
-		Scheme:      k8sManager.GetScheme(),
+		ODLMOperator: deploy.NewODLMOperator(k8sManager, "OperandRequest"),
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 

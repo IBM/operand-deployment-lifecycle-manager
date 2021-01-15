@@ -38,7 +38,7 @@ import (
 func (r *Reconciler) reconcileOperand(requestKey types.NamespacedName) *util.MultiErr {
 	klog.V(1).Infof("Reconciling Operands for OperandRequest: %s", requestKey)
 	merr := &util.MultiErr{}
-	requestInstance, err := r.FetchOperandRequest(requestKey)
+	requestInstance, err := r.GetOperandRequest(requestKey)
 	if err != nil {
 		merr.Add(err)
 		return merr
@@ -59,13 +59,13 @@ func (r *Reconciler) reconcileOperand(requestKey types.NamespacedName) *util.Mul
 	}
 	for _, req := range requestInstance.Spec.Requests {
 		registryKey := requestInstance.GetRegistryKey(req)
-		configInstance, err := r.FetchOperandConfig(registryKey)
+		configInstance, err := r.GetOperandConfig(registryKey)
 		if err != nil {
 			klog.Error("failed to get the OperandConfig instance: ", err)
 			merr.Add(err)
 			continue
 		}
-		registryInstance, err := r.FetchOperandRegistry(registryKey)
+		registryInstance, err := r.GetOperandRegistry(registryKey)
 		if err != nil {
 			klog.Error("failed to get the OperandRegistry instance: ", err)
 			merr.Add(err)
@@ -86,7 +86,7 @@ func (r *Reconciler) reconcileOperand(requestKey types.NamespacedName) *util.Mul
 			// Looking for the CSV
 			namespace := r.GetOperatorNamespace(opdRegistry.InstallMode, opdRegistry.Namespace)
 
-			sub, err := r.FetchSubscription(operatorName, namespace, opdRegistry.PackageName)
+			sub, err := r.GetSubscription(operatorName, namespace, opdRegistry.PackageName)
 
 			if errors.IsNotFound(err) {
 				klog.V(2).Infof("There is no Subscription %s or %s in the namespace %s", operatorName, opdRegistry.PackageName, namespace)
@@ -98,7 +98,7 @@ func (r *Reconciler) reconcileOperand(requestKey types.NamespacedName) *util.Mul
 				klog.Warningf("Subscription %s in the namespace %s isn't created by ODLM", sub.Name, sub.Namespace)
 			}
 
-			csv, err := r.FetchClusterServiceVersion(sub)
+			csv, err := r.GetClusterServiceVersion(sub)
 
 			// If can't get CSV, requeue the request
 			if err != nil {

@@ -25,10 +25,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -43,15 +41,13 @@ import (
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
-	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/deploy"
+	deploy "github.com/IBM/operand-deployment-lifecycle-manager/controllers/operator"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/util"
 )
 
 // Reconciler reconciles a OperandBindInfo object
 type Reconciler struct {
-	*deploy.ODLMManager
-	Recorder record.EventRecorder
-	Scheme   *runtime.Scheme
+	*deploy.ODLMOperator
 }
 
 // Reconcile reads that state of the cluster for a OperandBindInfo object and makes changes based on the state read

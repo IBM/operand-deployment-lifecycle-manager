@@ -37,7 +37,7 @@ import (
 
 func (r *Reconciler) reconcileOperator(requestKey types.NamespacedName) error {
 	klog.V(1).Infof("Reconciling Operators for OperandRequest: %s", requestKey)
-	requestInstance, err := r.FetchOperandRequest(requestKey)
+	requestInstance, err := r.GetOperandRequest(requestKey)
 	if err != nil {
 		return err
 	}
@@ -53,7 +53,7 @@ func (r *Reconciler) reconcileOperator(requestKey types.NamespacedName) error {
 
 	for _, req := range requestInstance.Spec.Requests {
 		registryKey := requestInstance.GetRegistryKey(req)
-		registryInstance, err := r.FetchOperandRegistry(registryKey)
+		registryInstance, err := r.GetOperandRegistry(registryKey)
 		if err != nil {
 			if errors.IsNotFound(err) {
 				r.Recorder.Eventf(requestInstance, corev1.EventTypeWarning, "NotFound", "NotFound OperandRegistry NamespacedName %s", registryKey.String())
@@ -74,7 +74,7 @@ func (r *Reconciler) reconcileOperator(requestKey types.NamespacedName) error {
 
 				// Check subscription if exist
 				namespace := r.GetOperatorNamespace(opt.InstallMode, opt.Namespace)
-				sub, err := r.FetchSubscription(opt.Name, namespace, opt.PackageName)
+				sub, err := r.GetSubscription(opt.Name, namespace, opt.PackageName)
 
 				if err != nil {
 					if errors.IsNotFound(err) {
@@ -191,7 +191,7 @@ func (r *Reconciler) deleteSubscription(operandName string, requestInstance *ope
 	}
 
 	namespace := r.GetOperatorNamespace(op.InstallMode, op.Namespace)
-	sub, err := r.FetchSubscription(operandName, namespace, op.PackageName)
+	sub, err := r.GetSubscription(operandName, namespace, op.PackageName)
 
 	if errors.IsNotFound(err) {
 		klog.V(3).Infof("There is no Subscription %s or %s in the namespace %s", operandName, op.PackageName, namespace)
@@ -204,7 +204,7 @@ func (r *Reconciler) deleteSubscription(operandName string, requestInstance *ope
 		return nil
 	}
 
-	csv, err := r.FetchClusterServiceVersion(sub)
+	csv, err := r.GetClusterServiceVersion(sub)
 	// If can't get CSV, requeue the request
 	if err != nil {
 		return err
@@ -255,11 +255,11 @@ func (r *Reconciler) absentOperatorsAndOperands(requestInstance *operatorv1alpha
 	}
 	for _, req := range requestInstance.Spec.Requests {
 		registryKey := requestInstance.GetRegistryKey(req)
-		registryInstance, err := r.FetchOperandRegistry(registryKey)
+		registryInstance, err := r.GetOperandRegistry(registryKey)
 		if err != nil {
 			return err
 		}
-		configInstance, err := r.FetchOperandConfig(registryKey)
+		configInstance, err := r.GetOperandConfig(registryKey)
 		if err != nil {
 			return err
 		}
@@ -296,7 +296,7 @@ func (r *Reconciler) getCurrentOperands(requestInstance *operatorv1alpha1.Operan
 	deployedOperands := gset.NewSet()
 	for _, req := range requestInstance.Spec.Requests {
 		registryKey := requestInstance.GetRegistryKey(req)
-		requestList, err := r.FetchAllOperandRequests(map[string]string{registryKey.Namespace + "." + registryKey.Name + "/registry": "true"})
+		requestList, err := r.ListOperandRequests(map[string]string{registryKey.Namespace + "." + registryKey.Name + "/registry": "true"})
 		if err != nil {
 			return nil, err
 		}
