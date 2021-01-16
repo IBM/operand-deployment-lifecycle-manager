@@ -17,6 +17,7 @@
 package v1alpha1
 
 import (
+	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -60,7 +61,7 @@ type Operator struct {
 	Description string `json:"description,omitempty"`
 	// Approval mode for emitted InstallPlans.
 	// +optional
-	InstallPlanApproval string `json:"installPlanApproval,omitempty"`
+	InstallPlanApproval olmv1alpha1.Approval `json:"installPlanApproval,omitempty"`
 }
 
 // +kubebuilder:validation:Enum=public;private

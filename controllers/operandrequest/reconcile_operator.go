@@ -92,8 +92,14 @@ func (r *Reconciler) reconcileOperator(requestKey types.NamespacedName) error {
 				// Subscription existing and managed by OperandRequest controller
 				if _, ok := sub.Labels[constant.OpreqLabel]; ok {
 					// Subscription channel changed, update it.
-					if sub.Spec.Channel != opt.Channel {
+					if compareSub(sub.Spec, opt) {
+						sub.Spec.CatalogSource = opt.SourceName
 						sub.Spec.Channel = opt.Channel
+						sub.Spec.CatalogSourceNamespace = opt.SourceNamespace
+						sub.Spec.Package = opt.PackageName
+						if opt.InstallPlanApproval != "" && sub.Spec.InstallPlanApproval != opt.InstallPlanApproval {
+							sub.Spec.InstallPlanApproval = opt.InstallPlanApproval
+						}
 						if err = r.updateSubscription(requestInstance, sub); err != nil {
 							requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorFailed, "")
 							return err
@@ -342,8 +348,8 @@ func (r *Reconciler) generateClusterObjects(o *operatorv1alpha1.Operator) *clust
 
 	// Subscription Object
 	installPlanApproval := olmv1alpha1.ApprovalAutomatic
-	if o.InstallPlanApproval == "Manual" {
-		installPlanApproval = olmv1alpha1.ApprovalManual
+	if o.InstallPlanApproval != "" {
+		installPlanApproval = o.InstallPlanApproval
 	}
 	sub := &olmv1alpha1.Subscription{
 		ObjectMeta: metav1.ObjectMeta{
@@ -397,4 +403,8 @@ func (r *Reconciler) checkUninstallLabel(name, namespace string) bool {
 	}
 	subLabels := sub.GetLabels()
 	return subLabels[constant.NotUninstallLabel] == "true"
+}
+
+func compareSub(spec *olmv1alpha1.SubscriptionSpec, template *operatorv1alpha1.Operator) (needUpdate bool) {
+	return spec.CatalogSource != template.SourceName || spec.Channel != template.Channel || spec.CatalogSourceNamespace != template.SourceNamespace || spec.Package != template.PackageName || spec.InstallPlanApproval != template.InstallPlanApproval
 }
