@@ -17,3 +17,6 @@ require (
 	sigs.k8s.io/controller-runtime v0.6.2
 	sigs.k8s.io/kubebuilder v1.0.9-0.20200805184228-f7a3b65dd250
 )
+
+// fix vulnerability: CVE-2021-3121 in github.com/gogo/protobuf v1.2.1
+replace github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
