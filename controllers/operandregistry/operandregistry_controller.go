@@ -18,11 +18,11 @@ package operandregistry
 
 import (
 	"context"
+	"fmt"
 	"reflect"
-	"time"
 
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/wait"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
+	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
 	deploy "github.com/IBM/operand-deployment-lifecycle-manager/controllers/operator"
 )
 
@@ -47,18 +48,34 @@ type Reconciler struct {
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reconcileErr error) {
+
+	// Creat context for the OperandBindInfo reconciler
+	ctx, cancel := context.WithTimeout(context.Background(), constant.DefaultRequestTimeout)
+	defer cancel()
 
 	// Fetch the OperandRegistry instance
 	instance := &operatorv1alpha1.OperandRegistry{}
-	if err := r.Client.Get(context.TODO(), req.NamespacedName, instance); err != nil {
+	if err := r.Client.Get(ctx, req.NamespacedName, instance); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+
+	originalInstance := instance.DeepCopy()
+
+	// Always attempt to patch the status after each reconciliation.
+	defer func() {
+		if reflect.DeepEqual(originalInstance.Status, instance.Status) {
+			return
+		}
+		if err := r.Client.Status().Patch(ctx, instance, client.MergeFrom(originalInstance)); err != nil {
+			reconcileErr = utilerrors.NewAggregate([]error{reconcileErr, fmt.Errorf("error while patching OperandRegistry.Status: %v", err)})
+		}
+	}()
 
 	klog.V(1).Infof("Reconciling OperandRegistry: %s", req.NamespacedName)
 
 	// Update all the operator status
-	if err := r.updateRegistryOperatorsStatus(instance); err != nil {
+	if err := r.updateStatus(ctx, instance); err != nil {
 		klog.Errorf("failed to update the status for OperandRegistry %s : %v", req.NamespacedName.String(), err)
 		return ctrl.Result{}, err
 	}
@@ -70,19 +87,13 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		instance.UpdateRegistryPhase(operatorv1alpha1.RegistryRunning)
 	}
 
-	// Update instance status
-	if err := r.updateOperandRegistryStatus(instance); err != nil {
-		klog.Errorf("failed to update the status for OperandRegistry %s : %v", req.NamespacedName.String(), err)
-		return ctrl.Result{}, err
-	}
-
 	klog.V(1).Infof("Finished reconciling OperandRegistry: %s", req.NamespacedName)
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) updateRegistryOperatorsStatus(instance *operatorv1alpha1.OperandRegistry) error {
+func (r *Reconciler) updateStatus(ctx context.Context, instance *operatorv1alpha1.OperandRegistry) error {
 	// List the OperandRequests refer the OperatorRegistry by label of the OperandRequests
-	requestList, err := r.ListOperandRequests(map[string]string{instance.Namespace + "." + instance.Name + "/registry": "true"})
+	requestList, err := r.ListOperandRequests(ctx, map[string]string{instance.Namespace + "." + instance.Name + "/registry": "true"})
 	if err != nil {
 		instance.Status.OperatorsStatus = nil
 		return err
@@ -128,31 +139,4 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 				return !e.DeleteStateUnknown
 			},
 		})).Complete(r)
-}
-
-func (r *Reconciler) updateOperandRegistryStatus(newRegistryInstance *operatorv1alpha1.OperandRegistry) error {
-	err := wait.PollImmediate(time.Millisecond*250, time.Second*5, func() (bool, error) {
-		existingRegistryInstance, err := r.GetOperandRegistry(types.NamespacedName{Name: newRegistryInstance.Name, Namespace: newRegistryInstance.Namespace})
-		if err != nil {
-			klog.Errorf("failed to fetch the existing OperandRegistry: %v", err)
-			return false, err
-		}
-
-		existingStatus := existingRegistryInstance.Status.DeepCopy()
-		newStatus := newRegistryInstance.Status.DeepCopy()
-		if reflect.DeepEqual(existingStatus, newStatus) {
-			return true, nil
-		}
-		existingRegistryInstance.Status = *newStatus
-		if err := r.Status().Update(context.TODO(), existingRegistryInstance); err != nil {
-			return false, nil
-		}
-		return true, nil
-	})
-
-	if err != nil {
-		klog.Errorf("failed to update OperandRegistry %s/%s status: %v", newRegistryInstance.Namespace, newRegistryInstance.Name, err)
-		return err
-	}
-	return nil
 }

@@ -52,9 +52,9 @@ func NewODLMOperator(mgr manager.Manager, name string) *ODLMOperator {
 }
 
 // GetOperandRegistry gets the OperandRegistry instance with default value
-func (m *ODLMOperator) GetOperandRegistry(key types.NamespacedName) (*apiv1alpha1.OperandRegistry, error) {
+func (m *ODLMOperator) GetOperandRegistry(ctx context.Context, key types.NamespacedName) (*apiv1alpha1.OperandRegistry, error) {
 	reg := &apiv1alpha1.OperandRegistry{}
-	if err := m.Client.Get(context.TODO(), key, reg); err != nil {
+	if err := m.Client.Get(ctx, key, reg); err != nil {
 		return nil, err
 	}
 	for i, o := range reg.Spec.Operators {
@@ -64,23 +64,26 @@ func (m *ODLMOperator) GetOperandRegistry(key types.NamespacedName) (*apiv1alpha
 		if o.InstallMode == "" {
 			reg.Spec.Operators[i].InstallMode = apiv1alpha1.InstallModeNamespace
 		}
+		if o.InstallPlanApproval == "" {
+			reg.Spec.Operators[i].InstallPlanApproval = olmv1alpha1.ApprovalAutomatic
+		}
 	}
 	return reg, nil
 }
 
 // GetOperandConfig gets the OperandConfig
-func (m *ODLMOperator) GetOperandConfig(key types.NamespacedName) (*apiv1alpha1.OperandConfig, error) {
+func (m *ODLMOperator) GetOperandConfig(ctx context.Context, key types.NamespacedName) (*apiv1alpha1.OperandConfig, error) {
 	config := &apiv1alpha1.OperandConfig{}
-	if err := m.Client.Get(context.TODO(), key, config); err != nil {
+	if err := m.Client.Get(ctx, key, config); err != nil {
 		return nil, err
 	}
 	return config, nil
 }
 
 // GetOperandRequest gets OperandRequest
-func (m *ODLMOperator) GetOperandRequest(key types.NamespacedName) (*apiv1alpha1.OperandRequest, error) {
+func (m *ODLMOperator) GetOperandRequest(ctx context.Context, key types.NamespacedName) (*apiv1alpha1.OperandRequest, error) {
 	req := &apiv1alpha1.OperandRequest{}
-	if err := m.Client.Get(context.TODO(), key, req); err != nil {
+	if err := m.Client.Get(ctx, key, req); err != nil {
 		return nil, err
 	}
 	// Set default value for the OperandRequest
@@ -93,7 +96,7 @@ func (m *ODLMOperator) GetOperandRequest(key types.NamespacedName) (*apiv1alpha1
 }
 
 // ListOperandRequests list all the OperandRequests with specific label
-func (m *ODLMOperator) ListOperandRequests(label map[string]string) (*apiv1alpha1.OperandRequestList, error) {
+func (m *ODLMOperator) ListOperandRequests(ctx context.Context, label map[string]string) (*apiv1alpha1.OperandRequestList, error) {
 	requestList := &apiv1alpha1.OperandRequestList{}
 	opts := []client.ListOption{}
 	if label != nil {
@@ -102,7 +105,7 @@ func (m *ODLMOperator) ListOperandRequests(label map[string]string) (*apiv1alpha
 		}
 	}
 
-	if err := m.Client.List(context.TODO(), requestList, opts...); err != nil {
+	if err := m.Client.List(ctx, requestList, opts...); err != nil {
 		return nil, err
 	}
 	// Set default value for all the OperandRequest
@@ -117,14 +120,14 @@ func (m *ODLMOperator) ListOperandRequests(label map[string]string) (*apiv1alpha
 }
 
 // GetSubscription gets Subscription from a name
-func (m *ODLMOperator) GetSubscription(name, namespace string, packageName ...string) (*olmv1alpha1.Subscription, error) {
+func (m *ODLMOperator) GetSubscription(ctx context.Context, name, namespace string, packageName ...string) (*olmv1alpha1.Subscription, error) {
 	klog.V(3).Infof("Fetch Subscription: %s/%s", namespace, name)
 	sub := &olmv1alpha1.Subscription{}
 	subKey := types.NamespacedName{
 		Name:      name,
 		Namespace: namespace,
 	}
-	err := m.Client.Get(context.TODO(), subKey, sub)
+	err := m.Client.Get(ctx, subKey, sub)
 	if err == nil {
 		return sub, nil
 	} else if !errors.IsNotFound(err) {
@@ -134,12 +137,12 @@ func (m *ODLMOperator) GetSubscription(name, namespace string, packageName ...st
 		Name:      packageName[0],
 		Namespace: namespace,
 	}
-	err = m.Client.Get(context.TODO(), subPkgKey, sub)
+	err = m.Client.Get(ctx, subPkgKey, sub)
 	return sub, err
 }
 
 // GetClusterServiceVersion gets the ClusterServiceVersion from the subscription
-func (m *ODLMOperator) GetClusterServiceVersion(sub *olmv1alpha1.Subscription) (*olmv1alpha1.ClusterServiceVersion, error) {
+func (m *ODLMOperator) GetClusterServiceVersion(ctx context.Context, sub *olmv1alpha1.Subscription) (*olmv1alpha1.ClusterServiceVersion, error) {
 	// Check the ClusterServiceVersion status in the subscription
 	if sub.Status.CurrentCSV == "" {
 		klog.Warningf("The ClusterServiceVersion for Subscription %s is not ready. Will check it again", sub.Name)
@@ -163,16 +166,16 @@ func (m *ODLMOperator) GetClusterServiceVersion(sub *olmv1alpha1.Subscription) (
 		Name:      ipName,
 		Namespace: ipNamespace,
 	}
-	if err := m.Client.Get(context.TODO(), ipKey, ip); err != nil {
+	if err := m.Client.Get(ctx, ipKey, ip); err != nil {
 		if !errors.IsNotFound(err) {
-			klog.Errorf("failed to get Installplan %s in the namespace %s: %s", ipName, ipNamespace, err)
+			klog.Errorf("failed to get Installplan %s/%s: %s", ipNamespace,ipName,  err)
 			return nil, err
 		}
 	} else {
 		if ip.Status.Phase == olmv1alpha1.InstallPlanPhaseFailed {
-			klog.Errorf("installplan %s in the namespace %s is failed", ipName, ipNamespace)
+			klog.Errorf("installplan %s/%s is failed", ipNamespace,ipName )
 		} else if ip.Status.Phase != olmv1alpha1.InstallPlanPhaseComplete {
-			klog.Warningf("Installplan %s in the namespace %s is not ready", ipName, ipNamespace)
+			klog.Warningf("Installplan %s/%s is not ready", ipNamespace, ipName)
 			return nil, nil
 		}
 	}
@@ -182,7 +185,7 @@ func (m *ODLMOperator) GetClusterServiceVersion(sub *olmv1alpha1.Subscription) (
 		Name:      csvName,
 		Namespace: csvNamespace,
 	}
-	if err := m.Client.Get(context.TODO(), csvKey, csv); err != nil {
+	if err := m.Client.Get(ctx, csvKey, csv); err != nil {
 		if errors.IsNotFound(err) {
 			klog.V(3).Infof("ClusterServiceVersion %s is not ready. Will check it when it is stable", sub.Name)
 			return nil, nil

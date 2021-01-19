@@ -18,15 +18,15 @@ package operandbindinfo
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"regexp"
-	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/wait"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -55,8 +55,10 @@ type Reconciler struct {
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.Background()
+func (r *Reconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reconcileErr error) {
+	// Creat context for the OperandBindInfo reconciler
+	ctx, cancel := context.WithTimeout(context.Background(), constant.DefaultRequestTimeout)
+	defer cancel()
 
 	// Fetch the OperandBindInfo instance
 	bindInfoInstance := &operatorv1alpha1.OperandBindInfo{}
@@ -64,6 +66,18 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		// Error reading the object - requeue the req.
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+
+	originalInstance := bindInfoInstance.DeepCopy()
+
+	// Always attempt to patch the status after each reconciliation.
+	defer func() {
+		if reflect.DeepEqual(originalInstance.Status, bindInfoInstance.Status) {
+			return
+		}
+		if err := r.Client.Status().Patch(ctx, bindInfoInstance, client.MergeFrom(originalInstance)); err != nil {
+			reconcileErr = utilerrors.NewAggregate([]error{reconcileErr, fmt.Errorf("error while patching OperandBindInfo.Status: %v", err)})
+		}
+	}()
 
 	klog.V(1).Infof("Reconciling OperandBindInfo: %s", req.NamespacedName)
 
@@ -79,7 +93,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// Remove finalizer when DeletionTimestamp none zero
 	if !bindInfoInstance.ObjectMeta.DeletionTimestamp.IsZero() {
-		if err := r.cleanupCopies(bindInfoInstance); err != nil {
+		if err := r.cleanupCopies(ctx, bindInfoInstance); err != nil {
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{}, nil
@@ -156,14 +170,14 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 				}
 			}
 			// Copy Secret
-			requeueSec, err := r.copySecret(binding.Secret, secretReq[key], operandNamespace, bindRequest.Namespace, bindInfoInstance, requestInstance)
+			requeueSec, err := r.copySecret(ctx, binding.Secret, secretReq[key], operandNamespace, bindRequest.Namespace, bindInfoInstance, requestInstance)
 			if err != nil {
 				merr.Add(err)
 				continue
 			}
 			requeue = requeue || requeueSec
 			// Copy ConfigMap
-			requeueCm, err := r.copyConfigmap(binding.Configmap, cmReq[key], operandNamespace, bindRequest.Namespace, bindInfoInstance, requestInstance)
+			requeueCm, err := r.copyConfigmap(ctx, binding.Configmap, cmReq[key], operandNamespace, bindRequest.Namespace, bindInfoInstance, requestInstance)
 			if err != nil {
 				merr.Add(err)
 				continue
@@ -172,29 +186,23 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 	}
 	if len(merr.Errors) != 0 {
-		if err := r.updateBindInfoPhase(bindInfoInstance, operatorv1alpha1.BindInfoFailed, requestNamespaces); err != nil {
-			return ctrl.Result{}, err
-		}
+		r.updateBindInfoPhase(bindInfoInstance, operatorv1alpha1.BindInfoFailed, requestNamespaces)
 		return ctrl.Result{}, merr
 	}
 
 	if requeue {
-		if err := r.updateBindInfoPhase(bindInfoInstance, operatorv1alpha1.BindInfoWaiting, requestNamespaces); err != nil {
-			return ctrl.Result{}, err
-		}
-		return reconcile.Result{RequeueAfter: 30 * time.Second}, nil
+		r.updateBindInfoPhase(bindInfoInstance, operatorv1alpha1.BindInfoWaiting, requestNamespaces)
+		return reconcile.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
 	}
 
-	if err := r.updateBindInfoPhase(bindInfoInstance, operatorv1alpha1.BindInfoCompleted, requestNamespaces); err != nil {
-		return ctrl.Result{}, err
-	}
+	r.updateBindInfoPhase(bindInfoInstance, operatorv1alpha1.BindInfoCompleted, requestNamespaces)
 
 	klog.V(1).Infof("Finished reconciling OperandBindInfo: %s", req.NamespacedName)
 	return ctrl.Result{}, nil
 }
 
 // Copy secret `sourceName` from source namespace `sourceNs` to target namespace `targetNs`
-func (r *Reconciler) copySecret(sourceName, targetName, sourceNs, targetNs string,
+func (r *Reconciler) copySecret(ctx context.Context, sourceName, targetName, sourceNs, targetNs string,
 	bindInfoInstance *operatorv1alpha1.OperandBindInfo, requestInstance *operatorv1alpha1.OperandRequest) (bool, error) {
 	if sourceName == "" || sourceNs == "" || targetNs == "" {
 		return false, nil
@@ -209,7 +217,7 @@ func (r *Reconciler) copySecret(sourceName, targetName, sourceNs, targetNs strin
 	}
 
 	secret := &corev1.Secret{}
-	if err := r.Client.Get(context.TODO(), types.NamespacedName{Name: sourceName, Namespace: sourceNs}, secret); err != nil {
+	if err := r.Client.Get(ctx, types.NamespacedName{Name: sourceName, Namespace: sourceNs}, secret); err != nil {
 		if errors.IsNotFound(err) {
 			klog.V(3).Infof("Secret %s is not found from the namespace %s", sourceName, sourceNs)
 			r.Recorder.Eventf(bindInfoInstance, corev1.EventTypeNormal, "NotFound", "No Secret %s in the namespace %s", sourceName, sourceNs)
@@ -242,10 +250,10 @@ func (r *Reconciler) copySecret(sourceName, targetName, sourceNs, targetNs strin
 		return false, err
 	}
 	// Create the Secret in the OperandRequest namespace
-	if err := r.Create(context.TODO(), secretCopy); err != nil {
+	if err := r.Create(ctx, secretCopy); err != nil {
 		if errors.IsAlreadyExists(err) {
 			// If already exist, update the Secret
-			if err := r.Update(context.TODO(), secretCopy); err != nil {
+			if err := r.Update(ctx, secretCopy); err != nil {
 				klog.Errorf("failed to update secret %s in the namespace %s: %v", targetName, targetNs, err)
 				return false, err
 			}
@@ -262,7 +270,7 @@ func (r *Reconciler) copySecret(sourceName, targetName, sourceNs, targetNs strin
 	})
 
 	// Update the operand Secret
-	if err := r.Update(context.TODO(), secret); err != nil {
+	if err := r.Update(ctx, secret); err != nil {
 		klog.Errorf("failed to update Secret %s in the namespace %s: %v", secret.Name, secret.Namespace, err)
 		return false, err
 	}
@@ -273,7 +281,7 @@ func (r *Reconciler) copySecret(sourceName, targetName, sourceNs, targetNs strin
 
 // Copy configmap `sourceName` from namespace `sourceNs` to namespace `targetNs`
 // and rename it to `targetName`
-func (r *Reconciler) copyConfigmap(sourceName, targetName, sourceNs, targetNs string,
+func (r *Reconciler) copyConfigmap(ctx context.Context, sourceName, targetName, sourceNs, targetNs string,
 	bindInfoInstance *operatorv1alpha1.OperandBindInfo, requestInstance *operatorv1alpha1.OperandRequest) (bool, error) {
 	if sourceName == "" || sourceNs == "" || targetNs == "" {
 		return false, nil
@@ -288,7 +296,7 @@ func (r *Reconciler) copyConfigmap(sourceName, targetName, sourceNs, targetNs st
 	}
 
 	cm := &corev1.ConfigMap{}
-	if err := r.Client.Get(context.TODO(), types.NamespacedName{Name: sourceName, Namespace: sourceNs}, cm); err != nil {
+	if err := r.Client.Get(ctx, types.NamespacedName{Name: sourceName, Namespace: sourceNs}, cm); err != nil {
 		if errors.IsNotFound(err) {
 			klog.V(3).Infof("Configmap %s is not found from the namespace %s", sourceName, sourceNs)
 			r.Recorder.Eventf(bindInfoInstance, corev1.EventTypeNormal, "NotFound", "No Configmap %s in the namespace %s", sourceName, sourceNs)
@@ -320,10 +328,10 @@ func (r *Reconciler) copyConfigmap(sourceName, targetName, sourceNs, targetNs st
 		return false, err
 	}
 	// Create the ConfigMap in the OperandRequest namespace
-	if err := r.Create(context.TODO(), cmCopy); err != nil {
+	if err := r.Create(ctx, cmCopy); err != nil {
 		if errors.IsAlreadyExists(err) {
 			// If already exist, update the ConfigMap
-			if err := r.Update(context.TODO(), cmCopy); err != nil {
+			if err := r.Update(ctx, cmCopy); err != nil {
 				klog.Errorf("failed to update ConfigMap %s in the namespace %s: %v", sourceName, targetNs, err)
 				return false, err
 			}
@@ -341,7 +349,7 @@ func (r *Reconciler) copyConfigmap(sourceName, targetName, sourceNs, targetNs st
 	})
 
 	// Update the operand Configmap
-	if err := r.Update(context.TODO(), cm); err != nil {
+	if err := r.Update(ctx, cm); err != nil {
 		klog.Errorf("failed to update Configmap %s in the namespace %s: %v", cm.Name, cm.Namespace, err)
 		return false, err
 	}
@@ -350,47 +358,35 @@ func (r *Reconciler) copyConfigmap(sourceName, targetName, sourceNs, targetNs st
 	return false, nil
 }
 
-// Get the OperandBindInfo instance with the name and namespace
-func (r *Reconciler) getBindInfoInstance(name, namespace string) (*operatorv1alpha1.OperandBindInfo, error) {
-	klog.V(3).Infof("Get the OperandBindInfo %s from the namespace %s", name, namespace)
-	// Fetch the OperandBindInfo instance
-	bindInfo := &operatorv1alpha1.OperandBindInfo{}
-	if err := r.Client.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, bindInfo); err != nil {
-		// Error reading the object - requeue the req.
-		return nil, err
-	}
-	return bindInfo, nil
-}
-
-func (r *Reconciler) cleanupCopies(bindInfoInstance *operatorv1alpha1.OperandBindInfo) error {
+func (r *Reconciler) cleanupCopies(ctx context.Context, bindInfoInstance *operatorv1alpha1.OperandBindInfo) error {
 	secretList := &corev1.SecretList{}
 	cmList := &corev1.ConfigMapList{}
 
 	opts := []client.ListOption{
 		client.MatchingLabels(map[string]string{bindInfoInstance.Namespace + "." + bindInfoInstance.Name + "/bindinfo": "true"}),
 	}
-	if err := r.Client.List(context.TODO(), secretList, opts...); err != nil {
+	if err := r.Client.List(ctx, secretList, opts...); err != nil {
 		return err
 	}
-	if err := r.Client.List(context.TODO(), cmList, opts...); err != nil {
+	if err := r.Client.List(ctx, cmList, opts...); err != nil {
 		return err
 	}
 
 	for i := range secretList.Items {
-		if err := r.Delete(context.TODO(), &secretList.Items[i]); err != nil {
+		if err := r.Delete(ctx, &secretList.Items[i]); err != nil {
 			return err
 		}
 	}
 
 	for i := range cmList.Items {
-		if err := r.Delete(context.TODO(), &cmList.Items[i]); err != nil {
+		if err := r.Delete(ctx, &cmList.Items[i]); err != nil {
 			return err
 		}
 	}
 	// Update finalizer to allow delete CR
 	removed := bindInfoInstance.RemoveFinalizer()
 	if removed {
-		err := r.Update(context.TODO(), bindInfoInstance)
+		err := r.Update(ctx, bindInfoInstance)
 		if err != nil {
 			return err
 		}
@@ -425,6 +421,8 @@ func getBindingInfofromRequest(bindInfoInstance *operatorv1alpha1.OperandBindInf
 }
 
 func (r *Reconciler) getRegistryToRequestMapper(mgr manager.Manager) handler.ToRequestsFunc {
+	ctx, cancel := context.WithTimeout(context.Background(), constant.DefaultRequestTimeout)
+	defer cancel()
 	return func(object handler.MapObject) []reconcile.Request {
 		mgrClient := mgr.GetClient()
 		bindInfoList := &operatorv1alpha1.OperandBindInfoList{}
@@ -432,7 +430,7 @@ func (r *Reconciler) getRegistryToRequestMapper(mgr manager.Manager) handler.ToR
 			client.MatchingLabels(map[string]string{object.Meta.GetNamespace() + "." + object.Meta.GetName() + "/registry": "true"}),
 		}
 
-		_ = mgrClient.List(context.TODO(), bindInfoList, opts...)
+		_ = mgrClient.List(ctx, bindInfoList, opts...)
 
 		bindinfos := []reconcile.Request{}
 		for _, bindinfo := range bindInfoList.Items {
@@ -444,36 +442,22 @@ func (r *Reconciler) getRegistryToRequestMapper(mgr manager.Manager) handler.ToR
 	}
 }
 
-func (r *Reconciler) updateBindInfoPhase(cr *operatorv1alpha1.OperandBindInfo, phase operatorv1alpha1.BindInfoPhase, requestNamespaces []operatorv1alpha1.ReconcileRequest) error {
-	if err := wait.PollImmediate(time.Second*20, time.Minute*10, func() (done bool, err error) {
-		bindInfoInstance, err := r.getBindInfoInstance(cr.Name, cr.Namespace)
-		if err != nil {
-			return false, err
+func (r *Reconciler) updateBindInfoPhase(bindInfoInstance *operatorv1alpha1.OperandBindInfo, phase operatorv1alpha1.BindInfoPhase, requestNamespaces []operatorv1alpha1.ReconcileRequest) {
+	var requestNsList []string
+	for _, ns := range requestNamespaces {
+		if ns.Namespace == bindInfoInstance.Namespace {
+			continue
 		}
-		var requestNsList []string
-		for _, ns := range requestNamespaces {
-			if ns.Namespace == bindInfoInstance.Namespace {
-				continue
-			}
-			requestNsList = append(requestNsList, ns.Namespace)
-		}
-		requestNsList = unique(requestNsList)
-		if bindInfoInstance.Status.Phase == phase && reflect.DeepEqual(requestNsList, bindInfoInstance.Status.RequestNamespaces) {
-			return true, nil
-		}
-		if len(requestNsList) != 0 {
-			bindInfoInstance.Status.RequestNamespaces = requestNsList
-		}
-		bindInfoInstance.Status.Phase = phase
-		if err := r.Status().Update(context.TODO(), bindInfoInstance); err != nil {
-			klog.V(3).Info("Waiting for OperandBindInfo instance status ready ...")
-			return false, nil
-		}
-		return true, nil
-	}); err != nil {
-		return err
+		requestNsList = append(requestNsList, ns.Namespace)
 	}
-	return nil
+	requestNsList = unique(requestNsList)
+	if bindInfoInstance.Status.Phase == phase && reflect.DeepEqual(requestNsList, bindInfoInstance.Status.RequestNamespaces) {
+		return
+	}
+	if len(requestNsList) != 0 {
+		bindInfoInstance.Status.RequestNamespaces = requestNsList
+	}
+	bindInfoInstance.Status.Phase = phase
 }
 
 func unique(stringSlice []string) []string {

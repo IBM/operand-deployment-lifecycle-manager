@@ -17,6 +17,7 @@
 package operandrequest
 
 import (
+	"context"
 	"fmt"
 
 	gset "github.com/deckarep/golang-set"
@@ -35,25 +36,18 @@ import (
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/util"
 )
 
-func (r *Reconciler) reconcileOperator(requestKey types.NamespacedName) error {
-	klog.V(1).Infof("Reconciling Operators for OperandRequest: %s", requestKey)
-	requestInstance, err := r.GetOperandRequest(requestKey)
-	if err != nil {
-		return err
-	}
+func (r *Reconciler) reconcileOperator(ctx context.Context, requestInstance *operatorv1alpha1.OperandRequest) error {
+	klog.V(1).Infof("Reconciling Operators for OperandRequest: %s/%s", requestInstance.GetNamespace(), requestInstance.GetName())
+
 	// Update request status
 	defer func() {
 		requestInstance.FreshMemberStatus()
 		requestInstance.UpdateClusterPhase()
-		err := r.updateOperandRequestStatus(requestInstance)
-		if err != nil {
-			klog.Errorf("failed to update the status for OperandRequest %s/%s : %v", requestInstance.Namespace, requestInstance.Name, err)
-		}
 	}()
 
 	for _, req := range requestInstance.Spec.Requests {
 		registryKey := requestInstance.GetRegistryKey(req)
-		registryInstance, err := r.GetOperandRegistry(registryKey)
+		registryInstance, err := r.GetOperandRegistry(ctx, registryKey)
 		if err != nil {
 			if errors.IsNotFound(err) {
 				r.Recorder.Eventf(requestInstance, corev1.EventTypeWarning, "NotFound", "NotFound OperandRegistry NamespacedName %s", registryKey.String())
@@ -74,12 +68,12 @@ func (r *Reconciler) reconcileOperator(requestKey types.NamespacedName) error {
 
 				// Check subscription if exist
 				namespace := r.GetOperatorNamespace(opt.InstallMode, opt.Namespace)
-				sub, err := r.GetSubscription(opt.Name, namespace, opt.PackageName)
+				sub, err := r.GetSubscription(ctx, opt.Name, namespace, opt.PackageName)
 
 				if err != nil {
 					if errors.IsNotFound(err) {
 						// Subscription does not exist, create a new one
-						if err = r.createSubscription(requestInstance, opt); err != nil {
+						if err = r.createSubscription(ctx, requestInstance, opt); err != nil {
 							requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorFailed, "")
 							return err
 						}
@@ -100,7 +94,7 @@ func (r *Reconciler) reconcileOperator(requestKey types.NamespacedName) error {
 						if opt.InstallPlanApproval != "" && sub.Spec.InstallPlanApproval != opt.InstallPlanApproval {
 							sub.Spec.InstallPlanApproval = opt.InstallPlanApproval
 						}
-						if err = r.updateSubscription(requestInstance, sub); err != nil {
+						if err = r.updateSubscription(ctx, requestInstance, sub); err != nil {
 							requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorFailed, "")
 							return err
 						}
@@ -118,15 +112,15 @@ func (r *Reconciler) reconcileOperator(requestKey types.NamespacedName) error {
 	}
 
 	// Delete specific operators
-	if err = r.absentOperatorsAndOperands(requestInstance); err != nil {
+	if err := r.absentOperatorsAndOperands(ctx, requestInstance); err != nil {
 		return err
 	}
-	klog.V(1).Infof("Finished reconciling Operators for OperandRequest: %s", requestKey)
+	klog.V(1).Infof("Finished reconciling Operators for OperandRequest: %s/%s", requestInstance.GetNamespace(), requestInstance.GetName())
 
 	return nil
 }
 
-func (r *Reconciler) createSubscription(cr *operatorv1alpha1.OperandRequest, opt *operatorv1alpha1.Operator) error {
+func (r *Reconciler) createSubscription(ctx context.Context, cr *operatorv1alpha1.OperandRequest, opt *operatorv1alpha1.Operator) error {
 	namespace := r.GetOperatorNamespace(opt.InstallMode, opt.Namespace)
 	klog.V(3).Info("Subscription Namespace: ", namespace)
 
@@ -171,9 +165,9 @@ func (r *Reconciler) createSubscription(cr *operatorv1alpha1.OperandRequest, opt
 	return nil
 }
 
-func (r *Reconciler) updateSubscription(cr *operatorv1alpha1.OperandRequest, sub *olmv1alpha1.Subscription) error {
+func (r *Reconciler) updateSubscription(ctx context.Context, cr *operatorv1alpha1.OperandRequest, sub *olmv1alpha1.Subscription) error {
 
-	klog.V(2).Info("Updating Subscription...", " Subscription Namespace: ", sub.Namespace, " Subscription Name: ", sub.Name)
+	klog.V(2).Infof("Updating Subscription %s/%s ...", sub.Namespace, sub.Name)
 	cr.SetUpdatingCondition(sub.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionTrue)
 
 	if err := r.Update(ctx, sub); err != nil {
@@ -183,7 +177,7 @@ func (r *Reconciler) updateSubscription(cr *operatorv1alpha1.OperandRequest, sub
 	return nil
 }
 
-func (r *Reconciler) deleteSubscription(operandName string, requestInstance *operatorv1alpha1.OperandRequest, registryInstance *operatorv1alpha1.OperandRegistry, configInstance *operatorv1alpha1.OperandConfig) error {
+func (r *Reconciler) deleteSubscription(ctx context.Context, operandName string, requestInstance *operatorv1alpha1.OperandRequest, registryInstance *operatorv1alpha1.OperandRegistry, configInstance *operatorv1alpha1.OperandConfig) error {
 	op := registryInstance.GetOperator(operandName)
 	if op == nil {
 		klog.V(2).Infof("Operand %s not found", operandName)
@@ -191,7 +185,7 @@ func (r *Reconciler) deleteSubscription(operandName string, requestInstance *ope
 	}
 
 	namespace := r.GetOperatorNamespace(op.InstallMode, op.Namespace)
-	sub, err := r.GetSubscription(operandName, namespace, op.PackageName)
+	sub, err := r.GetSubscription(ctx, operandName, namespace, op.PackageName)
 
 	if errors.IsNotFound(err) {
 		klog.V(3).Infof("There is no Subscription %s or %s in the namespace %s", operandName, op.PackageName, namespace)
@@ -204,7 +198,7 @@ func (r *Reconciler) deleteSubscription(operandName string, requestInstance *ope
 		return nil
 	}
 
-	csv, err := r.GetClusterServiceVersion(sub)
+	csv, err := r.GetClusterServiceVersion(ctx, sub)
 	// If can't get CSV, requeue the request
 	if err != nil {
 		return err
@@ -212,12 +206,12 @@ func (r *Reconciler) deleteSubscription(operandName string, requestInstance *ope
 
 	if csv != nil {
 		klog.V(2).Infof("Deleting all the Custom Resources for CSV, Namespace: %s, Name: %s", csv.Namespace, csv.Name)
-		if err := r.deleteAllCustomResource(csv, requestInstance, configInstance, operandName, op.Namespace); err != nil {
+		if err := r.deleteAllCustomResource(ctx, csv, requestInstance, configInstance, operandName, op.Namespace); err != nil {
 			klog.Errorf("failed to delete a Custom Resource: %v", err)
 			return err
 		}
 
-		if r.checkUninstallLabel(op.Name, namespace) {
+		if r.checkUninstallLabel(ctx, op.Name, namespace) {
 			klog.V(2).Infof("Operator %s has label operator.ibm.com/opreq-do-not-uninstall. Skip the uninstall", op.Name)
 			return nil
 		}
@@ -248,24 +242,24 @@ func (r *Reconciler) deleteSubscription(operandName string, requestInstance *ope
 	return nil
 }
 
-func (r *Reconciler) absentOperatorsAndOperands(requestInstance *operatorv1alpha1.OperandRequest) error {
-	needDeletedOperands, err := r.getNeedDeletedOperands(requestInstance)
+func (r *Reconciler) absentOperatorsAndOperands(ctx context.Context, requestInstance *operatorv1alpha1.OperandRequest) error {
+	needDeletedOperands, err := r.getNeedDeletedOperands(ctx, requestInstance)
 	if err != nil {
 		return err
 	}
 	for _, req := range requestInstance.Spec.Requests {
 		registryKey := requestInstance.GetRegistryKey(req)
-		registryInstance, err := r.GetOperandRegistry(registryKey)
+		registryInstance, err := r.GetOperandRegistry(ctx, registryKey)
 		if err != nil {
 			return err
 		}
-		configInstance, err := r.GetOperandConfig(registryKey)
+		configInstance, err := r.GetOperandConfig(ctx, registryKey)
 		if err != nil {
 			return err
 		}
 		merr := &util.MultiErr{}
 		for o := range needDeletedOperands.Iter() {
-			if err := r.deleteSubscription(fmt.Sprintf("%v", o), requestInstance, registryInstance, configInstance); err != nil {
+			if err := r.deleteSubscription(ctx, fmt.Sprintf("%v", o), requestInstance, registryInstance, configInstance); err != nil {
 				merr.Add(err)
 			}
 		}
@@ -276,14 +270,14 @@ func (r *Reconciler) absentOperatorsAndOperands(requestInstance *operatorv1alpha
 	return nil
 }
 
-func (r *Reconciler) getNeedDeletedOperands(requestInstance *operatorv1alpha1.OperandRequest) (gset.Set, error) {
+func (r *Reconciler) getNeedDeletedOperands(ctx context.Context, requestInstance *operatorv1alpha1.OperandRequest) (gset.Set, error) {
 	klog.V(3).Info("Getting the operater need to be delete")
 	deployedOperands := gset.NewSet()
 	for _, req := range requestInstance.Status.Members {
 		deployedOperands.Add(req.Name)
 	}
 
-	currentOperands, err := r.getCurrentOperands(requestInstance)
+	currentOperands, err := r.getCurrentOperands(ctx, requestInstance)
 	if err != nil {
 		return nil, err
 	}
@@ -291,12 +285,12 @@ func (r *Reconciler) getNeedDeletedOperands(requestInstance *operatorv1alpha1.Op
 	return needDeleteOperands, nil
 }
 
-func (r *Reconciler) getCurrentOperands(requestInstance *operatorv1alpha1.OperandRequest) (gset.Set, error) {
+func (r *Reconciler) getCurrentOperands(ctx context.Context, requestInstance *operatorv1alpha1.OperandRequest) (gset.Set, error) {
 	klog.V(3).Info("Getting the operaters have been deployed")
 	deployedOperands := gset.NewSet()
 	for _, req := range requestInstance.Spec.Requests {
 		registryKey := requestInstance.GetRegistryKey(req)
-		requestList, err := r.ListOperandRequests(map[string]string{registryKey.Namespace + "." + registryKey.Name + "/registry": "true"})
+		requestList, err := r.ListOperandRequests(ctx, map[string]string{registryKey.Namespace + "." + registryKey.Name + "/registry": "true"})
 		if err != nil {
 			return nil, err
 		}
@@ -347,10 +341,6 @@ func (r *Reconciler) generateClusterObjects(o *operatorv1alpha1.Operator) *clust
 	namespace := r.GetOperatorNamespace(o.InstallMode, o.Namespace)
 
 	// Subscription Object
-	installPlanApproval := olmv1alpha1.ApprovalAutomatic
-	if o.InstallPlanApproval != "" {
-		installPlanApproval = o.InstallPlanApproval
-	}
 	sub := &olmv1alpha1.Subscription{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      o.Name,
@@ -362,7 +352,7 @@ func (r *Reconciler) generateClusterObjects(o *operatorv1alpha1.Operator) *clust
 			Package:                o.PackageName,
 			CatalogSource:          o.SourceName,
 			CatalogSourceNamespace: o.SourceNamespace,
-			InstallPlanApproval:    installPlanApproval,
+			InstallPlanApproval:    o.InstallPlanApproval,
 		},
 	}
 	sub.SetGroupVersionKind(schema.GroupVersionKind{Group: olmv1alpha1.SchemeGroupVersion.Group, Kind: "Subscription", Version: olmv1alpha1.SchemeGroupVersion.Version})
@@ -394,7 +384,7 @@ func generateOperatorGroup(namespace string, targetNamespaces []string) *olmv1.O
 	return og
 }
 
-func (r *Reconciler) checkUninstallLabel(name, namespace string) bool {
+func (r *Reconciler) checkUninstallLabel(ctx context.Context, name, namespace string) bool {
 	sub := &olmv1alpha1.Subscription{}
 	subKey := types.NamespacedName{Name: name, Namespace: namespace}
 	if err := r.Client.Get(ctx, subKey, sub); err != nil {
