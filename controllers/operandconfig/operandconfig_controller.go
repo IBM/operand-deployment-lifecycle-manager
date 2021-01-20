@@ -23,7 +23,8 @@ import (
 	"reflect"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/api/errors"
+	"github.com/pkg/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -55,8 +56,8 @@ type Reconciler struct {
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *Reconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reconcileErr error) {
 	// Creat context for the OperandConfig reconciler
-	ctx, cancel := context.WithTimeout(context.Background(), constant.DefaultRequestTimeout)
-	defer cancel()
+	ctx := context.Background()
+
 	// Fetch the OperandConfig instance
 	instance := &operatorv1alpha1.OperandConfig{}
 	if err := r.Client.Get(ctx, req.NamespacedName, instance); err != nil {
@@ -126,14 +127,13 @@ func (r *Reconciler) updateStatus(ctx context.Context, instance *operatorv1alpha
 		namespace := r.GetOperatorNamespace(op.InstallMode, op.Namespace)
 		sub, err := r.GetSubscription(ctx, op.Name, namespace, op.PackageName)
 
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			klog.V(3).Infof("There is no Subscription %s or %s in the namespace %s", op.Name, op.PackageName, namespace)
 			continue
 		}
 
 		if err != nil {
-			klog.Errorf("failed to fetch Subscription %s or %s in the namespace %s: %v", op.Name, op.PackageName, namespace, err)
-			return err
+			return errors.Wrapf(err, "failed to get Subscription %s or %s in the namespace %s", op.Name, op.PackageName, namespace)
 		}
 
 		if _, ok := sub.Labels[constant.OpreqLabel]; !ok {
@@ -144,8 +144,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, instance *operatorv1alpha
 		csv, err := r.GetClusterServiceVersion(ctx, sub)
 
 		if err != nil {
-			klog.Errorf("failed to fetch ClusterServiceVersion for the Subscription %s in the namespace %s: %v", sub.Name, namespace, err)
-			return err
+			return errors.Wrapf(err, "failed to get ClusterServiceVersion for the Subscription %s/%s", namespace, sub.Name)
 		}
 
 		if csv == nil {
@@ -176,8 +175,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, instance *operatorv1alpha
 		// Convert CR template string to slice
 		err = json.Unmarshal([]byte(almExamples), &crTemplates)
 		if err != nil {
-			klog.Errorf("failed to convert alm-examples in the Subscription %s to slice: %v", sub.Name, err)
-			return err
+			return errors.Wrapf(err, "failed to convert alm-examples in the Subscription %s/%s to slice", sub.Namespace, sub.Name)
 		}
 
 		merr := &util.MultiErr{}
@@ -210,9 +208,9 @@ func (r *Reconciler) updateStatus(ctx context.Context, instance *operatorv1alpha
 				Namespace: op.Namespace,
 			}, &unstruct)
 
-			if getError != nil && !errors.IsNotFound(getError) {
+			if getError != nil && !apierrors.IsNotFound(getError) {
 				instance.Status.ServiceStatus[op.Name].CrStatus[kind] = operatorv1alpha1.ServiceFailed
-			} else if errors.IsNotFound(getError) {
+			} else if apierrors.IsNotFound(getError) {
 			} else {
 				instance.Status.ServiceStatus[op.Name].CrStatus[kind] = operatorv1alpha1.ServiceRunning
 			}
@@ -243,7 +241,7 @@ func (r *Reconciler) getRequestToConfigMapper(ctx context.Context) handler.ToReq
 		opreqInstance := &operatorv1alpha1.OperandRequest{}
 		requests := []reconcile.Request{}
 		// If the OperandRequest has been deleted, reconcile all the OperandConfig in the cluster
-		if err := r.Client.Get(ctx, types.NamespacedName{Name: object.Meta.GetName(), Namespace: object.Meta.GetNamespace()}, opreqInstance); errors.IsNotFound(err) {
+		if err := r.Client.Get(ctx, types.NamespacedName{Name: object.Meta.GetName(), Namespace: object.Meta.GetNamespace()}, opreqInstance); apierrors.IsNotFound(err) {
 			configList := &operatorv1alpha1.OperandConfigList{}
 			_ = r.Client.List(ctx, configList)
 			for _, config := range configList.Items {
@@ -266,8 +264,7 @@ func (r *Reconciler) getRequestToConfigMapper(ctx context.Context) handler.ToReq
 
 // SetupWithManager adds OperandConfig controller to the manager.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
-	ctx, cancel := context.WithTimeout(context.Background(), constant.DefaultRequestTimeout)
-	defer cancel()
+	ctx := context.Background()
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&operatorv1alpha1.OperandConfig{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Watches(&source.Kind{Type: &operatorv1alpha1.OperandRequest{}}, &handler.EnqueueRequestsFromMapFunc{

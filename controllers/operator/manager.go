@@ -20,7 +20,8 @@ import (
 	"context"
 
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	"github.com/pkg/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
@@ -130,7 +131,7 @@ func (m *ODLMOperator) GetSubscription(ctx context.Context, name, namespace stri
 	err := m.Client.Get(ctx, subKey, sub)
 	if err == nil {
 		return sub, nil
-	} else if !errors.IsNotFound(err) {
+	} else if !apierrors.IsNotFound(err) {
 		return nil, err
 	}
 	subPkgKey := types.NamespacedName{
@@ -167,13 +168,12 @@ func (m *ODLMOperator) GetClusterServiceVersion(ctx context.Context, sub *olmv1a
 		Namespace: ipNamespace,
 	}
 	if err := m.Client.Get(ctx, ipKey, ip); err != nil {
-		if !errors.IsNotFound(err) {
-			klog.Errorf("failed to get Installplan %s/%s: %s", ipNamespace,ipName,  err)
-			return nil, err
+		if !apierrors.IsNotFound(err) {
+			return nil, errors.Wrapf(err, "failed to get Installplan")
 		}
 	} else {
 		if ip.Status.Phase == olmv1alpha1.InstallPlanPhaseFailed {
-			klog.Errorf("installplan %s/%s is failed", ipNamespace,ipName )
+			klog.Errorf("installplan %s/%s is failed", ipNamespace, ipName)
 		} else if ip.Status.Phase != olmv1alpha1.InstallPlanPhaseComplete {
 			klog.Warningf("Installplan %s/%s is not ready", ipNamespace, ipName)
 			return nil, nil
@@ -186,12 +186,11 @@ func (m *ODLMOperator) GetClusterServiceVersion(ctx context.Context, sub *olmv1a
 		Namespace: csvNamespace,
 	}
 	if err := m.Client.Get(ctx, csvKey, csv); err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			klog.V(3).Infof("ClusterServiceVersion %s is not ready. Will check it when it is stable", sub.Name)
 			return nil, nil
 		}
-		klog.Errorf("failed to get ClusterServiceVersion %s in the namespace %s: %v", csvName, csvNamespace, err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to get ClusterServiceVersion %s/%s", csvNamespace, csvName)
 	}
 
 	klog.V(3).Infof("Get ClusterServiceVersion %s in the namespace %s", csvName, csvNamespace)

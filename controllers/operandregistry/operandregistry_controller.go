@@ -34,7 +34,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
-	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
 	deploy "github.com/IBM/operand-deployment-lifecycle-manager/controllers/operator"
 )
 
@@ -51,8 +50,7 @@ type Reconciler struct {
 func (r *Reconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reconcileErr error) {
 
 	// Creat context for the OperandBindInfo reconciler
-	ctx, cancel := context.WithTimeout(context.Background(), constant.DefaultRequestTimeout)
-	defer cancel()
+	ctx := context.Background()
 
 	// Fetch the OperandRegistry instance
 	instance := &operatorv1alpha1.OperandRegistry{}

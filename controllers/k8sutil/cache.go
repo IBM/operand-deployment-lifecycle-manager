@@ -62,8 +62,7 @@ func NewODLMCache(namespaces []string, gvkLabelMap map[schema.GroupVersionKind]f
 		// Create a default cache for the other resources
 		fallback, err := NewCache(config, opts)
 		if err != nil {
-			klog.Errorf("failed to init fallback cache: %v", err)
-			return nil, err
+			return nil, fmt.Errorf("failed to init fallback cache: %v", err)
 		}
 
 		// Return the customized cache

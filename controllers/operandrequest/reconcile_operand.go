@@ -25,7 +25,8 @@ import (
 	"time"
 
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	"github.com/pkg/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -45,7 +46,6 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 
 	merr := &util.MultiErr{}
 	if err := r.checkCustomResource(ctx, requestInstance); err != nil {
-		klog.Error(err)
 		merr.Add(err)
 		return merr
 	}
@@ -53,14 +53,12 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 		registryKey := requestInstance.GetRegistryKey(req)
 		configInstance, err := r.GetOperandConfig(ctx, registryKey)
 		if err != nil {
-			klog.Error("failed to get the OperandConfig instance: ", err)
-			merr.Add(err)
+			merr.Add(errors.Wrapf(err, "failed to get the OperandConfig %s", registryKey.String()))
 			continue
 		}
 		registryInstance, err := r.GetOperandRegistry(ctx, registryKey)
 		if err != nil {
-			klog.Error("failed to get the OperandRegistry instance: ", err)
-			merr.Add(err)
+			merr.Add(errors.Wrapf(err, "failed to get the OperandRegistry %s", registryKey.String()))
 			continue
 		}
 		for _, operand := range req.Operands {
@@ -80,7 +78,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 
 			sub, err := r.GetSubscription(ctx, operatorName, namespace, opdRegistry.PackageName)
 
-			if errors.IsNotFound(err) {
+			if apierrors.IsNotFound(err) {
 				klog.V(2).Infof("There is no Subscription %s or %s in the namespace %s", operatorName, opdRegistry.PackageName, namespace)
 				continue
 			}
@@ -94,7 +92,6 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 
 			// If can't get CSV, requeue the request
 			if err != nil {
-				klog.Errorf("failed to get the ClusterServiceVersion for the Subscription %s in the namespace %s: %s", operatorName, namespace, err)
 				merr.Add(err)
 				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "")
 				continue
@@ -107,13 +104,12 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 			}
 
 			if csv.Status.Phase == olmv1alpha1.CSVPhaseFailed {
-				klog.Errorf("the ClusterServiceVersion for Subscription %s is Failed", operatorName)
-				merr.Add(fmt.Errorf("the ClusterServiceVersion for Subscription %s is Failed", operatorName))
+				merr.Add(fmt.Errorf("the ClusterServiceVersion of Subscription %s/%s is Failed", namespace, operatorName))
 				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "")
 				continue
 			}
 			if csv.Status.Phase != olmv1alpha1.CSVPhaseSucceeded {
-				klog.Errorf("the ClusterServiceVersion for Subscription %s is not Ready", operatorName)
+				klog.Errorf("the ClusterServiceVersion of Subscription %s/%s is not Ready", namespace, operatorName)
 				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorInstalling, "")
 				continue
 			}
@@ -135,7 +131,6 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 			}
 
 			if err != nil {
-				klog.Error("failed to get create or update customresource: ", err)
 				merr.Add(err)
 				requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceFailed)
 			}
@@ -157,10 +152,9 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 	var crTemplates []interface{}
 
 	// Convert CR template string to slice
-	crTemplatesErr := json.Unmarshal([]byte(almExamples), &crTemplates)
-	if crTemplatesErr != nil {
-		klog.Errorf("failed to convert alm-examples in the Subscription %s to slice: %s", service.Name, crTemplatesErr)
-		return crTemplatesErr
+	err := json.Unmarshal([]byte(almExamples), &crTemplates)
+	if err != nil {
+		return errors.Wrapf(err, "failed to convert alm-examples in the Subscription %s/%s to slice", namespace, service.Name)
 	}
 
 	merr := &util.MultiErr{}
@@ -174,26 +168,25 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 
 		name := unstruct.Object["metadata"].(map[string]interface{})["name"].(string)
 
-		getError := r.Client.Get(ctx, types.NamespacedName{
+		err := r.Client.Get(ctx, types.NamespacedName{
 			Name:      name,
 			Namespace: namespace,
 		}, &unstruct)
 
-		if getError != nil && !errors.IsNotFound(getError) {
-			klog.Error("failed to get the custom resource should be deleted with name: ", name, getError)
-			merr.Add(getError)
+		if err != nil && !apierrors.IsNotFound(err) {
+			merr.Add(errors.Wrapf(err, "failed to get the custom resource %s/%s", namespace, name))
 			continue
-		} else if errors.IsNotFound(getError) {
+		} else if apierrors.IsNotFound(err) {
 			// Create Custom resource
-			if createErr := r.compareConfigandExample(ctx, unstruct, service, namespace); createErr != nil {
-				merr.Add(createErr)
+			if err := r.compareConfigandExample(ctx, unstruct, service, namespace); err != nil {
+				merr.Add(err)
 				continue
 			}
 		} else {
 			if checkLabel(unstruct, map[string]string{constant.OpreqLabel: "true"}) {
 				// Update or Delete Custom resource
-				if updateDeleteErr := r.existingCustomResource(ctx, unstruct, service, namespace); updateDeleteErr != nil {
-					merr.Add(updateDeleteErr)
+				if err := r.existingCustomResource(ctx, unstruct, service, namespace); err != nil {
+					merr.Add(err)
 					continue
 				}
 			} else {
@@ -215,10 +208,9 @@ func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance
 	var crTemplates []interface{}
 
 	// Convert CR template string to slice
-	crTemplatesErr := json.Unmarshal([]byte(almExamples), &crTemplates)
-	if crTemplatesErr != nil {
-		klog.Errorf("failed to convert alm-examples in the Subscription %s to slice: %s", operand.Name, crTemplatesErr)
-		return crTemplatesErr
+	err := json.Unmarshal([]byte(almExamples), &crTemplates)
+	if err != nil {
+		return errors.Wrapf(err, "failed to convert alm-examples in the Subscription %s/%s to slice", requestKey.Namespace, operand.Name)
 	}
 
 	merr := &util.MultiErr{}
@@ -229,9 +221,7 @@ func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance
 
 		// Create an unstruct object for CR and request its value to CR template
 		var unstruct unstructured.Unstructured
-
 		unstruct.Object = crTemplate.(map[string]interface{})
-
 		if unstruct.Object["kind"].(string) != operand.Kind {
 			continue
 		}
@@ -252,11 +242,10 @@ func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance
 			Namespace: requestKey.Namespace,
 		}, &unstruct)
 
-		if err != nil && !errors.IsNotFound(err) {
-			klog.Error("failed to get the custom resource should be deleted with name: ", name, err)
-			merr.Add(err)
+		if err != nil && !apierrors.IsNotFound(err) {
+			merr.Add(errors.Wrapf(err, "failed to get custom resource %s/%s", requestKey.Namespace, name))
 			continue
-		} else if errors.IsNotFound(err) {
+		} else if apierrors.IsNotFound(err) {
 			// Create Custom resource
 			if err := r.createCustomResource(ctx, unstruct, requestKey.Namespace, operand.Kind, operand.Spec.Raw); err != nil {
 				merr.Add(err)
@@ -268,7 +257,6 @@ func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance
 				// Update or Delete Custom resource
 				klog.V(3).Info("Found OperandConfig spec for custom resource: " + operand.Kind)
 				if err := r.updateCustomResource(ctx, unstruct, requestKey.Namespace, operand.Kind, operand.Spec.Raw); err != nil {
-					klog.Error("failed to create custom resource: ", err)
 					return err
 				}
 			} else {
@@ -277,7 +265,7 @@ func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance
 		}
 	}
 	if !found {
-		klog.Errorf("not found CRD with Kind %s in the alm-example", operand.Kind)
+		klog.Warningf("not found CRD with Kind %s in the alm-example", operand.Kind)
 	}
 	if len(merr.Errors) != 0 {
 		return merr
@@ -329,10 +317,9 @@ func (r *Reconciler) deleteAllCustomResource(ctx context.Context, csv *olmv1alph
 	var crTemplates []interface{}
 
 	// Convert CR template string to slice
-	crTemplatesErr := json.Unmarshal([]byte(almExamples), &crTemplates)
-	if crTemplatesErr != nil {
-		klog.Errorf("failed to convert alm-examples in the Subscription %s to slice: %s", service.Name, crTemplatesErr)
-		return crTemplatesErr
+	err := json.Unmarshal([]byte(almExamples), &crTemplates)
+	if err != nil {
+		return errors.Wrapf(err, "failed to convert alm-examples in the Subscription %s to slice", service.Name)
 	}
 
 	// Merge OperandConfig and ClusterServiceVersion alm-examples
@@ -350,24 +337,22 @@ func (r *Reconciler) deleteAllCustomResource(ctx context.Context, csv *olmv1alph
 
 			// Compare the name of OperandConfig and CRD name
 			if strings.EqualFold(kind, crdName) {
-				getError := r.Client.Get(ctx, types.NamespacedName{
+				err := r.Client.Get(ctx, types.NamespacedName{
 					Name:      name,
 					Namespace: namespace,
 				}, &unstruct)
-				if getError != nil && !errors.IsNotFound(getError) {
-					klog.Errorf("failed to get the custom resource %s in the namespace %s: %s", name, namespace, getError)
-					merr.Add(getError)
+				if err != nil && !apierrors.IsNotFound(err) {
+					merr.Add(err)
 					continue
 				}
-				if errors.IsNotFound(getError) {
+				if apierrors.IsNotFound(err) {
 					klog.V(2).Info("Finish Deleting the CR: " + kind)
 					continue
 				}
 				if checkLabel(unstruct, map[string]string{constant.OpreqLabel: "true"}) {
-					deleteErr := r.deleteCustomResource(ctx, unstruct, namespace)
-					if deleteErr != nil {
-						klog.Errorf("failed to delete custom resource %s in the namespace %s: %s", name, namespace, deleteErr)
-						return deleteErr
+					err := r.deleteCustomResource(ctx, unstruct, namespace)
+					if err != nil {
+						return err
 					}
 				}
 
@@ -389,10 +374,9 @@ func (r *Reconciler) compareConfigandExample(ctx context.Context, unstruct unstr
 		// Compare the name of OperandConfig and CRD name
 		if strings.EqualFold(kind, crdName) {
 			klog.V(3).Info("Found OperandConfig spec for custom resource: " + kind)
-			createErr := r.createCustomResource(ctx, unstruct, namespace, crdName, crdConfig.Raw)
-			if createErr != nil {
-				klog.Error("failed to create custom resource: ", createErr)
-				return createErr
+			err := r.createCustomResource(ctx, unstruct, namespace, crdName, crdConfig.Raw)
+			if err != nil {
+				return errors.Wrapf(err, "failed to create custom resource -- Kind: %s", kind)
 			}
 		}
 	}
@@ -413,10 +397,9 @@ func (r *Reconciler) createCustomResource(ctx context.Context, unstruct unstruct
 	ensureLabel(unstruct, map[string]string{constant.OpreqLabel: "true"})
 
 	// Creat the CR
-	crCreateErr := r.Create(ctx, &unstruct)
-	if crCreateErr != nil && !errors.IsAlreadyExists(crCreateErr) {
-		klog.Errorf("failed to create the Custom Resource %s: %s ", crName, crCreateErr)
-		return crCreateErr
+	crerr := r.Create(ctx, &unstruct)
+	if crerr != nil && !apierrors.IsAlreadyExists(crerr) {
+		return errors.Wrap(crerr, "failed to create custom resource")
 	}
 
 	klog.V(2).Info("Finish creating the Custom Resource: ", crName)
@@ -433,18 +416,16 @@ func (r *Reconciler) existingCustomResource(ctx context.Context, unstruct unstru
 		if strings.EqualFold(kind, crName) {
 			found = true
 			klog.V(3).Info("Found OperandConfig spec for custom resource: " + kind)
-			updateErr := r.updateCustomResource(ctx, unstruct, namespace, crName, crdConfig.Raw)
-			if updateErr != nil {
-				klog.Error("failed to create custom resource: ", updateErr)
-				return updateErr
+			err := r.updateCustomResource(ctx, unstruct, namespace, crName, crdConfig.Raw)
+			if err != nil {
+				return errors.Wrap(err, "failed to update custom resource")
 			}
 		}
 	}
 	if !found {
-		deleteErr := r.deleteCustomResource(ctx, unstruct, namespace)
-		if deleteErr != nil {
-			klog.Error("failed to delete custom resource: ", deleteErr)
-			return deleteErr
+		err := r.deleteCustomResource(ctx, unstruct, namespace)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
@@ -466,14 +447,13 @@ func (r *Reconciler) updateCustomResource(ctx context.Context, unstruct unstruct
 			},
 		}
 
-		crGetErr := r.Client.Get(ctx, types.NamespacedName{
+		err := r.Client.Get(ctx, types.NamespacedName{
 			Name:      name,
 			Namespace: namespace,
 		}, &existingCR)
 
-		if crGetErr != nil {
-			klog.Errorf("failed to get the Custom Resource %s: %s", crName, crGetErr)
-			return false, crGetErr
+		if err != nil {
+			return false, errors.Wrapf(err, "failed to get custom resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 		}
 
 		if checkLabel(existingCR, map[string]string{constant.OpreqLabel: "true"}) {
@@ -492,11 +472,10 @@ func (r *Reconciler) updateCustomResource(ctx context.Context, unstruct unstruct
 			klog.V(2).Infof("updating custom resource with apiversion: %s, kind: %s, %s/%s", apiversion, kind, namespace, name)
 
 			existingCR.Object["spec"] = mergedCR
-			crUpdateErr := r.Update(ctx, &existingCR)
+			err := r.Update(ctx, &existingCR)
 
-			if crUpdateErr != nil {
-				klog.Errorf("failed to update the Custom Resource %s: %s", crName, crUpdateErr)
-				return false, crUpdateErr
+			if err != nil {
+				return false, errors.Wrapf(err, "failed to update custom resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 			}
 
 			UpdatedCR := unstructured.Unstructured{
@@ -506,14 +485,14 @@ func (r *Reconciler) updateCustomResource(ctx context.Context, unstruct unstruct
 				},
 			}
 
-			err := r.Client.Get(ctx, types.NamespacedName{
+			err = r.Client.Get(ctx, types.NamespacedName{
 				Name:      name,
 				Namespace: namespace,
 			}, &UpdatedCR)
 
 			if err != nil {
-				klog.Errorf("failed to get the Custom Resource %s: %s", crName, err)
-				return false, err
+				return false, errors.Wrapf(err, "failed to get custom resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+
 			}
 
 			if UpdatedCR.Object["metadata"].(map[string]interface{})["generation"] != CRgeneration {
@@ -524,8 +503,7 @@ func (r *Reconciler) updateCustomResource(ctx context.Context, unstruct unstruct
 	})
 
 	if err != nil {
-		klog.Error("failed to update the custom resource: ", err)
-		return err
+		return errors.Wrapf(err, "failed to update custom resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 	}
 
 	return nil
@@ -544,25 +522,23 @@ func (r *Reconciler) deleteCustomResource(ctx context.Context, unstruct unstruct
 			"kind":       kind,
 		},
 	}
-	getError := r.Client.Get(ctx, types.NamespacedName{
+	err := r.Client.Get(ctx, types.NamespacedName{
 		Name:      name,
 		Namespace: namespace,
 	}, &crShouldBeDeleted)
-	if getError != nil && !errors.IsNotFound(getError) {
-		klog.Error("failed to get the custom resource should be deleted with name: ", name, getError)
-		return getError
+	if err != nil && !apierrors.IsNotFound(err) {
+		return errors.Wrapf(err, "failed to get custom resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 	}
-	if errors.IsNotFound(getError) {
+	if apierrors.IsNotFound(err) {
 		klog.V(3).Infof("There is no custom resource: %s from custom resource definition: %s", name, kind)
 	} else {
 		if checkLabel(crShouldBeDeleted, map[string]string{constant.OpreqLabel: "true"}) && !checkLabel(crShouldBeDeleted, map[string]string{constant.NotUninstallLabel: "true"}) {
 			klog.V(3).Infof("Deleting custom resource: %s from custom resource definition: %s", name, kind)
-			deleteErr := r.Delete(ctx, &crShouldBeDeleted)
-			if deleteErr != nil {
-				klog.Error("failed to delete the custom resource should be deleted: ", deleteErr)
-				return deleteErr
+			err := r.Delete(ctx, &crShouldBeDeleted)
+			if err != nil {
+				return errors.Wrapf(err, "failed to delete custom resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 			}
-			err := wait.PollImmediate(time.Second*20, time.Minute*10, func() (bool, error) {
+			err = wait.PollImmediate(time.Second*20, time.Minute*10, func() (bool, error) {
 				if strings.EqualFold(kind, "OperandRequest") {
 					return true, nil
 				}
@@ -570,29 +546,26 @@ func (r *Reconciler) deleteCustomResource(ctx context.Context, unstruct unstruct
 				err := r.Client.Get(ctx, types.NamespacedName{
 					Name:      name,
 					Namespace: namespace,
-				},
-					&unstruct)
-				if errors.IsNotFound(err) {
+				}, &unstruct)
+				if apierrors.IsNotFound(err) {
 					return true, nil
 				}
 				if err != nil {
-					klog.Error("failed to get the custom resource: ", err)
-					return false, err
+					return false, errors.Wrapf(err, "failed to get custom resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 				}
 				return false, nil
 			})
 			if err != nil {
-				klog.Error("failed to delete the custom resource should be deleted: ", err)
-				return err
+				return errors.Wrapf(err, "failed to delete custom resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 			}
-			klog.V(2).Infof("Finish deleting custom resource: %s from custom resource definition: %s", name, kind)
+			klog.V(2).Infof("Finish deleting custom resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 		}
 	}
 	return nil
 }
 
 func (r *Reconciler) checkCustomResource(ctx context.Context, requestInstance *operatorv1alpha1.OperandRequest) error {
-	klog.V(3).Infof("checking the custom resource should be deleted from OperandRequest %s/%s", requestInstance.Namespace, requestInstance.Name)
+	klog.V(3).Infof("deleting the custom resource from OperandRequest %s/%s", requestInstance.Namespace, requestInstance.Name)
 
 	members := requestInstance.Status.Members
 

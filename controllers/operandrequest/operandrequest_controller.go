@@ -25,9 +25,10 @@ import (
 	gset "github.com/deckarep/golang-set"
 	olmv1 "github.com/operator-framework/api/pkg/operators/v1"
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
+	"github.com/pkg/errors"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/discovery"
@@ -67,8 +68,7 @@ type clusterObjects struct {
 func (r *Reconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reconcileErr error) {
 
 	// Creat context for the OperandBindInfo reconciler
-	ctx, cancel := context.WithTimeout(context.Background(), constant.DefaultRequestTimeout)
-	defer cancel()
+	ctx := context.Background()
 
 	// Fetch the OperandRequest instance
 	requestInstance := &operatorv1alpha1.OperandRequest{}
@@ -92,6 +92,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reconcileErr er
 	// Add namespace member into NamespaceScope and check if has the update permission
 	hasPermission, err := r.addPermission(ctx, req)
 	if err != nil {
+		klog.Errorf("failed to add namespace member into NamespaceScope: %v", err)
 		return ctrl.Result{}, err
 	}
 	if !hasPermission {
@@ -173,8 +174,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reconcileErr er
 
 func (r *Reconciler) addPermission(ctx context.Context, req ctrl.Request) (bool, error) {
 	if err := r.AddNamespaceMemberIntoNamespaceScope(ctx, req.NamespacedName); err != nil {
-		klog.Errorf("failed to add NamespaceMember %s to NamespaceScope: %v", req.Namespace, err)
-		return false, err
+		return false, errors.Wrapf(err, "failed to add Namespace %s to NamespaceScope", req.Namespace)
 	}
 	// Check update permission
 	if !r.checkUpdateAuth(ctx, req.Namespace, "operator.ibm.com", "operandrequests") {
@@ -219,8 +219,7 @@ func (r *Reconciler) RemoveNamespaceMemberFromNamespaceScope(ctx context.Context
 func (r *Reconciler) UpdateNamespaceScope(ctx context.Context, namespacedName types.NamespacedName, delete bool) error {
 	dc := discovery.NewDiscoveryClientForConfigOrDie(r.Config)
 	if exist, err := util.ResourceExists(dc, "operator.ibm.com/v1", "NamespaceScope"); err != nil {
-		klog.Errorf("check resource NamespaceScope exist failed: %v", err)
-		return err
+		return errors.Wrap(err, "failed to check if the NamespaceScope api exist")
 	} else if !exist {
 		klog.V(1).Info("Not found NamespaceScope instance, ignore update it.")
 		return nil
@@ -228,7 +227,7 @@ func (r *Reconciler) UpdateNamespaceScope(ctx context.Context, namespacedName ty
 	nsScope := &nssv1.NamespaceScope{}
 	nsScopeKey := types.NamespacedName{Name: constant.NamespaceScopeCrName, Namespace: util.GetOperatorNamespace()}
 	if err := r.Client.Get(ctx, nsScopeKey, nsScope); err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			klog.V(2).Infof("Not found NamespaceScope CR %s, ignore update it.", nsScopeKey.String())
 			return nil
 		}
@@ -237,10 +236,8 @@ func (r *Reconciler) UpdateNamespaceScope(ctx context.Context, namespacedName ty
 	var nsMems []string
 
 	opreqList, err := r.ListOperandRequests(ctx, nil)
-
 	if err != nil {
-		klog.Errorf("failed to list OperandRequest: %v", err)
-		return err
+		return errors.Wrap(err, "failed to list OperandRequest")
 	}
 
 	nsSet := gset.NewSet()
@@ -264,8 +261,7 @@ func (r *Reconciler) UpdateNamespaceScope(ctx context.Context, namespacedName ty
 	if !util.StringSliceContentEqual(nsMems, nsScope.Spec.NamespaceMembers) {
 		nsScope.Spec.NamespaceMembers = nsMems
 		if err := r.Update(ctx, nsScope); err != nil {
-			klog.Errorf("failed to update NamespaceScope %s: %v", nsScopeKey.String(), err)
-			return err
+			return errors.Wrapf(err, "failed to update NamespaceScope %s", nsScopeKey.String())
 		}
 		klog.V(1).Infof("Updated NamespaceScope %s", nsScopeKey.String())
 	}
@@ -279,8 +275,7 @@ func (r *Reconciler) addFinalizer(ctx context.Context, cr *operatorv1alpha1.Oper
 			// Update CR
 			err := r.Update(ctx, cr)
 			if err != nil {
-				klog.Errorf("failed to update the OperandRequest %s in the namespace %s: %v", cr.Name, cr.Namespace, err)
-				return false, err
+				return false, errors.Wrapf(err, "failed to update the OperandRequest %s/%s", cr.Namespace, cr.Name)
 			}
 			return false, nil
 		}
@@ -310,8 +305,7 @@ func (r *Reconciler) checkFinalizer(ctx context.Context, requestInstance *operat
 }
 
 func getRegistryToRequestMapper(mgr manager.Manager) handler.ToRequestsFunc {
-	ctx, cancel := context.WithTimeout(context.Background(), constant.DefaultRequestTimeout)
-	defer cancel()
+	ctx := context.Background()
 	return func(object handler.MapObject) []ctrl.Request {
 		mgrClient := mgr.GetClient()
 		requestList := &operatorv1alpha1.OperandRequestList{}
@@ -332,8 +326,7 @@ func getRegistryToRequestMapper(mgr manager.Manager) handler.ToRequestsFunc {
 }
 
 func getConfigToRequestMapper(mgr manager.Manager) handler.ToRequestsFunc {
-	ctx, cancel := context.WithTimeout(context.Background(), constant.DefaultRequestTimeout)
-	defer cancel()
+	ctx := context.Background()
 	return func(object handler.MapObject) []ctrl.Request {
 		mgrClient := mgr.GetClient()
 		requestList := &operatorv1alpha1.OperandRequestList{}
