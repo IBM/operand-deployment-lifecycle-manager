@@ -125,7 +125,7 @@ manager: generate code-fmt code-vet ## Build manager binary
 	go build -o bin/manager main.go
 
 run: generate code-fmt code-vet manifests ## Run against the configured Kubernetes cluster in ~/.kube/config
-	OPERATOR_NAMESPACE="ibm-common-services" INSTALL_SCOPE="namespaced" go run ./main.go -v=2
+	OPERATOR_NAMESPACE="ibm-common-services" INSTALL_SCOPE="namespaced" go run ./main.go -v=1
 
 install: manifests kustomize ## Install CRDs into a cluster
 	$(KUSTOMIZE) build config/crd | kubectl apply -f -

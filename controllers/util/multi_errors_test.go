@@ -34,7 +34,10 @@ var _ = Describe("Multiple error list", func() {
 			merr.Add(errors.New("this is the First error"))
 			merr.Add(errors.New("this is the Second error"))
 
-			Expect(merr.Error()).Should(Equal("errors: this is the First error; this is the Second error;"))
+			errMessage := `the following errors occurred:
+  - this is the First error
+  - this is the Second error`
+			Expect(merr.Error()).Should(Equal(errMessage))
 		})
 	})
 

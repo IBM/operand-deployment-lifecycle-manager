@@ -16,6 +16,10 @@
 
 package constant
 
+import (
+	"time"
+)
+
 const (
 
 	//ClusterOperatorNamespace is the namespace of cluster operators
@@ -38,4 +42,13 @@ const (
 
 	//NamespaceScopeCrName is the name use to get NamespaceScopeCrName instance
 	NamespaceScopeCrName string = "nss-managedby-odlm"
+
+	//DefaultRequestTimeout is the default timeout for kube request
+	DefaultRequestTimeout = 5 * time.Second
+
+	//DefaultRequeueDuration is the default requeue time duration for request
+	DefaultRequeueDuration = 20 * time.Second
+
+	//DefaultSyncPeriod is the frequency at which watched resources are reconciled
+	DefaultSyncPeriod = 3 * time.Hour
 )

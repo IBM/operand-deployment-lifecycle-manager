@@ -19,16 +19,15 @@ package operandconfig
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"strings"
-	"time"
 
-	"k8s.io/apimachinery/pkg/api/errors"
+	"github.com/pkg/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/tools/record"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -41,15 +40,13 @@ import (
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
-	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/deploy"
+	deploy "github.com/IBM/operand-deployment-lifecycle-manager/controllers/operator"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/util"
 )
 
 // Reconciler reconciles a OperandConfig object
 type Reconciler struct {
-	*deploy.ODLMManager
-	Recorder record.EventRecorder
-	Scheme   *runtime.Scheme
+	*deploy.ODLMOperator
 }
 
 // Reconcile reads that state of the cluster for a OperandConfig object and makes changes based on the state read
@@ -57,23 +54,32 @@ type Reconciler struct {
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reconcileErr error) {
+	// Creat context for the OperandConfig reconciler
+	ctx := context.Background()
+
 	// Fetch the OperandConfig instance
 	instance := &operatorv1alpha1.OperandConfig{}
-	if err := r.Client.Get(context.TODO(), req.NamespacedName, instance); err != nil {
+	if err := r.Client.Get(ctx, req.NamespacedName, instance); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	klog.V(1).Infof("Reconciling OperandConfig: %s", req.NamespacedName)
 
-	// Update status of OperandConfig by checking CRs
-	if err := r.updateConfigOperatorsStatus(instance); err != nil {
-		klog.Errorf("failed to update the status for OperandConfig %s : %v", req.NamespacedName.String(), err)
-		return ctrl.Result{}, err
-	}
+	originalInstance := instance.DeepCopy()
 
-	// Put the updated status of OperandConfig to the kube-apiserver
-	if err := r.updateOperandConfigStatus(instance); err != nil {
+	// Always attempt to patch the status after each reconciliation.
+	defer func() {
+		if reflect.DeepEqual(originalInstance.Status, instance.Status) {
+			return
+		}
+		if err := r.Client.Status().Patch(ctx, instance, client.MergeFrom(originalInstance)); err != nil {
+			reconcileErr = utilerrors.NewAggregate([]error{reconcileErr, fmt.Errorf("error while patching OperandConfig.Status: %v", err)})
+		}
+	}()
+
+	// Update status of OperandConfig by checking CRs
+	if err := r.updateStatus(ctx, instance); err != nil {
 		klog.Errorf("failed to update the status for OperandConfig %s : %v", req.NamespacedName.String(), err)
 		return ctrl.Result{}, err
 	}
@@ -82,14 +88,14 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if instance.Status.Phase != operatorv1alpha1.ServiceInit &&
 		instance.Status.Phase != operatorv1alpha1.ServiceRunning {
 		klog.V(2).Info("Waiting for all the services being deployed ...")
-		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+		return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
 	}
 
 	klog.V(1).Infof("Finished reconciling OperandConfig: %s", req.NamespacedName)
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) updateConfigOperatorsStatus(instance *operatorv1alpha1.OperandConfig) error {
+func (r *Reconciler) updateStatus(ctx context.Context, instance *operatorv1alpha1.OperandConfig) error {
 	// Create an empty ServiceStatus map
 	klog.V(3).Info("Initializing OperandConfig status")
 
@@ -100,7 +106,7 @@ func (r *Reconciler) updateConfigOperatorsStatus(instance *operatorv1alpha1.Oper
 
 	instance.Status.ServiceStatus = make(map[string]operatorv1alpha1.CrStatus)
 
-	registryInstance, err := r.FetchOperandRegistry(types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace})
+	registryInstance, err := r.GetOperandRegistry(ctx, types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace})
 	if err != nil {
 		return err
 	}
@@ -119,16 +125,15 @@ func (r *Reconciler) updateConfigOperatorsStatus(instance *operatorv1alpha1.Oper
 
 		// Looking for the CSV
 		namespace := r.GetOperatorNamespace(op.InstallMode, op.Namespace)
-		sub, err := r.FetchSubscription(op.Name, namespace, op.PackageName)
+		sub, err := r.GetSubscription(ctx, op.Name, namespace, op.PackageName)
 
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			klog.V(3).Infof("There is no Subscription %s or %s in the namespace %s", op.Name, op.PackageName, namespace)
 			continue
 		}
 
 		if err != nil {
-			klog.Errorf("failed to fetch Subscription %s or %s in the namespace %s: %v", op.Name, op.PackageName, namespace, err)
-			return err
+			return errors.Wrapf(err, "failed to get Subscription %s or %s in the namespace %s", op.Name, op.PackageName, namespace)
 		}
 
 		if _, ok := sub.Labels[constant.OpreqLabel]; !ok {
@@ -136,15 +141,14 @@ func (r *Reconciler) updateConfigOperatorsStatus(instance *operatorv1alpha1.Oper
 			klog.V(2).Infof("Subscription %s in the namespace %s isn't created by ODLM", sub.Name, sub.Namespace)
 		}
 
-		csv, err := r.FetchClusterServiceVersion(sub)
+		csv, err := r.GetClusterServiceVersion(ctx, sub)
 
 		if err != nil {
-			klog.Errorf("failed to fetch ClusterServiceVersion for the Subscription %s in the namespace %s: %v", sub.Name, namespace, err)
-			return err
+			return errors.Wrapf(err, "failed to get ClusterServiceVersion for the Subscription %s/%s", namespace, sub.Name)
 		}
 
 		if csv == nil {
-			klog.Warningf("ClusterServiceVersion for the Subscription %s in the namespace %s doesn't exist, retry...", sub.Name, namespace)
+			klog.Warningf("ClusterServiceVersion for the Subscription %s/%s doesn't exist, retry...", namespace, sub.Name)
 			continue
 		}
 
@@ -171,8 +175,7 @@ func (r *Reconciler) updateConfigOperatorsStatus(instance *operatorv1alpha1.Oper
 		// Convert CR template string to slice
 		err = json.Unmarshal([]byte(almExamples), &crTemplates)
 		if err != nil {
-			klog.Errorf("failed to convert alm-examples in the Subscription %s to slice: %v", sub.Name, err)
-			return err
+			return errors.Wrapf(err, "failed to convert alm-examples in the Subscription %s/%s to slice", sub.Namespace, sub.Name)
 		}
 
 		merr := &util.MultiErr{}
@@ -200,14 +203,14 @@ func (r *Reconciler) updateConfigOperatorsStatus(instance *operatorv1alpha1.Oper
 
 			name := unstruct.Object["metadata"].(map[string]interface{})["name"].(string)
 
-			getError := r.Client.Get(context.TODO(), types.NamespacedName{
+			getError := r.Client.Get(ctx, types.NamespacedName{
 				Name:      name,
 				Namespace: op.Namespace,
 			}, &unstruct)
 
-			if getError != nil && !errors.IsNotFound(getError) {
+			if getError != nil && !apierrors.IsNotFound(getError) {
 				instance.Status.ServiceStatus[op.Name].CrStatus[kind] = operatorv1alpha1.ServiceFailed
-			} else if errors.IsNotFound(getError) {
+			} else if apierrors.IsNotFound(getError) {
 			} else {
 				instance.Status.ServiceStatus[op.Name].CrStatus[kind] = operatorv1alpha1.ServiceRunning
 			}
@@ -218,7 +221,6 @@ func (r *Reconciler) updateConfigOperatorsStatus(instance *operatorv1alpha1.Oper
 	}
 
 	klog.V(2).Info("Updating OperandConfig status")
-
 	instance.UpdateOperandPhase()
 
 	return nil
@@ -234,14 +236,14 @@ func checkRegistryStatus(opName string, registryInstance *operatorv1alpha1.Opera
 	return false
 }
 
-func (r *Reconciler) getRequestToConfigMapper() handler.ToRequestsFunc {
+func (r *Reconciler) getRequestToConfigMapper(ctx context.Context) handler.ToRequestsFunc {
 	return func(object handler.MapObject) []reconcile.Request {
 		opreqInstance := &operatorv1alpha1.OperandRequest{}
 		requests := []reconcile.Request{}
 		// If the OperandRequest has been deleted, reconcile all the OperandConfig in the cluster
-		if err := r.Client.Get(context.TODO(), types.NamespacedName{Name: object.Meta.GetName(), Namespace: object.Meta.GetNamespace()}, opreqInstance); errors.IsNotFound(err) {
+		if err := r.Client.Get(ctx, types.NamespacedName{Name: object.Meta.GetName(), Namespace: object.Meta.GetNamespace()}, opreqInstance); apierrors.IsNotFound(err) {
 			configList := &operatorv1alpha1.OperandConfigList{}
-			_ = r.Client.List(context.TODO(), configList)
+			_ = r.Client.List(ctx, configList)
 			for _, config := range configList.Items {
 				namespaceName := types.NamespacedName{Name: config.Name, Namespace: config.Namespace}
 				req := reconcile.Request{NamespacedName: namespaceName}
@@ -262,10 +264,11 @@ func (r *Reconciler) getRequestToConfigMapper() handler.ToRequestsFunc {
 
 // SetupWithManager adds OperandConfig controller to the manager.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+	ctx := context.Background()
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&operatorv1alpha1.OperandConfig{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Watches(&source.Kind{Type: &operatorv1alpha1.OperandRequest{}}, &handler.EnqueueRequestsFromMapFunc{
-			ToRequests: r.getRequestToConfigMapper(),
+			ToRequests: r.getRequestToConfigMapper(ctx),
 		}, builder.WithPredicates(predicate.Funcs{
 			CreateFunc: func(e event.CreateEvent) bool {
 				return true
@@ -280,31 +283,4 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 				return !reflect.DeepEqual(oldObject.Status, newObject.Status)
 			},
 		})).Complete(r)
-}
-
-func (r *Reconciler) updateOperandConfigStatus(newConfigInstance *operatorv1alpha1.OperandConfig) error {
-	err := wait.PollImmediate(time.Millisecond*250, time.Second*5, func() (bool, error) {
-		existingConfigInstance, err := r.FetchOperandConfig(types.NamespacedName{Name: newConfigInstance.Name, Namespace: newConfigInstance.Namespace})
-		if err != nil {
-			klog.Errorf("failed to fetch the existing OperandConfig: %v", err)
-			return false, err
-		}
-
-		existingStatus := existingConfigInstance.Status.DeepCopy()
-		newStatus := newConfigInstance.Status.DeepCopy()
-		if reflect.DeepEqual(existingStatus, newStatus) {
-			return true, nil
-		}
-		existingConfigInstance.Status = *newStatus
-		if err := r.Status().Update(context.TODO(), existingConfigInstance); err != nil {
-			return false, nil
-		}
-		return true, nil
-	})
-
-	if err != nil {
-		klog.Errorf("failed to update OperandConfig %s/%s status: %v", newConfigInstance.Namespace, newConfigInstance.Name, err)
-		return err
-	}
-	return nil
 }

@@ -119,12 +119,12 @@ lint-all: lint-copyright-banner lint-go
 # Run go vet for this project. More info: https://golang.org/cmd/vet/
 code-vet:
 	@echo go vet
-	go vet $$(go list ./... )
+	go vet $$(go list ./... | grep -v /testbin)
 
 # Run go fmt for this project
 code-fmt:
 	@echo go fmt
-	go fmt $$(go list ./... )
+	go fmt $$(go list ./... | grep -v /testbin)
 
 # Run go mod tidy to update dependencies
 code-tidy:

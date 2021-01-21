@@ -27,7 +27,15 @@ type MultiErr struct {
 
 // Error is the error message
 func (mer *MultiErr) Error() string {
-	return "errors: " + strings.Join(mer.Errors, "; ") + ";"
+	if len(mer.Errors) == 0 {
+		return "no error occurred"
+	}
+	var sb strings.Builder
+	sb.WriteString("the following errors occurred:")
+	for _, errMessage := range mer.Errors {
+		sb.WriteString("\n  - " + errMessage)
+	}
+	return sb.String()
 }
 
 // Add appends error message
