@@ -73,7 +73,7 @@ fetch-olm-crds:
 	rm -rf api-0.3.8 v0.3.8.tar.gz ;\
 	}
 	@{ \
-	curl -L -O "https://github.com/redhat-developer/jenkins-operator/archive/v0.3.3.tar.gz" ;\
+	curl -L -O "https://github.com/horis233/jenkins-operator/archive/v0.3.3.tar.gz" ;\
 	tar -zxf v0.3.3.tar.gz jenkins-operator-0.3.3/deploy/crds && mv jenkins-operator-0.3.3/deploy/crds/jenkins_v1alpha2_jenkins_crd.yaml ${ENVTEST_ASSETS_DIR}/crds/jenkins_v1alpha2_jenkins_crd.yaml ;\
 	rm -rf jenkins-operator-0.3.3 v0.3.3.tar.gz ;\
 	}
