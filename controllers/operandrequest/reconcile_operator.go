@@ -133,7 +133,7 @@ func (r *Reconciler) createSubscription(ctx context.Context, cr *operatorv1alpha
 
 	// Compare namespace and create namespace
 	oprNs := util.GetOperatorNamespace()
-	if ns.Name != oprNs || ns.Name != constant.ClusterOperatorNamespace {
+	if ns.Name != oprNs && ns.Name != constant.ClusterOperatorNamespace {
 		if err := r.Create(ctx, ns); err != nil && !apierrors.IsAlreadyExists(err) {
 			klog.Warningf("failed to create the namespace %s, please make sure it exists: %s", ns.Name, err)
 		}
