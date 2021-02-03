@@ -1,6 +1,6 @@
 module github.com/IBM/operand-deployment-lifecycle-manager
 
-go 1.13
+go 1.15
 
 require (
 	github.com/IBM/controller-filtered-cache v0.2.0
