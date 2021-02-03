@@ -132,7 +132,7 @@ func (r *OperandRequestReconciler) createSubscription(cr *operatorv1alpha1.Opera
 
 	// Compare namespace and create namespace
 	oprNs := util.GetOperatorNamespace()
-	if ns.Name != oprNs || ns.Name != constant.ClusterOperatorNamespace {
+	if ns.Name != oprNs && ns.Name != constant.ClusterOperatorNamespace {
 		if err := r.Create(context.TODO(), ns); err != nil && !errors.IsAlreadyExists(err) {
 			klog.Warningf("fail to create the namespace %s, please make sure it exists: %s", ns.Name, err)
 		}
