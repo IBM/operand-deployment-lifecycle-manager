@@ -91,7 +91,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reconcileErr er
 
 func (r *Reconciler) updateStatus(ctx context.Context, instance *operatorv1alpha1.OperandRegistry) error {
 	// List the OperandRequests refer the OperatorRegistry by label of the OperandRequests
-	requestList, err := r.ListOperandRequests(ctx, map[string]string{instance.Namespace + "." + instance.Name + "/registry": "true"})
+	requestList, err := r.ListOperandRequestsByRegistry(ctx, types.NamespacedName{Namespace: instance.Namespace, Name: instance.Name})
 	if err != nil {
 		instance.Status.OperatorsStatus = nil
 		return err
@@ -100,7 +100,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, instance *operatorv1alpha
 	// Create an empty OperatorsStatus map
 	instance.Status.OperatorsStatus = make(map[string]operatorv1alpha1.OperatorStatus)
 	// Update OperandRegistry status from the OperandRequest list
-	for _, item := range requestList.Items {
+	for _, item := range requestList {
 		requestKey := types.NamespacedName{Name: item.Name, Namespace: item.Namespace}
 		for _, req := range item.Spec.Requests {
 			registryKey := item.GetRegistryKey(req)
