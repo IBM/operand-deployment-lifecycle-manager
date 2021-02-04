@@ -288,11 +288,11 @@ func (r *Reconciler) getCurrentOperands(ctx context.Context, requestInstance *op
 	deployedOperands := gset.NewSet()
 	for _, req := range requestInstance.Spec.Requests {
 		registryKey := requestInstance.GetRegistryKey(req)
-		requestList, err := r.ListOperandRequests(ctx, map[string]string{registryKey.Namespace + "." + registryKey.Name + "/registry": "true"})
+		requestList, err := r.ListOperandRequestsByRegistry(ctx, registryKey)
 		if err != nil {
 			return nil, err
 		}
-		for _, item := range requestList.Items {
+		for _, item := range requestList {
 			if !item.DeletionTimestamp.IsZero() {
 				continue
 			}

@@ -120,6 +120,48 @@ func (m *ODLMOperator) ListOperandRequests(ctx context.Context, label map[string
 	return requestList, nil
 }
 
+// ListOperandRequestsByRegistry list all the OperandRequests
+// using the specific OperandRegistry
+func (m *ODLMOperator) ListOperandRequestsByRegistry(ctx context.Context, key types.NamespacedName) (requestList []apiv1alpha1.OperandRequest, err error) {
+	requestCandidates := &apiv1alpha1.OperandRequestList{}
+	if err = m.Client.List(ctx, requestCandidates); err != nil {
+		return
+	}
+	// Set default value for all the OperandRequest
+	for _, item := range requestCandidates.Items {
+		for _, r := range item.Spec.Requests {
+			if r.RegistryNamespace == "" {
+				r.RegistryNamespace = item.GetNamespace()
+			}
+			if r.Registry == key.Name && r.RegistryNamespace == key.Namespace {
+				requestList = append(requestList, item)
+			}
+		}
+	}
+	return
+}
+
+// ListOperandRequestsByConfig list all the OperandRequests
+// using the specific OperandConfig
+func (m *ODLMOperator) ListOperandRequestsByConfig(ctx context.Context, key types.NamespacedName) (requestList []apiv1alpha1.OperandRequest, err error) {
+	requestCandidates := &apiv1alpha1.OperandRequestList{}
+	if err = m.Client.List(ctx, requestCandidates); err != nil {
+		return
+	}
+	// Set default value for all the OperandRequest
+	for _, item := range requestCandidates.Items {
+		for _, r := range item.Spec.Requests {
+			if r.RegistryNamespace == "" {
+				r.RegistryNamespace = item.GetNamespace()
+			}
+			if r.Registry == key.Name && r.RegistryNamespace == key.Namespace {
+				requestList = append(requestList, item)
+			}
+		}
+	}
+	return
+}
+
 // GetSubscription gets Subscription from a name
 func (m *ODLMOperator) GetSubscription(ctx context.Context, name, namespace string, packageName ...string) (*olmv1alpha1.Subscription, error) {
 	klog.V(3).Infof("Fetch Subscription: %s/%s", namespace, name)

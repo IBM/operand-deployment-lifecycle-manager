@@ -38,7 +38,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
@@ -103,11 +102,10 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reconcileErr er
 	klog.V(1).Infof("Reconciling OperandRequest: %s", req.NamespacedName)
 	// Update labels for the request
 	if requestInstance.UpdateLabels() {
-		if err := r.Update(ctx, requestInstance); err != nil {
+		if err := r.Patch(ctx, requestInstance, client.MergeFrom(originalInstance)); err != nil {
 			klog.Errorf("failed to update the labels for OperandRequest %s: %v", req.NamespacedName.String(), err)
 			return ctrl.Result{}, err
 		}
-		return ctrl.Result{Requeue: true}, nil
 	}
 
 	// Initialize the status for OperandRequest instance
@@ -304,19 +302,13 @@ func (r *Reconciler) checkFinalizer(ctx context.Context, requestInstance *operat
 	return nil
 }
 
-func getRegistryToRequestMapper(mgr manager.Manager) handler.ToRequestsFunc {
+func (r *Reconciler) getRegistryToRequestMapper() handler.ToRequestsFunc {
 	ctx := context.Background()
 	return func(object handler.MapObject) []ctrl.Request {
-		mgrClient := mgr.GetClient()
-		requestList := &operatorv1alpha1.OperandRequestList{}
-		opts := []client.ListOption{
-			client.MatchingLabels(map[string]string{object.Meta.GetNamespace() + "." + object.Meta.GetName() + "/registry": "true"}),
-		}
-
-		_ = mgrClient.List(ctx, requestList, opts...)
+		requestList, _ := r.ListOperandRequestsByRegistry(ctx, types.NamespacedName{Namespace: object.Meta.GetNamespace(), Name: object.Meta.GetName()})
 
 		requests := []ctrl.Request{}
-		for _, request := range requestList.Items {
+		for _, request := range requestList {
 			namespaceName := types.NamespacedName{Name: request.Name, Namespace: request.Namespace}
 			req := ctrl.Request{NamespacedName: namespaceName}
 			requests = append(requests, req)
@@ -325,19 +317,13 @@ func getRegistryToRequestMapper(mgr manager.Manager) handler.ToRequestsFunc {
 	}
 }
 
-func getConfigToRequestMapper(mgr manager.Manager) handler.ToRequestsFunc {
+func (r *Reconciler) getConfigToRequestMapper() handler.ToRequestsFunc {
 	ctx := context.Background()
 	return func(object handler.MapObject) []ctrl.Request {
-		mgrClient := mgr.GetClient()
-		requestList := &operatorv1alpha1.OperandRequestList{}
-		opts := []client.ListOption{
-			client.MatchingLabels(map[string]string{object.Meta.GetNamespace() + "." + object.Meta.GetName() + "/config": "true"}),
-		}
-
-		_ = mgrClient.List(ctx, requestList, opts...)
+		requestList, _ := r.ListOperandRequestsByConfig(ctx, types.NamespacedName{Namespace: object.Meta.GetNamespace(), Name: object.Meta.GetName()})
 
 		requests := []ctrl.Request{}
-		for _, request := range requestList.Items {
+		for _, request := range requestList {
 			namespaceName := types.NamespacedName{Name: request.Name, Namespace: request.Namespace}
 			req := ctrl.Request{NamespacedName: namespaceName}
 			requests = append(requests, req)
@@ -351,7 +337,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&operatorv1alpha1.OperandRequest{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Watches(&source.Kind{Type: &operatorv1alpha1.OperandRegistry{}}, &handler.EnqueueRequestsFromMapFunc{
-			ToRequests: getRegistryToRequestMapper(mgr),
+			ToRequests: r.getRegistryToRequestMapper(),
 		}, builder.WithPredicates(predicate.Funcs{
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				oldObject := e.ObjectOld.(*operatorv1alpha1.OperandRegistry)
@@ -364,7 +350,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 			},
 		})).
 		Watches(&source.Kind{Type: &operatorv1alpha1.OperandConfig{}}, &handler.EnqueueRequestsFromMapFunc{
-			ToRequests: getConfigToRequestMapper(mgr),
+			ToRequests: r.getConfigToRequestMapper(),
 		}, builder.WithPredicates(predicate.Funcs{
 			DeleteFunc: func(e event.DeleteEvent) bool {
 				// Evaluates to false if the object has been confirmed deleted.
