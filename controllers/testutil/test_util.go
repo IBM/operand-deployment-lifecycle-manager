@@ -123,8 +123,43 @@ func OperandRequestObj(registryName, registryNamespace, requestName, requestName
 							Name: "jenkins",
 							Bindings: map[string]apiv1alpha1.SecretConfigmap{
 								"public": {
-									Secret:    "secret3",
-									Configmap: "cm3",
+									Secret:    "secret4",
+									Configmap: "cm4",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+// OperandRequestObjWithProtected returns OperandRequest obj
+func OperandRequestObjWithProtected(registryName, registryNamespace, requestName, requestNamespace string) *apiv1alpha1.OperandRequest {
+	return &apiv1alpha1.OperandRequest{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      requestName,
+			Namespace: requestNamespace,
+			Labels: map[string]string{
+				registryNamespace + "." + registryName + "/registry": "true",
+			},
+		},
+		Spec: apiv1alpha1.OperandRequestSpec{
+			Requests: []apiv1alpha1.Request{
+				{
+					Registry:          registryName,
+					RegistryNamespace: registryNamespace,
+					Operands: []apiv1alpha1.Operand{
+						{
+							Name: "etcd",
+						},
+						{
+							Name: "jenkins",
+							Bindings: map[string]apiv1alpha1.SecretConfigmap{
+								"protected": {
+									Secret:    "secret5",
+									Configmap: "cm5",
 								},
 							},
 						},
@@ -154,6 +189,10 @@ func OperandBindInfoObj(name, namespace, registryName, registryNamespace string)
 				"private": {
 					Secret:    "secret2",
 					Configmap: "cm2",
+				},
+				"protected": {
+					Secret:    "secret3",
+					Configmap: "cm3",
 				},
 			},
 		},

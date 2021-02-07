@@ -51,6 +51,12 @@ type Reconciler struct {
 	*deploy.ODLMOperator
 }
 
+var (
+	publicPrefix, _    = regexp.Compile(`^public(.*)$`)
+	privatePrefix, _   = regexp.Compile(`^private(.*)$`)
+	protectedPrefix, _ = regexp.Compile(`^protected(.*)$`)
+)
+
 // Reconcile reads that state of the cluster for a OperandBindInfo object and makes changes based on the state read
 // and what is in the OperandBindInfo.Spec
 // Note:
@@ -161,23 +167,26 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reconcileErr er
 		secretReq, cmReq := getBindingInfofromRequest(bindInfoInstance, requestInstance)
 		// Copy Secret and/or ConfigMap to the OperandRequest namespace
 		klog.V(3).Infof("Start to copy secret and/or configmap to the namespace %s", bindRequest.Namespace)
-		// Only copy the public bindInfo
 		for key, binding := range bindInfoInstance.Spec.Bindings {
+			if !privatePrefix.MatchString(key) && !protectedPrefix.MatchString(key) && !publicPrefix.MatchString(key) {
+				klog.Warningf("BindInfo key %s should have one of prefix: private, protected, public", key)
+				continue
+			}
 			if operandNamespace != bindRequest.Namespace {
-				reg, _ := regexp.Compile(`^public(.*)$`)
-				if !reg.MatchString(key) {
+				// skip the private bindInfo
+				if privatePrefix.MatchString(key) {
 					continue
 				}
 			}
 			// Copy Secret
-			requeueSec, err := r.copySecret(ctx, binding.Secret, secretReq[key], operandNamespace, bindRequest.Namespace, bindInfoInstance, requestInstance)
+			requeueSec, err := r.copySecret(ctx, binding.Secret, secretReq[key], operandNamespace, bindRequest.Namespace, key, bindInfoInstance, requestInstance)
 			if err != nil {
 				merr.Add(err)
 				continue
 			}
 			requeue = requeue || requeueSec
 			// Copy ConfigMap
-			requeueCm, err := r.copyConfigmap(ctx, binding.Configmap, cmReq[key], operandNamespace, bindRequest.Namespace, bindInfoInstance, requestInstance)
+			requeueCm, err := r.copyConfigmap(ctx, binding.Configmap, cmReq[key], operandNamespace, bindRequest.Namespace, key, bindInfoInstance, requestInstance)
 			if err != nil {
 				merr.Add(err)
 				continue
@@ -203,8 +212,8 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reconcileErr er
 }
 
 // Copy secret `sourceName` from source namespace `sourceNs` to target namespace `targetNs`
-func (r *Reconciler) copySecret(ctx context.Context, sourceName, targetName, sourceNs, targetNs string,
-	bindInfoInstance *operatorv1alpha1.OperandBindInfo, requestInstance *operatorv1alpha1.OperandRequest) (bool, error) {
+func (r *Reconciler) copySecret(ctx context.Context, sourceName, targetName, sourceNs, targetNs, key string,
+	bindInfoInstance *operatorv1alpha1.OperandBindInfo, requestInstance *operatorv1alpha1.OperandRequest) (requeue bool, err error) {
 	if sourceName == "" || sourceNs == "" || targetNs == "" {
 		return false, nil
 	}
@@ -214,7 +223,11 @@ func (r *Reconciler) copySecret(ctx context.Context, sourceName, targetName, sou
 	}
 
 	if targetName == "" {
-		targetName = bindInfoInstance.Name + "-" + sourceName
+		if publicPrefix.MatchString(key) {
+			targetName = bindInfoInstance.Name + "-" + sourceName
+		} else {
+			return false, nil
+		}
 	}
 
 	secret := &corev1.Secret{}
@@ -278,8 +291,8 @@ func (r *Reconciler) copySecret(ctx context.Context, sourceName, targetName, sou
 
 // Copy configmap `sourceName` from namespace `sourceNs` to namespace `targetNs`
 // and rename it to `targetName`
-func (r *Reconciler) copyConfigmap(ctx context.Context, sourceName, targetName, sourceNs, targetNs string,
-	bindInfoInstance *operatorv1alpha1.OperandBindInfo, requestInstance *operatorv1alpha1.OperandRequest) (bool, error) {
+func (r *Reconciler) copyConfigmap(ctx context.Context, sourceName, targetName, sourceNs, targetNs, key string,
+	bindInfoInstance *operatorv1alpha1.OperandBindInfo, requestInstance *operatorv1alpha1.OperandRequest) (requeue bool, err error) {
 	if sourceName == "" || sourceNs == "" || targetNs == "" {
 		return false, nil
 	}
@@ -289,7 +302,11 @@ func (r *Reconciler) copyConfigmap(ctx context.Context, sourceName, targetName, 
 	}
 
 	if targetName == "" {
-		targetName = bindInfoInstance.Name + "-" + sourceName
+		if publicPrefix.MatchString(key) {
+			targetName = bindInfoInstance.Name + "-" + sourceName
+		} else {
+			return false, nil
+		}
 	}
 
 	cm := &corev1.ConfigMap{}
@@ -400,10 +417,6 @@ func getBindingInfofromRequest(bindInfoInstance *operatorv1alpha1.OperandBindInf
 				continue
 			}
 			for key, binding := range operand.Bindings {
-				reg, _ := regexp.Compile(`^public(.*)$`)
-				if !reg.MatchString(key) {
-					continue
-				}
 				secretReq[key] = binding.Secret
 				cmReq[key] = binding.Configmap
 			}
