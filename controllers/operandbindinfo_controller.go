@@ -122,12 +122,13 @@ func (r *OperandBindInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, er
 		return ctrl.Result{}, nil
 	}
 	// Get the operand namespace
-	operandNamespace := registryInstance.GetOperator(bindInfoInstance.Spec.Operand).Namespace
-	if operandNamespace == "" {
+	operandOperator := registryInstance.GetOperator(bindInfoInstance.Spec.Operand)
+	if operandOperator == nil {
 		klog.Errorf("failed to find operator %s in the OperandRegistry %s", bindInfoInstance.Spec.Operand, registryInstance.Name)
 		r.Recorder.Eventf(bindInfoInstance, corev1.EventTypeWarning, "NotFound", "NotFound operator %s in the OperandRegistry %s", bindInfoInstance.Spec.Operand, registryInstance.Name)
 		return ctrl.Result{}, nil
 	}
+	operandNamespace := operandOperator.Namespace
 
 	// If Secret or ConfigMap not found, reconcile will requeue after 1 min
 	var requeue bool
