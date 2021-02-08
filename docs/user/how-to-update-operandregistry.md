@@ -26,7 +26,7 @@ Following is an example of the OperandRegistry CR:
 **NOTE:** The "name" parameter must be unique for each entry.
 
 ```yaml
-apiVersion: odlm.ibm.com/v1alpha1
+apiVersion: operator.ibm.com/v1alpha1
 kind: OperandRegistry
 metadata:
   name: common-service [1]
