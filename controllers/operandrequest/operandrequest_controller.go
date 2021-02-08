@@ -22,16 +22,13 @@ import (
 	"reflect"
 	"time"
 
-	gset "github.com/deckarep/golang-set"
 	olmv1 "github.com/operator-framework/api/pkg/operators/v1"
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/pkg/errors"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/client-go/discovery"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -41,12 +38,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	nssv1 "github.com/IBM/ibm-namespace-scope-operator/api/v1"
-
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
 	deploy "github.com/IBM/operand-deployment-lifecycle-manager/controllers/operator"
-	util "github.com/IBM/operand-deployment-lifecycle-manager/controllers/util"
 )
 
 // Reconciler reconciles a OperandRequest object
@@ -89,11 +83,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reconcileErr er
 	}()
 
 	// Add namespace member into NamespaceScope and check if has the update permission
-	hasPermission, err := r.addPermission(ctx, req)
-	if err != nil {
-		klog.Errorf("failed to add namespace member into NamespaceScope: %v", err)
-		return ctrl.Result{}, err
-	}
+	hasPermission := r.checkPermission(ctx, req)
 	if !hasPermission {
 		klog.Warningf("No permission to update OperandRequest")
 		return ctrl.Result{RequeueAfter: 3 * time.Second}, nil
@@ -131,12 +121,6 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reconcileErr er
 			return ctrl.Result{}, err
 		}
 
-		// Check and remove namespaceMember from NamespaceScope CR
-		if err := r.RemoveNamespaceMemberFromNamespaceScope(ctx, req.NamespacedName); err != nil {
-			klog.Errorf("failed to remove NamespaceMember %s from NamespaceScope: %v", req.Namespace, err)
-			return ctrl.Result{}, err
-		}
-
 		// Update finalizer to allow delete CR
 		if requestInstance.RemoveFinalizer() {
 			err = r.Update(ctx, requestInstance)
@@ -170,18 +154,15 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reconcileErr er
 	return ctrl.Result{RequeueAfter: constant.DefaultSyncPeriod}, nil
 }
 
-func (r *Reconciler) addPermission(ctx context.Context, req ctrl.Request) (bool, error) {
-	if err := r.AddNamespaceMemberIntoNamespaceScope(ctx, req.NamespacedName); err != nil {
-		return false, errors.Wrapf(err, "failed to add Namespace %s to NamespaceScope", req.Namespace)
-	}
+func (r *Reconciler) checkPermission(ctx context.Context, req ctrl.Request) bool {
 	// Check update permission
 	if !r.checkUpdateAuth(ctx, req.Namespace, "operator.ibm.com", "operandrequests") {
-		return false, nil
+		return false
 	}
 	if !r.checkUpdateAuth(ctx, req.Namespace, "operator.ibm.com", "operandrequests/status") {
-		return false, nil
+		return false
 	}
-	return true, nil
+	return true
 }
 
 // Check if operator has permission to update OperandRequest
@@ -204,66 +185,6 @@ func (r *Reconciler) checkUpdateAuth(ctx context.Context, namespace, group, reso
 
 	klog.V(3).Infof("Operator update permission in namespace %s, Allowed: %t, Denied: %t, Reason: %s", namespace, sar.Status.Allowed, sar.Status.Denied, sar.Status.Reason)
 	return sar.Status.Allowed
-}
-
-func (r *Reconciler) AddNamespaceMemberIntoNamespaceScope(ctx context.Context, namespacedName types.NamespacedName) error {
-	return r.UpdateNamespaceScope(ctx, namespacedName, false)
-}
-
-func (r *Reconciler) RemoveNamespaceMemberFromNamespaceScope(ctx context.Context, namespacedName types.NamespacedName) error {
-	return r.UpdateNamespaceScope(ctx, namespacedName, true)
-}
-
-func (r *Reconciler) UpdateNamespaceScope(ctx context.Context, namespacedName types.NamespacedName, delete bool) error {
-	dc := discovery.NewDiscoveryClientForConfigOrDie(r.Config)
-	if exist, err := util.ResourceExists(dc, "operator.ibm.com/v1", "NamespaceScope"); err != nil {
-		return errors.Wrap(err, "failed to check if the NamespaceScope api exist")
-	} else if !exist {
-		klog.V(1).Info("Not found NamespaceScope instance, ignore update it.")
-		return nil
-	}
-	nsScope := &nssv1.NamespaceScope{}
-	nsScopeKey := types.NamespacedName{Name: constant.NamespaceScopeCrName, Namespace: util.GetOperatorNamespace()}
-	if err := r.Client.Get(ctx, nsScopeKey, nsScope); err != nil {
-		if apierrors.IsNotFound(err) {
-			klog.Warningf("Not found NamespaceScope CR %s, ignore update it.", nsScopeKey.String())
-			return nil
-		}
-		return err
-	}
-	var nsMems []string
-
-	opreqList, err := r.ListOperandRequests(ctx, nil)
-	if err != nil {
-		return errors.Wrap(err, "failed to list OperandRequest")
-	}
-
-	nsSet := gset.NewSet()
-
-	operatorNs := util.GetOperatorNamespace()
-	if operatorNs != "" {
-		nsSet.Add(operatorNs)
-	}
-
-	for _, opreq := range opreqList.Items {
-		if delete && opreq.Namespace == namespacedName.Namespace && opreq.Name == namespacedName.Name {
-			continue
-		}
-		nsSet.Add(opreq.Namespace)
-	}
-
-	for ns := range nsSet.Iter() {
-		nsMems = append(nsMems, ns.(string))
-	}
-
-	if !util.StringSliceContentEqual(nsMems, nsScope.Spec.NamespaceMembers) {
-		nsScope.Spec.NamespaceMembers = nsMems
-		if err := r.Update(ctx, nsScope); err != nil {
-			return errors.Wrapf(err, "failed to update NamespaceScope %s", nsScopeKey.String())
-		}
-		klog.V(1).Infof("Updated NamespaceScope %s", nsScopeKey.String())
-	}
-	return nil
 }
 
 func (r *Reconciler) addFinalizer(ctx context.Context, cr *operatorv1alpha1.OperandRequest) (bool, error) {
