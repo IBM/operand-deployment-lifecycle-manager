@@ -297,7 +297,7 @@ spec:
     operator is deployed, it generates a default OperandRegistry instance. You can
     edit the instance as required.\n\nFollowing is an example of the OperandRegistry
     CR:\n\n>**NOTE:** The \"name\" parameter must be unique for each entry.\n\n```yaml\napiVersion:
-    odlm.ibm.com/v1alpha1\nkind: OperandRegistry\nmetadata:\n  name: example-service
+    operator.ibm.com/v1alpha1\nkind: OperandRegistry\nmetadata:\n  name: example-service
     [1]\n  namespace: example-service-ns [2]\nspec:\n  operators:\n  - name: jenkins
     [3]\n    namespace: default [4]\n    channel: alpha [5]\n    packageName: jenkins-operator
     [6]\n    sourceName: community-operators [7]\n    sourceNamespace: openshift-marketplace

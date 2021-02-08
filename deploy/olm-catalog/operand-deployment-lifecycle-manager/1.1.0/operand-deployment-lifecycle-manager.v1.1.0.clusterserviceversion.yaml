@@ -585,7 +585,7 @@ spec:
     catalog source, for each operator. \n\n**NOTE:** When the ODLM operator is deployed,
     it generates a default OperandRegistry instance. You can edit the instance as
     required. \n\nFollowing is an example of the OperandRegistry CR: \n\n **NOTE:**The
-    \"name\" parameter must be unique for each entry.\n\n```yaml\napiVersion: odlm.ibm.com/v1alpha1\nkind:
+    \"name\" parameter must be unique for each entry.\n\n```yaml\napiVersion: operator.ibm.com/v1alpha1\nkind:
     OperandRegistry\nmetadata:\n  name: common-service [1]\n  namespace: ibm-common-services
     [2]\nspec:\n  operators:\n  - name: ibm-metering-operator [3]\n    namespace:
     ibm-common-services [4]\n    channel: alpha [5]\n    packageName: ibm-metering-operator-app
