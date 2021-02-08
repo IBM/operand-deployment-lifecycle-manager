@@ -218,7 +218,7 @@ Fields in this CR are described below.
 3. The `operand` should be the the individual operator name.
 4. The `registry` section must match the name in the OperandRegistry CR in the current namespace.
 5. `description` is used to add a detailed description of a service.
-6. The `bindings` section is used to specify information about the access/configuration data that is to be shared. If the key of the bindings map is prefixed with public, it means the secret and/or configmap can be shared with the requester in the other namespace. If the key of the bindings map is prefixed with private, it means the secret and/or configmap can only be shared within its own namespace.
+6. The `bindings` section is used to specify information about the access/configuration data that is to be shared. If the key of the bindings map is prefixed with public, it means the secret and/or configmap can be shared with the requester in the other namespace. If the key of the bindings map is prefixed with private, it means the secret and/or configmap can only be shared within its own namespace. If the key of the bindings map is prefixed with protected, it means the secret and/or configmap can only be shared if it is explicitly declared in the OperandRequest.
 7. The `secret` field names an existing secret, if any, that has been created and holds information that is to be shared with the requester.
 8. The `configmap` field identifies a configmap object, if any, that should be shared with the requester
 
