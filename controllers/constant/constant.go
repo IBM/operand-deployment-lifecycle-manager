@@ -43,6 +43,9 @@ const (
 	//NamespaceScopeCrName is the name use to get NamespaceScopeCrName instance
 	NamespaceScopeCrName string = "nss-managedby-odlm"
 
+	//FindOperandRegistry is the key for checking if the OperandRegistry is found
+	FindOperandRegistry string = "operator.ibm.com/operandregistry-is-not-found"
+
 	//DefaultRequestTimeout is the default timeout for kube request
 	DefaultRequestTimeout = 5 * time.Second
 
