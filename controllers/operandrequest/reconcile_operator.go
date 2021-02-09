@@ -18,6 +18,7 @@ package operandrequest
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	gset "github.com/deckarep/golang-set"
@@ -54,6 +55,14 @@ func (r *Reconciler) reconcileOperator(ctx context.Context, requestInstance *ope
 				r.Recorder.Eventf(requestInstance, corev1.EventTypeWarning, "NotFound", "NotFound OperandRegistry NamespacedName %s", registryKey.String())
 				klog.Errorf("failed to fnd OperandRegistry %s : %v", registryKey.String(), err)
 				requestInstance.SetNotFoundOperatorFromRegistryCondition(registryKey.String(), operatorv1alpha1.ResourceTypeOperandRegistry, corev1.ConditionTrue)
+				mergePatch, _ := json.Marshal(map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"annotations": map[string]interface{}{
+							constant.FindOperandRegistry: "true",
+						},
+					},
+				})
+				_ = r.Patch(ctx, requestInstance, client.RawPatch(types.MergePatchType, mergePatch))
 			}
 			return err
 		}
@@ -111,6 +120,15 @@ func (r *Reconciler) reconcileOperator(ctx context.Context, requestInstance *ope
 			}
 		}
 	}
+
+	mergePatch, _ := json.Marshal(map[string]interface{}{
+		"metadata": map[string]interface{}{
+			"annotations": map[string]interface{}{
+				constant.FindOperandRegistry: "false",
+			},
+		},
+	})
+	_ = r.Patch(ctx, requestInstance, client.RawPatch(types.MergePatchType, mergePatch))
 
 	// Delete specific operators
 	if err := r.absentOperatorsAndOperands(ctx, requestInstance); err != nil {
