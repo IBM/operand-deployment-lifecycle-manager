@@ -426,7 +426,7 @@ func getBindingInfofromRequest(bindInfoInstance *operatorv1alpha1.OperandBindInf
 	return secretReq, cmReq
 }
 
-func (r *Reconciler) getRegistryToRequestMapper(mgr manager.Manager) handler.ToRequestsFunc {
+func (r *Reconciler) getOperandRegistryToRequestMapper(mgr manager.Manager) handler.ToRequestsFunc {
 	ctx := context.Background()
 
 	return func(object handler.MapObject) []reconcile.Request {
@@ -444,6 +444,33 @@ func (r *Reconciler) getRegistryToRequestMapper(mgr manager.Manager) handler.ToR
 			req := reconcile.Request{NamespacedName: namespaceName}
 			bindinfos = append(bindinfos, req)
 		}
+		return bindinfos
+	}
+}
+
+func (r *Reconciler) getOperandRequestToRequestMapper(mgr manager.Manager) handler.ToRequestsFunc {
+	ctx := context.Background()
+	return func(a handler.MapObject) []reconcile.Request {
+		or := a.Object.(*operatorv1alpha1.OperandRequest)
+		reglist := or.GetAllRegistryReconcileRequest()
+		mgrClient := mgr.GetClient()
+		bindInfoList := &operatorv1alpha1.OperandBindInfoList{}
+
+		for _, registry := range reglist {
+			opts := []client.ListOption{
+				client.MatchingLabels(map[string]string{registry.Namespace + "." + registry.Name + "/registry": "true"}),
+			}
+
+			_ = mgrClient.List(ctx, bindInfoList, opts...)
+		}
+
+		bindinfos := []reconcile.Request{}
+		for _, bindinfo := range bindInfoList.Items {
+			namespaceName := types.NamespacedName{Name: bindinfo.Name, Namespace: bindinfo.Namespace}
+			req := reconcile.Request{NamespacedName: namespaceName}
+			bindinfos = append(bindinfos, req)
+		}
+
 		return bindinfos
 	}
 }
@@ -539,6 +566,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 			return false
 		},
 	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&operatorv1alpha1.OperandBindInfo{}).
 		Watches(
@@ -552,8 +580,13 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 			builder.WithPredicates(cmSecretPredicates),
 		).
 		Watches(
+			&source.Kind{Type: &operatorv1alpha1.OperandRequest{}},
+			&handler.EnqueueRequestsFromMapFunc{ToRequests: r.getOperandRequestToRequestMapper(mgr)},
+			builder.WithPredicates(predicate.GenerationChangedPredicate{}),
+		).
+		Watches(
 			&source.Kind{Type: &operatorv1alpha1.OperandRegistry{}},
-			&handler.EnqueueRequestsFromMapFunc{ToRequests: r.getRegistryToRequestMapper(mgr)},
+			&handler.EnqueueRequestsFromMapFunc{ToRequests: r.getOperandRegistryToRequestMapper(mgr)},
 			builder.WithPredicates(opregPredicates),
 		).Complete(r)
 }
