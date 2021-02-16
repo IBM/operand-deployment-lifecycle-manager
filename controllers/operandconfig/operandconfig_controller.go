@@ -138,7 +138,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, instance *operatorv1alpha
 
 		if _, ok := sub.Labels[constant.OpreqLabel]; !ok {
 			// Subscription existing and not managed by OperandRequest controller
-			klog.V(2).Infof("Subscription %s in the namespace %s isn't created by ODLM", sub.Name, sub.Namespace)
+			klog.V(1).Infof("Subscription %s in the namespace %s isn't created by ODLM", sub.Name, sub.Namespace)
 		}
 
 		csv, err := r.GetClusterServiceVersion(ctx, sub)
