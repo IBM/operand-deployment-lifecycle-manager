@@ -226,7 +226,7 @@ func (r *Reconciler) UpdateNamespaceScope(ctx context.Context, namespacedName ty
 	nsScopeKey := types.NamespacedName{Name: constant.NamespaceScopeCrName, Namespace: util.GetOperatorNamespace()}
 	if err := r.Client.Get(ctx, nsScopeKey, nsScope); err != nil {
 		if apierrors.IsNotFound(err) {
-			klog.V(2).Infof("Not found NamespaceScope CR %s, ignore update it.", nsScopeKey.String())
+			klog.Warningf("Not found NamespaceScope CR %s, ignore update it.", nsScopeKey.String())
 			return nil
 		}
 		return err
@@ -282,7 +282,7 @@ func (r *Reconciler) addFinalizer(ctx context.Context, cr *operatorv1alpha1.Oper
 }
 
 func (r *Reconciler) checkFinalizer(ctx context.Context, requestInstance *operatorv1alpha1.OperandRequest) error {
-	klog.V(2).Infof("Deleting OperandRequest %s in the namespace %s", requestInstance.Name, requestInstance.Namespace)
+	klog.V(1).Infof("Deleting OperandRequest %s in the namespace %s", requestInstance.Name, requestInstance.Namespace)
 	existingSub := &olmv1alpha1.SubscriptionList{}
 
 	opts := []client.ListOption{

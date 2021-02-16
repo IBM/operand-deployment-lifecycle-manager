@@ -112,10 +112,10 @@ func (r *Reconciler) reconcileOperator(ctx context.Context, requestInstance *ope
 					}
 				} else {
 					// Subscription existing and not managed by OperandRequest controller
-					klog.V(2).Infof("Subscription %s in namespace %s isn't created by ODLM. Ignore update/delete it.", sub.Name, sub.Namespace)
+					klog.V(1).Infof("Subscription %s in namespace %s isn't created by ODLM. Ignore update/delete it.", sub.Name, sub.Namespace)
 				}
 			} else {
-				klog.V(2).Infof("Operator %s not found in the registry %s/%s", operand.Name, registryInstance.Namespace, registryInstance.Name)
+				klog.V(1).Infof("Operator %s not found in the OperandRegistry %s/%s", operand.Name, registryInstance.Namespace, registryInstance.Name)
 				requestInstance.SetNotFoundOperatorFromRegistryCondition(operand.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionTrue)
 			}
 		}
@@ -199,7 +199,7 @@ func (r *Reconciler) updateSubscription(ctx context.Context, cr *operatorv1alpha
 func (r *Reconciler) deleteSubscription(ctx context.Context, operandName string, requestInstance *operatorv1alpha1.OperandRequest, registryInstance *operatorv1alpha1.OperandRegistry, configInstance *operatorv1alpha1.OperandConfig) error {
 	op := registryInstance.GetOperator(operandName)
 	if op == nil {
-		klog.V(2).Infof("Operand %s not found", operandName)
+		klog.Warningf("Operand %s not found", operandName)
 		return nil
 	}
 
@@ -230,14 +230,14 @@ func (r *Reconciler) deleteSubscription(ctx context.Context, operandName string,
 		}
 
 		if r.checkUninstallLabel(ctx, op.Name, namespace) {
-			klog.V(2).Infof("Operator %s has label operator.ibm.com/opreq-do-not-uninstall. Skip the uninstall", op.Name)
+			klog.V(1).Infof("Operator %s has label operator.ibm.com/opreq-do-not-uninstall. Skip the uninstall", op.Name)
 			return nil
 		}
 
 		klog.V(3).Info("Set Deleting Condition in the operandRequest")
 		requestInstance.SetDeletingCondition(csv.Name, operatorv1alpha1.ResourceTypeCsv, corev1.ConditionTrue)
 
-		klog.V(2).Infof("Deleting the ClusterServiceVersion, Namespace: %s, Name: %s", csv.Namespace, csv.Name)
+		klog.V(1).Infof("Deleting the ClusterServiceVersion, Namespace: %s, Name: %s", csv.Namespace, csv.Name)
 		if err := r.Delete(ctx, csv); err != nil {
 			requestInstance.SetDeletingCondition(csv.Name, operatorv1alpha1.ResourceTypeCsv, corev1.ConditionFalse)
 			return errors.Wrap(err, "failed to delete the ClusterServiceVersion")
@@ -255,6 +255,8 @@ func (r *Reconciler) deleteSubscription(ctx context.Context, operandName string,
 			return errors.Wrap(err, "failed to delete subscription")
 		}
 	}
+
+	klog.V(1).Infof("Subscription %s/%s is deleted", namespace, op.Name)
 	return nil
 }
 

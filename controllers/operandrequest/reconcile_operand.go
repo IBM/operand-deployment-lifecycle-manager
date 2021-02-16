@@ -79,7 +79,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 			sub, err := r.GetSubscription(ctx, operatorName, namespace, opdRegistry.PackageName)
 
 			if apierrors.IsNotFound(err) {
-				klog.V(2).Infof("There is no Subscription %s or %s in the namespace %s", operatorName, opdRegistry.PackageName, namespace)
+				klog.Warningf("There is no Subscription %s or %s in the namespace %s", operatorName, opdRegistry.PackageName, namespace)
 				continue
 			}
 
@@ -558,7 +558,7 @@ func (r *Reconciler) deleteCustomResource(ctx context.Context, unstruct unstruct
 			if err != nil {
 				return errors.Wrapf(err, "failed to delete custom resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 			}
-			klog.V(2).Infof("Finish deleting custom resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+			klog.V(1).Infof("Finish deleting custom resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 		}
 	}
 	return nil
