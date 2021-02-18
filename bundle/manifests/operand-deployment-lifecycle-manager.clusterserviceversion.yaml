@@ -331,7 +331,13 @@ spec:
           resources:
           - '*'
           verbs:
-          - '*'
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
         serviceAccountName: operand-deployment-lifecycle-manager
     strategy: deployment
   installModes:
