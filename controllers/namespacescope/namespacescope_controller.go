@@ -57,21 +57,27 @@ func (r *Reconciler) ReconcileOperandRequest(req ctrl.Request) (_ ctrl.Result, r
 		klog.Error(err)
 		return ctrl.Result{}, err
 	} else if !exist {
-		klog.V(1).Info("Not found NamespaceScope API, ignore update it.")
+		klog.Warning("Not found NamespaceScope API, ignore update it.")
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
 	nss, err := r.getNamespaceScopeCR(ctx)
-
-	originalNss := nss.DeepCopy()
-
 	if err != nil {
 		klog.Error(err)
 		return ctrl.Result{}, err
 	} else if nss == nil {
-		klog.V(1).Info("Not found NamespaceScope instance, ignore update it.")
+		klog.Warning("Not found NamespaceScope instance, ignore update it.")
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
+
+	// Fetch the OperandRequest instance
+	requestInstance := &operatorv1alpha1.OperandRequest{}
+	if err := r.Client.Get(ctx, req.NamespacedName, requestInstance); err != nil {
+		// Error reading the object - requeue the request.
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	originalNss := nss.DeepCopy()
 
 	var nsMems []string
 
@@ -85,13 +91,6 @@ func (r *Reconciler) ReconcileOperandRequest(req ctrl.Request) (_ ctrl.Result, r
 		}
 	}()
 
-	// Fetch the OperandRequest instance
-	requestInstance := &operatorv1alpha1.OperandRequest{}
-	if err := r.Client.Get(ctx, req.NamespacedName, requestInstance); err != nil {
-		// Error reading the object - requeue the request.
-		return ctrl.Result{}, client.IgnoreNotFound(err)
-	}
-
 	// Remove finalizer when DeletionTimestamp none zero
 	if !requestInstance.ObjectMeta.DeletionTimestamp.IsZero() {
 		// Check and remove namespaceMember from NamespaceScope CR
@@ -103,10 +102,30 @@ func (r *Reconciler) ReconcileOperandRequest(req ctrl.Request) (_ ctrl.Result, r
 		return ctrl.Result{}, nil
 	}
 
-	nsMems, err = r.addPermission(ctx)
+	opreqNs, err := r.getOpreqNs(ctx)
 	if err != nil {
 		klog.Error(err)
 		return ctrl.Result{}, err
+	}
+
+	opregNs, err := r.getOpregNs(ctx)
+	if err != nil {
+		klog.Error(err)
+		return ctrl.Result{}, err
+	}
+
+	nsSet := gset.NewSet()
+
+	for _, ns := range opreqNs {
+		nsSet.Add(ns)
+	}
+
+	for _, ns := range opregNs {
+		nsSet.Add(ns)
+	}
+
+	for ns := range nsSet.Iter() {
+		nsMems = append(nsMems, ns.(string))
 	}
 
 	return ctrl.Result{}, nil
@@ -123,21 +142,26 @@ func (r *Reconciler) ReconcileOperandRegistry(req ctrl.Request) (_ ctrl.Result, 
 		klog.Error(err)
 		return ctrl.Result{}, err
 	} else if !exist {
-		klog.V(1).Info("Not found NamespaceScope API, ignore update it.")
+		klog.Warning("Not found NamespaceScope API, ignore update it.")
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
 	nss, err := r.getNamespaceScopeCR(ctx)
-
-	originalNss := nss.DeepCopy()
-
 	if err != nil {
 		klog.Error(err)
 		return ctrl.Result{}, err
 	} else if nss == nil {
-		klog.V(1).Info("Not found NamespaceScope instance, ignore update it.")
+		klog.Warning("Not found NamespaceScope instance, ignore update it.")
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
+
+	// Fetch the OperandRegistry instance
+	instance := &operatorv1alpha1.OperandRegistry{}
+	if err := r.Client.Get(ctx, req.NamespacedName, instance); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	originalNss := nss.DeepCopy()
 
 	var nsMems []string
 
@@ -151,13 +175,13 @@ func (r *Reconciler) ReconcileOperandRegistry(req ctrl.Request) (_ ctrl.Result, 
 		}
 	}()
 
-	// Fetch the OperandRegistry instance
-	instance := &operatorv1alpha1.OperandRegistry{}
-	if err := r.Client.Get(ctx, req.NamespacedName, instance); err != nil {
-		return ctrl.Result{}, client.IgnoreNotFound(err)
+	opreqNs, err := r.getOpreqNs(ctx)
+	if err != nil {
+		klog.Error(err)
+		return ctrl.Result{}, err
 	}
 
-	opreqNs, err := r.addPermission(ctx)
+	opregNs, err := r.getOpregNs(ctx)
 	if err != nil {
 		klog.Error(err)
 		return ctrl.Result{}, err
@@ -165,17 +189,11 @@ func (r *Reconciler) ReconcileOperandRegistry(req ctrl.Request) (_ ctrl.Result, 
 
 	nsSet := gset.NewSet()
 
-	for _, op := range instance.Spec.Operators {
-		if _, ok := instance.Status.OperatorsStatus[op.Name]; ok {
-			if op.InstallMode == operatorv1alpha1.InstallModeCluster {
-				nsSet.Add(constant.ClusterOperatorNamespace)
-			} else {
-				nsSet.Add(op.Namespace)
-			}
-		}
+	for _, ns := range opreqNs {
+		nsSet.Add(ns)
 	}
 
-	for _, ns := range opreqNs {
+	for _, ns := range opregNs {
 		nsSet.Add(ns)
 	}
 
@@ -186,10 +204,10 @@ func (r *Reconciler) ReconcileOperandRegistry(req ctrl.Request) (_ ctrl.Result, 
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) addPermission(ctx context.Context) (nsMems []string, addPermissionErr error) {
+func (r *Reconciler) getOpreqNs(ctx context.Context) (nsMems []string, getOpreqNsErr error) {
 	opreqList, err := r.ListOperandRequests(ctx, nil)
 	if err != nil {
-		addPermissionErr = errors.Wrap(err, "failed to list OperandRequest")
+		getOpreqNsErr = errors.Wrap(err, "failed to list OperandRequest")
 		return
 	}
 
@@ -210,7 +228,40 @@ func (r *Reconciler) addPermission(ctx context.Context) (nsMems []string, addPer
 	return
 }
 
+func (r *Reconciler) getOpregNs(ctx context.Context) (nsMems []string, getOpregNsErr error) {
+	opregList, err := r.ListOperandRegistry(ctx, nil)
+	if err != nil {
+		getOpregNsErr = errors.Wrap(err, "failed to list OperandRegistry")
+		return
+	}
+
+	nsSet := gset.NewSet()
+
+	operatorNs := util.GetOperatorNamespace()
+	if operatorNs != "" {
+		nsSet.Add(operatorNs)
+	}
+
+	for _, opreq := range opregList.Items {
+		for _, op := range opreq.Spec.Operators {
+			if _, ok := opreq.Status.OperatorsStatus[op.Name]; ok {
+				if op.InstallMode == operatorv1alpha1.InstallModeCluster {
+					nsSet.Add(constant.ClusterOperatorNamespace)
+				} else {
+					nsSet.Add(op.Namespace)
+				}
+			}
+		}
+	}
+
+	for ns := range nsSet.Iter() {
+		nsMems = append(nsMems, ns.(string))
+	}
+	return
+}
+
 func (r *Reconciler) removeNamespaceMemberFromNamespaceScope(ctx context.Context, req ctrl.Request) (nsMems []string, err error) {
+	klog.Infof("Deleting OperandRequest %s ...", req.NamespacedName.String())
 	opreqList, err := r.ListOperandRequests(ctx, nil)
 	if err != nil {
 		err = errors.Wrap(err, "failed to list OperandRequest")
@@ -234,6 +285,7 @@ func (r *Reconciler) removeNamespaceMemberFromNamespaceScope(ctx context.Context
 	for ns := range nsSet.Iter() {
 		nsMems = append(nsMems, ns.(string))
 	}
+	klog.Infof("namespace list %v ...", nsMems)
 
 	return
 }
@@ -243,7 +295,7 @@ func (r *Reconciler) getNamespaceScopeCR(ctx context.Context) (*nssv1.NamespaceS
 	nsScopeKey := types.NamespacedName{Name: constant.NamespaceScopeCrName, Namespace: util.GetOperatorNamespace()}
 	if err := r.Client.Get(ctx, nsScopeKey, nsScope); err != nil {
 		if apierrors.IsNotFound(err) {
-			klog.V(2).Infof("Not found NamespaceScope CR %s, ignore update it.", nsScopeKey.String())
+			klog.Warningf("Not found NamespaceScope CR %s, ignore update it.", nsScopeKey.String())
 			return nil, nil
 		}
 		return nil, err
@@ -270,8 +322,8 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	err = ctrl.NewControllerManagedBy(mgr).
-		For(&operatorv1alpha1.OperandRegistry{}).Complete(reconcile.Func(r.ReconcileOperandRegistry))
-
+		For(&operatorv1alpha1.OperandRegistry{}).
+		Complete(reconcile.Func(r.ReconcileOperandRegistry))
 	if err != nil {
 		return err
 	}

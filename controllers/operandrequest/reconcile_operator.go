@@ -54,7 +54,7 @@ func (r *Reconciler) reconcileOperator(ctx context.Context, requestInstance *ope
 		if err != nil {
 			if apierrors.IsNotFound(err) {
 				r.Recorder.Eventf(requestInstance, corev1.EventTypeWarning, "NotFound", "NotFound OperandRegistry NamespacedName %s", registryKey.String())
-				klog.Errorf("failed to fnd OperandRegistry %s : %v", registryKey.String(), err)
+				klog.Errorf("failed to find OperandRegistry %s : %v", registryKey.String(), err)
 				requestInstance.SetNotFoundOperatorFromRegistryCondition(registryKey.String(), operatorv1alpha1.ResourceTypeOperandRegistry, corev1.ConditionTrue)
 				mergePatch, _ := json.Marshal(map[string]interface{}{
 					"metadata": map[string]interface{}{
