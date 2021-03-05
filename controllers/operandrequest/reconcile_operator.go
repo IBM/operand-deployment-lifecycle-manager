@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
 
 	gset "github.com/deckarep/golang-set"
 	olmv1 "github.com/operator-framework/api/pkg/operators/v1"
@@ -265,6 +266,12 @@ func (r *Reconciler) absentOperatorsAndOperands(ctx context.Context, requestInst
 	if err != nil {
 		return err
 	}
+
+	var (
+		mu sync.Mutex
+		wg sync.WaitGroup
+	)
+
 	for _, req := range requestInstance.Spec.Requests {
 		registryKey := requestInstance.GetRegistryKey(req)
 		registryInstance, err := r.GetOperandRegistry(ctx, registryKey)
@@ -277,10 +284,20 @@ func (r *Reconciler) absentOperatorsAndOperands(ctx context.Context, requestInst
 		}
 		merr := &util.MultiErr{}
 		for o := range needDeletedOperands.Iter() {
-			if err := r.deleteSubscription(ctx, fmt.Sprintf("%v", o), requestInstance, registryInstance, configInstance); err != nil {
-				merr.Add(err)
-			}
+			var (
+				o = o
+			)
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				if err := r.deleteSubscription(ctx, fmt.Sprintf("%v", o), requestInstance, registryInstance, configInstance); err != nil {
+					mu.Lock()
+					defer mu.Unlock()
+					merr.Add(err)
+				}
+			}()
 		}
+		wg.Wait()
 		if len(merr.Errors) != 0 {
 			return merr
 		}
