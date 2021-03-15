@@ -25,7 +25,7 @@ The ODLM manages an opinionated deployment of the operands for OLM managed opera
 
 ## Dependency Management
 
-- **OLM** will automatically create the dependency operator which providing the CustomResourceDefinition or API that required by the operator user want to install. The dependency management of **OLM** focuses on *API* level dependency, for example, the IAM operator depends on MongoDB operator CRD.
+- ***OLM** will automatically create the dependent operator, which provides the CustomResourceDefinition or API that is required by the operator the user wants to install.. The dependency management of **OLM** focuses on *API* level dependency, for example, the IAM operator depends on MongoDB operator CRD.
 - **ODLM** manages dependency by creating sub-OperandRequest to the creating the dependency operators and operands. The sub OperandRequest can be deployed by **ODLM** as an Operator custom resource or handled by operator logic.  The dependency management of **OLM** focuses on *Application* level dependency, for example, IAM service depends on MongoDB service. Another gap in the **OLM** dependency management is operator and dependency operators must be in the same scope (OperatorGroup). Users can't make several operators from different scopes depends on a common operator. **ODLM** can handle these cases by creating OperandRequests.
 
 ## Additional Features
