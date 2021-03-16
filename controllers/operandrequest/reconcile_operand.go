@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"sync"
 	"time"
 
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
@@ -286,6 +287,10 @@ func (r *Reconciler) deleteAllCustomResource(ctx context.Context, csv *olmv1alph
 	}
 
 	merr := &util.MultiErr{}
+	var (
+		mu sync.Mutex
+		wg sync.WaitGroup
+	)
 	for index, opdMember := range customeResourceMap {
 		crShouldBeDeleted := unstructured.Unstructured{
 			Object: map[string]interface{}{
@@ -296,12 +301,27 @@ func (r *Reconciler) deleteAllCustomResource(ctx context.Context, csv *olmv1alph
 				},
 			},
 		}
-		if err := r.deleteCustomResource(ctx, crShouldBeDeleted, requestInstance.Namespace); err != nil {
-			merr.Add(err)
-		}
-		operatorName := strings.Split(index, "/")[0]
-		requestInstance.RemoveMemberCRStatus(operatorName, opdMember.Name, opdMember.Kind)
+
+		var (
+			operatorName = strings.Split(index, "/")[0]
+			opdMember    = opdMember
+		)
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := r.deleteCustomResource(ctx, crShouldBeDeleted, requestInstance.Namespace); err != nil {
+				mu.Lock()
+				defer mu.Unlock()
+				merr.Add(err)
+			}
+			mu.Lock()
+			defer mu.Unlock()
+			requestInstance.RemoveMemberCRStatus(operatorName, opdMember.Name, opdMember.Kind)
+		}()
 	}
+	wg.Wait()
+
 	if len(merr.Errors) != 0 {
 		return merr
 	}
@@ -350,16 +370,22 @@ func (r *Reconciler) deleteAllCustomResource(ctx context.Context, csv *olmv1alph
 					continue
 				}
 				if checkLabel(unstruct, map[string]string{constant.OpreqLabel: "true"}) {
-					err := r.deleteCustomResource(ctx, unstruct, namespace)
-					if err != nil {
-						return err
-					}
+					wg.Add(1)
+					go func() {
+						defer wg.Done()
+						if err := r.deleteCustomResource(ctx, unstruct, namespace); err != nil {
+							mu.Lock()
+							defer mu.Unlock()
+							merr.Add(err)
+						}
+					}()
 				}
 
 			}
 
 		}
 	}
+	wg.Wait()
 	if len(merr.Errors) != 0 {
 		return merr
 	}
@@ -591,6 +617,11 @@ func (r *Reconciler) checkCustomResource(ctx context.Context, requestInstance *o
 		}
 	}
 
+	var (
+		mu sync.Mutex
+		wg sync.WaitGroup
+	)
+
 	merr := &util.MultiErr{}
 	for index, opdMember := range customeResourceMap {
 		crShouldBeDeleted := unstructured.Unstructured{
@@ -602,12 +633,24 @@ func (r *Reconciler) checkCustomResource(ctx context.Context, requestInstance *o
 				},
 			},
 		}
-		if err := r.deleteCustomResource(ctx, crShouldBeDeleted, requestInstance.Namespace); err != nil {
-			merr.Add(err)
-		}
-		operatorName := strings.Split(index, "/")[0]
-		requestInstance.RemoveMemberCRStatus(operatorName, opdMember.Name, opdMember.Kind)
+
+		var (
+			operatorName = strings.Split(index, "/")[0]
+			opdMember    = opdMember
+		)
+		wg.Add(1)
+		go func() {
+			if err := r.deleteCustomResource(ctx, crShouldBeDeleted, requestInstance.Namespace); err != nil {
+				mu.Lock()
+				defer mu.Unlock()
+				merr.Add(err)
+			}
+			mu.Lock()
+			defer mu.Unlock()
+			requestInstance.RemoveMemberCRStatus(operatorName, opdMember.Name, opdMember.Kind)
+		}()
 	}
+	wg.Wait()
 
 	if len(merr.Errors) != 0 {
 		return merr
