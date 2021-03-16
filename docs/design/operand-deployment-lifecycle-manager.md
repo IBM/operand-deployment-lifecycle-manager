@@ -3,6 +3,7 @@
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
 - [Operand Deployment Lifecycle Manager (ODLM)](#operand-deployment-lifecycle-manager-odlm)
+  - [What are operands?](#what-are-operands)
   - [Goal](#goal)
   - [ODLM Workflow](#odlm-workflow)
   - [OperandRegistry Spec](#operandregistry-spec)
@@ -18,6 +19,13 @@
 # Operand Deployment Lifecycle Manager (ODLM)
 
 The operand is the instance managed by the operator. ODLM is used to manage the lifecycle of for a group of operands, compared with operator lifecycle manager, ODLM focus on the management of operands but not operators.
+
+## What are operands?
+
+Operator is a method of packaging, deploying and managing a Kubernetes application.
+Operands are the services and applications that Operator manage.
+
+For example, cert-manager operator deploys a cert-manager deployment, then the cert-manager-operator is an operator and the cert-manager deployment is an operand.
 
 The ODLM will have four CRDs:
 
@@ -62,6 +70,7 @@ spec:
     sourceName: community-operators [8]
     sourceNamespace: openshift-marketplace [9]
     installMode: cluster [10]
+    installPlanApproval: Manual [11]
 ```
 
 The OperandRegistry Custom Resource (CR) lists OLM Operator information for operands that may be requested for installation and/or access by an application that runs in a namespace. The registry CR specifies:
@@ -76,6 +85,7 @@ The OperandRegistry Custom Resource (CR) lists OLM Operator information for oper
 8. `sourceName` is the name of the CatalogSource.
 9. `sourceNamespace` is the namespace of the CatalogSource.
 10. (optional) `installMode` is the install mode of the operator, can be either `namespace` (OLM one namespace) or `cluster` (OLM all namespaces). The default value is `namespace`. Operator is deployed in `openshift-operators` namespace when InstallMode is set to `cluster`.
+11. (optional) `installPlanApproval` is the approval mode for emitted installplan. The default value is `Automatic`.
 
 ## OperandConfig Spec
 

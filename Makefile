@@ -220,6 +220,12 @@ build-operator-image: ## Build the operator image.
 	--build-arg VCS_REF=$(VCS_REF) --build-arg VCS_URL=$(VCS_URL) \
 	--build-arg GOARCH=$(LOCAL_ARCH) -f Dockerfile .
 
+build-operator-dev-image: ## Build the operator dev image.
+	@echo "Building the $(OPERATOR_IMAGE_NAME) docker image..."
+	@docker build -t $(OPERATOR_IMAGE_NAME):$(VERSION) \
+	--build-arg VCS_REF=$(VCS_REF) --build-arg VCS_URL=$(VCS_URL) \
+	--build-arg GOARCH=$(LOCAL_ARCH) -f Dockerfile .
+
 build-test-operator-image: ## Build the operator test image.
 	@echo "Building the $(OPERATOR_IMAGE_NAME) docker image for testing..."
 	@docker build -t $(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG) \
@@ -227,6 +233,11 @@ build-test-operator-image: ## Build the operator test image.
 	--build-arg GOARCH=$(LOCAL_ARCH) -f Dockerfile .
 
 ##@ Release
+
+build-push-dev-image: build-operator-dev-image  ## Build and push the operator dev images.
+	@echo "Pushing the $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(VERSION) docker image to $(DEV_REGISTRY)..."
+	@docker tag $(OPERATOR_IMAGE_NAME):$(VERSION) $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(VERSION)
+	@docker push $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(VERSION)
 
 build-push-image: $(CONFIG_DOCKER_TARGET) $(CONFIG_DOCKER_TARGET_QUAY) build-operator-image  ## Build and push the operator images.
 	@echo "Pushing the $(OPERATOR_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."

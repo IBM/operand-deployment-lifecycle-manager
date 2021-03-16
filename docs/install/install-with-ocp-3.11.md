@@ -8,7 +8,10 @@
   - [2. Create CatalogSource](#2-create-catalogsource)
   - [3. Create Operator NS, Group, Subscription](#3-create-operator-ns-group-subscription)
   - [4. Check Operator CSV](#4-check-operator-csv)
-  - [5. Create OperandRequest instance](#5-create-operandrequest-instance)
+  - [5. Create OperandRegistry and OperandConfig instance](#5-create-operandregistry-and-operandconfig-instance)
+    - [Create OperandConfig](#create-operandconfig)
+    - [Create OperandRegistry](#create-operandregistry)
+  - [6. Create OperandRequest instance](#6-create-operandrequest-instance)
     - [Create Operand Request](#create-operand-request)
     - [Enable or Delete an Operator](#enable-or-delete-an-operator)
   - [Post-installation](#post-installation)
@@ -42,8 +45,13 @@ metadata:
   name: opencloud-operators
   namespace: olm
 spec:
+  displayName: IBMCS Operators
+  publisher: IBM
   sourceType: grpc
   image: docker.io/ibmcom/ibm-common-service-catalog:latest
+  updateStrategy:
+    registryPoll:
+      interval: 45m
 ```
 
 ## 3. Create Operator NS, Group, Subscription
@@ -65,16 +73,30 @@ spec:
   - odlm
 
 ---
+apiVersion: v1
+data:
+  namespaces: odlm
+kind: ConfigMap
+metadata:
+  name: namespace-scope
+  namespace: odlm
+
+---
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
   name: operand-deployment-lifecycle-manager
   namespace: odlm
 spec:
-  channel: beta
+  channel: v3
   name: ibm-odlm
   source: opencloud-operators
   sourceNamespace: olm
+  config:
+    env:
+    - name: INSTALL_SCOPE
+      value: namespaced
+END
 ```
 
 ## 4. Check Operator CSV
@@ -83,7 +105,50 @@ spec:
 oc -n ibm-common-services get csv
 ```
 
-## 5. Create OperandRequest instance
+## 5. Create OperandRegistry and OperandConfig instance
+
+### Create OperandConfig
+
+```yaml
+kubectl apply -f - <<END
+apiVersion: operator.ibm.com/v1alpha1
+kind: OperandConfig
+metadata:
+  name: common-service
+  namespace: odlm
+spec:
+  services:
+  - name: ibm-cert-manager-operator
+    spec:
+      certManager: {}
+      issuer: {}
+      certificate: {}
+END
+```
+
+### Create OperandRegistry
+
+```yaml
+kubectl apply -f - <<END
+apiVersion: operator.ibm.com/v1alpha1
+apiVersion: operator.ibm.com/v1alpha1
+kind: OperandRegistry
+metadata:
+  name: common-service
+  namespace: odlm
+spec:
+  operators:
+  - name: ibm-cert-manager-operator
+    namespace: odlm
+    channel: v3
+    packageName: ibm-cert-manager-operator
+    scope: public
+    sourceName: opencloud-operators
+    sourceNamespace: olm
+END
+```
+
+## 6. Create OperandRequest instance
 
 ### Create Operand Request
 
@@ -100,36 +165,13 @@ spec:
     registryNamespace: odlm
     operands:
     - name: ibm-cert-manager-operator
-    - name: ibm-mongodb-operator
-    - name: ibm-iam-operator
-    - name: ibm-monitoring-exporters-operator
-    - name: ibm-monitoring-prometheusext-operator
-    - name: ibm-healthcheck-operator
 END
-```
-
-The list of operators you can add:
-
-```bash
-    - name: ibm-cert-manager-operator
-    - name: ibm-mongodb-operator
-    - name: ibm-iam-operator
-    - name: ibm-monitoring-exporters-operator
-    - name: ibm-monitoring-prometheusext-operator
-    - name: ibm-healthcheck-operator
-    - name: ibm-management-ingress-operator
-    - name: ibm-ingress-nginx-operator
-    - name: ibm-metering-operator
-    - name: ibm-licensing-operator
-    - name: ibm-commonui-operator
-    - name: ibm-auditlogging-operator
-    - name: ibm-platform-api-operator
 ```
 
 After the `OperandRequest` created, we can check if our common services install successfully by command.
 
 ```bash
-kubectl -n ibm-common-services get csv
+kubectl get csv -A
 ```
 
 ### Enable or Delete an Operator

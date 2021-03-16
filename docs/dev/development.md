@@ -3,8 +3,8 @@
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
 - [Development Guide](#development-guide)
-    - [Prerequisite](#prerequisite)
-    - [Developer quick start](#developer-quick-start)
+  - [Prerequisite](#prerequisite)
+  - [Developer quick start](#developer-quick-start)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -33,26 +33,17 @@
 
 ## Developer quick start
 
-- Setup `GIT_HOST` to override the setting for your custom path.
+- Run the `code-dev` to check your code and run the unit test.
 
 ```bash
-export GIT_HOST=github.com/<YOUR_GITHUB_ID>
-```
-
-- Run the `linter` and `test` before building the binary.
-
-```bash
-make check
-make test
-make build
+make code-dev
 ```
 
 - Build and push the docker image for local development.
 
 ```bash
-export IMG=<YOUR_CUSTOMIZED_IMAGE_NAME>
-export REGISTRY=<YOUR_CUSTOMIZED_IMAGE_REGISTRY>
-make build-push-images
+export DEV_REGISTRY=<YOUR_CUSTOMIZED_IMAGE_REGISTRY>
+make build-push-dev-image
 ```
 
 > **Note:** You need to login the docker registry before running the command above.
