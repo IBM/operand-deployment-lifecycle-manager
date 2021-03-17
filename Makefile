@@ -177,7 +177,7 @@ e2e-test:
 	@echo ... Running the ODLM e2e test
 	@go test ./test/e2e/...
 
-e2e-test-kind: build-push-test-operator-image kind-start kind-load-img deploy-e2e e2e-test kind-delete
+e2e-test-kind: build-test-operator-image kind-start kind-load-img deploy-e2e e2e-test kind-delete
 
 coverage: ## Run code coverage test
 	@echo "Running unit tests for the controllers."
@@ -209,7 +209,6 @@ kind-delete:
 
 kind-load-img:
 	@echo Load ODLM images into Kind cluster
-	@docker pull $(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG)
 	@${KIND} load docker-image $(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG) --name ${KIND_CLUSTER_NAME} -v 5
 
 ##@ Build
@@ -246,9 +245,6 @@ build-push-image: $(CONFIG_DOCKER_TARGET) $(CONFIG_DOCKER_TARGET_QUAY) build-ope
 	@docker push $(ARTIFACTORYA_REGISTRY)/$(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION)
 	@docker push $(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION)
 
-build-push-test-operator-image: $(CONFIG_DOCKER_TARGET_QUAY) build-test-operator-image  ## Build and push the operator test image.
-	@echo "Pushing the $(OPERATOR_IMAGE_NAME) docker image for testing..."
-	@docker push $(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG)
 
 build-push-bundle-image: $(CONFIG_DOCKER_TARGET_QUAY) build-bundle-image ## Build and push the bundle images.
 	@echo "Pushing the $(BUNDLE_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
