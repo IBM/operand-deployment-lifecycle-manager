@@ -3,31 +3,29 @@
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
 - [Install the operand deployment lifecycle manager On OCP 4.2+](#install-the-operand-deployment-lifecycle-manager-on-ocp-42)
-  - [1. Create OperatorSource](#1-create-operatorsource)
-  - [2. Create Namespace ibm-common-services](#2-create-namespace-ibm-common-services)
-  - [3. Install operand deployment lifecycle manager](#3-install-operand-deployment-lifecycle-manager)
-    - [Search ODLM Package in the OperatorHub](#search-odlm-package-in-the-operatorhub)
-    - [Install ODLM Operator](#install-odlm-operator)
-  - [4. Manage Other Operators with ODLM](#4-manage-other-operators-with-odlm)
-    - [(Optional) Update OperandRegistry and OperandConfig instances](#optional-update-operandregistry-and-operandconfig-instances)
+  - [1. Create CatalogSource](#1-create-catalogsource)
+  - [2. Create Operator NS, Group, Subscription](#2-create-operator-ns-group-subscription)
+  - [3. Check Operator CSV](#3-check-operator-csv)
+  - [4. Create OperandRegistry and OperandConfig instance](#4-create-operandregistry-and-operandconfig-instance)
+    - [Create OperandConfig](#create-operandconfig)
+    - [Create OperandRegistry](#create-operandregistry)
+  - [5. Create OperandRequest instance](#5-create-operandrequest-instance)
     - [Create Operand Request](#create-operand-request)
     - [Enable or Delete an Operator](#enable-or-delete-an-operator)
-- [Post-installation](#post-installation)
+  - [Post-installation](#post-installation)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 # Install the operand deployment lifecycle manager On OCP 4.2+
 
-## 1. Create OperatorSource
-
-Before install ODLM, this operator source should be created to get operator bundles from `quay.io`.
+## 1. Create CatalogSource
 
 ```yaml
 apiVersion: operators.coreos.com/v1alpha1
 kind: CatalogSource
 metadata:
   name: opencloud-operators
-  namespace: openshift-marketplace
+  namespace: olm
 spec:
   displayName: IBMCS Operators
   publisher: IBM
@@ -38,93 +36,125 @@ spec:
       interval: 45m
 ```
 
-Click the plus button, and then copy the above catalog source into the editor.
-
-Check if operator packages are loaded, run command:
-
-```bash
-oc -n openshift-marketplace get operatorsource opencloud-operators -o jsonpath="{.status.packages}"
-```
-
-The output is a list of operators
+## 2. Create Operator NS, Group, Subscription
 
 ```yaml
-ibm-cert-manager-operator-app,ibm-management-ingress-operator-app...
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: odlm
+
+---
+apiVersion: operators.coreos.com/v1alpha2
+kind: OperatorGroup
+metadata:
+  name: operatorgroup
+  namespace: odlm
+spec:
+  targetNamespaces:
+  - odlm
+
+---
+apiVersion: v1
+data:
+  namespaces: odlm
+kind: ConfigMap
+metadata:
+  name: namespace-scope
+  namespace: odlm
+
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: operand-deployment-lifecycle-manager
+  namespace: odlm
+spec:
+  channel: v3
+  name: ibm-odlm
+  source: opencloud-operators
+  sourceNamespace: olm
+  config:
+    env:
+    - name: INSTALL_SCOPE
+      value: namespaced
+END
 ```
 
-**Note:** During development, if you need to update the csv package frequently, but the operator source needs a long time to sync the new package, you can delete the catalog source to trigger a reload. Then the new packages will be updated immediately.
+## 3. Check Operator CSV
 
 ```bash
-oc delete catalogsource opencloudio -n openshift-marketplace
+oc -n ibm-common-services get csv
 ```
 
-## 2. Create Namespace ibm-common-services
+## 4. Create OperandRegistry and OperandConfig instance
 
-Open the `OperatorHub` page in OCP console left menu, then `Create Project`, e.g., create a project named `ibm-common-services`.
+### Create OperandConfig
 
-![Create Project](../images/create-project.png)
+```yaml
+kubectl apply -f - <<END
+apiVersion: operator.ibm.com/v1alpha1
+kind: OperandConfig
+metadata:
+  name: common-service
+  namespace: odlm
+spec:
+  services:
+  - name: ibm-cert-manager-operator
+    spec:
+      certManager: {}
+      issuer: {}
+      certificate: {}
+END
+```
 
-## 3. Install operand deployment lifecycle manager
+### Create OperandRegistry
 
-### Search ODLM Package in the OperatorHub
+```yaml
+kubectl apply -f - <<END
+apiVersion: operator.ibm.com/v1alpha1
+apiVersion: operator.ibm.com/v1alpha1
+kind: OperandRegistry
+metadata:
+  name: common-service
+  namespace: odlm
+spec:
+  operators:
+  - name: ibm-cert-manager-operator
+    namespace: odlm
+    channel: v3
+    packageName: ibm-cert-manager-operator
+    scope: public
+    sourceName: opencloud-operators
+    sourceNamespace: olm
+END
+```
 
-Type `operand-deployment-lifecycle-manager` in the search box
-![Search ODLM Package](../images/search-odlm.png)Open `OperatorHub` and search `operand-deployment-lifecycle-manager` to find the operator, and install it.
-
-### Install ODLM Operator
-
-![ODLM Install Preview](../images/search-install-odlm-preview.png)
-
-Select the namespace `ibm-common-services` that created in step [Create Project](#create-project)
-![Install ODLM Operator](../images/install-odlm.png)
-![Installed ODLM](../images/install-odlm-success.png)
-
-Waiting for about 1 minute, `OperandRegistry` and `OperandConfig` operand will be ready.
-Sometimes, you need to refresh the webpage to check them.
-![ODLM All Instances](../images/odlm-all-instances.png)
-
-So far, the ODLM operator installation is completed. Next, you can start to install other common service operators.
-
-## 4. Manage Other Operators with ODLM
-
-### (Optional) Update OperandRegistry and OperandConfig instances
-
-This is an optional step to install operand deployment lifecycle manager.
-
-- You can edit `OperandRegistry` instances to update operators. For more details, you can check [How to update OperandRegistry](../user/how-to-update-operandregistry.md)
-- You can edit `OperandConfig` instances to update operands. You can update OperandConfig instances [post installation](#post-installation) as well. For more details, you can check [How to update OperandConfig](../user/how-to-update-operandconfig.md)
+## 5. Create OperandRequest instance
 
 ### Create Operand Request
 
-Select `OperandRequest` from `Create New` button
-![Create Operand Request](../images/create-operand-request.png)
-
-Modify the `OperandRequest` to add the operator you want to install into `spec.requests.operands`
-![Modify the Operand Request](../images/operand-request-detail.png)
-![Operand Request Instance](../images/operand-request-create-done.png)
-
-This is the list of operators are going to be installed:
-
-```bash
+```yaml
+kubectl apply -f - <<END
+apiVersion: operator.ibm.com/v1alpha1
+kind: OperandRequest
+metadata:
+  name: common-service
+  namespace: odlm
+spec:
+  requests:
+  - registry: common-service
+    registryNamespace: odlm
+    operands:
     - name: ibm-cert-manager-operator
-    - name: ibm-mongodb-operator
-    - name: ibm-iam-operator
-    - name: ibm-monitoring-exporters-operator
-    - name: ibm-monitoring-prometheusext-operator
-    - name: ibm-monitoring-grafana-operator
-    - name: ibm-healthcheck-operator
-    - name: ibm-management-ingress-operator
-    - name: ibm-licensing-operator
-    - name: ibm-metering-operator
-    - name: ibm-commonui-operator
-    - name: ibm-elastic-stack-operator
-    - name: ibm-ingress-nginx-operator
-    - name: ibm-auditlogging-operator
-    - name: ibm-platform-api-operator
+END
 ```
 
-After the `OperandRequest` created, you can click the left navigation tree `Installed Operators` to check if our common services install successfully.
-![Installed Operators](../images/operator-list.png)
+After the `OperandRequest` created, we can check if our common services install successfully by command.
+
+```bash
+kubectl get csv -A
+```
 
 ### Enable or Delete an Operator
 
@@ -132,8 +162,6 @@ After the `OperandRequest` created, you can click the left navigation tree `Inst
 
 - Delete an operator, you can remove the operator from the`OperandRequest`
 
-# Post-installation
+## Post-installation
 
-The operators and their operands would be deployed in the cluster.
-
-- You can edit `OperandConfig` instances to update operands. For more details, you can check [How to update OperandConfig](../user/how-to-update-operandconfig)
+The operators and their custom resource would be deployed in the cluster, and thus the installation of operands will also triggered by the CR.

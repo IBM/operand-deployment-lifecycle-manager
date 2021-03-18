@@ -177,7 +177,7 @@ e2e-test:
 	@echo ... Running the ODLM e2e test
 	@go test ./test/e2e/...
 
-e2e-test-kind: build-push-test-operator-image kind-start kind-load-img deploy-e2e e2e-test kind-delete
+e2e-test-kind: build-test-operator-image kind-start kind-load-img deploy-e2e e2e-test kind-delete
 
 coverage: ## Run code coverage test
 	@echo "Running unit tests for the controllers."
@@ -209,7 +209,6 @@ kind-delete:
 
 kind-load-img:
 	@echo Load ODLM images into Kind cluster
-	@docker pull $(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG)
 	@${KIND} load docker-image $(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG) --name ${KIND_CLUSTER_NAME} -v 5
 
 ##@ Build
@@ -217,6 +216,12 @@ kind-load-img:
 build-operator-image: ## Build the operator image.
 	@echo "Building the $(OPERATOR_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
 	@docker build -t $(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) \
+	--build-arg VCS_REF=$(VCS_REF) --build-arg VCS_URL=$(VCS_URL) \
+	--build-arg GOARCH=$(LOCAL_ARCH) -f Dockerfile .
+
+build-operator-dev-image: ## Build the operator dev image.
+	@echo "Building the $(OPERATOR_IMAGE_NAME) docker image..."
+	@docker build -t $(OPERATOR_IMAGE_NAME):$(VERSION) \
 	--build-arg VCS_REF=$(VCS_REF) --build-arg VCS_URL=$(VCS_URL) \
 	--build-arg GOARCH=$(LOCAL_ARCH) -f Dockerfile .
 
@@ -228,6 +233,11 @@ build-test-operator-image: ## Build the operator test image.
 
 ##@ Release
 
+build-push-dev-image: build-operator-dev-image  ## Build and push the operator dev images.
+	@echo "Pushing the $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(VERSION) docker image to $(DEV_REGISTRY)..."
+	@docker tag $(OPERATOR_IMAGE_NAME):$(VERSION) $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(VERSION)
+	@docker push $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(VERSION)
+
 build-push-image: $(CONFIG_DOCKER_TARGET) $(CONFIG_DOCKER_TARGET_QUAY) build-operator-image  ## Build and push the operator images.
 	@echo "Pushing the $(OPERATOR_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
 	@docker tag $(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) $(ARTIFACTORYA_REGISTRY)/$(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION)
@@ -235,9 +245,6 @@ build-push-image: $(CONFIG_DOCKER_TARGET) $(CONFIG_DOCKER_TARGET_QUAY) build-ope
 	@docker push $(ARTIFACTORYA_REGISTRY)/$(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION)
 	@docker push $(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION)
 
-build-push-test-operator-image: $(CONFIG_DOCKER_TARGET_QUAY) build-test-operator-image  ## Build and push the operator test image.
-	@echo "Pushing the $(OPERATOR_IMAGE_NAME) docker image for testing..."
-	@docker push $(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG)
 
 build-push-bundle-image: $(CONFIG_DOCKER_TARGET_QUAY) build-bundle-image ## Build and push the bundle images.
 	@echo "Pushing the $(BUNDLE_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
