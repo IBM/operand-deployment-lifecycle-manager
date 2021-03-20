@@ -27,10 +27,7 @@ import (
 	"k8s.io/client-go/discovery"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	nssv1 "github.com/IBM/ibm-namespace-scope-operator/api/v1"
@@ -51,13 +48,10 @@ func (r *Reconciler) ReconcileOperandRequest(req ctrl.Request) (_ ctrl.Result, r
 	// Creat context for the OperandBindInfo reconciler
 	ctx := context.Background()
 
-	dc := discovery.NewDiscoveryClientForConfigOrDie(r.Config)
-	if exist, err := util.ResourceExists(dc, "operator.ibm.com/v1", "NamespaceScope"); err != nil {
-		err = errors.Wrap(err, "failed to check if the NamespaceScope api exist")
-		klog.Error(err)
+	exist, err := r.checkNamespaceScapeAPI()
+	if err != nil {
 		return ctrl.Result{}, err
 	} else if !exist {
-		klog.Warning("Not found NamespaceScope API, ignore update it.")
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
@@ -101,79 +95,6 @@ func (r *Reconciler) ReconcileOperandRequest(req ctrl.Request) (_ ctrl.Result, r
 		}
 		return ctrl.Result{}, nil
 	}
-
-	opreqNs, err := r.getOpreqNs(ctx)
-	if err != nil {
-		klog.Error(err)
-		return ctrl.Result{}, err
-	}
-
-	opregNs, err := r.getOpregNs(ctx)
-	if err != nil {
-		klog.Error(err)
-		return ctrl.Result{}, err
-	}
-
-	nsSet := gset.NewSet()
-
-	for _, ns := range opreqNs {
-		nsSet.Add(ns)
-	}
-
-	for _, ns := range opregNs {
-		nsSet.Add(ns)
-	}
-
-	for ns := range nsSet.Iter() {
-		nsMems = append(nsMems, ns.(string))
-	}
-
-	return ctrl.Result{}, nil
-}
-
-// ReconcileOperandRegistry reads that state of the cluster for OperandRegistry object and update NamespaceScope CR based on the state read
-func (r *Reconciler) ReconcileOperandRegistry(req ctrl.Request) (_ ctrl.Result, reconcileErr error) {
-	// Creat context for the OperandBindInfo reconciler
-	ctx := context.Background()
-
-	dc := discovery.NewDiscoveryClientForConfigOrDie(r.Config)
-	if exist, err := util.ResourceExists(dc, "operator.ibm.com/v1", "NamespaceScope"); err != nil {
-		err = errors.Wrap(err, "failed to check if the NamespaceScope api exist")
-		klog.Error(err)
-		return ctrl.Result{}, err
-	} else if !exist {
-		klog.Warning("Not found NamespaceScope API, ignore update it.")
-		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
-	}
-
-	nss, err := r.getNamespaceScopeCR(ctx)
-	if err != nil {
-		klog.Error(err)
-		return ctrl.Result{}, err
-	} else if nss == nil {
-		klog.Warning("Not found NamespaceScope instance, ignore update it.")
-		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
-	}
-
-	// Fetch the OperandRegistry instance
-	instance := &operatorv1alpha1.OperandRegistry{}
-	if err := r.Client.Get(ctx, req.NamespacedName, instance); err != nil {
-		return ctrl.Result{}, client.IgnoreNotFound(err)
-	}
-
-	originalNss := nss.DeepCopy()
-
-	var nsMems []string
-
-	defer func() {
-		if !util.StringSliceContentEqual(nsMems, nss.Spec.NamespaceMembers) {
-			nss.Spec.NamespaceMembers = nsMems
-			if err := r.Patch(ctx, nss, client.MergeFrom(originalNss)); err != nil {
-				reconcileErr = errors.Wrapf(err, "failed to update NamespaceScope %s/%s", nss.Namespace, nss.Name)
-			}
-			klog.V(2).Infof("Updated NamespaceScope %s/%s", nss.Namespace, nss.Name)
-		}
-	}()
 
 	opreqNs, err := r.getOpreqNs(ctx)
 	if err != nil {
@@ -290,6 +211,19 @@ func (r *Reconciler) removeNamespaceMemberFromNamespaceScope(ctx context.Context
 	return
 }
 
+func (r *Reconciler) checkNamespaceScapeAPI() (bool, error) {
+	dc := discovery.NewDiscoveryClientForConfigOrDie(r.Config)
+	if exist, err := util.ResourceExists(dc, "operator.ibm.com/v1", "NamespaceScope"); err != nil {
+		err = errors.Wrap(err, "failed to check if the NamespaceScope api exist")
+		klog.Error(err)
+		return false, err
+	} else if !exist {
+		klog.Warning("Not found NamespaceScope API, ignore update it.")
+		return false, nil
+	}
+	return true, nil
+}
+
 func (r *Reconciler) getNamespaceScopeCR(ctx context.Context) (*nssv1.NamespaceScope, error) {
 	nsScope := &nssv1.NamespaceScope{}
 	nsScopeKey := types.NamespacedName{Name: constant.NamespaceScopeCrName, Namespace: util.GetOperatorNamespace()}
@@ -306,24 +240,8 @@ func (r *Reconciler) getNamespaceScopeCR(ctx context.Context) (*nssv1.NamespaceS
 // SetupWithManager adds OperandBindInfo controller to the manager.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	err := ctrl.NewControllerManagedBy(mgr).
-		For(&operatorv1alpha1.OperandRequest{}, builder.WithPredicates(predicate.Funcs{
-			CreateFunc: func(e event.CreateEvent) bool {
-				return true
-			},
-			DeleteFunc: func(e event.DeleteEvent) bool {
-				// Evaluates to false if the object has been confirmed deleted.
-				return !e.DeleteStateUnknown
-			},
-		}),
-		).
+		For(&operatorv1alpha1.OperandRequest{}).
 		Complete(reconcile.Func(r.ReconcileOperandRequest))
-	if err != nil {
-		return err
-	}
-
-	err = ctrl.NewControllerManagedBy(mgr).
-		For(&operatorv1alpha1.OperandRegistry{}).
-		Complete(reconcile.Func(r.ReconcileOperandRegistry))
 	if err != nil {
 		return err
 	}
