@@ -61,7 +61,7 @@ var (
 	interval = time.Second * 5
 )
 
-func TestOperandBindInfo(t *testing.T) {
+func TestNamespaceScope(t *testing.T) {
 	RegisterFailHandler(Fail)
 
 	RunSpecsWithDefaultAndCustomReporters(t,
@@ -108,7 +108,7 @@ var _ = BeforeSuite(func(done Done) {
 	})
 	Expect(err).ToNot(HaveOccurred())
 
-	// Setup Manager with OperandBindInfo Controller
+	// Setup Manager with NamespaceScope Controller
 	err = (&Reconciler{
 		ODLMOperator: deploy.NewODLMOperator(k8sManager, "NamespaceScope"),
 	}).SetupWithManager(k8sManager)

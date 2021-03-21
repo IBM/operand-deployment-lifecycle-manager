@@ -24,6 +24,7 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -45,10 +46,10 @@ type Reconciler struct {
 
 // ReconcileOperandRequest reads that state of the cluster for OperandRequest object and update NamespaceScope CR based on the state read
 func (r *Reconciler) ReconcileOperandRequest(req ctrl.Request) (_ ctrl.Result, reconcileErr error) {
-	// Creat context for the OperandBindInfo reconciler
+	// Creat context for the namespacescope reconciler
 	ctx := context.Background()
 
-	exist, err := r.checkNamespaceScapeAPI()
+	exist, err := r.checkNamespaceScopeAPI()
 	if err != nil {
 		return ctrl.Result{}, err
 	} else if !exist {
@@ -64,65 +65,49 @@ func (r *Reconciler) ReconcileOperandRequest(req ctrl.Request) (_ ctrl.Result, r
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
-	// Fetch the OperandRequest instance
-	requestInstance := &operatorv1alpha1.OperandRequest{}
-	if err := r.Client.Get(ctx, req.NamespacedName, requestInstance); err != nil {
-		// Error reading the object - requeue the request.
-		return ctrl.Result{}, client.IgnoreNotFound(err)
-	}
+	var nsMems []string
 
 	originalNss := nss.DeepCopy()
 
-	var nsMems []string
-
 	defer func() {
+		nsMems, reconcileErr = r.updateNamespaceMemberFromNamespaceScope(ctx)
+		if reconcileErr != nil {
+			klog.Error(reconcileErr)
+			return
+		}
 		if !util.StringSliceContentEqual(nsMems, nss.Spec.NamespaceMembers) {
 			nss.Spec.NamespaceMembers = nsMems
 			if err := r.Patch(ctx, nss, client.MergeFrom(originalNss)); err != nil {
 				reconcileErr = errors.Wrapf(err, "failed to update NamespaceScope %s/%s", nss.Namespace, nss.Name)
+				klog.Error(reconcileErr)
+				return
 			}
 			klog.V(2).Infof("Updated NamespaceScope %s/%s", nss.Namespace, nss.Name)
 		}
 	}()
 
-	// Remove finalizer when DeletionTimestamp none zero
+	// Fetch the OperandRequest instance
+	requestInstance := &operatorv1alpha1.OperandRequest{}
+	if err := r.Client.Get(ctx, req.NamespacedName, requestInstance); err != nil {
+		return
+	}
+
 	if !requestInstance.ObjectMeta.DeletionTimestamp.IsZero() {
-		// Check and remove namespaceMember from NamespaceScope CR
-		nsMems, err = r.removeNamespaceMemberFromNamespaceScope(ctx, req)
+		// Wait OperandRequest is deleted
+		err := wait.PollImmediate(time.Second*3, time.Minute*5, func() (bool, error) {
+			err := r.Client.Get(ctx, req.NamespacedName, requestInstance)
+			if apierrors.IsNotFound(err) {
+				return true, nil
+			}
+			return false, nil
+		})
 		if err != nil {
-			klog.Errorf("failed to remove NamespaceMember %s from NamespaceScope: %v", req.Namespace, err)
-			return ctrl.Result{}, err
+			reconcileErr = err
 		}
-		return ctrl.Result{}, nil
+		return
 	}
 
-	opreqNs, err := r.getOpreqNs(ctx)
-	if err != nil {
-		klog.Error(err)
-		return ctrl.Result{}, err
-	}
-
-	opregNs, err := r.getOpregNs(ctx)
-	if err != nil {
-		klog.Error(err)
-		return ctrl.Result{}, err
-	}
-
-	nsSet := gset.NewSet()
-
-	for _, ns := range opreqNs {
-		nsSet.Add(ns)
-	}
-
-	for _, ns := range opregNs {
-		nsSet.Add(ns)
-	}
-
-	for ns := range nsSet.Iter() {
-		nsMems = append(nsMems, ns.(string))
-	}
-
-	return ctrl.Result{}, nil
+	return
 }
 
 func (r *Reconciler) getOpreqNs(ctx context.Context) (nsMems []string, getOpreqNsErr error) {
@@ -181,37 +166,37 @@ func (r *Reconciler) getOpregNs(ctx context.Context) (nsMems []string, getOpregN
 	return
 }
 
-func (r *Reconciler) removeNamespaceMemberFromNamespaceScope(ctx context.Context, req ctrl.Request) (nsMems []string, err error) {
-	klog.Infof("Deleting OperandRequest %s ...", req.NamespacedName.String())
-	opreqList, err := r.ListOperandRequests(ctx, nil)
+func (r *Reconciler) updateNamespaceMemberFromNamespaceScope(ctx context.Context) (nsMems []string, err error) {
+	opreqNs, err := r.getOpreqNs(ctx)
 	if err != nil {
-		err = errors.Wrap(err, "failed to list OperandRequest")
+		klog.Error(err)
+		return
+	}
+
+	opregNs, err := r.getOpregNs(ctx)
+	if err != nil {
+		klog.Error(err)
 		return
 	}
 
 	nsSet := gset.NewSet()
 
-	operatorNs := util.GetOperatorNamespace()
-	if operatorNs != "" {
-		nsSet.Add(operatorNs)
+	for _, ns := range opreqNs {
+		nsSet.Add(ns)
 	}
 
-	for _, opreq := range opreqList.Items {
-		if opreq.Namespace == req.NamespacedName.Namespace && opreq.Name == req.NamespacedName.Name {
-			continue
-		}
-		nsSet.Add(opreq.Namespace)
+	for _, ns := range opregNs {
+		nsSet.Add(ns)
 	}
 
 	for ns := range nsSet.Iter() {
 		nsMems = append(nsMems, ns.(string))
 	}
-	klog.Infof("namespace list %v ...", nsMems)
 
 	return
 }
 
-func (r *Reconciler) checkNamespaceScapeAPI() (bool, error) {
+func (r *Reconciler) checkNamespaceScopeAPI() (bool, error) {
 	dc := discovery.NewDiscoveryClientForConfigOrDie(r.Config)
 	if exist, err := util.ResourceExists(dc, "operator.ibm.com/v1", "NamespaceScope"); err != nil {
 		err = errors.Wrap(err, "failed to check if the NamespaceScope api exist")
@@ -237,7 +222,7 @@ func (r *Reconciler) getNamespaceScopeCR(ctx context.Context) (*nssv1.NamespaceS
 	return nsScope, nil
 }
 
-// SetupWithManager adds OperandBindInfo controller to the manager.
+// SetupWithManager adds namespacescope controller to the manager.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	err := ctrl.NewControllerManagedBy(mgr).
 		For(&operatorv1alpha1.OperandRequest{}).
