@@ -17,6 +17,7 @@
 
 # Install the operand deployment lifecycle manager On OCP 3.11
 
+We can't install latest version operand deployment lifecycle manager on OCP 3.11, because OCP 3.11 doesn't support v1 version cCustomResourceDefinition. So we use 3.6 version in this example.
 ## 0. Install OLM
 
 ```bash
@@ -43,7 +44,7 @@ metadata:
   namespace: olm
 spec:
   sourceType: grpc
-  image: docker.io/ibmcom/ibm-common-service-catalog:latest
+  image: docker.io/ibmcom/ibm-common-service-catalog:3.6
 ```
 
 ## 3. Create Operator NS, Group, Subscription

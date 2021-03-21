@@ -1,9 +1,0 @@
-channels:
-- currentCSV: operand-deployment-lifecycle-manager.v1.3.1
-  name: beta
-- currentCSV: operand-deployment-lifecycle-manager.v1.3.1
-  name: dev
-- currentCSV: operand-deployment-lifecycle-manager.v1.3.1
-  name: stable-v1
-defaultChannel: stable-v1
-packageName: ibm-odlm
