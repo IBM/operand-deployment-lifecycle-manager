@@ -54,12 +54,12 @@ The ODLM manages the deployment of the operands for OLM managed operators.  This
   - **OLM** operators declare which CRDs, API Services and other Operator Package Versions are REQUIRED.
   - All dependencies are statically defined as REQUIRED (vs. optional, or preferred), which result in all dependencies must be installed as a unit.
   - All dependencies must be in the same OperatorGroup, which may require the operators to be in the same namespace. 
-  - Example:  The IAM Operator REQUIRES the Mongo DB CRD and the Mongo DB Operator PROVIDES the Mongo DB CRD.  When the IAM Operator Subscription is created, the Mongo DB Subscription is dynamically created, satisfying the Mongo DB CRD dependency.
+  - Example:  The _Parent_ Operator REQUIRES the _Child_ CRD and the _Child_ Operator PROVIDES the _Child_ CRD.  When the _Parent_ Operator Subscription is created, the _Child_ Subscription is dynamically created, satisfying the _Child_ CRD dependency.
 - **ODLM** manages dependencies by creating _OperandRequests_.  Instead of providing a statically REQUIRED dependency, the Operator's creates a soft dependency using one or more OperandRequests for the dependent Operators as needed.  
   - **ODLM** *OperandRequests* decouple the lifecycle of the dependant Operators and allows dependencies to be installed (Subscribed) on demand.
     - The dependent _OperandRequests_ can be statically defined in the `alm-examples` section of the OLM _ClusterServiceVersion_, or can be created dynamically by the Operator's controller.
   -  OLM Operators, managed by **ODLM** can be managed in any namespace combination allowing single-namespace installations to be shared between namespaces, avoiding the need for All-Namespace or Multi-Namespace OperatorGroups and Install Modes.
-  -  Example: The IAM Operator controller REQUIRES the Mongo DB Operator, by expressing the dependency in the Controller code, creating an OperandRequest.  This dependency is NOT defined in the OLM ClusterServiceVersion.
+  -  Example: The _Parent_ Operator controller REQUIRES the _Child_ Operator, by expressing the dependency in the Controller code, creating an OperandRequest.  This dependency is NOT defined in the OLM ClusterServiceVersion.
 
 ## Additional Features
 

@@ -3,7 +3,7 @@
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
 - [Running E2E Tests](#running-e2e-tests)
-    - [Reference](#reference)
+  - [Reference](#reference)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -11,10 +11,10 @@
 
 1. Ensure **operator-sdk** is installed and login to your OpenShift cluster as an admin user.
 
-1. Run the test using `make test-e2e`  command locally.
+1. Run the test using `make e2e-test-kind`  command locally.
 
     ```bash
-    make test-e2e
+    make e2e-test-kind
     ```
 
 ## Reference
