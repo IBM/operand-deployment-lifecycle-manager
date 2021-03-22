@@ -60,7 +60,7 @@ ifeq (, $(CONTROLLER_GEN))
 	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
 	cd $$CONTROLLER_GEN_TMP_DIR ;\
 	go mod init tmp ;\
-	GO111MODULE=on go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.3.0 ;\
+	GO111MODULE=on go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.0 ;\
 	rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
 	}
 CONTROLLER_GEN=$(GOBIN)/controller-gen
@@ -92,10 +92,23 @@ ifeq (, $(KUSTOMIZE))
 	KUSTOMIZE_GEN_TMP_DIR=$$(mktemp -d) ;\
 	cd $$KUSTOMIZE_GEN_TMP_DIR ;\
 	go mod init tmp ;\
-	go get sigs.k8s.io/kustomize/kustomize/v3@v3.5.4 ;\
+	go get sigs.k8s.io/kustomize/kustomize/v4@v4.0.5 ;\
 	rm -rf $$KUSTOMIZE_GEN_TMP_DIR ;\
 	}
 KUSTOMIZE=$(GOBIN)/kustomize
+endif
+
+kind:
+ifeq (, $(KIND))
+	@{ \
+	set -e ;\
+	ZEN_TMP_DIR=$$(mktemp -d) ;\
+	cd $$ZEN_TMP_DIR ;\
+	go mod init tmp ;\
+	GO111MODULE=on go get sigs.k8s.io/kind@v0.10.0 ;\
+	rm -rf $$ZEN_TMP_DIR ;\
+	}
+KIND=$(GOBIN)/kind
 endif
 
 opm:
@@ -131,4 +144,4 @@ code-tidy:
 	@echo go mod tidy
 	go mod tidy -v
 
-.PHONY: code-vet code-fmt code-tidy code-gen lint-copyright-banner lint-go lint-all config-docker operator-sdk kube-builder opm controller-gen fetch-olm-crds kustomize
+.PHONY: code-vet code-fmt code-tidy code-gen lint-copyright-banner lint-go lint-all config-docker operator-sdk kube-builder opm controller-gen fetch-olm-crds kustomize kind

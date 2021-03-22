@@ -83,7 +83,7 @@ func createOperandRequest(req *v1alpha1.OperandRequest) (*v1alpha1.OperandReques
 	return req, nil
 }
 
-func retrieveOperandRquest(obj runtime.Object, ns string) error {
+func retrieveOperandRequest(obj runtime.Object, ns string) error {
 	// Get OperandRequest instance
 	err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: OperandRequestCrName, Namespace: ns}, obj)
 	if err != nil {
@@ -102,7 +102,7 @@ func deleteOperandRequest(req *v1alpha1.OperandRequest) error {
 	}
 
 	if err := wait.PollImmediate(WaitForRetry, WaitForTimeout, func() (done bool, err error) {
-		err = retrieveOperandRquest(req, req.Namespace)
+		err = retrieveOperandRequest(req, req.Namespace)
 		if err != nil && errors.IsNotFound(err) {
 			return true, nil
 		}
@@ -120,8 +120,8 @@ func absentOperandFromRequest(ns, opName string) (*v1alpha1.OperandRequest, erro
 	// Delete the last operator and related operand
 	req := &v1alpha1.OperandRequest{}
 	if err := wait.PollImmediate(WaitForRetry, WaitForTimeout, func() (done bool, err error) {
-		if err := retrieveOperandRquest(req, ns); err != nil {
-			return false, err
+		if err := retrieveOperandRequest(req, ns); err != nil {
+			return false, client.IgnoreNotFound(err)
 		}
 
 		for index, op := range req.Spec.Requests[0].Operands {
@@ -134,8 +134,8 @@ func absentOperandFromRequest(ns, opName string) (*v1alpha1.OperandRequest, erro
 			fmt.Println("    --- Waiting for OperandRequest instance stable ...")
 			return false, nil
 		}
-		if err := retrieveOperandRquest(req, ns); err != nil {
-			return false, err
+		if err := retrieveOperandRequest(req, ns); err != nil {
+			return false, client.IgnoreNotFound(err)
 		}
 		for _, opstatus := range req.Status.Members {
 			if opstatus.Name == opName {
@@ -155,8 +155,8 @@ func presentOperandFromRequest(ns, opName string) (*v1alpha1.OperandRequest, err
 	// Add an operator and related operand
 	req := &v1alpha1.OperandRequest{}
 	if err := wait.PollImmediate(APIRetry, APITimeout, func() (done bool, err error) {
-		if err := retrieveOperandRquest(req, ns); err != nil {
-			return false, err
+		if err := retrieveOperandRequest(req, ns); err != nil {
+			return false, client.IgnoreNotFound(err)
 		}
 		createOp := true
 		for _, op := range req.Spec.Requests[0].Operands {
@@ -172,8 +172,8 @@ func presentOperandFromRequest(ns, opName string) (*v1alpha1.OperandRequest, err
 				return false, nil
 			}
 		}
-		if err := retrieveOperandRquest(req, ns); err != nil {
-			return false, err
+		if err := retrieveOperandRequest(req, ns); err != nil {
+			return false, client.IgnoreNotFound(err)
 		}
 		for _, opstatus := range req.Status.Members {
 			if opstatus.Name == opName {
@@ -192,8 +192,8 @@ func waitRequestStatusRunning(ns string) (*v1alpha1.OperandRequest, error) {
 	fmt.Println("--- WAITING: OperandRequest")
 	req := &v1alpha1.OperandRequest{}
 	if err := wait.PollImmediate(APIRetry, APITimeout, func() (bool, error) {
-		if err := retrieveOperandRquest(req, ns); err != nil {
-			return false, err
+		if err := retrieveOperandRequest(req, ns); err != nil {
+			return false, client.IgnoreNotFound(err)
 		}
 		if req.Status.Phase != v1alpha1.ClusterPhaseRunning {
 			fmt.Println("    --- Waiting for request phase " + v1alpha1.ClusterPhaseRunning)
@@ -233,7 +233,7 @@ func waitConfigStatus(expectedPhase v1alpha1.ServicePhase, ns string) (*v1alpha1
 	if err := wait.PollImmediate(APIRetry, APITimeout, func() (bool, error) {
 		err := retrieveOperandConfig(con, ns)
 		if err != nil {
-			return false, err
+			return false, client.IgnoreNotFound(err)
 		}
 		if con.Status.Phase != expectedPhase {
 			fmt.Println("    --- Waiting for config phase " + expectedPhase)
@@ -302,7 +302,7 @@ func updateEtcdReplicas(ns string) error {
 	if err := wait.PollImmediate(WaitForRetry, WaitForTimeout, func() (done bool, err error) {
 		err = retrieveOperandConfig(con, ns)
 		if err != nil {
-			return false, err
+			return false, client.IgnoreNotFound(err)
 		}
 		con.Spec.Services[0].Spec = map[string]runtime.RawExtension{
 			"etcdCluster": {Raw: []byte(`{"size": 3}`)},
@@ -368,7 +368,7 @@ func updateEtcdChannel(ns string) error {
 	if err := wait.PollImmediate(WaitForRetry, WaitForTimeout, func() (done bool, err error) {
 		err = retrieveOperandRegistry(reg, ns)
 		if err != nil {
-			return false, err
+			return false, client.IgnoreNotFound(err)
 		}
 		reg.Spec.Operators[0].Channel = "clusterwide-alpha"
 		reg.Spec.Operators[0].InstallMode = "cluster"
@@ -422,7 +422,7 @@ func updateJenkinsScope(ns string) error {
 	if err := wait.PollImmediate(WaitForRetry, WaitForTimeout, func() (done bool, err error) {
 		err = retrieveOperandRegistry(reg, ns)
 		if err != nil {
-			return false, err
+			return false, client.IgnoreNotFound(err)
 		}
 		reg.Spec.Operators[1].Scope = v1alpha1.ScopePublic
 		if err := k8sClient.Update(context.TODO(), reg); err != nil {

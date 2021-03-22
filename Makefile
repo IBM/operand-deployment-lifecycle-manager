@@ -78,7 +78,7 @@ BUNDLE_IMAGE_NAME ?= odlm-operator-bundle
 OPERATOR_VERSION ?= 1.6.0
 
 # Kind cluster name
-KIND_CLUSTER_NAME ?= "ODLM"
+KIND_CLUSTER_NAME ?= "odlm"
 # Operator image tag for test
 OPERATOR_TEST_TAG ?= dev-test
 
@@ -156,7 +156,7 @@ bundle-manifests:
 
 generate-all: manifests kustomize operator-sdk ## Generate bundle manifests, metadata and package manifests
 	$(OPERATOR_SDK) generate kustomize manifests -q
-	- make bundle-manifests CHANNELS=stable-v1,beta DEFAULT_CHANNEL=stable-v1
+	- make bundle-manifests CHANNELS=v3,beta DEFAULT_CHANNEL=v3
 
 ##@ Test
 
@@ -192,15 +192,12 @@ scorecard: operator-sdk ## Run scorecard test
 	@echo ... Running the scorecard test
 	- $(OPERATOR_SDK) scorecard bundle --verbose
 
-kind-install:
-	@common/scripts/install-kind.sh
-
-kind-start: kind-install
+kind-start: kind
 	@${KIND} get clusters | grep $(KIND_CLUSTER_NAME)  >/dev/null 2>&1 && \
 	echo "KIND Cluster already exists" && exit 0 || \
 	echo "Creating KIND Cluster" && \
 	${KIND} create cluster --name ${KIND_CLUSTER_NAME} --config=./common/config/kind-config.yaml && \
-	common/scripts/install-olm.sh 0.15.1
+	common/scripts/install-olm.sh 0.16.1
 
 
 kind-delete:

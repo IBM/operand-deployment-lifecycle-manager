@@ -29,7 +29,7 @@ In this document, we will deploy a Kubernetes cluster by [kind](https://github.c
 If you have go (1.11+) and docker installed, you can run the following commnad to generate a Kubernetes cluster.
 
 ```bash
-GO111MODULE="on" go get sigs.k8s.io/kind@v0.7.0 && kind create cluster
+GO111MODULE="on" go get sigs.k8s.io/kind@v0.10.0 && kind create cluster
 ```
 
 For more information see the [kind](https://github.com/kubernetes-sigs/kind#installation-and-usage)
@@ -38,10 +38,10 @@ For more information see the [kind](https://github.com/kubernetes-sigs/kind#inst
 
 Dowload and install operator lifecycle manager
 
-For example, install operator lifecycle manager at version 0.13.0.
+For example, install operator lifecycle manager at version 0.17.0.
 
 ```bash
-curl -sL https://github.com/operator-framework/operator-lifecycle-manager/releases/download/0.13.0/install.sh | bash -s 0.13.0
+curl -sL https://github.com/operator-framework/operator-lifecycle-manager/releases/download/0.17.0/install.sh | bash -s 0.17.0
 ```
 
 ## 3. Create CatalogSource
