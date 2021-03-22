@@ -21,6 +21,8 @@
 PROJECT ?= oceanic-guard-191815
 ZONE    ?= us-west1-a
 CLUSTER ?= prow
+NAMESPACESCOPE_VERSION = 1.1.1
+OLM_API_VERSION = 0.3.8
 
 activate-serviceaccount:
 ifdef GOOGLE_APPLICATION_CREDENTIALS
@@ -66,11 +68,11 @@ ifeq (, $(CONTROLLER_GEN))
 CONTROLLER_GEN=$(GOBIN)/controller-gen
 endif
 
-fetch-olm-crds:
+fetch-test-crds:
 	@{ \
-	curl -L -O "https://github.com/operator-framework/api/archive/v0.3.8.tar.gz" ;\
-	tar -zxf v0.3.8.tar.gz api-0.3.8/crds && mv api-0.3.8/crds ${ENVTEST_ASSETS_DIR}/crds ;\
-	rm -rf api-0.3.8 v0.3.8.tar.gz ;\
+	curl -L -O "https://github.com/operator-framework/api/archive/v${OLM_API_VERSION}.tar.gz" ;\
+	tar -zxf v${OLM_API_VERSION}.tar.gz api-${OLM_API_VERSION}/crds && mv api-${OLM_API_VERSION}/crds ${ENVTEST_ASSETS_DIR}/crds ;\
+	rm -rf api-${OLM_API_VERSION} v${OLM_API_VERSION}.tar.gz ;\
 	}
 	@{ \
 	curl -L -O "https://github.com/horis233/jenkins-operator/archive/v0.3.3.tar.gz" ;\
@@ -81,6 +83,11 @@ fetch-olm-crds:
 	curl -L -O "https://github.com/horis233/etcd-operator/archive/v0.9.4-crd.tar.gz" ;\
 	tar -zxf v0.9.4-crd.tar.gz etcd-operator-0.9.4-crd/deploy/crds && mv etcd-operator-0.9.4-crd/deploy/crds/etcdclusters.etcd.database.coreos.com.crd.yaml ${ENVTEST_ASSETS_DIR}/crds/etcdclusters.etcd.database.coreos.com.crd.yaml ;\
 	rm -rf etcd-operator-0.9.4-crd v0.9.4-crd.tar.gz ;\
+	}
+	@{ \
+	curl -L -O "https://github.com/IBM/ibm-namespace-scope-operator/archive/v${NAMESPACESCOPE_VERSION}.tar.gz" ;\
+	tar -zxf v${NAMESPACESCOPE_VERSION}.tar.gz ibm-namespace-scope-operator-${NAMESPACESCOPE_VERSION}/bundle/manifests && mv ibm-namespace-scope-operator-${NAMESPACESCOPE_VERSION}/bundle/manifests/operator.ibm.com_namespacescopes.yaml ${ENVTEST_ASSETS_DIR}/crds/operator.ibm.com_namespacescopes.yaml ;\
+	rm -rf ibm-namespace-scope-operator-${NAMESPACESCOPE_VERSION} v${NAMESPACESCOPE_VERSION}.tar.gz ;\
 	}
 
 # find or download kustomize
@@ -144,4 +151,4 @@ code-tidy:
 	@echo go mod tidy
 	go mod tidy -v
 
-.PHONY: code-vet code-fmt code-tidy code-gen lint-copyright-banner lint-go lint-all config-docker operator-sdk kube-builder opm controller-gen fetch-olm-crds kustomize kind
+.PHONY: code-vet code-fmt code-tidy code-gen lint-copyright-banner lint-go lint-all config-docker operator-sdk kube-builder opm controller-gen fetch-test-crds kustomize kind
