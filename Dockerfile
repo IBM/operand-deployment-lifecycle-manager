@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM golang:1.15.7 as builder
+FROM golang:1.15.10 as builder
 ARG GOARCH
 
 WORKDIR /workspace
@@ -21,7 +21,7 @@ RUN CGO_ENABLED=0 GOOS=linux GO111MODULE=on go build -a -o manager main.go
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
 # FROM gcr.io/distroless/static:nonroot
-FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
+FROM registry.access.redhat.com/ubi8/ubi-minimal:8.3-291
 
 ARG VCS_REF
 ARG VCS_URL
