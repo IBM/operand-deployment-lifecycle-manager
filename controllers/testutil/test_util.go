@@ -27,6 +27,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 
+	nssv1 "github.com/IBM/ibm-namespace-scope-operator/api/v1"
+
 	apiv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
 	// +kubebuilder:scaffold:imports
@@ -199,6 +201,17 @@ func OperandBindInfoObj(name, namespace, registryName, registryNamespace string)
 	}
 }
 
+func NamespaceScopeObj(namespace string) *nssv1.NamespaceScope {
+	return &nssv1.NamespaceScope{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constant.NamespaceScopeCrName,
+			Namespace: namespace,
+		},
+		Spec: nssv1.NamespaceScopeSpec{
+			NamespaceMembers: []string{},
+		},
+	}
+}
 func NamespaceObj(name string) *corev1.Namespace {
 	return &corev1.Namespace{
 		TypeMeta: metav1.TypeMeta{

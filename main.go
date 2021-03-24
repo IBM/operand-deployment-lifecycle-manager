@@ -37,6 +37,7 @@ import (
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/k8sutil"
+	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/namespacescope"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/operandbindinfo"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/operandconfig"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/operandregistry"
@@ -123,6 +124,12 @@ func main() {
 		ODLMOperator: deploy.NewODLMOperator(mgr, "OperandRegistry"),
 	}).SetupWithManager(mgr); err != nil {
 		klog.Errorf("unable to create controller OperandRegistry: %v", err)
+		os.Exit(1)
+	}
+	if err = (&namespacescope.Reconciler{
+		ODLMOperator: deploy.NewODLMOperator(mgr, "NamespaceScope"),
+	}).SetupWithManager(mgr); err != nil {
+		klog.Errorf("unable to create controller NamespaceScope: %v", err)
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

@@ -72,6 +72,35 @@ func (m *ODLMOperator) GetOperandRegistry(ctx context.Context, key types.Namespa
 	return reg, nil
 }
 
+// ListOperandRegistry lists the OperandRegistry instance with default value
+func (m *ODLMOperator) ListOperandRegistry(ctx context.Context, label map[string]string) (*apiv1alpha1.OperandRegistryList, error) {
+	registryList := &apiv1alpha1.OperandRegistryList{}
+	opts := []client.ListOption{}
+	if label != nil {
+		opts = []client.ListOption{
+			client.MatchingLabels(label),
+		}
+	}
+	if err := m.Client.List(ctx, registryList, opts...); err != nil {
+		return nil, err
+	}
+	for index, item := range registryList.Items {
+		for i, o := range item.Spec.Operators {
+			if o.Scope == "" {
+				registryList.Items[index].Spec.Operators[i].Scope = apiv1alpha1.ScopePrivate
+			}
+			if o.InstallMode == "" {
+				registryList.Items[index].Spec.Operators[i].InstallMode = apiv1alpha1.InstallModeNamespace
+			}
+			if o.InstallPlanApproval == "" {
+				registryList.Items[index].Spec.Operators[i].InstallPlanApproval = olmv1alpha1.ApprovalAutomatic
+			}
+		}
+	}
+
+	return registryList, nil
+}
+
 // GetOperandConfig gets the OperandConfig
 func (m *ODLMOperator) GetOperandConfig(ctx context.Context, key types.NamespacedName) (*apiv1alpha1.OperandConfig, error) {
 	config := &apiv1alpha1.OperandConfig{}
