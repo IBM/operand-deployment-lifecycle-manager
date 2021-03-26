@@ -36,7 +36,7 @@ import (
 
 // CreateNSName generates random namespace names. Namespaces are never deleted in test environment
 func CreateNSName(prefix string) string {
-	suffix := make([]byte, 20)
+	suffix := make([]byte, 10)
 	_, err := rand.Read(suffix)
 	if err != nil {
 		panic(err)

@@ -34,9 +34,11 @@ import (
 
 var _ = Describe("OperandRegistry controller", func() {
 	const (
-		name              = "ibm-cloudpak-name"
+		name1             = "ibm-cloudpak-name"
+		name2             = "ibm-cloudpack-name-2"
 		namespace         = "ibm-cloudpak"
-		registryName      = "common-service"
+		registryName1     = "common-service"
+		registryName2     = "common-service-2"
 		registryNamespace = "ibm-common-services"
 		operatorNamespace = "ibm-operators"
 	)
@@ -47,11 +49,15 @@ var _ = Describe("OperandRegistry controller", func() {
 		namespaceName         string
 		registryNamespaceName string
 		operatorNamespaceName string
-		registry              *operatorv1alpha1.OperandRegistry
-		config                *operatorv1alpha1.OperandConfig
-		request               *operatorv1alpha1.OperandRequest
+		registry1             *operatorv1alpha1.OperandRegistry
+		registry2             *operatorv1alpha1.OperandRegistry
+		config1               *operatorv1alpha1.OperandConfig
+		config2               *operatorv1alpha1.OperandConfig
+		request1              *operatorv1alpha1.OperandRequest
+		request2              *operatorv1alpha1.OperandRequest
 		catalogSource         *olmv1alpha1.CatalogSource
-		requestKey            types.NamespacedName
+		requestKey1           types.NamespacedName
+		requestKey2           types.NamespacedName
 	)
 
 	BeforeEach(func() {
@@ -59,11 +65,15 @@ var _ = Describe("OperandRegistry controller", func() {
 		namespaceName = testutil.CreateNSName(namespace)
 		registryNamespaceName = testutil.CreateNSName(registryNamespace)
 		operatorNamespaceName = testutil.CreateNSName(operatorNamespace)
-		registry = testutil.OperandRegistryObj(registryName, registryNamespaceName, operatorNamespaceName)
-		config = testutil.OperandConfigObj(registryName, registryNamespaceName)
-		request = testutil.OperandRequestObj(registryName, registryNamespaceName, name, namespaceName)
+		registry1 = testutil.OperandRegistryObj(registryName1, registryNamespaceName, operatorNamespaceName)
+		registry2 = testutil.OperandRegistryObj(registryName2, registryNamespaceName, operatorNamespaceName)
+		config1 = testutil.OperandConfigObj(registryName1, registryNamespaceName)
+		config2 = testutil.OperandConfigObj(registryName2, registryNamespaceName)
+		request1 = testutil.OperandRequestObj(registryName1, registryNamespaceName, name1, namespaceName)
+		request2 = testutil.OperandRequestObj(registryName2, registryNamespaceName, name2, namespaceName)
 		catalogSource = testutil.CatalogSource("community-operators", "openshift-marketplace")
-		requestKey = types.NamespacedName{Name: name, Namespace: namespaceName}
+		requestKey1 = types.NamespacedName{Name: name1, Namespace: namespaceName}
+		requestKey2 = types.NamespacedName{Name: name2, Namespace: namespaceName}
 
 		By("Creating the Namespace")
 		Expect(k8sClient.Create(ctx, testutil.NamespaceObj(namespaceName))).Should(Succeed())
@@ -76,9 +86,11 @@ var _ = Describe("OperandRegistry controller", func() {
 		catalogSource.Status = testutil.CatalogSourceStatus()
 		Expect(k8sClient.Status().Update(ctx, catalogSource)).Should(Succeed())
 		By("Creating the OperandRegistry")
-		Expect(k8sClient.Create(ctx, registry)).Should(Succeed())
+		Expect(k8sClient.Create(ctx, registry1)).Should(Succeed())
+		Expect(k8sClient.Create(ctx, registry2)).Should(Succeed())
 		By("Creating the OperandConfig")
-		Expect(k8sClient.Create(ctx, config)).Should(Succeed())
+		Expect(k8sClient.Create(ctx, config1)).Should(Succeed())
+		Expect(k8sClient.Create(ctx, config2)).Should(Succeed())
 	})
 
 	AfterEach(func() {
@@ -86,22 +98,30 @@ var _ = Describe("OperandRegistry controller", func() {
 		By("Deleting the CatalogSource")
 		Expect(k8sClient.Delete(ctx, catalogSource)).Should(Succeed())
 		By("Deleting the OperandConfig")
-		Expect(k8sClient.Delete(ctx, config)).Should(Succeed())
+		Expect(k8sClient.Delete(ctx, config1)).Should(Succeed())
+		Expect(k8sClient.Delete(ctx, config2)).Should(Succeed())
 		By("Deleting the OperandCRegistry")
-		Expect(k8sClient.Delete(ctx, registry)).Should(Succeed())
+		Expect(k8sClient.Delete(ctx, registry1)).Should(Succeed())
+		Expect(k8sClient.Delete(ctx, registry2)).Should(Succeed())
 	})
 
 	Context("Initializing OperandRequest Status", func() {
 
 		It("Should The CR are created", func() {
 
-			Expect(k8sClient.Create(ctx, request)).Should(Succeed())
+			Expect(k8sClient.Create(ctx, request1)).Should(Succeed())
+			Expect(k8sClient.Create(ctx, request2)).Should(Succeed())
 
 			By("Checking status of the OperandRegquest")
 			Eventually(func() operatorv1alpha1.ClusterPhase {
-				requestInstance := &operatorv1alpha1.OperandRequest{}
-				Expect(k8sClient.Get(ctx, requestKey, requestInstance)).Should(Succeed())
-				return requestInstance.Status.Phase
+				requestInstance1 := &operatorv1alpha1.OperandRequest{}
+				Expect(k8sClient.Get(ctx, requestKey1, requestInstance1)).Should(Succeed())
+				return requestInstance1.Status.Phase
+			}, testutil.Timeout, testutil.Interval).Should(Equal(operatorv1alpha1.ClusterPhaseInstalling))
+			Eventually(func() operatorv1alpha1.ClusterPhase {
+				requestInstance2 := &operatorv1alpha1.OperandRequest{}
+				Expect(k8sClient.Get(ctx, requestKey2, requestInstance2)).Should(Succeed())
+				return requestInstance2.Status.Phase
 			}, testutil.Timeout, testutil.Interval).Should(Equal(operatorv1alpha1.ClusterPhaseInstalling))
 
 			By("Setting status of the Subscriptions")
@@ -160,19 +180,40 @@ var _ = Describe("OperandRegistry controller", func() {
 				return err
 			}, testutil.Timeout, testutil.Interval).Should(Succeed())
 
-			By("Disabling the etcd operator")
+			By("Disabling the etcd operator from first OperandRequest")
+			Eventually(func() error {
+				requestInstance1 := &operatorv1alpha1.OperandRequest{}
+				Expect(k8sClient.Get(ctx, requestKey1, requestInstance1)).Should(Succeed())
+				requestInstance1.Spec.Requests[0].Operands = requestInstance1.Spec.Requests[0].Operands[1:]
+				Expect(k8sClient.Update(ctx, requestInstance1)).Should(Succeed())
+				etcdCluster := &v1beta2.EtcdCluster{}
+				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "example", Namespace: operatorNamespaceName}, etcdCluster)
+				return err
+			}, testutil.Timeout, testutil.Interval).Should(Succeed())
+
+			By("Disabling the etcd operator from second OperandRequest")
 			Eventually(func() bool {
-				requestInstance := &operatorv1alpha1.OperandRequest{}
-				Expect(k8sClient.Get(ctx, requestKey, requestInstance)).Should(Succeed())
-				requestInstance.Spec.Requests[0].Operands = requestInstance.Spec.Requests[0].Operands[1:]
-				Expect(k8sClient.Update(ctx, requestInstance)).Should(Succeed())
+				requestInstance2 := &operatorv1alpha1.OperandRequest{}
+				Expect(k8sClient.Get(ctx, requestKey2, requestInstance2)).Should(Succeed())
+				requestInstance2.Spec.Requests[0].Operands = requestInstance2.Spec.Requests[0].Operands[1:]
+				Expect(k8sClient.Update(ctx, requestInstance2)).Should(Succeed())
 				etcdCluster := &v1beta2.EtcdCluster{}
 				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "example", Namespace: operatorNamespaceName}, etcdCluster)
 				return err != nil && errors.IsNotFound(err)
 			}, testutil.Timeout, testutil.Interval).Should(BeTrue())
 
-			By("Deleting the OperandRequest")
-			Expect(k8sClient.Delete(ctx, request)).Should(Succeed())
+			By("Deleting the first OperandRequest")
+			Expect(k8sClient.Delete(ctx, request1)).Should(Succeed())
+
+			By("Checking jenkins operator has not been deleted")
+			Eventually(func() error {
+				jenkinsCSV := &olmv1alpha1.ClusterServiceVersion{}
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: "jenkins-csv.v0.0.1", Namespace: operatorNamespaceName}, jenkinsCSV)
+				return err
+			}, testutil.Timeout, testutil.Interval).Should(Succeed())
+
+			By("Deleting the second OperandRequest")
+			Expect(k8sClient.Delete(ctx, request2)).Should(Succeed())
 
 			By("Checking operators have been deleted")
 			Eventually(func() bool {
