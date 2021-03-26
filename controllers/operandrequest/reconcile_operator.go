@@ -84,7 +84,7 @@ func (r *Reconciler) reconcileOperator(ctx context.Context, requestInstance *ope
 				if err != nil {
 					if apierrors.IsNotFound(err) {
 						// Subscription does not exist, create a new one
-						if err = r.createSubscription(ctx, requestInstance, opt); err != nil {
+						if err = r.createSubscription(ctx, requestInstance, opt, registryKey); err != nil {
 							requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorFailed, "")
 							return err
 						}
@@ -97,7 +97,7 @@ func (r *Reconciler) reconcileOperator(ctx context.Context, requestInstance *ope
 				// Subscription existing and managed by OperandRequest controller
 				if _, ok := sub.Labels[constant.OpreqLabel]; ok {
 					// Subscription channel changed, update it.
-					if compareSub(sub.Spec, opt) {
+					if compareSub(sub, opt, registryKey) {
 						sub.Spec.CatalogSource = opt.SourceName
 						sub.Spec.Channel = opt.Channel
 						sub.Spec.CatalogSourceNamespace = opt.SourceNamespace
@@ -105,6 +105,11 @@ func (r *Reconciler) reconcileOperator(ctx context.Context, requestInstance *ope
 						if opt.InstallPlanApproval != "" && sub.Spec.InstallPlanApproval != opt.InstallPlanApproval {
 							sub.Spec.InstallPlanApproval = opt.InstallPlanApproval
 						}
+						// add annotations to existing Subscriptions for upgrade case
+						if sub.Annotations == nil {
+							sub.Annotations = make(map[string]string)
+						}
+						sub.Annotations[registryKey.Namespace+"."+registryKey.Name] = "true"
 						if err = r.updateSubscription(ctx, requestInstance, sub); err != nil {
 							requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorFailed, "")
 							return err
@@ -140,11 +145,11 @@ func (r *Reconciler) reconcileOperator(ctx context.Context, requestInstance *ope
 	return nil
 }
 
-func (r *Reconciler) createSubscription(ctx context.Context, cr *operatorv1alpha1.OperandRequest, opt *operatorv1alpha1.Operator) error {
+func (r *Reconciler) createSubscription(ctx context.Context, cr *operatorv1alpha1.OperandRequest, opt *operatorv1alpha1.Operator, key types.NamespacedName) error {
 	namespace := r.GetOperatorNamespace(opt.InstallMode, opt.Namespace)
 	klog.V(3).Info("Subscription Namespace: ", namespace)
 
-	co := r.generateClusterObjects(opt)
+	co := r.generateClusterObjects(opt, key)
 
 	// Create required namespace
 	ns := co.namespace
@@ -215,6 +220,27 @@ func (r *Reconciler) deleteSubscription(ctx context.Context, operandName string,
 	if _, ok := sub.Labels[constant.OpreqLabel]; !ok {
 		// Subscription existing and not managed by OperandRequest controller
 		klog.V(2).Infof("Subscription %s in the namespace %s isn't created by ODLM", sub.Name, sub.Namespace)
+		return nil
+	}
+
+	// check and remove registry in annotation of subscription
+	regName := registryInstance.ObjectMeta.Name
+	regNs := registryInstance.ObjectMeta.Namespace
+	delete(sub.Annotations, regNs+"."+regName)
+	if len(sub.Annotations) != 0 {
+		// remove the associated registry from annotation of subscription
+		mergePatch, _ := json.Marshal(map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"annotations": map[string]interface{}{
+					regNs + "." + regName: nil,
+				},
+			},
+		})
+		if err := r.Patch(ctx, sub, client.RawPatch(types.MergePatchType, mergePatch)); err != nil {
+			requestInstance.SetUpdatingCondition(sub.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionFalse)
+			return err
+		}
+		klog.V(1).Infof("Did not delete Subscription %s/%s which is requested by OperandRequest with different OperandRegistry", sub.Namespace, sub.Name)
 		return nil
 	}
 
@@ -347,11 +373,14 @@ func (r *Reconciler) getCurrentOperands(ctx context.Context, requestInstance *op
 	return deployedOperands, nil
 }
 
-func (r *Reconciler) generateClusterObjects(o *operatorv1alpha1.Operator) *clusterObjects {
+func (r *Reconciler) generateClusterObjects(o *operatorv1alpha1.Operator, key types.NamespacedName) *clusterObjects {
 	klog.V(3).Info("Generating Cluster Objects")
 	co := &clusterObjects{}
 	labels := map[string]string{
 		constant.OpreqLabel: "true",
+	}
+	annotations := map[string]string{
+		key.Namespace + "." + key.Name: "true",
 	}
 
 	klog.V(3).Info("Generating Namespace: ", o.Namespace)
@@ -378,9 +407,10 @@ func (r *Reconciler) generateClusterObjects(o *operatorv1alpha1.Operator) *clust
 	// Subscription Object
 	sub := &olmv1alpha1.Subscription{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      o.Name,
-			Namespace: namespace,
-			Labels:    labels,
+			Name:        o.Name,
+			Namespace:   namespace,
+			Labels:      labels,
+			Annotations: annotations,
 		},
 		Spec: &olmv1alpha1.SubscriptionSpec{
 			Channel:                o.Channel,
@@ -430,6 +460,9 @@ func (r *Reconciler) checkUninstallLabel(ctx context.Context, name, namespace st
 	return subLabels[constant.NotUninstallLabel] == "true"
 }
 
-func compareSub(spec *olmv1alpha1.SubscriptionSpec, template *operatorv1alpha1.Operator) (needUpdate bool) {
-	return spec.CatalogSource != template.SourceName || spec.Channel != template.Channel || spec.CatalogSourceNamespace != template.SourceNamespace || spec.Package != template.PackageName || spec.InstallPlanApproval != template.InstallPlanApproval
+func compareSub(sub *olmv1alpha1.Subscription, template *operatorv1alpha1.Operator, key types.NamespacedName) (needUpdate bool) {
+	anno := sub.Annotations
+	_, regExists := anno[key.Namespace+"."+key.Name]
+	spec := sub.Spec
+	return !regExists || spec.CatalogSource != template.SourceName || spec.Channel != template.Channel || spec.CatalogSourceNamespace != template.SourceNamespace || spec.Package != template.PackageName || spec.InstallPlanApproval != template.InstallPlanApproval
 }
