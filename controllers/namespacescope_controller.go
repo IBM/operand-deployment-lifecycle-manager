@@ -42,7 +42,7 @@ import (
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/util"
 )
 
-// NamespaceScopeReconciler automagically updates NamespaceScope CR with the proporly namespace
+// NamespaceScopeReconciler automagically updates NamespaceScope CR with the proper namespace
 type NamespaceScopeReconciler struct {
 	*rest.Config
 	Client   client.Client
