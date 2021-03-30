@@ -21,6 +21,7 @@
 PROJECT ?= oceanic-guard-191815
 ZONE    ?= us-west1-a
 CLUSTER ?= prow
+NAMESPACESCOPE_VERSION = 1.1.1
 
 activate-serviceaccount:
 ifdef GOOGLE_APPLICATION_CREDENTIALS
@@ -81,6 +82,11 @@ fetch-olm-crds:
 	curl -L -O "https://github.com/horis233/etcd-operator/archive/v0.9.4-crd.tar.gz" ;\
 	tar -zxf v0.9.4-crd.tar.gz etcd-operator-0.9.4-crd/deploy/crds && mv etcd-operator-0.9.4-crd/deploy/crds/etcdclusters.etcd.database.coreos.com.crd.yaml ${ENVTEST_ASSETS_DIR}/crds/etcdclusters.etcd.database.coreos.com.crd.yaml ;\
 	rm -rf etcd-operator-0.9.4-crd v0.9.4-crd.tar.gz ;\
+	}
+	@{ \
+	curl -L -O "https://github.com/IBM/ibm-namespace-scope-operator/archive/v${NAMESPACESCOPE_VERSION}.tar.gz" ;\
+	tar -zxf v${NAMESPACESCOPE_VERSION}.tar.gz ibm-namespace-scope-operator-${NAMESPACESCOPE_VERSION}/bundle/manifests && mv ibm-namespace-scope-operator-${NAMESPACESCOPE_VERSION}/bundle/manifests/operator.ibm.com_namespacescopes.yaml ${ENVTEST_ASSETS_DIR}/crds/operator.ibm.com_namespacescopes.yaml ;\
+	rm -rf ibm-namespace-scope-operator-${NAMESPACESCOPE_VERSION} v${NAMESPACESCOPE_VERSION}.tar.gz ;\
 	}
 
 # find or download kustomize

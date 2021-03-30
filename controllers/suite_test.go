@@ -39,6 +39,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	nssv1 "github.com/IBM/ibm-namespace-scope-operator/api/v1"
+
 	apiv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
 	// +kubebuilder:scaffold:imports
 )
@@ -131,6 +132,13 @@ var _ = BeforeSuite(func(done Done) {
 		Recorder: k8sManager.GetEventRecorderFor("OperandRequest"),
 		Scheme:   k8sManager.GetScheme(),
 	}).SetupWithManager(k8sManager)
+	// Setup Manager with NamespaceScope Controller
+	err = (&NamespaceScopeReconciler{
+		Client:   k8sManager.GetClient(),
+		Config:   k8sManager.GetConfig(),
+		Recorder: k8sManager.GetEventRecorderFor("NamespaceScope"),
+		Scheme:   k8sManager.GetScheme(),
+	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
 	go func() {
@@ -159,7 +167,7 @@ func UseExistingCluster() *bool {
 
 // createNSName generates random namespace names. Namespaces are never deleted in test environment
 func createNSName(prefix string) string {
-	suffix := make([]byte, 20)
+	suffix := make([]byte, 10)
 	rand.Read(suffix)
 	return fmt.Sprintf("%s-%x", prefix, suffix)
 }
