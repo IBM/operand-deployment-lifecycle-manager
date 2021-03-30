@@ -131,6 +131,15 @@ func main() {
 		klog.Errorf("unable to create controller OperandRegistry: %v", err)
 		os.Exit(1)
 	}
+	if err = (&controllers.NamespaceScopeReconciler{
+		Client:   mgr.GetClient(),
+		Config:   mgr.GetConfig(),
+		Recorder: mgr.GetEventRecorderFor("NamespaceScope"),
+		Scheme:   mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		klog.Errorf("unable to create controller OperandRequest: %v", err)
+		os.Exit(1)
+	}
 	// +kubebuilder:scaffold:builder
 
 	klog.Info("starting manager")

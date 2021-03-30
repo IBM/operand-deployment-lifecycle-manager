@@ -156,7 +156,7 @@ test: ## Run unit test on prow
 	@test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh \
 	|| curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/master/hack/setup-envtest.sh
 	@test -d ${ENVTEST_ASSETS_DIR}/crds || make fetch-olm-crds
-	@source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test ./controllers/... -coverprofile cover.out
+	@source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); OPERATOR_NAMESPACE="ibm-operators" go test ./controllers/... -coverprofile cover.out
 	@rm -rf ${ENVTEST_ASSETS_DIR}
 
 
