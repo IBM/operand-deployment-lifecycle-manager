@@ -12,7 +12,6 @@ require (
 	github.com/operator-framework/api v0.3.10
 	github.com/pkg/errors v0.9.1
 	k8s.io/api v0.18.6
-	k8s.io/apiextensions-apiserver v0.18.6
 	k8s.io/apimachinery v0.18.6
 	k8s.io/client-go v0.18.6
 	k8s.io/klog v1.0.0

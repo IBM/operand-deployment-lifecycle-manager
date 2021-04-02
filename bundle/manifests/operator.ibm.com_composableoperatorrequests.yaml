@@ -1,0 +1,72 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.4.0
+  creationTimestamp: null
+  labels:
+    app.kubernetes.io/instance: operand-deployment-lifecycle-manager
+    app.kubernetes.io/managed-by: operand-deployment-lifecycle-manager
+    app.kubernetes.io/name: operand-deployment-lifecycle-manager
+  name: composableoperatorrequests.operator.ibm.com
+spec:
+  group: operator.ibm.com
+  names:
+    kind: ComposableOperatorRequest
+    listKind: ComposableOperatorRequestList
+    plural: composableoperatorrequests
+    singular: composableoperatorrequest
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: ComposableOperatorRequest is the Schema for the composableoperatorrequests API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ComposableOperatorRequestSpec defines the desired state of ComposableOperatorRequest
+            properties:
+              composableComponents:
+                items:
+                  description: Component is used to enable or disable operators.
+                  properties:
+                    enabled:
+                      description: Enabled indicates if the operator is enabled
+                      type: boolean
+                    name:
+                      description: OperatorName the name of the Operator.
+                      type: string
+                  required:
+                  - enabled
+                  - name
+                  type: object
+                type: array
+            required:
+            - composableComponents
+            type: object
+          status:
+            description: ComposableOperatorRequestStatus defines the observed state of ComposableOperatorRequest
+            properties:
+              phase:
+                description: Phase is the cluster running phase.
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
