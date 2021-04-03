@@ -20,6 +20,8 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"regexp"
+	"strings"
 	"time"
 
 	olmv1 "github.com/operator-framework/api/pkg/operators/v1"
@@ -238,6 +240,30 @@ func (r *Reconciler) getRegistryToRequestMapper() handler.ToRequestsFunc {
 	}
 }
 
+func (r *Reconciler) getSubToRequestMapper() handler.ToRequestsFunc {
+	return func(object handler.MapObject) []ctrl.Request {
+		reg, _ := regexp.Compile(`^(.*)\.(.*)\/request`)
+		annotations := object.Meta.GetAnnotations()
+		var reqName, reqNamespace string
+		for annotation := range annotations {
+			if reg.MatchString(annotation) {
+				annotationSlices := strings.Split(annotation, ".")
+				reqNamespace = annotationSlices[0]
+				reqName = strings.Split(annotationSlices[1], "/")[0]
+			}
+		}
+		if reqNamespace == "" || reqName == "" {
+			return []ctrl.Request{}
+		}
+		return []ctrl.Request{
+			{NamespacedName: types.NamespacedName{
+				Name:      reqName,
+				Namespace: reqNamespace,
+			}},
+		}
+	}
+}
+
 func (r *Reconciler) getConfigToRequestMapper() handler.ToRequestsFunc {
 	ctx := context.Background()
 	return func(object handler.MapObject) []ctrl.Request {
@@ -257,6 +283,18 @@ func (r *Reconciler) getConfigToRequestMapper() handler.ToRequestsFunc {
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&operatorv1alpha1.OperandRequest{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		Watches(&source.Kind{Type: &olmv1alpha1.Subscription{}}, &handler.EnqueueRequestsFromMapFunc{
+			ToRequests: r.getSubToRequestMapper(),
+		}, builder.WithPredicates(predicate.Funcs{
+			UpdateFunc: func(e event.UpdateEvent) bool {
+				oldObject := e.ObjectOld.(*olmv1alpha1.Subscription)
+				newObject := e.ObjectNew.(*olmv1alpha1.Subscription)
+				if oldObject.Labels != nil && oldObject.Labels[constant.OpreqLabel] == "true" {
+					return (oldObject.Status.InstalledCSV != "" && newObject.Status.InstalledCSV != "" && oldObject.Status.InstalledCSV != newObject.Status.InstalledCSV)
+				}
+				return false
+			},
+		})).
 		Watches(&source.Kind{Type: &operatorv1alpha1.OperandRegistry{}}, &handler.EnqueueRequestsFromMapFunc{
 			ToRequests: r.getRegistryToRequestMapper(),
 		}, builder.WithPredicates(predicate.Funcs{

@@ -64,7 +64,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reconcileErr er
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	klog.V(1).Infof("Reconciling OperandConfig: %s", req.NamespacedName)
+	klog.V(2).Infof("Reconciling OperandConfig: %s", req.NamespacedName)
 
 	originalInstance := instance.DeepCopy()
 
@@ -91,7 +91,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reconcileErr er
 		return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
 	}
 
-	klog.V(1).Infof("Finished reconciling OperandConfig: %s", req.NamespacedName)
+	klog.V(2).Infof("Finished reconciling OperandConfig: %s", req.NamespacedName)
 	return ctrl.Result{}, nil
 }
 

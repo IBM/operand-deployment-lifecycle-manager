@@ -85,7 +85,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reconcileErr er
 		}
 	}()
 
-	klog.V(1).Infof("Reconciling OperandBindInfo: %s", req.NamespacedName)
+	klog.V(2).Infof("Reconciling OperandBindInfo: %s", req.NamespacedName)
 
 	// If the finalizer is added, EnsureFinalizer() will return true. If the finalizer is already there, EnsureFinalizer() will return false
 	if bindInfoInstance.EnsureFinalizer() {
@@ -208,7 +208,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reconcileErr er
 
 	r.updateBindInfoPhase(bindInfoInstance, operatorv1alpha1.BindInfoCompleted, requestNamespaces)
 
-	klog.V(1).Infof("Finished reconciling OperandBindInfo: %s", req.NamespacedName)
+	klog.V(2).Infof("Finished reconciling OperandBindInfo: %s", req.NamespacedName)
 	return ctrl.Result{}, nil
 }
 

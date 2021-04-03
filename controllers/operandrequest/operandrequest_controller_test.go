@@ -181,22 +181,22 @@ var _ = Describe("OperandRegistry controller", func() {
 			}, testutil.Timeout, testutil.Interval).Should(Succeed())
 
 			By("Disabling the etcd operator from first OperandRequest")
+			requestInstance1 := &operatorv1alpha1.OperandRequest{}
+			Expect(k8sClient.Get(ctx, requestKey1, requestInstance1)).Should(Succeed())
+			requestInstance1.Spec.Requests[0].Operands = requestInstance1.Spec.Requests[0].Operands[1:]
+			Expect(k8sClient.Update(ctx, requestInstance1)).Should(Succeed())
 			Eventually(func() error {
-				requestInstance1 := &operatorv1alpha1.OperandRequest{}
-				Expect(k8sClient.Get(ctx, requestKey1, requestInstance1)).Should(Succeed())
-				requestInstance1.Spec.Requests[0].Operands = requestInstance1.Spec.Requests[0].Operands[1:]
-				Expect(k8sClient.Update(ctx, requestInstance1)).Should(Succeed())
 				etcdCluster := &v1beta2.EtcdCluster{}
 				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "example", Namespace: operatorNamespaceName}, etcdCluster)
 				return err
 			}, testutil.Timeout, testutil.Interval).Should(Succeed())
 
 			By("Disabling the etcd operator from second OperandRequest")
+			requestInstance2 := &operatorv1alpha1.OperandRequest{}
+			Expect(k8sClient.Get(ctx, requestKey2, requestInstance2)).Should(Succeed())
+			requestInstance2.Spec.Requests[0].Operands = requestInstance2.Spec.Requests[0].Operands[1:]
+			Expect(k8sClient.Update(ctx, requestInstance2)).Should(Succeed())
 			Eventually(func() bool {
-				requestInstance2 := &operatorv1alpha1.OperandRequest{}
-				Expect(k8sClient.Get(ctx, requestKey2, requestInstance2)).Should(Succeed())
-				requestInstance2.Spec.Requests[0].Operands = requestInstance2.Spec.Requests[0].Operands[1:]
-				Expect(k8sClient.Update(ctx, requestInstance2)).Should(Succeed())
 				etcdCluster := &v1beta2.EtcdCluster{}
 				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "example", Namespace: operatorNamespaceName}, etcdCluster)
 				return err != nil && errors.IsNotFound(err)
