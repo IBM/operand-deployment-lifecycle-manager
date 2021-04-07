@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"sync"
 
 	gset "github.com/deckarep/golang-set"
@@ -97,7 +98,7 @@ func (r *Reconciler) reconcileOperator(ctx context.Context, requestInstance *ope
 				// Subscription existing and managed by OperandRequest controller
 				if _, ok := sub.Labels[constant.OpreqLabel]; ok {
 					// Subscription channel changed, update it.
-					if compareSub(sub, opt, registryKey) {
+					if compareSub(sub, opt, registryKey, types.NamespacedName{Namespace: requestInstance.Namespace, Name: requestInstance.Name}) {
 						sub.Spec.CatalogSource = opt.SourceName
 						sub.Spec.Channel = opt.Channel
 						sub.Spec.CatalogSourceNamespace = opt.SourceNamespace
@@ -109,7 +110,8 @@ func (r *Reconciler) reconcileOperator(ctx context.Context, requestInstance *ope
 						if sub.Annotations == nil {
 							sub.Annotations = make(map[string]string)
 						}
-						sub.Annotations[registryKey.Namespace+"."+registryKey.Name] = "true"
+						sub.Annotations[registryKey.Namespace+"."+registryKey.Name+"/registry"] = "true"
+						sub.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"/request"] = "true"
 						if err = r.updateSubscription(ctx, requestInstance, sub); err != nil {
 							requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorFailed, "")
 							return err
@@ -149,7 +151,7 @@ func (r *Reconciler) createSubscription(ctx context.Context, cr *operatorv1alpha
 	namespace := r.GetOperatorNamespace(opt.InstallMode, opt.Namespace)
 	klog.V(3).Info("Subscription Namespace: ", namespace)
 
-	co := r.generateClusterObjects(opt, key)
+	co := r.generateClusterObjects(opt, key, types.NamespacedName{Namespace: cr.Namespace, Name: cr.Name})
 
 	// Create required namespace
 	ns := co.namespace
@@ -226,13 +228,20 @@ func (r *Reconciler) deleteSubscription(ctx context.Context, operandName string,
 	// check and remove registry in annotation of subscription
 	regName := registryInstance.ObjectMeta.Name
 	regNs := registryInstance.ObjectMeta.Namespace
-	delete(sub.Annotations, regNs+"."+regName)
-	if len(sub.Annotations) != 0 {
+	delete(sub.Annotations, regNs+"."+regName+"/registry")
+	reg, _ := regexp.Compile(`^(.*)\.(.*)\/registry`)
+	annoSlice := make([]string, 0)
+	for anno := range sub.Annotations {
+		if reg.MatchString(anno) {
+			annoSlice = append(annoSlice, anno)
+		}
+	}
+	if len(annoSlice) != 0 {
 		// remove the associated registry from annotation of subscription
 		mergePatch, _ := json.Marshal(map[string]interface{}{
 			"metadata": map[string]interface{}{
 				"annotations": map[string]interface{}{
-					regNs + "." + regName: nil,
+					regNs + "." + regName + "/registry": nil,
 				},
 			},
 		})
@@ -373,14 +382,15 @@ func (r *Reconciler) getCurrentOperands(ctx context.Context, requestInstance *op
 	return deployedOperands, nil
 }
 
-func (r *Reconciler) generateClusterObjects(o *operatorv1alpha1.Operator, key types.NamespacedName) *clusterObjects {
+func (r *Reconciler) generateClusterObjects(o *operatorv1alpha1.Operator, registryKey, requestKey types.NamespacedName) *clusterObjects {
 	klog.V(3).Info("Generating Cluster Objects")
 	co := &clusterObjects{}
 	labels := map[string]string{
 		constant.OpreqLabel: "true",
 	}
 	annotations := map[string]string{
-		key.Namespace + "." + key.Name: "true",
+		registryKey.Namespace + "." + registryKey.Name + "/registry": "true",
+		requestKey.Namespace + "." + requestKey.Name + "/request":    "true",
 	}
 
 	klog.V(3).Info("Generating Namespace: ", o.Namespace)
@@ -460,9 +470,10 @@ func (r *Reconciler) checkUninstallLabel(ctx context.Context, name, namespace st
 	return subLabels[constant.NotUninstallLabel] == "true"
 }
 
-func compareSub(sub *olmv1alpha1.Subscription, template *operatorv1alpha1.Operator, key types.NamespacedName) (needUpdate bool) {
+func compareSub(sub *olmv1alpha1.Subscription, template *operatorv1alpha1.Operator, registryKey, requestKey types.NamespacedName) (needUpdate bool) {
 	anno := sub.Annotations
-	_, regExists := anno[key.Namespace+"."+key.Name]
+	_, regExists := anno[registryKey.Namespace+"."+registryKey.Name+"/registry"]
+	_, reqExists := anno[requestKey.Namespace+"."+requestKey.Name+"/request"]
 	spec := sub.Spec
-	return !regExists || spec.CatalogSource != template.SourceName || spec.Channel != template.Channel || spec.CatalogSourceNamespace != template.SourceNamespace || spec.Package != template.PackageName || spec.InstallPlanApproval != template.InstallPlanApproval
+	return !regExists || !reqExists || spec.CatalogSource != template.SourceName || spec.Channel != template.Channel || spec.CatalogSourceNamespace != template.SourceNamespace || spec.Package != template.PackageName || spec.InstallPlanApproval != template.InstallPlanApproval
 }

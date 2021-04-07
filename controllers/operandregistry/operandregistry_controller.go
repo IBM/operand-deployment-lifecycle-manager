@@ -70,7 +70,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reconcileErr er
 		}
 	}()
 
-	klog.V(1).Infof("Reconciling OperandRegistry: %s", req.NamespacedName)
+	klog.V(2).Infof("Reconciling OperandRegistry: %s", req.NamespacedName)
 
 	// Update all the operator status
 	if err := r.updateStatus(ctx, instance); err != nil {
@@ -85,7 +85,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reconcileErr er
 		instance.UpdateRegistryPhase(operatorv1alpha1.RegistryRunning)
 	}
 
-	klog.V(1).Infof("Finished reconciling OperandRegistry: %s", req.NamespacedName)
+	klog.V(2).Infof("Finished reconciling OperandRegistry: %s", req.NamespacedName)
 	return ctrl.Result{}, nil
 }
 
