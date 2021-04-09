@@ -62,6 +62,9 @@ type Operand struct {
 	// Kind identifies the kind of the custom resource.
 	// +optional
 	Kind string `json:"kind,omitempty"`
+	// APIVersion defines the versioned schema of this representation of an object.
+	// +optional
+	APIVersion string `json:"apiVersion,omitempty"`
 	// InstanceName is used when users want to deploy multiple custom resources.
 	// It is the name of the custom resource.
 	// +optional

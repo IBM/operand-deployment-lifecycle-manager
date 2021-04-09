@@ -217,6 +217,15 @@ func (r *Reconciler) deleteSubscription(ctx context.Context, operandName string,
 	if apierrors.IsNotFound(err) {
 		klog.V(3).Infof("There is no Subscription %s or %s in the namespace %s", operandName, op.PackageName, namespace)
 		return nil
+	} else if err != nil {
+		klog.Errorf("Failed to get Subscription %s or %s in the namespace %s", operandName, op.PackageName, namespace)
+		return err
+	}
+
+	if sub == nil || sub.Labels == nil {
+		// Subscription existing and not managed by OperandRequest controller
+		klog.V(2).Infof("Subscription %s in the namespace %s isn't created by ODLM", sub.Name, sub.Namespace)
+		return nil
 	}
 
 	if _, ok := sub.Labels[constant.OpreqLabel]; !ok {
