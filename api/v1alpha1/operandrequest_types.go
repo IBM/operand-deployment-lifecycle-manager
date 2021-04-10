@@ -454,7 +454,7 @@ func (r *OperandRequest) UpdateClusterPhase() {
 	r.SetClusterPhase(clusterPhase)
 }
 
-// GetRegistryKey Set the default value for Request spec.
+// GetRegistryKey sets the default value for Request spec.
 func (r *OperandRequest) GetRegistryKey(req Request) types.NamespacedName {
 	regName := req.Registry
 	regNs := req.RegistryNamespace
@@ -464,7 +464,7 @@ func (r *OperandRequest) GetRegistryKey(req Request) types.NamespacedName {
 	return types.NamespacedName{Namespace: regNs, Name: regName}
 }
 
-//InitRequestStatus OperandConfig status.
+//InitRequestStatus initializes OperandRequest status.
 func (r *OperandRequest) InitRequestStatus() bool {
 	isInitialized := true
 	if r.Status.Phase == "" {

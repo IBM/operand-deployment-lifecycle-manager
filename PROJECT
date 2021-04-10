@@ -3,17 +3,25 @@ layout: go.kubebuilder.io/v3
 projectName: operand-deployment-lifecycle-manager
 repo: github.com/IBM/operand-deployment-lifecycle-manager
 resources:
-- group: operator
+- crdVersion: v1
+  group: operator
   kind: OperandRequest
   version: v1alpha1
-- group: operator
+- crdVersion: v1
+  group: operator
   kind: OperandRegistry
   version: v1alpha1
-- group: operator
+- crdVersion: v1
+  group: operator
   kind: OperandConfig
   version: v1alpha1
-- group: operator
+- crdVersion: v1
+  group: operator
   kind: OperandBindInfo
+  version: v1alpha1
+- crdVersion: v1
+  group: operator
+  kind: ComposableOperatorRequest
   version: v1alpha1
 version: 3-alpha
 plugins:

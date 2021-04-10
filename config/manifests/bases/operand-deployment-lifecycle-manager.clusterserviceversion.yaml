@@ -25,6 +25,20 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
+    - description: ComposableOperatorRequest is the Schema for the composableoperatorrequests API
+      displayName: Composable Operator Request
+      kind: ComposableOperatorRequest
+      name: composableoperatorrequests.operator.ibm.com
+      specDescriptors:
+      - displayName: Composable Components
+        path: composableComponents
+      statusDescriptors:
+      - description: Phase is the cluster running phase.
+        displayName: Phase
+        path: phase
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes.phase
+      version: v1alpha1
     - description: OperandBindInfo is the Schema for the operandbindinfoes API.
       displayName: OperandBindInfo
       kind: OperandBindInfo

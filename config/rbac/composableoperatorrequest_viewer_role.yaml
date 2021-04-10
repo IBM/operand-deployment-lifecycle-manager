@@ -1,0 +1,20 @@
+# permissions for end users to view composableoperatorrequests.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: composableoperatorrequest-viewer-role
+rules:
+- apiGroups:
+  - operator.ibm.com
+  resources:
+  - composableoperatorrequests
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - operator.ibm.com
+  resources:
+  - composableoperatorrequests/status
+  verbs:
+  - get

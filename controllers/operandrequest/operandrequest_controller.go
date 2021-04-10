@@ -62,7 +62,7 @@ type clusterObjects struct {
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *Reconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reconcileErr error) {
 
-	// Creat context for the OperandBindInfo reconciler
+	// Creat context for the OperandRequest reconciler
 	ctx := context.Background()
 
 	// Fetch the OperandRequest instance

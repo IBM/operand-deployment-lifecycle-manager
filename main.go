@@ -34,7 +34,9 @@ import (
 
 	cache "github.com/IBM/controller-filtered-cache/filteredcache"
 	nssv1 "github.com/IBM/ibm-namespace-scope-operator/api/v1"
+
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
+	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/composableoperatorrequest"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/k8sutil"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/namespacescope"
@@ -130,6 +132,12 @@ func main() {
 		ODLMOperator: deploy.NewODLMOperator(mgr, "NamespaceScope"),
 	}).SetupWithManager(mgr); err != nil {
 		klog.Errorf("unable to create controller NamespaceScope: %v", err)
+		os.Exit(1)
+	}
+	if err = (&composableoperatorrequest.Reconciler{
+		ODLMOperator: deploy.NewODLMOperator(mgr, "ComposableOperatorRequest"),
+	}).SetupWithManager(mgr); err != nil {
+		klog.Errorf("unable to create controller ComposableOperatorRequest: %v", err)
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder
