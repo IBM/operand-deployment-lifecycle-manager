@@ -263,8 +263,10 @@ func (r *Reconciler) deleteAllCustomResource(ctx context.Context, csv *olmv1alph
 	customeResourceMap := make(map[string]operatorv1alpha1.OperandCRMember)
 	for _, member := range requestInstance.Status.Members {
 		if len(member.OperandCRList) != 0 {
-			for _, cr := range member.OperandCRList {
-				customeResourceMap[member.Name+"/"+cr.Kind+"/"+cr.Name] = cr
+			if member.Name == operandName {
+				for _, cr := range member.OperandCRList {
+					customeResourceMap[member.Name+"/"+cr.Kind+"/"+cr.Name] = cr
+				}
 			}
 		}
 	}

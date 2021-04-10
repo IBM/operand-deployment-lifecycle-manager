@@ -213,7 +213,7 @@ func (r *Reconciler) deleteSubscription(ctx context.Context, operandName string,
 
 	namespace := r.GetOperatorNamespace(op.InstallMode, op.Namespace)
 	sub, err := r.GetSubscription(ctx, operandName, namespace, op.PackageName)
-
+	originalsub := sub.DeepCopy()
 	if apierrors.IsNotFound(err) {
 		klog.V(3).Infof("There is no Subscription %s or %s in the namespace %s", operandName, op.PackageName, namespace)
 		return nil
@@ -247,14 +247,7 @@ func (r *Reconciler) deleteSubscription(ctx context.Context, operandName string,
 	}
 	if len(annoSlice) != 0 {
 		// remove the associated registry from annotation of subscription
-		mergePatch, _ := json.Marshal(map[string]interface{}{
-			"metadata": map[string]interface{}{
-				"annotations": map[string]interface{}{
-					regNs + "." + regName + "/registry": nil,
-				},
-			},
-		})
-		if err := r.Patch(ctx, sub, client.RawPatch(types.MergePatchType, mergePatch)); err != nil {
+		if err := r.Patch(ctx, sub, client.MergeFrom(originalsub)); err != nil {
 			requestInstance.SetUpdatingCondition(sub.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionFalse)
 			return err
 		}
@@ -273,7 +266,6 @@ func (r *Reconciler) deleteSubscription(ctx context.Context, operandName string,
 		if err := r.deleteAllCustomResource(ctx, csv, requestInstance, configInstance, operandName, op.Namespace); err != nil {
 			return err
 		}
-
 		if r.checkUninstallLabel(ctx, op.Name, namespace) {
 			klog.V(1).Infof("Operator %s has label operator.ibm.com/opreq-do-not-uninstall. Skip the uninstall", op.Name)
 			return nil
@@ -360,6 +352,7 @@ func (r *Reconciler) getNeedDeletedOperands(ctx context.Context, requestInstance
 	if err != nil {
 		return nil, err
 	}
+
 	needDeleteOperands := deployedOperands.Difference(currentOperands)
 	return needDeleteOperands, nil
 }
