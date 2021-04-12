@@ -222,7 +222,7 @@ func (r *Reconciler) deleteSubscription(ctx context.Context, operandName string,
 		return err
 	}
 
-	if sub == nil || sub.Labels == nil {
+	if sub.Labels == nil {
 		// Subscription existing and not managed by OperandRequest controller
 		klog.V(2).Infof("Subscription %s in the namespace %s isn't created by ODLM", sub.Name, sub.Namespace)
 		return nil
