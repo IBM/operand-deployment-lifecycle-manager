@@ -58,6 +58,9 @@ spec:
                       items:
                         description: Operand defines the name and binding information for one operator.
                         properties:
+                          apiVersion:
+                            description: APIVersion defines the versioned schema of this representation of an object.
+                            type: string
                           bindings:
                             additionalProperties:
                               description: SecretConfigmap is a pair of Secret and/or Configmap.

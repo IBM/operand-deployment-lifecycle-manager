@@ -18,9 +18,12 @@ package operandrequest
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -62,7 +65,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 			merr.Add(errors.Wrapf(err, "failed to get the OperandRegistry %s", registryKey.String()))
 			continue
 		}
-		for _, operand := range req.Operands {
+		for i, operand := range req.Operands {
 
 			opdRegistry := registryInstance.GetOperator(operand.Name)
 			if opdRegistry == nil {
@@ -128,7 +131,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 				}
 				err = r.reconcileCRwithConfig(ctx, opdConfig, opdRegistry.Namespace, csv)
 			} else {
-				err = r.reconcileCRwithRequest(ctx, requestInstance, operand, types.NamespacedName{Name: requestInstance.Name, Namespace: requestInstance.Namespace}, csv)
+				err = r.reconcileCRwithRequest(ctx, requestInstance, operand, types.NamespacedName{Name: requestInstance.Name, Namespace: requestInstance.Namespace}, i)
 			}
 
 			if err != nil {
@@ -200,69 +203,58 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 }
 
 // reconcileCRwithRequest merge and create custom resource base on OperandRequest and CSV alm-examples
-func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance *operatorv1alpha1.OperandRequest, operand operatorv1alpha1.Operand, requestKey types.NamespacedName, csv *olmv1alpha1.ClusterServiceVersion) error {
-	almExamples := csv.GetAnnotations()["alm-examples"]
-
-	// Convert CR template string to slice
-	var almExampleList []interface{}
-	err := json.Unmarshal([]byte(almExamples), &almExampleList)
-	if err != nil {
-		return errors.Wrapf(err, "failed to convert alm-examples in the Subscription %s/%s to slice", requestKey.Namespace, operand.Name)
-	}
+func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance *operatorv1alpha1.OperandRequest, operand operatorv1alpha1.Operand, requestKey types.NamespacedName, index int) error {
 	merr := &util.MultiErr{}
 
-	// Merge OperandConfig and ClusterServiceVersion alm-examples
-	var found bool
-	for _, almExample := range almExampleList {
-		// Create an unstructured object for CR and check its value
-		var crFromALM unstructured.Unstructured
-		crFromALM.Object = almExample.(map[string]interface{})
-		if crFromALM.GetKind() != operand.Kind {
-			continue
+	// Create an unstructured object for CR and check its value
+	var crFromRequest unstructured.Unstructured
+
+	if operand.APIVersion == "" {
+		return fmt.Errorf("The APIVersion of operand is empty for operator " + operand.Name)
+	}
+
+	if operand.Kind == "" {
+		return fmt.Errorf("The Kind of operand is empty for operator " + operand.Name)
+	}
+
+	var name string
+	if operand.InstanceName == "" {
+		crInfo := sha256.Sum256([]byte(operand.APIVersion + operand.Kind + strconv.Itoa(index)))
+		name = requestKey.Name + "-" + hex.EncodeToString(crInfo[:7])
+	} else {
+		name = operand.InstanceName
+	}
+
+	crFromRequest.SetName(name)
+	crFromRequest.SetNamespace(requestKey.Namespace)
+	crFromRequest.SetAPIVersion(operand.APIVersion)
+	crFromRequest.SetKind(operand.Kind)
+
+	err := r.Client.Get(ctx, types.NamespacedName{
+		Name:      name,
+		Namespace: requestKey.Namespace,
+	}, &crFromRequest)
+
+	if err != nil && !apierrors.IsNotFound(err) {
+		merr.Add(errors.Wrapf(err, "failed to get custom resource %s/%s", requestKey.Namespace, name))
+	} else if apierrors.IsNotFound(err) {
+		// Create Custom resource
+		if err := r.createCustomResource(ctx, crFromRequest, requestKey.Namespace, operand.Kind, operand.Spec.Raw); err != nil {
+			merr.Add(err)
 		}
-
-		found = true
-		var name string
-		if operand.InstanceName == "" {
-			name = requestKey.Name
-		} else {
-			name = operand.InstanceName
-		}
-
-		spec := crFromALM.Object["spec"].(map[string]interface{})
-		crFromALM.SetName(name)
-		crFromALM.SetNamespace(requestKey.Namespace)
-
-		err := r.Client.Get(ctx, types.NamespacedName{
-			Name:      name,
-			Namespace: requestKey.Namespace,
-		}, &crFromALM)
-
-		if err != nil && !apierrors.IsNotFound(err) {
-			merr.Add(errors.Wrapf(err, "failed to get custom resource %s/%s", requestKey.Namespace, name))
-			continue
-		} else if apierrors.IsNotFound(err) {
-			// Create Custom resource
-			if err := r.createCustomResource(ctx, crFromALM, requestKey.Namespace, operand.Kind, operand.Spec.Raw); err != nil {
-				merr.Add(err)
-				continue
+		requestInstance.SetMemberCRStatus(operand.Name, name, operand.Kind, operand.APIVersion)
+	} else {
+		if checkLabel(crFromRequest, map[string]string{constant.OpreqLabel: "true"}) {
+			// Update or Delete Custom resource
+			klog.V(3).Info("Found existing custom resource: " + operand.Kind)
+			if err := r.updateCustomResource(ctx, crFromRequest, requestKey.Namespace, operand.Kind, operand.Spec.Raw, map[string]interface{}{}); err != nil {
+				return err
 			}
-			requestInstance.SetMemberCRStatus(operand.Name, name, operand.Kind, crFromALM.GetAPIVersion())
 		} else {
-			if checkLabel(crFromALM, map[string]string{constant.OpreqLabel: "true"}) {
-				// Update or Delete Custom resource
-				klog.V(3).Info("Found OperandConfig spec for custom resource: " + operand.Kind)
-				if err := r.updateCustomResource(ctx, crFromALM, requestKey.Namespace, operand.Kind, operand.Spec.Raw, spec); err != nil {
-					return err
-				}
-			} else {
-				klog.V(2).Info("Skip the custom resource not created by ODLM")
-			}
+			klog.V(2).Info("Skip the custom resource not created by ODLM")
 		}
 	}
-	if !found {
-		klog.Warningf("not found CRD with Kind %s in the alm-example", operand.Kind)
-	}
+
 	if len(merr.Errors) != 0 {
 		return merr
 	}
@@ -275,8 +267,10 @@ func (r *Reconciler) deleteAllCustomResource(ctx context.Context, csv *olmv1alph
 	customeResourceMap := make(map[string]operatorv1alpha1.OperandCRMember)
 	for _, member := range requestInstance.Status.Members {
 		if len(member.OperandCRList) != 0 {
-			for _, cr := range member.OperandCRList {
-				customeResourceMap[member.Name+"/"+cr.Kind+"/"+cr.Name] = cr
+			if member.Name == operandName {
+				for _, cr := range member.OperandCRList {
+					customeResourceMap[member.Name+"/"+cr.Kind+"/"+cr.Name] = cr
+				}
 			}
 		}
 	}

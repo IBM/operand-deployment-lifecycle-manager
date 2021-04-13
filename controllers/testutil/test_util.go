@@ -137,6 +137,46 @@ func OperandRequestObj(registryName, registryNamespace, requestName, requestName
 	}
 }
 
+// Return OperandRequest obj
+func OperandRequestObjWithCR(registryName, registryNamespace, requestName, requestNamespace string) *apiv1alpha1.OperandRequest {
+	return &apiv1alpha1.OperandRequest{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      requestName,
+			Namespace: requestNamespace,
+			Labels: map[string]string{
+				registryNamespace + "." + registryName + "/registry": "true",
+			},
+		},
+		Spec: apiv1alpha1.OperandRequestSpec{
+			Requests: []apiv1alpha1.Request{
+				{
+					Registry:          registryName,
+					RegistryNamespace: registryNamespace,
+					Operands: []apiv1alpha1.Operand{
+						{
+							Name:         "etcd",
+							Kind:         "EtcdCluster",
+							APIVersion:   "etcd.database.coreos.com/v1beta2",
+							InstanceName: "example",
+							Spec: &runtime.RawExtension{
+								Raw: []byte(`{"size": 3,"version": "3.2.13"}`),
+							},
+						},
+						{
+							Name:       "etcd",
+							Kind:       "EtcdCluster",
+							APIVersion: "etcd.database.coreos.com/v1beta2",
+							Spec: &runtime.RawExtension{
+								Raw: []byte(`{"size": 3,"version": "3.2.15"}`),
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
 // OperandRequestObjWithProtected returns OperandRequest obj
 func OperandRequestObjWithProtected(registryName, registryNamespace, requestName, requestNamespace string) *apiv1alpha1.OperandRequest {
 	return &apiv1alpha1.OperandRequest{

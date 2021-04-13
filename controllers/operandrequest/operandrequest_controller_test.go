@@ -19,6 +19,9 @@ package operandrequest
 import (
 	"context"
 
+	"crypto/sha256"
+	"encoding/hex"
+
 	v1beta2 "github.com/coreos/etcd-operator/pkg/apis/etcd/v1beta2"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -55,6 +58,7 @@ var _ = Describe("OperandRegistry controller", func() {
 		config2               *operatorv1alpha1.OperandConfig
 		request1              *operatorv1alpha1.OperandRequest
 		request2              *operatorv1alpha1.OperandRequest
+		requestWithCR         *operatorv1alpha1.OperandRequest
 		catalogSource         *olmv1alpha1.CatalogSource
 		requestKey1           types.NamespacedName
 		requestKey2           types.NamespacedName
@@ -71,6 +75,7 @@ var _ = Describe("OperandRegistry controller", func() {
 		config2 = testutil.OperandConfigObj(registryName2, registryNamespaceName)
 		request1 = testutil.OperandRequestObj(registryName1, registryNamespaceName, name1, namespaceName)
 		request2 = testutil.OperandRequestObj(registryName2, registryNamespaceName, name2, namespaceName)
+		requestWithCR = testutil.OperandRequestObjWithCR(registryName1, registryNamespaceName, name1, namespaceName)
 		catalogSource = testutil.CatalogSource("community-operators", "openshift-marketplace")
 		requestKey1 = types.NamespacedName{Name: name1, Namespace: namespaceName}
 		requestKey2 = types.NamespacedName{Name: name2, Namespace: namespaceName}
@@ -107,7 +112,90 @@ var _ = Describe("OperandRegistry controller", func() {
 
 	Context("Initializing OperandRequest Status", func() {
 
-		It("Should The CR are created", func() {
+		It("Should create the CR via OperandRequest", func() {
+			By("Creating the OperandRequest")
+			Expect(k8sClient.Create(ctx, requestWithCR)).Should(Succeed())
+			Eventually(func() error {
+				req := &operatorv1alpha1.OperandRequest{}
+				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: name1, Namespace: namespaceName}, req)
+				return err
+			}, testutil.Timeout, testutil.Interval).Should(Succeed())
+
+			By("Checking status of the OperandRequest")
+			Eventually(func() operatorv1alpha1.ClusterPhase {
+				requestInstance1 := &operatorv1alpha1.OperandRequest{}
+				Expect(k8sClient.Get(ctx, requestKey1, requestInstance1)).Should(Succeed())
+				return requestInstance1.Status.Phase
+			}, testutil.Timeout, testutil.Interval).Should(Equal(operatorv1alpha1.ClusterPhaseInstalling))
+
+			By("Setting status of the Subscriptions")
+			Eventually(func() error {
+				etcdSub := &olmv1alpha1.Subscription{}
+				Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "etcd", Namespace: operatorNamespaceName}, etcdSub)).Should(Succeed())
+				etcdSub.Status = testutil.SubscriptionStatus("etcd", operatorNamespaceName, "0.0.1")
+				return k8sClient.Status().Update(ctx, etcdSub)
+			}, testutil.Timeout, testutil.Interval).Should(Succeed())
+
+			By("Creating and Setting status of the ClusterServiceVersions")
+			etcdCSV := testutil.ClusterServiceVersion("etcd-csv.v0.0.1", operatorNamespaceName, testutil.EtcdExample)
+			Expect(k8sClient.Create(ctx, etcdCSV)).Should(Succeed())
+			Eventually(func() error {
+				k8sClient.Get(ctx, types.NamespacedName{Name: "etcd-csv.v0.0.1", Namespace: operatorNamespaceName}, etcdCSV)
+				etcdCSV.Status = testutil.ClusterServiceVersionStatus()
+				return k8sClient.Status().Update(ctx, etcdCSV)
+			}, testutil.Timeout, testutil.Interval).Should(Succeed())
+
+			By("Creating and Setting status of the InstallPlan")
+			etcdIP := testutil.InstallPlan("etcd-install-plan", operatorNamespaceName)
+			Expect(k8sClient.Create(ctx, etcdIP)).Should(Succeed())
+			Eventually(func() error {
+				k8sClient.Get(ctx, types.NamespacedName{Name: "etcd-install-plan", Namespace: operatorNamespaceName}, etcdIP)
+				etcdIP.Status = testutil.InstallPlanStatus()
+				return k8sClient.Status().Update(ctx, etcdIP)
+			}, testutil.Timeout, testutil.Interval).Should(Succeed())
+
+			By("Checking first CR of the etcd operator")
+			Eventually(func() error {
+				etcdCluster := &v1beta2.EtcdCluster{}
+				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "example", Namespace: namespaceName}, etcdCluster)
+				return err
+			}, testutil.Timeout, testutil.Interval).Should(Succeed())
+
+			By("Checking second CR of the etcd operator")
+			Eventually(func() error {
+				etcdCluster := &v1beta2.EtcdCluster{}
+				crInfo := sha256.Sum256([]byte("etcd.database.coreos.com/v1beta2" + "EtcdCluster" + "1"))
+				etcdCRName := name1 + "-" + hex.EncodeToString(crInfo[:7])
+				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: etcdCRName, Namespace: namespaceName}, etcdCluster)
+				return err
+			}, testutil.Timeout, testutil.Interval).Should(Succeed())
+
+			By("Deleting the OperandRequest")
+			Expect(k8sClient.Delete(ctx, requestWithCR)).Should(Succeed())
+
+			By("Checking CR of the etcd operator has been deleted")
+			Eventually(func() bool {
+				etcdCluster := &v1beta2.EtcdCluster{}
+				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "example", Namespace: namespaceName}, etcdCluster)
+				return err != nil && errors.IsNotFound(err)
+			}, testutil.Timeout, testutil.Interval).Should(BeTrue())
+
+			By("Checking operators have been deleted")
+
+			Eventually(func() bool {
+				etcdSub := &olmv1alpha1.Subscription{}
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: "etcd", Namespace: operatorNamespaceName}, etcdSub)
+				return err != nil && errors.IsNotFound(err)
+			}, testutil.Timeout, testutil.Interval).Should(BeTrue())
+
+			Eventually(func() bool {
+				etcdCSV := &olmv1alpha1.ClusterServiceVersion{}
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: "etcd-csv.v0.0.1", Namespace: operatorNamespaceName}, etcdCSV)
+				return err != nil && errors.IsNotFound(err)
+			}, testutil.Timeout, testutil.Interval).Should(BeTrue())
+		})
+
+		It("Should create the CR via OperandConfig", func() {
 
 			Expect(k8sClient.Create(ctx, request1)).Should(Succeed())
 			Expect(k8sClient.Create(ctx, request2)).Should(Succeed())
