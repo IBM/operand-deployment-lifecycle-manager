@@ -174,7 +174,7 @@ var _ = Describe("OperandRegistry controller", func() {
 				return k8sClient.Status().Update(ctx, jenkinsIP)
 			}, testutil.Timeout, testutil.Interval).Should(Succeed())
 
-			By("Checking of the CR of the etcd operator")
+			By("Checking CR of the etcd operator")
 			Eventually(func() error {
 				etcdCluster := &v1beta2.EtcdCluster{}
 				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "example", Namespace: namespaceName}, etcdCluster)
