@@ -184,7 +184,7 @@ var _ = Describe("OperandRegistry controller", func() {
 			By("Deleting the OperandRequest")
 			Expect(k8sClient.Delete(ctx, requestWithCR)).Should(Succeed())
 
-			By("Checking of the CR of the etcd operator has been deleted")
+			By("Checking CR of the etcd operator has been deleted")
 			Eventually(func() bool {
 				etcdCluster := &v1beta2.EtcdCluster{}
 				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "example", Namespace: namespaceName}, etcdCluster)
