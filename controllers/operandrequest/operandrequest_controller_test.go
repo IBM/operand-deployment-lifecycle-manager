@@ -218,7 +218,7 @@ var _ = Describe("OperandRegistry controller", func() {
 			}, testutil.Timeout, testutil.Interval).Should(BeTrue())
 		})
 
-		It("Should The CR are created by OperandConfig", func() {
+		It("Should create the CR via OperandConfig", func() {
 
 			Expect(k8sClient.Create(ctx, request1)).Should(Succeed())
 			Expect(k8sClient.Create(ctx, request2)).Should(Succeed())
