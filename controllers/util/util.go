@@ -50,6 +50,14 @@ func GetInstallScope() string {
 	return ns
 }
 
+func GetOdlmScope() string {
+	isEnable, found := os.LookupEnv("ODLM_SCOPE")
+	if !found {
+		return "false"
+	}
+	return isEnable
+}
+
 // ResourceExists returns true if the given resource kind exists
 // in the given api groupversion
 func ResourceExists(dc discovery.DiscoveryInterface, apiGroupVersion, kind string) (bool, error) {
