@@ -109,7 +109,7 @@ var _ = Describe("OperandRegistry controller", func() {
 
 	Context("Initializing OperandRequest Status", func() {
 
-		It("Should The CR are created by OperandRequest", func() {
+		It("Should create the CR via OperandRequest", func() {
 			By("Creating the OperandRequest")
 			Expect(k8sClient.Create(ctx, requestWithCR)).Should(Succeed())
 			Eventually(func() error {
