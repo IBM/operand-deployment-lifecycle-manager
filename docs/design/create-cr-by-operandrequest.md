@@ -19,7 +19,7 @@ metadata:
 spec:
   requests:
   - registry: common-service
-    namespace: ibm-common-services
+    registryNamespace: ibm-common-services
     operands:
     - name: ibm-db2-operator
       kind: db2
@@ -35,7 +35,7 @@ spec:
         replicas: 3
 ```
 
-The above `OperandRequest` will create two `db2` custom resources in the `my-service` namespace and the `db2` operator will be created in the namespace specified in the OperandRegistry `ibm-common-services/common-services`.
+The above `OperandRequest` will create two `db2` custom resources in the `my-service` namespace and the `db2` operator will be created in the namespace specified in the OperandRegistry `common-service` in the `ibm-common-service` namespace.
 
 The first custom resource is
 
