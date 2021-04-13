@@ -10,6 +10,8 @@
   - [OperandConfig Spec](#operandconfig-spec)
     - [How does Operator create the individual operator CR](#how-does-operator-create-the-individual-operator-cr)
   - [OperandRequest Spec](#operandrequest-spec)
+    - [OperandRequest sample to create custom resource via OperandConfig](#operandrequest-sample-to-create-custom-resource-via-operandconfig)
+    - [OperandRequest sample to create custom resource via OperandRequest](#operandrequest-sample-to-create-custom-resource-via-operandrequest)
   - [OperandBindInfo Spec](#operandbindinfo-spec)
   - [E2E Use Case](#e2e-use-case)
   - [Operator/Operand Upgrade](#operatoroperand-upgrade)
@@ -110,7 +112,7 @@ OperandConfig defines the individual operand deployment config:
 1. `name` of the OperandConfig
 2. `namespace` of the OperandConfig
 3. `name` is the name of the operator, which should be the same as the services name in the OperandRegistry and OperandRequest.
-4. `spec` defines a map. Its key is the kind name of the custom resource. Its value is merged to the spec field of custom resource. For more details, you can check the following topic How does ODLM create the individual operator CR?
+4. `spec` defines a map. Its key is the kind name of the custom resource. Its value is merged to the spec field of custom resource. For more details, you can check the following topic **How does ODLM create the individual operator CR?**
 
 ### How does Operator create the individual operator CR
 
@@ -173,6 +175,8 @@ OperandRequest defines which operator/operand you want to install in the cluster
 
 **NOTE:** OperandRequest custom resource is used to trigger a deployment for Operators and Operands.
 
+### OperandRequest sample to create custom resource via OperandConfig
+
 ```yaml
 apiVersion: operator.ibm.com/v1alpha1
 kind: OperandRequest
@@ -200,6 +204,33 @@ spec:
 7. (optional) The `bindings` of the operands is a map to get and rename the secret and/or configmap from the provider and create them in the requester's namespace. If the requester wants to rename the secret and/or configmap, they need to know the key of the binding in the OperandBindInfo. If the key of the bindings map is prefixed with public, it means the secret and/or configmap can be shared with the requester in the other namespace. If the key of the bindings map is prefixed with private, it means the secret and/or configmap can only be shared within its own namespace.
 8. (optional) `secret` names a secret that should be created in the requester's namespace with formatted data that can be used to interact with the service.
 9. (optional) `configmap` names a configmap that should be created in the requester's namespace with formatted data that can be used to interact with the service.
+
+### OperandRequest sample to create custom resource via OperandRequest
+
+```yaml
+apiVersion: operator.ibm.com/v1alpha1
+kind: OperandRequest
+metadata:
+  name: example-service
+  namespace: example-service-ns
+spec:
+  requests:
+  - registry: example-service
+    registryNamespace: example-service-ns
+    operands:
+    - name: jenkins
+      kind: Jenkins [1]
+      apiVersion: "jenkins.io/v1alpha2" [2]
+      instanceName: "example" [3]
+      spec: [4]
+        service:
+          port: 8081
+```
+
+1. `kind` of the target custom resource. If it is set in the operand item, ODLM will create CR according to OperandRequest only and get rid of the alm-example and OperandConfig.
+2. `apiVersion` of the target custom resource.
+3. `instanceName` is the name of the custom resource. If `instanceName` is not set, the name of the custom resource will be created with the name of the OperandRequest as a prefix.
+4. `spec` is the spec field of the target CR.
 
 ## OperandBindInfo Spec
 

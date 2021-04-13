@@ -18,9 +18,12 @@ package operandrequest
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -62,7 +65,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 			merr.Add(errors.Wrapf(err, "failed to get the OperandRegistry %s", registryKey.String()))
 			continue
 		}
-		for _, operand := range req.Operands {
+		for i, operand := range req.Operands {
 
 			opdRegistry := registryInstance.GetOperator(operand.Name)
 			if opdRegistry == nil {
@@ -128,7 +131,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 				}
 				err = r.reconcileCRwithConfig(ctx, opdConfig, opdRegistry.Namespace, csv)
 			} else {
-				err = r.reconcileCRwithRequest(ctx, requestInstance, operand, types.NamespacedName{Name: requestInstance.Name, Namespace: requestInstance.Namespace})
+				err = r.reconcileCRwithRequest(ctx, requestInstance, operand, types.NamespacedName{Name: requestInstance.Name, Namespace: requestInstance.Namespace}, i)
 			}
 
 			if err != nil {
@@ -200,7 +203,7 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 }
 
 // reconcileCRwithRequest merge and create custom resource base on OperandRequest and CSV alm-examples
-func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance *operatorv1alpha1.OperandRequest, operand operatorv1alpha1.Operand, requestKey types.NamespacedName) error {
+func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance *operatorv1alpha1.OperandRequest, operand operatorv1alpha1.Operand, requestKey types.NamespacedName, index int) error {
 	merr := &util.MultiErr{}
 
 	// Create an unstructured object for CR and check its value
@@ -216,7 +219,8 @@ func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance
 
 	var name string
 	if operand.InstanceName == "" {
-		name = requestKey.Name
+		crInfo := sha256.Sum256([]byte(operand.APIVersion + operand.Kind + strconv.Itoa(index)))
+		name = requestKey.Name + "-" + hex.EncodeToString(crInfo[:7])
 	} else {
 		name = operand.InstanceName
 	}

@@ -19,6 +19,9 @@ package operandrequest
 import (
 	"context"
 
+	"crypto/sha256"
+	"encoding/hex"
+
 	v1beta2 "github.com/coreos/etcd-operator/pkg/apis/etcd/v1beta2"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -133,13 +136,6 @@ var _ = Describe("OperandRegistry controller", func() {
 				return k8sClient.Status().Update(ctx, etcdSub)
 			}, testutil.Timeout, testutil.Interval).Should(Succeed())
 
-			Eventually(func() error {
-				jenkinsSub := &olmv1alpha1.Subscription{}
-				Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "jenkins", Namespace: operatorNamespaceName}, jenkinsSub)).Should(Succeed())
-				jenkinsSub.Status = testutil.SubscriptionStatus("jenkins", operatorNamespaceName, "0.0.1")
-				return k8sClient.Status().Update(ctx, jenkinsSub)
-			}, testutil.Timeout, testutil.Interval).Should(Succeed())
-
 			By("Creating and Setting status of the ClusterServiceVersions")
 			etcdCSV := testutil.ClusterServiceVersion("etcd-csv.v0.0.1", operatorNamespaceName, testutil.EtcdExample)
 			Expect(k8sClient.Create(ctx, etcdCSV)).Should(Succeed())
@@ -147,14 +143,6 @@ var _ = Describe("OperandRegistry controller", func() {
 				k8sClient.Get(ctx, types.NamespacedName{Name: "etcd-csv.v0.0.1", Namespace: operatorNamespaceName}, etcdCSV)
 				etcdCSV.Status = testutil.ClusterServiceVersionStatus()
 				return k8sClient.Status().Update(ctx, etcdCSV)
-			}, testutil.Timeout, testutil.Interval).Should(Succeed())
-
-			jenkinsCSV := testutil.ClusterServiceVersion("jenkins-csv.v0.0.1", operatorNamespaceName, testutil.JenkinsExample)
-			Expect(k8sClient.Create(ctx, jenkinsCSV)).Should(Succeed())
-			Eventually(func() error {
-				k8sClient.Get(ctx, types.NamespacedName{Name: "jenkins-csv.v0.0.1", Namespace: operatorNamespaceName}, jenkinsCSV)
-				jenkinsCSV.Status = testutil.ClusterServiceVersionStatus()
-				return k8sClient.Status().Update(ctx, jenkinsCSV)
 			}, testutil.Timeout, testutil.Interval).Should(Succeed())
 
 			By("Creating and Setting status of the InstallPlan")
@@ -166,18 +154,19 @@ var _ = Describe("OperandRegistry controller", func() {
 				return k8sClient.Status().Update(ctx, etcdIP)
 			}, testutil.Timeout, testutil.Interval).Should(Succeed())
 
-			jenkinsIP := testutil.InstallPlan("jenkins-install-plan", operatorNamespaceName)
-			Expect(k8sClient.Create(ctx, jenkinsIP)).Should(Succeed())
-			Eventually(func() error {
-				k8sClient.Get(ctx, types.NamespacedName{Name: "jenkins-install-plan", Namespace: operatorNamespaceName}, jenkinsIP)
-				jenkinsIP.Status = testutil.InstallPlanStatus()
-				return k8sClient.Status().Update(ctx, jenkinsIP)
-			}, testutil.Timeout, testutil.Interval).Should(Succeed())
-
-			By("Checking CR of the etcd operator")
+			By("Checking first CR of the etcd operator")
 			Eventually(func() error {
 				etcdCluster := &v1beta2.EtcdCluster{}
 				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "example", Namespace: namespaceName}, etcdCluster)
+				return err
+			}, testutil.Timeout, testutil.Interval).Should(Succeed())
+
+			By("Checking second CR of the etcd operator")
+			Eventually(func() error {
+				etcdCluster := &v1beta2.EtcdCluster{}
+				crInfo := sha256.Sum256([]byte("etcd.database.coreos.com/v1beta2" + "EtcdCluster" + "1"))
+				etcdCRName := name1 + "-" + hex.EncodeToString(crInfo[:7])
+				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: etcdCRName, Namespace: namespaceName}, etcdCluster)
 				return err
 			}, testutil.Timeout, testutil.Interval).Should(Succeed())
 
@@ -192,18 +181,6 @@ var _ = Describe("OperandRegistry controller", func() {
 			}, testutil.Timeout, testutil.Interval).Should(BeTrue())
 
 			By("Checking operators have been deleted")
-
-			Eventually(func() bool {
-				jenkinsSub := &olmv1alpha1.Subscription{}
-				err := k8sClient.Get(ctx, types.NamespacedName{Name: "jenkins", Namespace: operatorNamespaceName}, jenkinsSub)
-				return err != nil && errors.IsNotFound(err)
-			}, testutil.Timeout, testutil.Interval).Should(BeTrue())
-
-			Eventually(func() bool {
-				jenkinsCSV := &olmv1alpha1.ClusterServiceVersion{}
-				err := k8sClient.Get(ctx, types.NamespacedName{Name: "jenkins-csv.v0.0.1", Namespace: operatorNamespaceName}, jenkinsCSV)
-				return err != nil && errors.IsNotFound(err)
-			}, testutil.Timeout, testutil.Interval).Should(BeTrue())
 
 			Eventually(func() bool {
 				etcdSub := &olmv1alpha1.Subscription{}

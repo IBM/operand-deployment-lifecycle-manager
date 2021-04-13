@@ -163,12 +163,11 @@ func OperandRequestObjWithCR(registryName, registryNamespace, requestName, reque
 							},
 						},
 						{
-							Name:         "jenkins",
-							Kind:         "Jenkins",
-							APIVersion:   "jenkins.io/v1alpha2",
-							InstanceName: "example",
+							Name:       "etcd",
+							Kind:       "EtcdCluster",
+							APIVersion: "etcd.database.coreos.com/v1beta2",
 							Spec: &runtime.RawExtension{
-								Raw: []byte(`{"service": {"port": 8081}}`),
+								Raw: []byte(`{"size": 3,"version": "3.2.15"}`),
 							},
 						},
 					},
