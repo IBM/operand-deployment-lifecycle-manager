@@ -91,9 +91,16 @@ func main() {
 
 	scope := util.GetInstallScope()
 	watchNamespace := util.GetWatchNamespace()
+	odlmScopeEnable := util.GetOdlmScope()
 	if scope == "namespaced" {
-		options.NewCache = k8sutil.NewODLMCache(strings.Split(watchNamespace, ","), gvkLabelMap)
+		if odlmScopeEnable {
+			options.NewCache = k8sutil.NewODLMCache(strings.Split(watchNamespace, ","), gvkLabelMap)
+		} else {
+			// SaaS or on-prem multi instances case
+			options.NewCache = cache.MultiNamespacedFilteredCacheBuilder(gvkLabelMap, strings.Split(watchNamespace, ","))
+		}
 	} else {
+		// cluster-scope ODLM
 		options.NewCache = cache.NewFilteredCacheBuilder(gvkLabelMap)
 	}
 

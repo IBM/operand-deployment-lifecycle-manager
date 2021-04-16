@@ -24,7 +24,7 @@ spec:
         app.kubernetes.io/instance: operand-deployment-lifecycle-manager
         app.kubernetes.io/managed-by: "operand-deployment-lifecycle-manager"
         app.kubernetes.io/name: "operand-deployment-lifecycle-manager"
-        intent: projected
+        intent: projected-odlm
       annotations:
         productName: "IBM Cloud Platform Common Services"
         productID: "068a62892a1e4db39641342e592daa25"
