@@ -93,8 +93,7 @@ func main() {
 	watchNamespace := util.GetWatchNamespace()
 	odlmScopeEnable := util.GetOdlmScope()
 	if scope == "namespaced" {
-		// single ODLM instance
-		if odlmScopeEnable == "false" {
+		if odlmScopeEnable {
 			options.NewCache = k8sutil.NewODLMCache(strings.Split(watchNamespace, ","), gvkLabelMap)
 		} else {
 			// SaaS or on-prem multi instances case
