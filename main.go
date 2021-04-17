@@ -23,6 +23,7 @@ import (
 
 	olmv1 "github.com/operator-framework/api/pkg/operators/v1"
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
+	operatorsv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -34,6 +35,7 @@ import (
 
 	cache "github.com/IBM/controller-filtered-cache/filteredcache"
 	nssv1 "github.com/IBM/ibm-namespace-scope-operator/api/v1"
+
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/k8sutil"
@@ -58,6 +60,7 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(operatorv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(operatorsv1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
