@@ -18,8 +18,10 @@ package operator
 
 import (
 	"context"
+	"fmt"
 
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
+	operatorsv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -37,6 +39,7 @@ import (
 // ODLMOperator is the struct for ODLM controllers
 type ODLMOperator struct {
 	client.Client
+	client.Reader
 	*rest.Config
 	Recorder record.EventRecorder
 	Scheme   *runtime.Scheme
@@ -46,6 +49,7 @@ type ODLMOperator struct {
 func NewODLMOperator(mgr manager.Manager, name string) *ODLMOperator {
 	return &ODLMOperator{
 		Client:   mgr.GetClient(),
+		Reader:   mgr.GetAPIReader(),
 		Config:   mgr.GetConfig(),
 		Recorder: mgr.GetEventRecorderFor(name),
 		Scheme:   mgr.GetScheme(),
@@ -68,8 +72,28 @@ func (m *ODLMOperator) GetOperandRegistry(ctx context.Context, key types.Namespa
 		if o.InstallPlanApproval == "" {
 			reg.Spec.Operators[i].InstallPlanApproval = olmv1alpha1.ApprovalAutomatic
 		}
+		if o.SourceName == "" || o.SourceNamespace == "" {
+			catalogSourceName, catalogSourceNs, err := m.GetCatalogSourceFromPackage(ctx, o.PackageName, o.Namespace)
+			if err != nil {
+				return reg, err
+			}
+
+			if catalogSourceName == "" || catalogSourceNs == "" {
+				return reg, fmt.Errorf("no catalogsource found for %v", o.PackageName)
+			}
+
+			reg.Spec.Operators[i].SourceName, reg.Spec.Operators[i].SourceNamespace = catalogSourceName, catalogSourceNs
+		}
 	}
 	return reg, nil
+}
+
+func (m *ODLMOperator) GetCatalogSourceFromPackage(ctx context.Context, packageName, namespace string) (catalogSourceName string, catalogSourceNs string, err error) {
+	packageManifests := &operatorsv1.PackageManifest{}
+	if err := m.Reader.Get(ctx, types.NamespacedName{Namespace: namespace, Name: packageName}, packageManifests); err != nil {
+		return "", "", err
+	}
+	return packageManifests.Status.CatalogSource, packageManifests.Status.CatalogSourceNamespace, nil
 }
 
 // ListOperandRegistry lists the OperandRegistry instance with default value

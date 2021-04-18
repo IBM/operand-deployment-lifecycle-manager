@@ -94,8 +94,6 @@ spec:
                   - channel
                   - name
                   - packageName
-                  - sourceName
-                  - sourceNamespace
                   type: object
                 type: array
             type: object
