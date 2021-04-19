@@ -170,6 +170,15 @@ func OperandRequestObjWithCR(registryName, registryNamespace, requestName, reque
 								Raw: []byte(`{"size": 3,"version": "3.2.15"}`),
 							},
 						},
+						{
+							Name:         "jenkins",
+							Kind:         "Jenkins",
+							APIVersion:   "jenkins.io/v1alpha2",
+							InstanceName: "example",
+							Spec: &runtime.RawExtension{
+								Raw: []byte(`{"service": {"port": 8081}}`),
+							},
+						},
 					},
 				},
 			},

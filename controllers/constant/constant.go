@@ -54,4 +54,19 @@ const (
 
 	//DefaultSyncPeriod is the frequency at which watched resources are reconciled
 	DefaultSyncPeriod = 3 * time.Hour
+
+	//DefaultCRFetchTimeout is the default timeout for getting a custom resource
+	DefaultCRFetchTimeout = 250 * time.Millisecond
+
+	//DefaultCRFetchPeriod is the default retry Period for getting a custom resource
+	DefaultCRFetchPeriod = 5 * time.Second
+
+	//DefaultCRDeleteTimeout is the default timeout for deleting a custom resource
+	DefaultCRDeleteTimeout = 5 * time.Minute
+
+	//DefaultCRDeletePeriod is the default retry Period for deleting a custom resource
+	DefaultCRDeletePeriod = 20 * time.Second
+
+	//DefaultSubDeleteTimeout is the default timeout for deleting a subscription
+	DefaultSubDeleteTimeout = 10 * time.Minute
 )
