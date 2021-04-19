@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"strings"
 	"sync"
 
 	gset "github.com/deckarep/golang-set"
@@ -319,6 +320,7 @@ func (r *Reconciler) absentOperatorsAndOperands(ctx context.Context, requestInst
 			return err
 		}
 		merr := &util.MultiErr{}
+		remainingOp := needDeletedOperands.Clone()
 		for o := range needDeletedOperands.Iter() {
 			var (
 				o = o
@@ -331,12 +333,17 @@ func (r *Reconciler) absentOperatorsAndOperands(ctx context.Context, requestInst
 					defer mu.Unlock()
 					merr.Add(err)
 				}
+				remainingOp.Remove(o)
 			}()
 		}
-		wg.Wait()
+		timeout := util.WaitTimeout(&wg, constant.DefaultSubDeleteTimeout)
+		if timeout {
+			merr.Add(fmt.Errorf("timeout for cleaning up subscription %v", strings.Trim(fmt.Sprint(remainingOp.ToSlice()), "[]")))
+		}
 		if len(merr.Errors) != 0 {
 			return merr
 		}
+
 	}
 	return nil
 }

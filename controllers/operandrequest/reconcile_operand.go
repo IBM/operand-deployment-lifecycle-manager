@@ -26,7 +26,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/pkg/errors"
@@ -303,6 +302,7 @@ func (r *Reconciler) deleteAllCustomResource(ctx context.Context, csv *olmv1alph
 				mu.Lock()
 				defer mu.Unlock()
 				merr.Add(err)
+				return
 			}
 			mu.Lock()
 			defer mu.Unlock()
@@ -453,7 +453,7 @@ func (r *Reconciler) updateCustomResource(ctx context.Context, existingCR unstru
 	name := existingCR.GetName()
 
 	// Update the CR
-	err := wait.PollImmediate(time.Millisecond*250, time.Second*5, func() (bool, error) {
+	err := wait.PollImmediate(constant.DefaultCRFetchPeriod, constant.DefaultCRFetchTimeout, func() (bool, error) {
 
 		existingCR := unstructured.Unstructured{
 			Object: map[string]interface{}{
@@ -570,10 +570,10 @@ func (r *Reconciler) deleteCustomResource(ctx context.Context, existingCR unstru
 		if checkLabel(crShouldBeDeleted, map[string]string{constant.OpreqLabel: "true"}) && !checkLabel(crShouldBeDeleted, map[string]string{constant.NotUninstallLabel: "true"}) {
 			klog.V(3).Infof("Deleting custom resource: %s from custom resource definition: %s", name, kind)
 			err := r.Delete(ctx, &crShouldBeDeleted)
-			if err != nil {
+			if err != nil && !apierrors.IsNotFound(err) {
 				return errors.Wrapf(err, "failed to delete custom resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 			}
-			err = wait.PollImmediate(time.Second*20, time.Minute*10, func() (bool, error) {
+			err = wait.PollImmediate(constant.DefaultCRDeletePeriod, constant.DefaultCRDeleteTimeout, func() (bool, error) {
 				if strings.EqualFold(kind, "OperandRequest") {
 					return true, nil
 				}
@@ -653,6 +653,7 @@ func (r *Reconciler) checkCustomResource(ctx context.Context, requestInstance *o
 				mu.Lock()
 				defer mu.Unlock()
 				merr.Add(err)
+				return
 			}
 			mu.Lock()
 			defer mu.Unlock()
