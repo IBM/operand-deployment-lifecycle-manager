@@ -24,6 +24,7 @@ import (
 	operatorsv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
@@ -215,8 +216,8 @@ func (m *ODLMOperator) ListOperandRequestsByConfig(ctx context.Context, key type
 	return
 }
 
-// GetSubscription gets Subscription from a name
-func (m *ODLMOperator) GetSubscription(ctx context.Context, name, namespace string, packageName ...string) (*olmv1alpha1.Subscription, error) {
+// GetSubscription gets Subscription by name and package name
+func (m *ODLMOperator) GetSubscription(ctx context.Context, name, namespace, packageName string) (*olmv1alpha1.Subscription, error) {
 	klog.V(3).Infof("Fetch Subscription: %s/%s", namespace, name)
 	sub := &olmv1alpha1.Subscription{}
 	subKey := types.NamespacedName{
@@ -229,12 +230,25 @@ func (m *ODLMOperator) GetSubscription(ctx context.Context, name, namespace stri
 	} else if !apierrors.IsNotFound(err) {
 		return nil, err
 	}
-	subPkgKey := types.NamespacedName{
-		Name:      packageName[0],
-		Namespace: namespace,
+
+	subList := &olmv1alpha1.SubscriptionList{}
+	if err := m.Client.List(ctx, subList, &client.ListOptions{
+		LabelSelector: labels.SelectorFromSet(map[string]string{
+			"operators.coreos.com/" + packageName + "." + namespace: "",
+		}),
+	}); err != nil {
+		return nil, err
 	}
-	err = m.Client.Get(ctx, subPkgKey, sub)
-	return sub, err
+
+	if len(subList.Items) == 0 {
+		return nil, err
+	}
+
+	if len(subList.Items) > 1 {
+		return nil, fmt.Errorf("there are multiple subscriptions using package %v", packageName)
+	}
+
+	return &subList.Items[0], nil
 }
 
 // GetClusterServiceVersion gets the ClusterServiceVersion from the subscription
