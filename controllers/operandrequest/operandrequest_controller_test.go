@@ -105,7 +105,7 @@ var _ = Describe("OperandRegistry controller", func() {
 		By("Deleting the OperandConfig")
 		Expect(k8sClient.Delete(ctx, config1)).Should(Succeed())
 		Expect(k8sClient.Delete(ctx, config2)).Should(Succeed())
-		By("Deleting the OperandCRegistry")
+		By("Deleting the OperandRegistry")
 		Expect(k8sClient.Delete(ctx, registry1)).Should(Succeed())
 		Expect(k8sClient.Delete(ctx, registry2)).Should(Succeed())
 	})
