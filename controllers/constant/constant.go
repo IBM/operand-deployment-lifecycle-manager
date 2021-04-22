@@ -43,6 +43,9 @@ const (
 	//NamespaceScopeCrName is the name use to get NamespaceScopeCrName instance
 	NamespaceScopeCrName string = "nss-managedby-odlm"
 
+	//OdlmScopeNssCrName is the name use to get OdlmScopeNssCrName instance
+	OdlmScopeNssCrName string = "odlm-scope-managedby-odlm"
+
 	//FindOperandRegistry is the key for checking if the OperandRegistry is found
 	FindOperandRegistry string = "operator.ibm.com/operandregistry-is-not-found"
 

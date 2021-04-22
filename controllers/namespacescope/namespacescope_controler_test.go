@@ -49,6 +49,7 @@ var _ = Describe("NamespaceScope controller", func() {
 		request              *operatorv1alpha1.OperandRequest
 		config               *operatorv1alpha1.OperandConfig
 		nss                  *nssv1.NamespaceScope
+		odlmNss              *nssv1.NamespaceScope
 	)
 
 	BeforeEach(func() {
@@ -59,21 +60,24 @@ var _ = Describe("NamespaceScope controller", func() {
 		config = testutil.OperandConfigObj(registryName, requestNamespaceName)
 		request = testutil.OperandRequestObj(registryName, requestNamespaceName, requestName, requestNamespaceName)
 		nss = testutil.NamespaceScopeObj(namespace)
+		odlmNss = testutil.OdlmNssObj(namespace)
 
 		Expect(k8sClient.Create(ctx, testutil.NamespaceObj(namespace))).Should(Succeed())
 		Expect(k8sClient.Create(ctx, testutil.NamespaceObj(requestNamespaceName))).Should(Succeed())
 		Expect(k8sClient.Create(ctx, nss)).Should(Succeed())
+		Expect(k8sClient.Create(ctx, odlmNss)).Should(Succeed())
 	})
 
 	AfterEach(func() {
 		Expect(k8sClient.Delete(ctx, nss)).Should(Succeed())
+		Expect(k8sClient.Delete(ctx, odlmNss)).Should(Succeed())
 	})
 
 	Context("Add OperandRequest Namespace into NamespaceScope CR", func() {
 		It("Should NamespaceScope CR have two namespaces", func() {
 			By("Create OperandRequest instance")
 			Expect(k8sClient.Create(ctx, request)).Should(Succeed())
-			By("Check the namespace number in the NamespaceScope CR")
+			By("Check the namespace number in the NamespaceScope CR for individual CS operators")
 			Eventually(func() int {
 				nss := &nssv1.NamespaceScope{}
 				err := k8sClient.Get(ctx, types.NamespacedName{Name: constant.NamespaceScopeCrName, Namespace: namespace}, nss)
@@ -82,7 +86,16 @@ var _ = Describe("NamespaceScope controller", func() {
 				}
 				return len(nss.Spec.NamespaceMembers)
 			}, timeout, interval).Should(Equal(2))
-			By("Create OperandRequest instance")
+			By("Check the namespace number in the NamespaceScope CR for ODLM")
+			Eventually(func() int {
+				odlmNss := &nssv1.NamespaceScope{}
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: constant.OdlmScopeNssCrName, Namespace: namespace}, odlmNss)
+				if err != nil {
+					return -1
+				}
+				return len(odlmNss.Spec.NamespaceMembers)
+			}, timeout, interval).Should(Equal(2))
+			By("Create OperandRegistry and OperandConfig instance")
 			Expect(k8sClient.Create(ctx, registry)).Should(Succeed())
 			Expect(k8sClient.Create(ctx, config)).Should(Succeed())
 			Eventually(func() int {
@@ -93,7 +106,7 @@ var _ = Describe("NamespaceScope controller", func() {
 				}
 				return len(reg.Status.OperatorsStatus)
 			}, timeout, interval).Should(Equal(2))
-			By("Check the namespace number in the NamespaceScope CR")
+			By("Check the namespace number in the NamespaceScope CR for individual CS operators")
 			Eventually(func() int {
 				nss := &nssv1.NamespaceScope{}
 				err := k8sClient.Get(ctx, types.NamespacedName{Name: constant.NamespaceScopeCrName, Namespace: namespace}, nss)
@@ -102,9 +115,18 @@ var _ = Describe("NamespaceScope controller", func() {
 				}
 				return len(nss.Spec.NamespaceMembers)
 			}, timeout, interval).Should(Equal(3))
+			By("Check the namespace number in the NamespaceScope CR for ODLM")
+			Eventually(func() int {
+				odlmNss := &nssv1.NamespaceScope{}
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: constant.OdlmScopeNssCrName, Namespace: namespace}, odlmNss)
+				if err != nil {
+					return -1
+				}
+				return len(odlmNss.Spec.NamespaceMembers)
+			}, timeout, interval).Should(Equal(3))
 			By("Delete OperandRequest instance")
 			Expect(k8sClient.Delete(ctx, request)).Should(Succeed())
-			By("Check the namespace number in the NamespaceScope CR")
+			By("Check the namespace number in the NamespaceScope CR for individual CS operators")
 			Eventually(func() int {
 				nss := &nssv1.NamespaceScope{}
 				err := k8sClient.Get(ctx, types.NamespacedName{Name: constant.NamespaceScopeCrName, Namespace: namespace}, nss)
@@ -112,6 +134,15 @@ var _ = Describe("NamespaceScope controller", func() {
 					return -1
 				}
 				return len(nss.Spec.NamespaceMembers)
+			}, timeout, interval).Should(Equal(1))
+			By("Check the namespace number in the NamespaceScope CR for ODLM")
+			Eventually(func() int {
+				odlmNss := &nssv1.NamespaceScope{}
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: constant.OdlmScopeNssCrName, Namespace: namespace}, odlmNss)
+				if err != nil {
+					return -1
+				}
+				return len(odlmNss.Spec.NamespaceMembers)
 			}, timeout, interval).Should(Equal(1))
 		})
 	})

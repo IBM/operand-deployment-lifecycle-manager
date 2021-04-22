@@ -39,6 +39,10 @@ import (
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/util"
 )
 
+var (
+	NssCRs = []string{constant.NamespaceScopeCrName, constant.OdlmScopeNssCrName}
+)
+
 // Reconciler automagically updates NamespaceScope CR with the proporly namespace
 type Reconciler struct {
 	*deploy.ODLMOperator
@@ -56,35 +60,37 @@ func (r *Reconciler) ReconcileOperandRequest(req ctrl.Request) (_ ctrl.Result, r
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
-	nss, err := r.getNamespaceScopeCR(ctx)
+	nssList, err := r.getNamespaceScopeCRList(ctx)
 	if err != nil {
 		klog.Error(err)
 		return ctrl.Result{}, err
-	} else if nss == nil {
+	} else if len(nssList) == 0 {
 		klog.Warning("Not found NamespaceScope instance, ignore update it.")
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
-	var nsMems []string
+	nsMemsList := make([][]string, len(nssList))
+	originalNssList := make([]*nssv1.NamespaceScope, len(nssList))
 
-	originalNss := nss.DeepCopy()
-
-	defer func() {
-		nsMems, reconcileErr = r.updateNamespaceMemberFromNamespaceScope(ctx)
-		if reconcileErr != nil {
-			klog.Error(reconcileErr)
-			return
-		}
-		if !util.StringSliceContentEqual(nsMems, nss.Spec.NamespaceMembers) {
-			nss.Spec.NamespaceMembers = nsMems
-			if err := r.Patch(ctx, nss, client.MergeFrom(originalNss)); err != nil {
-				reconcileErr = errors.Wrapf(err, "failed to update NamespaceScope %s/%s", nss.Namespace, nss.Name)
+	for i := range nssList {
+		originalNssList[i] = nssList[i].DeepCopy()
+		defer func(i int, nss *nssv1.NamespaceScope) {
+			nsMemsList[i], reconcileErr = r.updateNamespaceMemberFromNamespaceScope(ctx)
+			if reconcileErr != nil {
 				klog.Error(reconcileErr)
 				return
 			}
-			klog.V(2).Infof("Updated NamespaceScope %s/%s", nss.Namespace, nss.Name)
-		}
-	}()
+			if !util.StringSliceContentEqual(nsMemsList[i], nss.Spec.NamespaceMembers) {
+				nss.Spec.NamespaceMembers = nsMemsList[i]
+				if err := r.Patch(ctx, nss, client.MergeFrom(originalNssList[i])); err != nil {
+					reconcileErr = errors.Wrapf(err, "failed to update NamespaceScope %s/%s", nss.Namespace, nss.Name)
+					klog.Error(reconcileErr)
+					return
+				}
+				klog.V(2).Infof("Updated NamespaceScope %s/%s", nss.Namespace, nss.Name)
+			}
+		}(i, nssList[i])
+	}
 
 	// Fetch the OperandRequest instance
 	requestInstance := &operatorv1alpha1.OperandRequest{}
@@ -209,17 +215,22 @@ func (r *Reconciler) checkNamespaceScopeAPI() (bool, error) {
 	return true, nil
 }
 
-func (r *Reconciler) getNamespaceScopeCR(ctx context.Context) (*nssv1.NamespaceScope, error) {
-	nsScope := &nssv1.NamespaceScope{}
-	nsScopeKey := types.NamespacedName{Name: constant.NamespaceScopeCrName, Namespace: util.GetOperatorNamespace()}
-	if err := r.Client.Get(ctx, nsScopeKey, nsScope); err != nil {
-		if apierrors.IsNotFound(err) {
-			klog.Warningf("Not found NamespaceScope CR %s, ignore update it.", nsScopeKey.String())
-			return nil, nil
+func (r *Reconciler) getNamespaceScopeCRList(ctx context.Context) ([]*nssv1.NamespaceScope, error) {
+	NssCRList := []*nssv1.NamespaceScope{}
+	for _, cr := range NssCRs {
+		nsScope := &nssv1.NamespaceScope{}
+		nsScopeKey := types.NamespacedName{Name: cr, Namespace: util.GetOperatorNamespace()}
+		if err := r.Client.Get(ctx, nsScopeKey, nsScope); err != nil {
+			if apierrors.IsNotFound(err) {
+				klog.Warningf("Not found NamespaceScope CR %s, ignore update it.", nsScopeKey.String())
+				return nil, nil
+			}
+			return nil, err
 		}
-		return nil, err
+		NssCRList = append(NssCRList, nsScope)
 	}
-	return nsScope, nil
+
+	return NssCRList, nil
 }
 
 // SetupWithManager adds namespacescope controller to the manager.

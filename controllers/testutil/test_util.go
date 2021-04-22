@@ -261,6 +261,17 @@ func NamespaceScopeObj(namespace string) *nssv1.NamespaceScope {
 		},
 	}
 }
+func OdlmNssObj(namespace string) *nssv1.NamespaceScope {
+	return &nssv1.NamespaceScope{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constant.OdlmScopeNssCrName,
+			Namespace: namespace,
+		},
+		Spec: nssv1.NamespaceScopeSpec{
+			NamespaceMembers: []string{},
+		},
+	}
+}
 func NamespaceObj(name string) *corev1.Namespace {
 	return &corev1.Namespace{
 		TypeMeta: metav1.TypeMeta{
