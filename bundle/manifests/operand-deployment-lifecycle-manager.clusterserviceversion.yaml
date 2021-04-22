@@ -296,6 +296,7 @@ spec:
                       name: odlm-scope
                       key: namespaces
                 image: quay.io/opencloudio/odlm:latest
+                imagePullPolicy: Always
                 name: manager
                 resources:
                   limits:
