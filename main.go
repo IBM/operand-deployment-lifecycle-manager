@@ -96,7 +96,7 @@ func main() {
 	watchNamespace := util.GetWatchNamespace()
 	odlmScopeEnable := util.GetOdlmScope()
 	if scope == "namespaced" {
-		if odlmScopeEnable {
+		if !odlmScopeEnable {
 			options.NewCache = k8sutil.NewODLMCache(strings.Split(watchNamespace, ","), gvkLabelMap)
 		} else {
 			// SaaS or on-prem multi instances case
@@ -136,11 +136,14 @@ func main() {
 		klog.Errorf("unable to create controller OperandRegistry: %v", err)
 		os.Exit(1)
 	}
-	if err = (&namespacescope.Reconciler{
-		ODLMOperator: deploy.NewODLMOperator(mgr, "NamespaceScope"),
-	}).SetupWithManager(mgr); err != nil {
-		klog.Errorf("unable to create controller NamespaceScope: %v", err)
-		os.Exit(1)
+	// Single instance case, disable it on SaaS or on-prem multi instances case
+	if !odlmScopeEnable {
+		if err = (&namespacescope.Reconciler{
+			ODLMOperator: deploy.NewODLMOperator(mgr, "NamespaceScope"),
+		}).SetupWithManager(mgr); err != nil {
+			klog.Errorf("unable to create controller NamespaceScope: %v", err)
+			os.Exit(1)
+		}
 	}
 	// +kubebuilder:scaffold:builder
 
