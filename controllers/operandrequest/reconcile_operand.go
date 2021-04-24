@@ -164,6 +164,11 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 
 	merr := &util.MultiErr{}
 
+	foundMap := make(map[string]bool)
+	for cr := range service.Spec {
+		foundMap[cr] = false
+	}
+
 	// Merge OperandConfig and ClusterServiceVersion alm-examples
 	for _, almExample := range almExampleList {
 		// Create an unstructured object for CR and check its value
@@ -178,18 +183,24 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 			Namespace: namespace,
 		}, &crFromALM)
 
+		for cr := range service.Spec {
+			if strings.EqualFold(crFromALM.GetKind(), cr) {
+				foundMap[cr] = true
+			}
+		}
+
 		if err != nil && !apierrors.IsNotFound(err) {
 			merr.Add(errors.Wrapf(err, "failed to get the custom resource %s/%s", namespace, name))
 			continue
 		} else if apierrors.IsNotFound(err) {
-			// Create Custom resource
+			// Create Custom Resource
 			if err := r.compareConfigandExample(ctx, crFromALM, service, namespace); err != nil {
 				merr.Add(err)
 				continue
 			}
 		} else {
 			if checkLabel(crFromALM, map[string]string{constant.OpreqLabel: "true"}) {
-				// Update or Delete Custom resource
+				// Update or Delete Custom Resource
 				if err := r.existingCustomResource(ctx, crFromALM, spec, service, namespace); err != nil {
 					merr.Add(err)
 					continue
@@ -202,6 +213,13 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 	if len(merr.Errors) != 0 {
 		return merr
 	}
+
+	for cr, found := range foundMap {
+		if !found {
+			klog.Warningf("Custom resource %v doesn't exist in the alm-example of %v", cr, csv.GetName())
+		}
+	}
+
 	return nil
 }
 
