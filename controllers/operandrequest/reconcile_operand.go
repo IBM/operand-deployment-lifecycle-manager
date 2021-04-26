@@ -78,9 +78,13 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 
 			sub, err := r.GetSubscription(ctx, operatorName, namespace, opdRegistry.PackageName)
 
-			if apierrors.IsNotFound(err) {
-				klog.Warningf("There is no Subscription %s or %s in the namespace %s", operatorName, opdRegistry.PackageName, namespace)
-				continue
+			if err != nil {
+				if apierrors.IsNotFound(err) || sub == nil {
+					klog.Warningf("There is no Subscription %s or %s in the namespace %s", operatorName, opdRegistry.PackageName, namespace)
+					continue
+				}
+				merr.Add(errors.Wrapf(err, "failed to get the Subscription %s in the namespace %s", operatorName, namespace))
+				return merr
 			}
 
 			if _, ok := sub.Labels[constant.OpreqLabel]; !ok {
