@@ -185,7 +185,7 @@ coverage: ## Run code coverage test
 	@test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh \
 	|| curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/master/hack/setup-envtest.sh
 	@test -d ${ENVTEST_ASSETS_DIR}/crds || make fetch-test-crds
-	@source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); common/scripts/codecov.sh ${BUILD_LOCALLY} "controllers"
+	@source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); OPERATOR_NAMESPACE="ibm-operators" common/scripts/codecov.sh ${BUILD_LOCALLY} "controllers"
 	@rm -rf ${ENVTEST_ASSETS_DIR}
 
 scorecard: operator-sdk ## Run scorecard test
