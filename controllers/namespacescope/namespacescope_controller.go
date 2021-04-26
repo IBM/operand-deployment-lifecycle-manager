@@ -223,7 +223,7 @@ func (r *Reconciler) getNamespaceScopeCRList(ctx context.Context) ([]*nssv1.Name
 		if err := r.Client.Get(ctx, nsScopeKey, nsScope); err != nil {
 			if apierrors.IsNotFound(err) {
 				klog.Warningf("Not found NamespaceScope CR %s, ignore update it.", nsScopeKey.String())
-				return nil, nil
+				continue
 			}
 			return nil, err
 		}
