@@ -437,6 +437,7 @@ func (r *Reconciler) generateClusterObjects(o *operatorv1alpha1.Operator, regist
 			CatalogSource:          o.SourceName,
 			CatalogSourceNamespace: o.SourceNamespace,
 			InstallPlanApproval:    o.InstallPlanApproval,
+			StartingCSV:            o.StartingCSV,
 		},
 	}
 	sub.SetGroupVersionKind(schema.GroupVersionKind{Group: olmv1alpha1.SchemeGroupVersion.Group, Kind: "Subscription", Version: olmv1alpha1.SchemeGroupVersion.Version})

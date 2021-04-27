@@ -61,7 +61,13 @@ type Operator struct {
 	Description string `json:"description,omitempty"`
 	// Approval mode for emitted InstallPlans.
 	// +optional
+	// Valid values are:
+	// - "Automatic" (default): operator will be installed automatically;
+	// - "Manual": operator installation will be pending until users approve it;
 	InstallPlanApproval olmv1alpha1.Approval `json:"installPlanApproval,omitempty"`
+	// StartingCSV of the installation.
+	// +optional
+	StartingCSV string `json:"startingCSV,omitempty"`
 }
 
 // +kubebuilder:validation:Enum=public;private
