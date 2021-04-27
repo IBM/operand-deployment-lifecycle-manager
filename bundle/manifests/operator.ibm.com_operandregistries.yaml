@@ -62,7 +62,7 @@ spec:
                       description: 'The install mode of an operator, either namespace or cluster. Valid values are: - "namespace" (default): operator is deployed in namespace of OperandRegistry; - "cluster": operator is deployed in "openshift-operators" namespace;'
                       type: string
                     installPlanApproval:
-                      description: Approval mode for emitted InstallPlans.
+                      description: 'Approval mode for emitted InstallPlans. Valid values are: - "Automatic" (default): operator will be installed automatically; - "Manual": operator installation will be pending until users approve it;'
                       type: string
                     name:
                       description: A unique name for the operator whose operand may be deployed.
@@ -84,6 +84,9 @@ spec:
                       type: string
                     sourceNamespace:
                       description: The Kubernetes namespace where the CatalogSource used is located.
+                      type: string
+                    startingCSV:
+                      description: StartingCSV of the installation.
                       type: string
                     targetNamespaces:
                       description: The target namespace of the OperatorGroups.
