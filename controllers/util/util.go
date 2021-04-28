@@ -52,8 +52,8 @@ func GetInstallScope() string {
 	return ns
 }
 
-func GetOdlmScope() bool {
-	isEnable, found := os.LookupEnv("ODLM_SCOPE")
+func GetIsolatedMode() bool {
+	isEnable, found := os.LookupEnv("ISOLATED_MODE")
 	if !found || isEnable != "true" {
 		return false
 	}
