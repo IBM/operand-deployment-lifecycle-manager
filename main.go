@@ -94,9 +94,9 @@ func main() {
 
 	scope := util.GetInstallScope()
 	watchNamespace := util.GetWatchNamespace()
-	odlmScopeEnable := util.GetOdlmScope()
+	isolatedModeEnable := util.GetIsolatedMode()
 	if scope == "namespaced" {
-		if !odlmScopeEnable {
+		if !isolatedModeEnable {
 			options.NewCache = k8sutil.NewODLMCache(strings.Split(watchNamespace, ","), gvkLabelMap)
 		} else {
 			// SaaS or on-prem multi instances case
@@ -137,7 +137,7 @@ func main() {
 		os.Exit(1)
 	}
 	// Single instance case, disable it on SaaS or on-prem multi instances case
-	if !odlmScopeEnable {
+	if !isolatedModeEnable {
 		if err = (&namespacescope.Reconciler{
 			ODLMOperator: deploy.NewODLMOperator(mgr, "NamespaceScope"),
 		}).SetupWithManager(mgr); err != nil {
