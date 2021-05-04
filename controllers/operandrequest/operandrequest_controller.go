@@ -123,9 +123,10 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reconcileErr er
 			return ctrl.Result{}, err
 		}
 
+		originalReq := requestInstance.DeepCopy()
 		// Update finalizer to allow delete CR
 		if requestInstance.RemoveFinalizer() {
-			err = r.Update(ctx, requestInstance)
+			err = r.Patch(ctx, requestInstance, client.MergeFrom(originalReq))
 			if err != nil {
 				klog.Errorf("failed to remove finalizer for OperandRequest %s: %v", req.NamespacedName.String(), err)
 				return ctrl.Result{}, err
@@ -191,10 +192,11 @@ func (r *Reconciler) checkUpdateAuth(ctx context.Context, namespace, group, reso
 
 func (r *Reconciler) addFinalizer(ctx context.Context, cr *operatorv1alpha1.OperandRequest) (bool, error) {
 	if cr.GetDeletionTimestamp() == nil {
+		originalReq := cr.DeepCopy()
 		added := cr.EnsureFinalizer()
 		if added {
-			// Update CR
-			err := r.Update(ctx, cr)
+			// Add finalizer to OperandRequest instance
+			err := r.Patch(ctx, cr, client.MergeFrom(originalReq))
 			if err != nil {
 				return false, errors.Wrapf(err, "failed to update the OperandRequest %s/%s", cr.Namespace, cr.Name)
 			}
