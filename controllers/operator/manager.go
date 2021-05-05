@@ -24,7 +24,6 @@ import (
 	operatorsv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
@@ -233,22 +232,27 @@ func (m *ODLMOperator) GetSubscription(ctx context.Context, name, namespace, pac
 
 	subList := &olmv1alpha1.SubscriptionList{}
 	if err := m.Client.List(ctx, subList, &client.ListOptions{
-		LabelSelector: labels.SelectorFromSet(map[string]string{
-			"operators.coreos.com/" + packageName + "." + namespace: "",
-		}),
+		Namespace: namespace,
 	}); err != nil {
 		return nil, err
 	}
 
-	if len(subList.Items) == 0 {
+	var subCandidates []olmv1alpha1.Subscription
+	for _, sub := range subList.Items {
+		if sub.Spec.Package == packageName {
+			subCandidates = append(subCandidates, sub)
+		}
+	}
+
+	if len(subCandidates) == 0 {
 		return nil, err
 	}
 
-	if len(subList.Items) > 1 {
+	if len(subCandidates) > 1 {
 		return nil, fmt.Errorf("there are multiple subscriptions using package %v", packageName)
 	}
 
-	return &subList.Items[0], nil
+	return &subCandidates[0], nil
 }
 
 // GetClusterServiceVersion gets the ClusterServiceVersion from the subscription
