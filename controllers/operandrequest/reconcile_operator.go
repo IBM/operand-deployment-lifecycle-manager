@@ -23,6 +23,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 
 	gset "github.com/deckarep/golang-set"
 	olmv1 "github.com/operator-framework/api/pkg/operators/v1"
@@ -33,6 +34,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -54,18 +56,22 @@ func (r *Reconciler) reconcileOperator(ctx context.Context, requestInstance *ope
 		registryKey := requestInstance.GetRegistryKey(req)
 		registryInstance, err := r.GetOperandRegistry(ctx, registryKey)
 		if err != nil {
-			if apierrors.IsNotFound(err) {
-				r.Recorder.Eventf(requestInstance, corev1.EventTypeWarning, "NotFound", "NotFound OperandRegistry NamespacedName %s", registryKey.String())
-				klog.Errorf("failed to find OperandRegistry %s : %v", registryKey.String(), err)
-				requestInstance.SetNotFoundOperatorFromRegistryCondition(registryKey.String(), operatorv1alpha1.ResourceTypeOperandRegistry, corev1.ConditionTrue)
-				mergePatch, _ := json.Marshal(map[string]interface{}{
-					"metadata": map[string]interface{}{
-						"annotations": map[string]interface{}{
-							constant.FindOperandRegistry: "true",
-						},
+			r.Recorder.Eventf(requestInstance, corev1.EventTypeWarning, "NotFound", "NotFound OperandRegistry NamespacedName %s", registryKey.String())
+			klog.Errorf("failed to find OperandRegistry %s : %v", registryKey.String(), err)
+			requestInstance.SetNotFoundOperatorFromRegistryCondition(registryKey.String(), operatorv1alpha1.ResourceTypeOperandRegistry, corev1.ConditionTrue)
+			t := time.Now()
+			formatted := fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02d",
+				t.Year(), t.Month(), t.Day(),
+				t.Hour(), t.Minute(), t.Second())
+			mergePatch, _ := json.Marshal(map[string]interface{}{
+				"metadata": map[string]interface{}{
+					"annotations": map[string]interface{}{
+						constant.FindOperandRegistry: formatted,
 					},
-				})
-				_ = r.Patch(ctx, requestInstance, client.RawPatch(types.MergePatchType, mergePatch))
+				},
+			})
+			if patchErr := r.Patch(ctx, requestInstance, client.RawPatch(types.MergePatchType, mergePatch)); patchErr != nil {
+				return utilerrors.NewAggregate([]error{err, patchErr})
 			}
 			return err
 		}
