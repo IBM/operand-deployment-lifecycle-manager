@@ -84,7 +84,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reconcileErr er
 		}
 	}()
 
-	// Add namespace member into NamespaceScope and check if has the update permission
+	// Check if operator has the update permission to update OperandRequest
 	hasPermission := r.checkPermission(ctx, req)
 	if !hasPermission {
 		klog.Warningf("No permission to update OperandRequest")
