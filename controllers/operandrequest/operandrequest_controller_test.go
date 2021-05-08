@@ -307,7 +307,9 @@ var _ = Describe("OperandRegistry controller", func() {
 			requestInstance1 := &operatorv1alpha1.OperandRequest{}
 			Expect(k8sClient.Get(ctx, requestKey1, requestInstance1)).Should(Succeed())
 			requestInstance1.Spec.Requests[0].Operands = requestInstance1.Spec.Requests[0].Operands[1:]
-			Expect(k8sClient.Update(ctx, requestInstance1)).Should(Succeed())
+			Eventually(func() error {
+				return k8sClient.Update(ctx, requestInstance1)
+			}, testutil.Timeout, testutil.Interval).Should(Succeed())
 			Eventually(func() error {
 				etcdCluster := &v1beta2.EtcdCluster{}
 				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "example", Namespace: operatorNamespaceName}, etcdCluster)
@@ -318,7 +320,9 @@ var _ = Describe("OperandRegistry controller", func() {
 			requestInstance2 := &operatorv1alpha1.OperandRequest{}
 			Expect(k8sClient.Get(ctx, requestKey2, requestInstance2)).Should(Succeed())
 			requestInstance2.Spec.Requests[0].Operands = requestInstance2.Spec.Requests[0].Operands[1:]
-			Expect(k8sClient.Update(ctx, requestInstance2)).Should(Succeed())
+			Eventually(func() error {
+				return k8sClient.Update(ctx, requestInstance2)
+			}, testutil.Timeout, testutil.Interval).Should(Succeed())
 			Eventually(func() bool {
 				etcdCluster := &v1beta2.EtcdCluster{}
 				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "example", Namespace: operatorNamespaceName}, etcdCluster)

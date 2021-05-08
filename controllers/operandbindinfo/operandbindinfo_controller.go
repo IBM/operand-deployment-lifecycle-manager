@@ -89,7 +89,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reconcileErr er
 
 	// If the finalizer is added, EnsureFinalizer() will return true. If the finalizer is already there, EnsureFinalizer() will return false
 	if bindInfoInstance.EnsureFinalizer() {
-		err := r.Update(ctx, bindInfoInstance)
+		err := r.Patch(ctx, bindInfoInstance, client.MergeFrom(originalInstance))
 		if err != nil {
 			klog.Errorf("failed to update the OperandBindinfo %s: %v", req.NamespacedName.String(), err)
 			return ctrl.Result{}, err
@@ -394,9 +394,10 @@ func (r *Reconciler) cleanupCopies(ctx context.Context, bindInfoInstance *operat
 		}
 	}
 	// Update finalizer to allow delete CR
+	originalBind := bindInfoInstance.DeepCopy()
 	removed := bindInfoInstance.RemoveFinalizer()
 	if removed {
-		err := r.Update(ctx, bindInfoInstance)
+		err := r.Patch(ctx, bindInfoInstance, client.MergeFrom(originalBind))
 		if err != nil {
 			return err
 		}
