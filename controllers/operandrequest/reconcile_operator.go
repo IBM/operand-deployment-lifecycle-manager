@@ -119,6 +119,7 @@ func (r *Reconciler) reconcileOperator(ctx context.Context, requestInstance *ope
 						}
 						sub.Annotations[registryKey.Namespace+"."+registryKey.Name+"/registry"] = "true"
 						sub.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"/request"] = "true"
+						sub.Annotations[registryKey.Namespace+"."+registryKey.Name+"/config"] = "true"
 						if err = r.updateSubscription(ctx, requestInstance, sub); err != nil {
 							requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorFailed, "")
 							return err
@@ -241,10 +242,11 @@ func (r *Reconciler) deleteSubscription(ctx context.Context, operandName string,
 		return nil
 	}
 
-	// check and remove registry in annotation of subscription
+	// check and remove registry and config in annotation of subscription
 	regName := registryInstance.ObjectMeta.Name
 	regNs := registryInstance.ObjectMeta.Namespace
 	delete(sub.Annotations, regNs+"."+regName+"/registry")
+	delete(sub.Annotations, regNs+"."+regName+"/config")
 	reg, _ := regexp.Compile(`^(.*)\.(.*)\/registry`)
 	annoSlice := make([]string, 0)
 	for anno := range sub.Annotations {
@@ -406,6 +408,7 @@ func (r *Reconciler) generateClusterObjects(o *operatorv1alpha1.Operator, regist
 	annotations := map[string]string{
 		registryKey.Namespace + "." + registryKey.Name + "/registry": "true",
 		requestKey.Namespace + "." + requestKey.Name + "/request":    "true",
+		requestKey.Namespace + "." + requestKey.Name + "/config":     "true",
 	}
 
 	klog.V(3).Info("Generating Namespace: ", o.Namespace)
@@ -490,6 +493,7 @@ func compareSub(sub *olmv1alpha1.Subscription, template *operatorv1alpha1.Operat
 	anno := sub.Annotations
 	_, regExists := anno[registryKey.Namespace+"."+registryKey.Name+"/registry"]
 	_, reqExists := anno[requestKey.Namespace+"."+requestKey.Name+"/request"]
+	_, conExists := anno[registryKey.Namespace+"."+registryKey.Name+"/config"]
 	spec := sub.Spec
-	return !regExists || !reqExists || spec.CatalogSource != template.SourceName || spec.Channel != template.Channel || spec.CatalogSourceNamespace != template.SourceNamespace || spec.Package != template.PackageName || spec.InstallPlanApproval != template.InstallPlanApproval
+	return !conExists || !regExists || !reqExists || spec.CatalogSource != template.SourceName || spec.Channel != template.Channel || spec.CatalogSourceNamespace != template.SourceNamespace || spec.Package != template.PackageName || spec.InstallPlanApproval != template.InstallPlanApproval
 }

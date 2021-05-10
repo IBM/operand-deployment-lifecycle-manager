@@ -23,6 +23,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -64,6 +65,9 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 			merr.Add(errors.Wrapf(err, "failed to get the OperandRegistry %s", registryKey.String()))
 			continue
 		}
+		regName := registryInstance.ObjectMeta.Name
+		regNs := registryInstance.ObjectMeta.Namespace
+
 		for i, operand := range req.Operands {
 
 			opdRegistry := registryInstance.GetOperator(operand.Name)
@@ -93,6 +97,20 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 			if _, ok := sub.Labels[constant.OpreqLabel]; !ok {
 				// Subscription existing and not managed by OperandRequest controller
 				klog.Warningf("Subscription %s in the namespace %s isn't created by ODLM", sub.Name, sub.Namespace)
+			}
+
+			// check config annotation in subscription, identify the first ODLM has the priority to reconcile
+			var firstMatch string
+			reg, _ := regexp.Compile(`^(.*)\.(.*)\/config`)
+			for anno := range sub.Annotations {
+				if reg.MatchString(anno) {
+					firstMatch = anno
+					break
+				}
+			}
+			if firstMatch != "" && firstMatch != regNs+"."+regName+"/config" {
+				klog.Infof("Subscription %s in the namespace %s is currently managed by %s", sub.Name, sub.Namespace, firstMatch)
+				continue
 			}
 
 			csv, err := r.GetClusterServiceVersion(ctx, sub)
