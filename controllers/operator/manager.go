@@ -19,6 +19,7 @@ package operator
 import (
 	"context"
 	"fmt"
+	"sort"
 
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	operatorsv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
@@ -73,7 +74,7 @@ func (m *ODLMOperator) GetOperandRegistry(ctx context.Context, key types.Namespa
 			reg.Spec.Operators[i].InstallPlanApproval = olmv1alpha1.ApprovalAutomatic
 		}
 		if o.SourceName == "" || o.SourceNamespace == "" {
-			catalogSourceName, catalogSourceNs, err := m.GetCatalogSourceFromPackage(ctx, o.PackageName, o.Namespace)
+			catalogSourceName, catalogSourceNs, err := m.GetCatalogSourceFromPackage(ctx, o.PackageName, o.Namespace, o.Channel, key.Namespace)
 			if err != nil {
 				return reg, err
 			}
@@ -88,12 +89,81 @@ func (m *ODLMOperator) GetOperandRegistry(ctx context.Context, key types.Namespa
 	return reg, nil
 }
 
-func (m *ODLMOperator) GetCatalogSourceFromPackage(ctx context.Context, packageName, namespace string) (catalogSourceName string, catalogSourceNs string, err error) {
-	packageManifests := &operatorsv1.PackageManifest{}
-	if err := m.Reader.Get(ctx, types.NamespacedName{Namespace: namespace, Name: packageName}, packageManifests); err != nil {
+type CatalogSource struct {
+	Name              string
+	Namespace         string
+	OpNamespace       string
+	RegistryNamespace string
+}
+
+type sortableCatalogSource []CatalogSource
+
+func (s sortableCatalogSource) Len() int      { return len(s) }
+func (s sortableCatalogSource) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+func (s sortableCatalogSource) Less(i, j int) bool {
+	// Check if the catalogsource is in the same namespace as OperandRegistry
+	inRegistryNsI, inRegistryNsJ := s[i].Namespace == s[i].RegistryNamespace, s[j].Namespace == s[j].RegistryNamespace
+	if inRegistryNsI && !inRegistryNsJ {
+		return true
+	}
+	if !inRegistryNsI && inRegistryNsJ {
+		return false
+	}
+	// Check if the catalogsource is in the same namespace as operator
+	inOpNsI, inOpNsJ := s[i].Namespace == s[i].OpNamespace, s[j].Namespace == s[j].OpNamespace
+	if inOpNsI && !inOpNsJ {
+		return true
+	}
+	if !inOpNsI && inOpNsJ {
+		return false
+	}
+	// If their namespaces are the same, then compare the name of the catalogsource
+	if s[i].Namespace == s[j].Namespace {
+		return s[i].Name < s[j].Name
+	}
+	return s[i].Namespace < s[j].Namespace
+}
+
+func (m *ODLMOperator) GetCatalogSourceFromPackage(ctx context.Context, packageName, namespace, channel, registryNs string) (catalogSourceName string, catalogSourceNs string, err error) {
+	packageManifestList := &operatorsv1.PackageManifestList{}
+	opts := []client.ListOption{
+		client.MatchingFields{"metadata.name": packageName},
+		client.InNamespace(namespace),
+	}
+	if err := m.Reader.List(ctx, packageManifestList, opts...); err != nil {
 		return "", "", err
 	}
-	return packageManifests.Status.CatalogSource, packageManifests.Status.CatalogSourceNamespace, nil
+	number := len(packageManifestList.Items)
+
+	switch number {
+	case 0:
+		return "", "", fmt.Errorf("not found PackageManifest %s in the namespace %s", packageName, namespace)
+	case 1:
+		return packageManifestList.Items[0].Status.CatalogSource, packageManifestList.Items[0].Status.CatalogSourceNamespace, nil
+	default:
+		var catalogSourceCandidate []CatalogSource
+		for _, pm := range packageManifestList.Items {
+			if !channelCheck(channel, pm.Status.Channels) {
+				continue
+			}
+			catalogSourceCandidate = append(catalogSourceCandidate, CatalogSource{Name: pm.Status.CatalogSource, Namespace: pm.Status.CatalogSourceNamespace, OpNamespace: namespace, RegistryNamespace: registryNs})
+		}
+		if len(catalogSourceCandidate) == 0 {
+			return "", "", fmt.Errorf("not found PackageManifest %s in the namespace %s has channel %s", packageName, namespace, channel)
+		}
+		// Sort CatalogSources by priority
+		sort.Sort(sortableCatalogSource(catalogSourceCandidate))
+		return catalogSourceCandidate[0].Name, catalogSourceCandidate[0].Namespace, nil
+	}
+}
+
+func channelCheck(channelName string, channelList []operatorsv1.PackageChannel) (found bool) {
+	for _, channel := range channelList {
+		if channelName == channel.Name {
+			return true
+		}
+	}
+	return false
 }
 
 // ListOperandRegistry lists the OperandRegistry instance with default value
