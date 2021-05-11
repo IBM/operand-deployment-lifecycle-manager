@@ -40,14 +40,14 @@ Operand Deployment Lifecycle Manager has four CRDs:
 
 ## Supported platforms
 
-You can install the Operand Deployment Lifecycle Manager on Linux® x86_64 with Red Hat® OpenShift® Container Platform version 4.2 or 4.3.
+You can install the Operand Deployment Lifecycle Manager on Linux® x86_64 with Red Hat® OpenShift® Container Platform version 4.5+.
 
 ## Prerequisites
 
 - [operator-sdk][operator_sdk] version v0.19.2.
 - [go][go_tool] version 1.13.4+
 - [oc][oc_tool] version v3.11+ or [kubectl][kubectl_tool] v1.11.3+
-- Access to an Openshift v4.2.0+ cluster
+- Access to an Openshift v4.5.0+ cluster
 
 ## Documentation
 
