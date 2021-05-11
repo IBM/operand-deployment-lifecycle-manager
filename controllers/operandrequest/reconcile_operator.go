@@ -408,7 +408,7 @@ func (r *Reconciler) generateClusterObjects(o *operatorv1alpha1.Operator, regist
 	annotations := map[string]string{
 		registryKey.Namespace + "." + registryKey.Name + "/registry": "true",
 		requestKey.Namespace + "." + requestKey.Name + "/request":    "true",
-		requestKey.Namespace + "." + requestKey.Name + "/config":     "true",
+		registryKey.Namespace + "." + registryKey.Name + "/config":   "true",
 	}
 
 	klog.V(3).Info("Generating Namespace: ", o.Namespace)
