@@ -210,6 +210,12 @@ spec:
         - apiGroups:
           - operator.ibm.com
           resources:
+          - operandrequests
+          verbs:
+          - patch
+        - apiGroups:
+          - operator.ibm.com
+          resources:
           - certmanagers
           - ibmlicensings
           - meteringreportservers

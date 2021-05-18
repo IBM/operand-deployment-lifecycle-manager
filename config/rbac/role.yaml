@@ -17,6 +17,12 @@ rules:
     - operandbindinfos
     - operandconfigs
     - operandregistries
+- verbs:
+    - patch
+  apiGroups:
+    - operator.ibm.com
+  resources:
+    - operandrequests
 - apiGroups:
   - operator.ibm.com
   resources:
