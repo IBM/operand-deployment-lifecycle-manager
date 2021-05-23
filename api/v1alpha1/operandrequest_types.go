@@ -245,6 +245,12 @@ func (r *OperandRequest) SetNotFoundOperatorFromRegistryCondition(name string, r
 	r.setCondition(*c)
 }
 
+// SetNoSuitableRegistryCondition creates a NotFoundCondition when an operator is not found.
+func (r *OperandRequest) SetNoSuitableRegistryCondition(name, message string, rt ResourceType, cs corev1.ConditionStatus) {
+	c := newCondition(ConditionNotFound, cs, string(rt)+" is not suitable", message)
+	r.setCondition(*c)
+}
+
 // SetOutofScopeCondition creates a NotFoundCondition.
 func (r *OperandRequest) SetOutofScopeCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
 	c := newCondition(ConditionOutofScope, cs, string(rt)+" "+name+" is a private operator", string(rt)+" "+name+" is a private operator. It can only be request within the OperandRegistry namespace")

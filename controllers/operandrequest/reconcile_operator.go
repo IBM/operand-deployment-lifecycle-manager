@@ -56,9 +56,13 @@ func (r *Reconciler) reconcileOperator(ctx context.Context, requestInstance *ope
 		registryKey := requestInstance.GetRegistryKey(req)
 		registryInstance, err := r.GetOperandRegistry(ctx, registryKey)
 		if err != nil {
-			r.Recorder.Eventf(requestInstance, corev1.EventTypeWarning, "NotFound", "NotFound OperandRegistry NamespacedName %s", registryKey.String())
-			klog.Errorf("failed to find OperandRegistry %s : %v", registryKey.String(), err)
-			requestInstance.SetNotFoundOperatorFromRegistryCondition(registryKey.String(), operatorv1alpha1.ResourceTypeOperandRegistry, corev1.ConditionTrue)
+			if apierrors.IsNotFound(err) {
+				r.Recorder.Eventf(requestInstance, corev1.EventTypeWarning, "NotFound", "NotFound OperandRegistry NamespacedName %s", registryKey.String())
+				requestInstance.SetNotFoundOperatorFromRegistryCondition(registryKey.String(), operatorv1alpha1.ResourceTypeOperandRegistry, corev1.ConditionTrue)
+			} else {
+				requestInstance.SetNoSuitableRegistryCondition(registryKey.String(), err.Error(), operatorv1alpha1.ResourceTypeOperandRegistry, corev1.ConditionTrue)
+			}
+			klog.Errorf("Failed to get suitable OperandRegistry %s: %v", registryKey.String(), err)
 			t := time.Now()
 			formatted := fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02d",
 				t.Year(), t.Month(), t.Day(),
@@ -190,6 +194,10 @@ func (r *Reconciler) createSubscription(ctx context.Context, cr *operatorv1alpha
 
 	// Create subscription
 	klog.V(2).Info("Creating the Subscription: " + opt.Name)
+	if co.subscription.Spec.CatalogSource == "" || co.subscription.Spec.CatalogSourceNamespace == "" {
+		return fmt.Errorf("failed to find catalogsource for subscription %s/%s", co.subscription.Namespace, co.subscription.Name)
+	}
+
 	sub := co.subscription
 	cr.SetCreatingCondition(sub.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionTrue)
 

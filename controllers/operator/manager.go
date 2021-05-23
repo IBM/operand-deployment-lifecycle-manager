@@ -80,7 +80,7 @@ func (m *ODLMOperator) GetOperandRegistry(ctx context.Context, key types.Namespa
 			}
 
 			if catalogSourceName == "" || catalogSourceNs == "" {
-				return reg, fmt.Errorf("no catalogsource found for %v", o.PackageName)
+				klog.Errorf("no catalogsource found for %v", o.PackageName)
 			}
 
 			reg.Spec.Operators[i].SourceName, reg.Spec.Operators[i].SourceNamespace = catalogSourceName, catalogSourceNs
@@ -137,7 +137,8 @@ func (m *ODLMOperator) GetCatalogSourceFromPackage(ctx context.Context, packageN
 
 	switch number {
 	case 0:
-		return "", "", fmt.Errorf("not found PackageManifest %s in the namespace %s", packageName, namespace)
+		klog.Errorf("Not found PackageManifest %s in the namespace %s has channel %s", packageName, namespace, channel)
+		return "", "", nil
 	case 1:
 		return packageManifestList.Items[0].Status.CatalogSource, packageManifestList.Items[0].Status.CatalogSourceNamespace, nil
 	default:
@@ -149,7 +150,8 @@ func (m *ODLMOperator) GetCatalogSourceFromPackage(ctx context.Context, packageN
 			catalogSourceCandidate = append(catalogSourceCandidate, CatalogSource{Name: pm.Status.CatalogSource, Namespace: pm.Status.CatalogSourceNamespace, OpNamespace: namespace, RegistryNamespace: registryNs})
 		}
 		if len(catalogSourceCandidate) == 0 {
-			return "", "", fmt.Errorf("not found PackageManifest %s in the namespace %s has channel %s", packageName, namespace, channel)
+			klog.Errorf("Not found PackageManifest %s in the namespace %s has channel %s", packageName, namespace, channel)
+			return "", "", nil
 		}
 		// Sort CatalogSources by priority
 		sort.Sort(sortableCatalogSource(catalogSourceCandidate))
