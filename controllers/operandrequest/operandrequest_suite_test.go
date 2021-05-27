@@ -103,6 +103,7 @@ var _ = BeforeSuite(func(done Done) {
 	// Setup Manager with OperandRequest Controller
 	err = (&Reconciler{
 		ODLMOperator: deploy.NewODLMOperator(k8sManager, "OperandRequest"),
+		StepSize:     3,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 

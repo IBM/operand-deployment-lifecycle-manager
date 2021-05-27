@@ -22,6 +22,7 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	olmv1 "github.com/operator-framework/api/pkg/operators/v1"
@@ -48,6 +49,8 @@ import (
 // Reconciler reconciles a OperandRequest object
 type Reconciler struct {
 	*deploy.ODLMOperator
+	StepSize int
+	Mutex    sync.Mutex
 }
 type clusterObjects struct {
 	namespace     *corev1.Namespace
@@ -100,7 +103,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reconcileErr er
 			err = r.Patch(ctx, requestInstance, client.MergeFrom(originalReq))
 			if err != nil {
 				klog.Errorf("failed to remove finalizer for OperandRequest %s: %v", req.NamespacedName.String(), err)
-				return ctrl.Result{}, err
+				return ctrl.Result{}, client.IgnoreNotFound(err)
 			}
 		}
 		return ctrl.Result{}, nil

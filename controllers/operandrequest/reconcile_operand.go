@@ -55,11 +55,6 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 	}
 	for _, req := range requestInstance.Spec.Requests {
 		registryKey := requestInstance.GetRegistryKey(req)
-		configInstance, err := r.GetOperandConfig(ctx, registryKey)
-		if err != nil {
-			merr.Add(errors.Wrapf(err, "failed to get the OperandConfig %s", registryKey.String()))
-			continue
-		}
 		registryInstance, err := r.GetOperandRegistry(ctx, registryKey)
 		if err != nil {
 			merr.Add(errors.Wrapf(err, "failed to get the OperandRegistry %s", registryKey.String()))
@@ -108,8 +103,9 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 					break
 				}
 			}
+
 			if firstMatch != "" && firstMatch != regNs+"."+regName+"/config" {
-				klog.Infof("Subscription %s in the namespace %s is currently managed by %s", sub.Name, sub.Namespace, firstMatch)
+				klog.V(2).Infof("Subscription %s in the namespace %s is currently managed by %s", sub.Name, sub.Namespace, firstMatch)
 				continue
 			}
 
@@ -118,32 +114,38 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 			// If can't get CSV, requeue the request
 			if err != nil {
 				merr.Add(err)
-				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "")
+				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
 				continue
 			}
 
 			if csv == nil {
 				klog.Warningf("ClusterServiceVersion for the Subscription %s in the namespace %s is not ready yet, retry", operatorName, namespace)
-				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorInstalling, "")
+				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorInstalling, "", &r.Mutex)
 				continue
 			}
 
 			if csv.Status.Phase == olmv1alpha1.CSVPhaseFailed {
 				merr.Add(fmt.Errorf("the ClusterServiceVersion of Subscription %s/%s is Failed", namespace, operatorName))
-				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "")
+				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
 				continue
 			}
 			if csv.Status.Phase != olmv1alpha1.CSVPhaseSucceeded {
 				klog.Errorf("the ClusterServiceVersion of Subscription %s/%s is not Ready", namespace, operatorName)
-				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorInstalling, "")
+				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorInstalling, "", &r.Mutex)
 				continue
 			}
 
 			klog.V(3).Info("Generating customresource base on ClusterServiceVersion: ", csv.GetName())
-			requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorRunning, "")
+			requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorRunning, "", &r.Mutex)
+			klog.Info(requestInstance.Status.Members)
 
 			// Merge and Generate CR
 			if operand.Kind == "" {
+				configInstance, err := r.GetOperandConfig(ctx, registryKey)
+				if err != nil {
+					merr.Add(errors.Wrapf(err, "failed to get the OperandConfig %s", registryKey.String()))
+					continue
+				}
 				// Check the requested Service Config if exist in specific OperandConfig
 				opdConfig := configInstance.GetService(operand.Name)
 				if opdConfig == nil {
@@ -151,15 +153,19 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 					continue
 				}
 				err = r.reconcileCRwithConfig(ctx, opdConfig, opdRegistry.Namespace, csv)
+				if err != nil {
+					merr.Add(err)
+					requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceFailed, &r.Mutex)
+				}
 			} else {
 				err = r.reconcileCRwithRequest(ctx, requestInstance, operand, types.NamespacedName{Name: requestInstance.Name, Namespace: requestInstance.Namespace}, i)
+				if err != nil {
+					merr.Add(err)
+					requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceFailed, &r.Mutex)
+				}
 			}
-
-			if err != nil {
-				merr.Add(err)
-				requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceFailed)
-			}
-			requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceRunning)
+			requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceRunning, &r.Mutex)
+			klog.Info(requestInstance.Status.Members)
 		}
 	}
 	if len(merr.Errors) != 0 {
@@ -281,7 +287,7 @@ func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance
 		if err := r.createCustomResource(ctx, crFromRequest, requestKey.Namespace, operand.Kind, operand.Spec.Raw); err != nil {
 			merr.Add(err)
 		}
-		requestInstance.SetMemberCRStatus(operand.Name, name, operand.Kind, operand.APIVersion)
+		requestInstance.SetMemberCRStatus(operand.Name, name, operand.Kind, operand.APIVersion, &r.Mutex)
 	} else {
 		if checkLabel(crFromRequest, map[string]string{constant.OpreqLabel: "true"}) {
 			// Update or Delete Custom resource
@@ -316,7 +322,6 @@ func (r *Reconciler) deleteAllCustomResource(ctx context.Context, csv *olmv1alph
 
 	merr := &util.MultiErr{}
 	var (
-		mu sync.Mutex
 		wg sync.WaitGroup
 	)
 	for index, opdMember := range customeResourceMap {
@@ -339,14 +344,12 @@ func (r *Reconciler) deleteAllCustomResource(ctx context.Context, csv *olmv1alph
 		go func() {
 			defer wg.Done()
 			if err := r.deleteCustomResource(ctx, crShouldBeDeleted, requestInstance.Namespace); err != nil {
-				mu.Lock()
-				defer mu.Unlock()
+				r.Mutex.Lock()
+				defer r.Mutex.Unlock()
 				merr.Add(err)
 				return
 			}
-			mu.Lock()
-			defer mu.Unlock()
-			requestInstance.RemoveMemberCRStatus(operatorName, opdMember.Name, opdMember.Kind)
+			requestInstance.RemoveMemberCRStatus(operatorName, opdMember.Name, opdMember.Kind, &r.Mutex)
 		}()
 	}
 	wg.Wait()
@@ -403,8 +406,8 @@ func (r *Reconciler) deleteAllCustomResource(ctx context.Context, csv *olmv1alph
 					go func() {
 						defer wg.Done()
 						if err := r.deleteCustomResource(ctx, crTemplate, namespace); err != nil {
-							mu.Lock()
-							defer mu.Unlock()
+							r.Mutex.Lock()
+							defer r.Mutex.Unlock()
 							merr.Add(err)
 						}
 					}()
@@ -667,7 +670,6 @@ func (r *Reconciler) checkCustomResource(ctx context.Context, requestInstance *o
 	}
 
 	var (
-		mu sync.Mutex
 		wg sync.WaitGroup
 	)
 
@@ -689,15 +691,14 @@ func (r *Reconciler) checkCustomResource(ctx context.Context, requestInstance *o
 		)
 		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			if err := r.deleteCustomResource(ctx, crShouldBeDeleted, requestInstance.Namespace); err != nil {
-				mu.Lock()
-				defer mu.Unlock()
+				r.Mutex.Lock()
+				defer r.Mutex.Unlock()
 				merr.Add(err)
 				return
 			}
-			mu.Lock()
-			defer mu.Unlock()
-			requestInstance.RemoveMemberCRStatus(operatorName, opdMember.Name, opdMember.Kind)
+			requestInstance.RemoveMemberCRStatus(operatorName, opdMember.Name, opdMember.Kind, &r.Mutex)
 		}()
 	}
 	wg.Wait()
