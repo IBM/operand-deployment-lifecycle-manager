@@ -1,4 +1,4 @@
 bases:
-- ../crd
+- crd
 - rbac
 - manager

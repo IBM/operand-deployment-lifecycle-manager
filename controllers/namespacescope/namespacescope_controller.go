@@ -209,7 +209,7 @@ func (r *Reconciler) checkNamespaceScopeAPI() (bool, error) {
 		klog.Error(err)
 		return false, err
 	} else if !exist {
-		klog.Warning("Not found NamespaceScope API, ignore update it.")
+		klog.V(2).Info("Not found NamespaceScope API, ignore update it.")
 		return false, nil
 	}
 	return true, nil

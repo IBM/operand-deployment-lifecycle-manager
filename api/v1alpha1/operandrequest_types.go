@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	"strings"
+	"sync"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -222,49 +223,63 @@ type OperandRequestList struct {
 }
 
 // SetCreatingCondition creates a new condition status.
-func (r *OperandRequest) SetCreatingCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
+func (r *OperandRequest) SetCreatingCondition(name string, rt ResourceType, cs corev1.ConditionStatus, mu sync.Locker) {
+	mu.Lock()
+	defer mu.Unlock()
 	c := newCondition(ConditionCreating, cs, "Creating "+string(rt), "Creating "+string(rt)+" "+name)
 	r.setCondition(*c)
 }
 
 // SetUpdatingCondition creates an updating condition status.
-func (r *OperandRequest) SetUpdatingCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
+func (r *OperandRequest) SetUpdatingCondition(name string, rt ResourceType, cs corev1.ConditionStatus, mu sync.Locker) {
+	mu.Lock()
+	defer mu.Unlock()
 	c := newCondition(ConditionUpdating, cs, "Updating "+string(rt), "Updating "+string(rt)+" "+name)
 	r.setCondition(*c)
 }
 
 // SetDeletingCondition creates a deleting condition status.
-func (r *OperandRequest) SetDeletingCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
+func (r *OperandRequest) SetDeletingCondition(name string, rt ResourceType, cs corev1.ConditionStatus, mu sync.Locker) {
+	mu.Lock()
+	defer mu.Unlock()
 	c := newCondition(ConditionDeleting, cs, "Deleting "+string(rt), "Deleting "+string(rt)+" "+name)
 	r.setCondition(*c)
 }
 
 // SetNotFoundOperatorFromRegistryCondition creates a NotFoundCondition when an operator is not found.
-func (r *OperandRequest) SetNotFoundOperatorFromRegistryCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
+func (r *OperandRequest) SetNotFoundOperatorFromRegistryCondition(name string, rt ResourceType, cs corev1.ConditionStatus, mu sync.Locker) {
+	mu.Lock()
+	defer mu.Unlock()
 	c := newCondition(ConditionNotFound, cs, "Not found "+string(rt), "Not found "+string(rt)+" "+name+" in the cluster")
 	r.setCondition(*c)
 }
 
 // SetNoSuitableRegistryCondition creates a NotFoundCondition when an operator is not found.
-func (r *OperandRequest) SetNoSuitableRegistryCondition(name, message string, rt ResourceType, cs corev1.ConditionStatus) {
+func (r *OperandRequest) SetNoSuitableRegistryCondition(name, message string, rt ResourceType, cs corev1.ConditionStatus, mu sync.Locker) {
+	mu.Lock()
+	defer mu.Unlock()
 	c := newCondition(ConditionNotFound, cs, string(rt)+" is not suitable", message)
 	r.setCondition(*c)
 }
 
 // SetOutofScopeCondition creates a NotFoundCondition.
-func (r *OperandRequest) SetOutofScopeCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
+func (r *OperandRequest) SetOutofScopeCondition(name string, rt ResourceType, cs corev1.ConditionStatus, mu sync.Locker) {
+	mu.Lock()
+	defer mu.Unlock()
 	c := newCondition(ConditionOutofScope, cs, string(rt)+" "+name+" is a private operator", string(rt)+" "+name+" is a private operator. It can only be request within the OperandRegistry namespace")
 	r.setCondition(*c)
 }
 
 // SetNotFoundOperandRegistryCondition creates a NotFoundCondition when an operandRegistry is not found.
-func (r *OperandRequest) SetNotFoundOperandRegistryCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
+func (r *OperandRequest) SetNotFoundOperandRegistryCondition(name string, rt ResourceType, cs corev1.ConditionStatus, mu sync.Locker) {
+	mu.Lock()
+	defer mu.Unlock()
 	c := newCondition(ConditionNotFound, cs, "Not found "+string(rt), "Not found operandRegistry "+string(rt))
 	r.setCondition(*c)
 }
 
-// SetReadyCondition creates a Condition to claim Ready.
-func (r *OperandRequest) SetReadyCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
+// setReadyCondition creates a Condition to claim Ready.
+func (r *OperandRequest) setReadyCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
 	c := &Condition{}
 	if rt == ResourceTypeOperator {
 		c = newCondition(ConditionReady, cs, string(rt)+" is ready", string(rt)+" "+name+" is ready")
@@ -305,7 +320,9 @@ func newCondition(condType ConditionType, status corev1.ConditionStatus, reason,
 }
 
 // SetMemberStatus appends a Member status in the Member status list.
-func (r *OperandRequest) SetMemberStatus(name string, operatorPhase OperatorPhase, operandPhase ServicePhase) {
+func (r *OperandRequest) SetMemberStatus(name string, operatorPhase OperatorPhase, operandPhase ServicePhase, mu sync.Locker) {
+	mu.Lock()
+	defer mu.Unlock()
 	pos, m := getMemberStatus(&r.Status, name)
 	if m != nil {
 		if operatorPhase != "" && operatorPhase != m.Phase.OperatorPhase {
@@ -324,7 +341,9 @@ func (r *OperandRequest) SetMemberStatus(name string, operatorPhase OperatorPhas
 }
 
 // SetMemberCRStatus appends a Member CR in the Member status list.
-func (r *OperandRequest) SetMemberCRStatus(name, CRName, CRKind, CRAPIVersion string) {
+func (r *OperandRequest) SetMemberCRStatus(name, CRName, CRKind, CRAPIVersion string, mu sync.Locker) {
+	mu.Lock()
+	defer mu.Unlock()
 	pos, m := getMemberStatus(&r.Status, name)
 	if m != nil {
 		for _, OperandCR := range r.Status.Members[pos].OperandCRList {
@@ -337,7 +356,9 @@ func (r *OperandRequest) SetMemberCRStatus(name, CRName, CRKind, CRAPIVersion st
 }
 
 // RemoveMemberCRStatus removes a Member CR in the Member status list.
-func (r *OperandRequest) RemoveMemberCRStatus(name, CRName, CRKind string) {
+func (r *OperandRequest) RemoveMemberCRStatus(name, CRName, CRKind string, mu sync.Locker) {
+	mu.Lock()
+	defer mu.Unlock()
 	pos, m := getMemberStatus(&r.Status, name)
 	if m != nil {
 		for index, OperandCR := range r.Status.Members[pos].OperandCRList {
@@ -345,23 +366,22 @@ func (r *OperandRequest) RemoveMemberCRStatus(name, CRName, CRKind string) {
 				r.Status.Members[pos].OperandCRList = append(r.Status.Members[pos].OperandCRList[:index], r.Status.Members[pos].OperandCRList[index+1:]...)
 			}
 		}
-
 	}
 }
 
 func (r *OperandRequest) setOperatorReadyCondition(operatorPhase OperatorPhase, name string) {
 	if operatorPhase == OperatorRunning {
-		r.SetReadyCondition(name, ResourceTypeOperator, corev1.ConditionTrue)
+		r.setReadyCondition(name, ResourceTypeOperator, corev1.ConditionTrue)
 	} else {
-		r.SetReadyCondition(name, ResourceTypeOperator, corev1.ConditionFalse)
+		r.setReadyCondition(name, ResourceTypeOperator, corev1.ConditionFalse)
 	}
 }
 
 func (r *OperandRequest) setOperandReadyCondition(operandPhase ServicePhase, name string) {
 	if operandPhase == ServiceRunning {
-		r.SetReadyCondition(name, ResourceTypeOperand, corev1.ConditionTrue)
+		r.setReadyCondition(name, ResourceTypeOperand, corev1.ConditionTrue)
 	} else {
-		r.SetReadyCondition(name, ResourceTypeOperand, corev1.ConditionFalse)
+		r.setReadyCondition(name, ResourceTypeOperand, corev1.ConditionFalse)
 	}
 }
 

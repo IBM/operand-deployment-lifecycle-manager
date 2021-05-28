@@ -90,29 +90,22 @@ var _ = Describe("OperandRegistry controller", func() {
 		Expect(k8sClient.Create(ctx, catalogSource)).Should(Succeed())
 		catalogSource.Status = testutil.CatalogSourceStatus()
 		Expect(k8sClient.Status().Update(ctx, catalogSource)).Should(Succeed())
-		By("Creating the OperandRegistry")
-		Expect(k8sClient.Create(ctx, registry1)).Should(Succeed())
-		Expect(k8sClient.Create(ctx, registry2)).Should(Succeed())
-		By("Creating the OperandConfig")
-		Expect(k8sClient.Create(ctx, config1)).Should(Succeed())
-		Expect(k8sClient.Create(ctx, config2)).Should(Succeed())
 	})
 
 	AfterEach(func() {
-
 		By("Deleting the CatalogSource")
 		Expect(k8sClient.Delete(ctx, catalogSource)).Should(Succeed())
-		By("Deleting the OperandConfig")
-		Expect(k8sClient.Delete(ctx, config1)).Should(Succeed())
-		Expect(k8sClient.Delete(ctx, config2)).Should(Succeed())
-		By("Deleting the OperandRegistry")
-		Expect(k8sClient.Delete(ctx, registry1)).Should(Succeed())
-		Expect(k8sClient.Delete(ctx, registry2)).Should(Succeed())
 	})
 
 	Context("Initializing OperandRequest Status", func() {
 
 		It("Should create the CR via OperandRequest", func() {
+			By("Creating the OperandRegistry")
+			Expect(k8sClient.Create(ctx, registry1)).Should(Succeed())
+			Expect(k8sClient.Create(ctx, registry2)).Should(Succeed())
+			By("Creating the OperandConfig")
+			Expect(k8sClient.Create(ctx, config1)).Should(Succeed())
+			Expect(k8sClient.Create(ctx, config2)).Should(Succeed())
 			By("Creating the OperandRequest")
 			Expect(k8sClient.Create(ctx, requestWithCR)).Should(Succeed())
 			Eventually(func() error {
@@ -228,14 +221,27 @@ var _ = Describe("OperandRegistry controller", func() {
 				err := k8sClient.Get(ctx, types.NamespacedName{Name: "etcd-csv.v0.0.1", Namespace: operatorNamespaceName}, etcdCSV)
 				return err != nil && errors.IsNotFound(err)
 			}, testutil.Timeout, testutil.Interval).Should(BeTrue())
+
+			By("Deleting the OperandConfig")
+			Expect(k8sClient.Delete(ctx, config1)).Should(Succeed())
+			Expect(k8sClient.Delete(ctx, config2)).Should(Succeed())
+			By("Deleting the OperandRegistry")
+			Expect(k8sClient.Delete(ctx, registry1)).Should(Succeed())
+			Expect(k8sClient.Delete(ctx, registry2)).Should(Succeed())
 		})
 
 		It("Should create the CR via OperandConfig", func() {
-
+			By("Creating the OperandRegistry")
+			Expect(k8sClient.Create(ctx, registry1)).Should(Succeed())
+			Expect(k8sClient.Create(ctx, registry2)).Should(Succeed())
+			By("Creating the OperandConfig")
+			Expect(k8sClient.Create(ctx, config1)).Should(Succeed())
+			Expect(k8sClient.Create(ctx, config2)).Should(Succeed())
+			By("Creating the OperandRequest")
 			Expect(k8sClient.Create(ctx, request1)).Should(Succeed())
 			Expect(k8sClient.Create(ctx, request2)).Should(Succeed())
 
-			By("Checking status of the OperandRegquest")
+			By("Checking status of the OperandRequest")
 			Eventually(func() operatorv1alpha1.ClusterPhase {
 				requestInstance1 := &operatorv1alpha1.OperandRequest{}
 				Expect(k8sClient.Get(ctx, requestKey1, requestInstance1)).Should(Succeed())
@@ -354,6 +360,13 @@ var _ = Describe("OperandRegistry controller", func() {
 				err := k8sClient.Get(ctx, types.NamespacedName{Name: "jenkins-csv.v0.0.1", Namespace: operatorNamespaceName}, jenkinsCSV)
 				return err != nil && errors.IsNotFound(err)
 			}, testutil.Timeout, testutil.Interval).Should(BeTrue())
+
+			By("Deleting the OperandConfig")
+			Expect(k8sClient.Delete(ctx, config1)).Should(Succeed())
+			Expect(k8sClient.Delete(ctx, config2)).Should(Succeed())
+			By("Deleting the OperandRegistry")
+			Expect(k8sClient.Delete(ctx, registry1)).Should(Succeed())
+			Expect(k8sClient.Delete(ctx, registry2)).Should(Succeed())
 		})
 	})
 })

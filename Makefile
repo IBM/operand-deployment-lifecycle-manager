@@ -137,7 +137,7 @@ deploy: manifests kustomize ## Deploy controller in the configured Kubernetes cl
 	cd config/manager && $(KUSTOMIZE) edit set image quay.io/opencloudio/odlm=$(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG)
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
-deploy-e2e: manifests kustomize ## Deploy controller in the configured Kubernetes cluster in ~/.kube/config
+deploy-e2e: kustomize ## Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 	cd config/e2e/manager && $(KUSTOMIZE) edit set image quay.io/opencloudio/odlm=$(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG)
 	$(KUSTOMIZE) build config/e2e | kubectl apply -f -
 
