@@ -194,7 +194,10 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 		crFromALM.Object = almExample.(map[string]interface{})
 
 		name := crFromALM.GetName()
-		spec := crFromALM.Object["spec"].(map[string]interface{})
+		spec := crFromALM.Object["spec"]
+		if spec == nil {
+			continue
+		}
 
 		err := r.Client.Get(ctx, types.NamespacedName{
 			Name:      name,
@@ -219,7 +222,7 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 		} else {
 			if checkLabel(crFromALM, map[string]string{constant.OpreqLabel: "true"}) {
 				// Update or Delete Custom Resource
-				if err := r.existingCustomResource(ctx, crFromALM, spec, service, namespace); err != nil {
+				if err := r.existingCustomResource(ctx, crFromALM, spec.(map[string]interface{}), service, namespace); err != nil {
 					merr.Add(err)
 					continue
 				}

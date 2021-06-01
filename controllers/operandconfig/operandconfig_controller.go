@@ -201,7 +201,10 @@ func (r *Reconciler) updateStatus(ctx context.Context, instance *operatorv1alpha
 				continue
 			}
 
-			name := unstruct.Object["metadata"].(map[string]interface{})["name"].(string)
+			name := unstruct.GetName()
+			if name == "" {
+				continue
+			}
 
 			getError := r.Client.Get(ctx, types.NamespacedName{
 				Name:      name,
