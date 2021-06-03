@@ -137,7 +137,6 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 
 			klog.V(3).Info("Generating customresource base on ClusterServiceVersion: ", csv.GetName())
 			requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorRunning, "", &r.Mutex)
-			klog.Info(requestInstance.Status.Members)
 
 			// Merge and Generate CR
 			if operand.Kind == "" {
@@ -165,7 +164,6 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 				}
 			}
 			requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceRunning, &r.Mutex)
-			klog.Info(requestInstance.Status.Members)
 		}
 	}
 	if len(merr.Errors) != 0 {
