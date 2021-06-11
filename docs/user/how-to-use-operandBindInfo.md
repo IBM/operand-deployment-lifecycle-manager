@@ -32,11 +32,11 @@ OperandBindInfo makes ODLM can support creating an operator service in one names
       name: bar
       namespace: bar-namespace
     spec:
-    requests:
-    - registry: foo
-      registryNamespace: foo-namespace
-      operands:
-      - name: foo
+      requests:
+      - registry: foo
+        registryNamespace: foo-namespace
+        operands:
+        - name: foo
     ```
 
 2.  Operator `Foo` creates an `OperandBindInfo` in the `foo-namespace` namespace to share its secret with operator `Bar`.
