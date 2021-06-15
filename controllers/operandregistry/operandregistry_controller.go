@@ -47,11 +47,7 @@ type Reconciler struct {
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *Reconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reconcileErr error) {
-
-	// Creat context for the OperandBindInfo reconciler
-	ctx := context.Background()
-
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reconcileErr error) {
 	// Fetch the OperandRegistry instance
 	instance := &operatorv1alpha1.OperandRegistry{}
 	if err := r.Client.Get(ctx, req.NamespacedName, instance); err != nil {
@@ -120,13 +116,10 @@ func (r *Reconciler) updateStatus(ctx context.Context, instance *operatorv1alpha
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&operatorv1alpha1.OperandRegistry{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
-		Watches(&source.Kind{Type: &operatorv1alpha1.OperandRequest{}}, &handler.EnqueueRequestsFromMapFunc{
-			ToRequests: handler.ToRequestsFunc(
-				func(a handler.MapObject) []reconcile.Request {
-					or := a.Object.(*operatorv1alpha1.OperandRequest)
-					return or.GetAllRegistryReconcileRequest()
-				}),
-		}, builder.WithPredicates(predicate.Funcs{
+		Watches(&source.Kind{Type: &operatorv1alpha1.OperandRequest{}}, handler.EnqueueRequestsFromMapFunc(func(a client.Object) []reconcile.Request {
+			or := a.(*operatorv1alpha1.OperandRequest)
+			return or.GetAllRegistryReconcileRequest()
+		}), builder.WithPredicates(predicate.Funcs{
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				oldObject := e.ObjectOld.(*operatorv1alpha1.OperandRequest)
 				newObject := e.ObjectNew.(*operatorv1alpha1.OperandRequest)

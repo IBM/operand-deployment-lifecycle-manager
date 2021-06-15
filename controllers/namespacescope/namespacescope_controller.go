@@ -49,10 +49,7 @@ type Reconciler struct {
 }
 
 // ReconcileOperandRequest reads that state of the cluster for OperandRequest object and update NamespaceScope CR based on the state read
-func (r *Reconciler) ReconcileOperandRequest(req ctrl.Request) (_ ctrl.Result, reconcileErr error) {
-	// Creat context for the namespacescope reconciler
-	ctx := context.Background()
-
+func (r *Reconciler) ReconcileOperandRequest(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reconcileErr error) {
 	exist, err := r.checkNamespaceScopeAPI()
 	if err != nil {
 		return ctrl.Result{}, err

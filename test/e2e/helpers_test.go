@@ -83,7 +83,7 @@ func createOperandRequest(req *v1alpha1.OperandRequest) (*v1alpha1.OperandReques
 	return req, nil
 }
 
-func retrieveOperandRequest(obj runtime.Object, ns string) error {
+func retrieveOperandRequest(obj client.Object, ns string) error {
 	// Get OperandRequest instance
 	err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: OperandRequestCrName, Namespace: ns}, obj)
 	if err != nil {
@@ -286,7 +286,7 @@ func createOperandConfig(ns string) (*v1alpha1.OperandConfig, error) {
 }
 
 // retrieveOperandConfig is used to get an OperandConfig instance
-func retrieveOperandConfig(obj runtime.Object, ns string) error {
+func retrieveOperandConfig(obj client.Object, ns string) error {
 	err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: OperandConfigCrName, Namespace: ns}, obj)
 	if err != nil {
 		return err
@@ -351,7 +351,7 @@ func createOperandRegistry(ns, OperatorNamespace string) (*v1alpha1.OperandRegis
 }
 
 // retrieveOperandRegistry is used to get an OperandRegistry instance
-func retrieveOperandRegistry(obj runtime.Object, ns string) error {
+func retrieveOperandRegistry(obj client.Object, ns string) error {
 	// Get OperandRegistry instance
 	err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: OperandRegistryCrName, Namespace: ns}, obj)
 	if err != nil {
@@ -468,7 +468,7 @@ func createOperandBindInfo(ns, RegistryNamespace string) (*v1alpha1.OperandBindI
 }
 
 // retrieveOperandBindInfo is used to get an OperandBindInfo instance
-func retrieveOperandBindInfo(obj runtime.Object, ns string) error {
+func retrieveOperandBindInfo(obj client.Object, ns string) error {
 	// Get OperandBindInfo instance
 	err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: OperandBindInfoCrName, Namespace: ns}, obj)
 	if err != nil {
