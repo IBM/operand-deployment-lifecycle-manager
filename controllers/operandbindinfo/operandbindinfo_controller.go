@@ -488,9 +488,7 @@ func (r *Reconciler) updateBindInfoPhase(bindInfoInstance *operatorv1alpha1.Oper
 	if bindInfoInstance.Status.Phase == phase && reflect.DeepEqual(requestNsList, bindInfoInstance.Status.RequestNamespaces) {
 		return
 	}
-	if len(requestNsList) != 0 {
-		bindInfoInstance.Status.RequestNamespaces = requestNsList
-	}
+	bindInfoInstance.Status.RequestNamespaces = requestNsList
 	bindInfoInstance.Status.Phase = phase
 }
 
