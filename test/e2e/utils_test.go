@@ -47,7 +47,7 @@ var (
 var log = logf.Log.WithName("e2e test")
 
 func initSuite() {
-	logf.SetLogger(zap.LoggerTo(GinkgoWriter, true))
+	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
 	By("bootstrapping test environment")
 

@@ -63,11 +63,7 @@ type clusterObjects struct {
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *Reconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reconcileErr error) {
-
-	// Creat context for the OperandBindInfo reconciler
-	ctx := context.Background()
-
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reconcileErr error) {
 	// Fetch the OperandRequest instance
 	requestInstance := &operatorv1alpha1.OperandRequest{}
 	if err := r.Client.Get(ctx, req.NamespacedName, requestInstance); err != nil {
@@ -230,10 +226,10 @@ func (r *Reconciler) checkFinalizer(ctx context.Context, requestInstance *operat
 	return nil
 }
 
-func (r *Reconciler) getRegistryToRequestMapper() handler.ToRequestsFunc {
+func (r *Reconciler) getRegistryToRequestMapper() handler.MapFunc {
 	ctx := context.Background()
-	return func(object handler.MapObject) []ctrl.Request {
-		requestList, _ := r.ListOperandRequestsByRegistry(ctx, types.NamespacedName{Namespace: object.Meta.GetNamespace(), Name: object.Meta.GetName()})
+	return func(object client.Object) []ctrl.Request {
+		requestList, _ := r.ListOperandRequestsByRegistry(ctx, types.NamespacedName{Namespace: object.GetNamespace(), Name: object.GetName()})
 
 		requests := []ctrl.Request{}
 		for _, request := range requestList {
@@ -245,10 +241,10 @@ func (r *Reconciler) getRegistryToRequestMapper() handler.ToRequestsFunc {
 	}
 }
 
-func (r *Reconciler) getSubToRequestMapper() handler.ToRequestsFunc {
-	return func(object handler.MapObject) []ctrl.Request {
+func (r *Reconciler) getSubToRequestMapper() handler.MapFunc {
+	return func(object client.Object) []ctrl.Request {
 		reg, _ := regexp.Compile(`^(.*)\.(.*)\/request`)
-		annotations := object.Meta.GetAnnotations()
+		annotations := object.GetAnnotations()
 		var reqName, reqNamespace string
 		for annotation := range annotations {
 			if reg.MatchString(annotation) {
@@ -269,10 +265,10 @@ func (r *Reconciler) getSubToRequestMapper() handler.ToRequestsFunc {
 	}
 }
 
-func (r *Reconciler) getConfigToRequestMapper() handler.ToRequestsFunc {
+func (r *Reconciler) getConfigToRequestMapper() handler.MapFunc {
 	ctx := context.Background()
-	return func(object handler.MapObject) []ctrl.Request {
-		requestList, _ := r.ListOperandRequestsByConfig(ctx, types.NamespacedName{Namespace: object.Meta.GetNamespace(), Name: object.Meta.GetName()})
+	return func(object client.Object) []ctrl.Request {
+		requestList, _ := r.ListOperandRequestsByConfig(ctx, types.NamespacedName{Namespace: object.GetNamespace(), Name: object.GetName()})
 
 		requests := []ctrl.Request{}
 		for _, request := range requestList {
@@ -288,9 +284,7 @@ func (r *Reconciler) getConfigToRequestMapper() handler.ToRequestsFunc {
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&operatorv1alpha1.OperandRequest{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
-		Watches(&source.Kind{Type: &olmv1alpha1.Subscription{}}, &handler.EnqueueRequestsFromMapFunc{
-			ToRequests: r.getSubToRequestMapper(),
-		}, builder.WithPredicates(predicate.Funcs{
+		Watches(&source.Kind{Type: &olmv1alpha1.Subscription{}}, handler.EnqueueRequestsFromMapFunc(r.getSubToRequestMapper()), builder.WithPredicates(predicate.Funcs{
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				oldObject := e.ObjectOld.(*olmv1alpha1.Subscription)
 				newObject := e.ObjectNew.(*olmv1alpha1.Subscription)
@@ -300,9 +294,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 				return false
 			},
 		})).
-		Watches(&source.Kind{Type: &operatorv1alpha1.OperandRegistry{}}, &handler.EnqueueRequestsFromMapFunc{
-			ToRequests: r.getRegistryToRequestMapper(),
-		}, builder.WithPredicates(predicate.Funcs{
+		Watches(&source.Kind{Type: &operatorv1alpha1.OperandRegistry{}}, handler.EnqueueRequestsFromMapFunc(r.getRegistryToRequestMapper()), builder.WithPredicates(predicate.Funcs{
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				oldObject := e.ObjectOld.(*operatorv1alpha1.OperandRegistry)
 				newObject := e.ObjectNew.(*operatorv1alpha1.OperandRegistry)
@@ -313,9 +305,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 				return !e.DeleteStateUnknown
 			},
 		})).
-		Watches(&source.Kind{Type: &operatorv1alpha1.OperandConfig{}}, &handler.EnqueueRequestsFromMapFunc{
-			ToRequests: r.getConfigToRequestMapper(),
-		}, builder.WithPredicates(predicate.Funcs{
+		Watches(&source.Kind{Type: &operatorv1alpha1.OperandConfig{}}, handler.EnqueueRequestsFromMapFunc(r.getConfigToRequestMapper()), builder.WithPredicates(predicate.Funcs{
 			DeleteFunc: func(e event.DeleteEvent) bool {
 				// Evaluates to false if the object has been confirmed deleted.
 				return !e.DeleteStateUnknown

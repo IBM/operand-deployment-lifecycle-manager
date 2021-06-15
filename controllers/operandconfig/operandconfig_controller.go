@@ -54,10 +54,7 @@ type Reconciler struct {
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *Reconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reconcileErr error) {
-	// Creat context for the OperandConfig reconciler
-	ctx := context.Background()
-
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reconcileErr error) {
 	// Fetch the OperandConfig instance
 	instance := &operatorv1alpha1.OperandConfig{}
 	if err := r.Client.Get(ctx, req.NamespacedName, instance); err != nil {
@@ -239,12 +236,12 @@ func checkRegistryStatus(opName string, registryInstance *operatorv1alpha1.Opera
 	return false
 }
 
-func (r *Reconciler) getRequestToConfigMapper(ctx context.Context) handler.ToRequestsFunc {
-	return func(object handler.MapObject) []reconcile.Request {
+func (r *Reconciler) getRequestToConfigMapper(ctx context.Context) handler.MapFunc {
+	return func(object client.Object) []reconcile.Request {
 		opreqInstance := &operatorv1alpha1.OperandRequest{}
 		requests := []reconcile.Request{}
 		// If the OperandRequest has been deleted, reconcile all the OperandConfig in the cluster
-		if err := r.Client.Get(ctx, types.NamespacedName{Name: object.Meta.GetName(), Namespace: object.Meta.GetNamespace()}, opreqInstance); apierrors.IsNotFound(err) {
+		if err := r.Client.Get(ctx, types.NamespacedName{Name: object.GetName(), Namespace: object.GetNamespace()}, opreqInstance); apierrors.IsNotFound(err) {
 			configList := &operatorv1alpha1.OperandConfigList{}
 			_ = r.Client.List(ctx, configList)
 			for _, config := range configList.Items {
@@ -270,9 +267,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	ctx := context.Background()
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&operatorv1alpha1.OperandConfig{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
-		Watches(&source.Kind{Type: &operatorv1alpha1.OperandRequest{}}, &handler.EnqueueRequestsFromMapFunc{
-			ToRequests: r.getRequestToConfigMapper(ctx),
-		}, builder.WithPredicates(predicate.Funcs{
+		Watches(&source.Kind{Type: &operatorv1alpha1.OperandRequest{}}, handler.EnqueueRequestsFromMapFunc(r.getRequestToConfigMapper(ctx)), builder.WithPredicates(predicate.Funcs{
 			CreateFunc: func(e event.CreateEvent) bool {
 				return true
 			},

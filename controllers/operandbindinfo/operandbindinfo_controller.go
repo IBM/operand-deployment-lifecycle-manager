@@ -62,10 +62,7 @@ var (
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *Reconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reconcileErr error) {
-	// Creat context for the OperandBindInfo reconciler
-	ctx := context.Background()
-
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reconcileErr error) {
 	// Fetch the OperandBindInfo instance
 	bindInfoInstance := &operatorv1alpha1.OperandBindInfo{}
 	if err := r.Client.Get(ctx, req.NamespacedName, bindInfoInstance); err != nil {
@@ -427,14 +424,14 @@ func getBindingInfofromRequest(bindInfoInstance *operatorv1alpha1.OperandBindInf
 	return secretReq, cmReq
 }
 
-func (r *Reconciler) getOperandRegistryToRequestMapper(mgr manager.Manager) handler.ToRequestsFunc {
+func (r *Reconciler) getOperandRegistryToRequestMapper(mgr manager.Manager) handler.MapFunc {
 	ctx := context.Background()
 
-	return func(object handler.MapObject) []reconcile.Request {
+	return func(object client.Object) []reconcile.Request {
 		mgrClient := mgr.GetClient()
 		bindInfoList := &operatorv1alpha1.OperandBindInfoList{}
 		opts := []client.ListOption{
-			client.MatchingLabels(map[string]string{object.Meta.GetNamespace() + "." + object.Meta.GetName() + "/registry": "true"}),
+			client.MatchingLabels(map[string]string{object.GetNamespace() + "." + object.GetName() + "/registry": "true"}),
 		}
 
 		_ = mgrClient.List(ctx, bindInfoList, opts...)
@@ -449,10 +446,10 @@ func (r *Reconciler) getOperandRegistryToRequestMapper(mgr manager.Manager) hand
 	}
 }
 
-func (r *Reconciler) getOperandRequestToRequestMapper(mgr manager.Manager) handler.ToRequestsFunc {
+func (r *Reconciler) getOperandRequestToRequestMapper(mgr manager.Manager) handler.MapFunc {
 	ctx := context.Background()
-	return func(a handler.MapObject) []reconcile.Request {
-		or := a.Object.(*operatorv1alpha1.OperandRequest)
+	return func(a client.Object) []reconcile.Request {
+		or := a.(*operatorv1alpha1.OperandRequest)
 		reglist := or.GetAllRegistryReconcileRequest()
 		mgrClient := mgr.GetClient()
 		bindInfoList := &operatorv1alpha1.OperandBindInfoList{}
@@ -506,10 +503,10 @@ func unique(stringSlice []string) []string {
 	return list
 }
 
-func toOpbiRequest() handler.ToRequestsFunc {
-	return func(object handler.MapObject) []reconcile.Request {
+func toOpbiRequest() handler.MapFunc {
+	return func(object client.Object) []reconcile.Request {
 		opbiInstance := []reconcile.Request{}
-		lables := object.Meta.GetLabels()
+		lables := object.GetLabels()
 		name, nameOk := lables[constant.OpbiNameLabel]
 		ns, namespaceOK := lables[constant.OpbiNsLabel]
 		if nameOk && namespaceOK {
@@ -523,7 +520,7 @@ func toOpbiRequest() handler.ToRequestsFunc {
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	cmSecretPredicates := predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
-			labels := e.Meta.GetLabels()
+			labels := e.Object.GetLabels()
 			for labelKey, labelValue := range labels {
 				if labelKey == constant.OpbiTypeLabel {
 					return labelValue == "original"
@@ -532,7 +529,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 			return false
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			labels := e.MetaNew.GetLabels()
+			labels := e.ObjectNew.GetLabels()
 			for labelKey, labelValue := range labels {
 				if labelKey == constant.OpbiTypeLabel {
 					return labelValue == "original"
@@ -541,7 +538,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 			return false
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			labels := e.Meta.GetLabels()
+			labels := e.Object.GetLabels()
 			for labelKey, labelValue := range labels {
 				if labelKey == constant.OpbiTypeLabel {
 					return labelValue == "original"
@@ -572,22 +569,22 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&operatorv1alpha1.OperandBindInfo{}).
 		Watches(
 			&source.Kind{Type: &corev1.ConfigMap{}},
-			&handler.EnqueueRequestsFromMapFunc{ToRequests: toOpbiRequest()},
+			handler.EnqueueRequestsFromMapFunc(toOpbiRequest()),
 			builder.WithPredicates(cmSecretPredicates),
 		).
 		Watches(
 			&source.Kind{Type: &corev1.Secret{}},
-			&handler.EnqueueRequestsFromMapFunc{ToRequests: toOpbiRequest()},
+			handler.EnqueueRequestsFromMapFunc(toOpbiRequest()),
 			builder.WithPredicates(cmSecretPredicates),
 		).
 		Watches(
 			&source.Kind{Type: &operatorv1alpha1.OperandRequest{}},
-			&handler.EnqueueRequestsFromMapFunc{ToRequests: r.getOperandRequestToRequestMapper(mgr)},
+			handler.EnqueueRequestsFromMapFunc(r.getOperandRequestToRequestMapper(mgr)),
 			builder.WithPredicates(predicate.GenerationChangedPredicate{}),
 		).
 		Watches(
 			&source.Kind{Type: &operatorv1alpha1.OperandRegistry{}},
-			&handler.EnqueueRequestsFromMapFunc{ToRequests: r.getOperandRegistryToRequestMapper(mgr)},
+			handler.EnqueueRequestsFromMapFunc(r.getOperandRegistryToRequestMapper(mgr)),
 			builder.WithPredicates(opregPredicates),
 		).Complete(r)
 }

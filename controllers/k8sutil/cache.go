@@ -127,9 +127,9 @@ type ODLMCache struct {
 // Get implements Reader
 // If the resource is in the cache, Get function get fetch in from the informer
 // Otherwise, resource will be get by the k8s client
-func (c ODLMCache) Get(ctx context.Context, key client.ObjectKey, obj runtime.Object) error {
+func (c ODLMCache) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
 
-	// Get the GVK of the runtime object
+	// Get the GVK of the client object
 	gvk, err := apiutil.GVKForObject(obj, c.Scheme)
 	if err != nil {
 		return err
@@ -227,7 +227,7 @@ func (c ODLMCache) getFromClient(ctx context.Context, key client.ObjectKey, obj 
 }
 
 // List lists items out of the indexer and writes them to list
-func (c ODLMCache) List(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
+func (c ODLMCache) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
 	gvk, err := apiutil.GVKForObject(list, c.Scheme)
 	if err != nil {
 		return err
@@ -306,7 +306,7 @@ func (c ODLMCache) List(ctx context.Context, list runtime.Object, opts ...client
 
 // GetInformer fetches or constructs an informer for the given object that corresponds to a single
 // API kind and resource.
-func (c ODLMCache) GetInformer(ctx context.Context, obj runtime.Object) (cache.Informer, error) {
+func (c ODLMCache) GetInformer(ctx context.Context, obj client.Object) (cache.Informer, error) {
 	gvk, err := apiutil.GVKForObject(obj, c.Scheme)
 	if err != nil {
 		return nil, err
@@ -331,22 +331,22 @@ func (c ODLMCache) GetInformerForKind(ctx context.Context, gvk schema.GroupVersi
 
 // Start runs all the informers known to this cache until the given channel is closed.
 // It blocks.
-func (c ODLMCache) Start(stopCh <-chan struct{}) error {
-	klog.Info("Start ODLM cache")
+func (c ODLMCache) Start(ctx context.Context) error {
+	klog.Info("Start filtered cache")
 	for _, informer := range c.informerMap {
 		informer := informer
-		go informer.Run(stopCh)
+		go informer.Run(ctx.Done())
 	}
-	return c.fallback.Start(stopCh)
+	return c.fallback.Start(ctx)
 }
 
 // WaitForCacheSync waits for all the caches to sync.  Returns false if it could not sync a cache.
-func (c ODLMCache) WaitForCacheSync(stop <-chan struct{}) bool {
+func (c ODLMCache) WaitForCacheSync(ctx context.Context) bool {
 	// Wait for informer to sync
 	waiting := true
 	for waiting {
 		select {
-		case <-stop:
+		case <-ctx.Done():
 			waiting = false
 		case <-time.After(time.Second):
 			for _, informer := range c.informerMap {
@@ -355,12 +355,12 @@ func (c ODLMCache) WaitForCacheSync(stop <-chan struct{}) bool {
 		}
 	}
 	// Wait for fallback cache to sync
-	return c.fallback.WaitForCacheSync(stop)
+	return c.fallback.WaitForCacheSync(ctx)
 }
 
 // IndexField adds an indexer to the underlying cache, using extraction function to get
 // value(s) from the given field. The filtered cache doesn't support the index yet.
-func (c ODLMCache) IndexField(ctx context.Context, obj runtime.Object, field string, extractValue client.IndexerFunc) error {
+func (c ODLMCache) IndexField(ctx context.Context, obj client.Object, field string, extractValue client.IndexerFunc) error {
 	gvk, err := apiutil.GVKForObject(obj, c.Scheme)
 	if err != nil {
 		return err
@@ -376,7 +376,7 @@ func (c ODLMCache) IndexField(ctx context.Context, obj runtime.Object, field str
 func indexByField(indexer cache.Informer, field string, extractor client.IndexerFunc) error {
 	indexFunc := func(objRaw interface{}) ([]string, error) {
 		// TODO(directxman12): check if this is the correct type?
-		obj, isObj := objRaw.(runtime.Object)
+		obj, isObj := objRaw.(client.Object)
 		if !isObj {
 			return nil, fmt.Errorf("object of type %T is not an Object", objRaw)
 		}
