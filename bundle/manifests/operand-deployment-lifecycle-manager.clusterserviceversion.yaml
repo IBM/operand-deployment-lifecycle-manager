@@ -480,5 +480,5 @@ spec:
   minKubeVersion: "1.19"
   provider:
     name: IBM
-  replaces: operand-deployment-lifecycle-manager.v1.6.1
+  replaces: operand-deployment-lifecycle-manager.v1.6.0
   version: 1.7.0
