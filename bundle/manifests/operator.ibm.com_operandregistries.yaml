@@ -2,7 +2,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.4.0
+    controller-gen.kubebuilder.io/version: v0.5.0
   creationTimestamp: null
   labels:
     app.kubernetes.io/instance: operand-deployment-lifecycle-manager
@@ -37,10 +37,14 @@ spec:
         description: OperandRegistry is the Schema for the operandregistries API.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
@@ -59,31 +63,45 @@ spec:
                       description: Description of a common service.
                       type: string
                     installMode:
-                      description: 'The install mode of an operator, either namespace or cluster. Valid values are: - "namespace" (default): operator is deployed in namespace of OperandRegistry; - "cluster": operator is deployed in "openshift-operators" namespace;'
+                      description: 'The install mode of an operator, either namespace
+                        or cluster. Valid values are: - "namespace" (default): operator
+                        is deployed in namespace of OperandRegistry; - "cluster":
+                        operator is deployed in "openshift-operators" namespace;'
                       type: string
                     installPlanApproval:
-                      description: 'Approval mode for emitted InstallPlans. Valid values are: - "Automatic" (default): operator will be installed automatically; - "Manual": operator installation will be pending until users approve it;'
+                      description: 'Approval mode for emitted InstallPlans. Valid
+                        values are: - "Automatic" (default): operator will be installed
+                        automatically; - "Manual": operator installation will be pending
+                        until users approve it;'
                       type: string
                     name:
-                      description: A unique name for the operator whose operand may be deployed.
+                      description: A unique name for the operator whose operand may
+                        be deployed.
                       type: string
                     namespace:
-                      description: The namespace in which operator CR should be deployed. Also the namespace in which operator should be deployed when InstallMode is empty or set to "namespace".
+                      description: The namespace in which operator CR should be deployed.
+                        Also the namespace in which operator should be deployed when
+                        InstallMode is empty or set to "namespace".
                       type: string
                     packageName:
                       description: Name of the package that defines the applications.
                       type: string
                     scope:
-                      description: 'A scope indicator, either public or private. Valid values are: - "private" (default): deployment only request from the containing names; - "public": deployment can be requested from other namespaces;'
+                      description: 'A scope indicator, either public or private. Valid
+                        values are: - "private" (default): deployment only request
+                        from the containing names; - "public": deployment can be requested
+                        from other namespaces;'
                       enum:
                       - public
                       - private
                       type: string
                     sourceName:
-                      description: Name of a CatalogSource that defines where and how to find the channel.
+                      description: Name of a CatalogSource that defines where and
+                        how to find the channel.
                       type: string
                     sourceNamespace:
-                      description: The Kubernetes namespace where the CatalogSource used is located.
+                      description: The Kubernetes namespace where the CatalogSource
+                        used is located.
                       type: string
                     startingCSV:
                       description: StartingCSV of the installation.
@@ -104,18 +122,22 @@ spec:
             description: OperandRegistryStatus defines the observed state of OperandRegistry.
             properties:
               conditions:
-                description: Conditions represents the current state of the Request Service.
+                description: Conditions represents the current state of the Request
+                  Service.
                 items:
-                  description: Condition represents the current state of the Request Service. A condition might not show up if it is not happening.
+                  description: Condition represents the current state of the Request
+                    Service. A condition might not show up if it is not happening.
                   properties:
                     lastTransitionTime:
-                      description: Last time the condition transitioned from one status to another.
+                      description: Last time the condition transitioned from one status
+                        to another.
                       type: string
                     lastUpdateTime:
                       description: The last time this condition was updated.
                       type: string
                     message:
-                      description: A human readable message indicating details about the transition.
+                      description: A human readable message indicating details about
+                        the transition.
                       type: string
                     reason:
                       description: The reason for the condition's last transition.
@@ -133,15 +155,18 @@ spec:
                 type: array
               operatorsStatus:
                 additionalProperties:
-                  description: OperatorStatus defines operators status and the number of reconcile request.
+                  description: OperatorStatus defines operators status and the number
+                    of reconcile request.
                   properties:
                     phase:
                       description: Phase is the state of operator.
                       type: string
                     reconcileRequests:
-                      description: ReconcileRequests stores the namespace/name of all the requests.
+                      description: ReconcileRequests stores the namespace/name of
+                        all the requests.
                       items:
-                        description: ReconcileRequest records the information of the operandRequest.
+                        description: ReconcileRequest records the information of the
+                          operandRequest.
                         properties:
                           name:
                             description: Name defines the name of request.
@@ -155,10 +180,12 @@ spec:
                         type: object
                       type: array
                   type: object
-                description: OperatorsStatus defines operators status and the number of reconcile request.
+                description: OperatorsStatus defines operators status and the number
+                  of reconcile request.
                 type: object
               phase:
-                description: Phase describes the overall phase of operators in the OperandRegistry.
+                description: Phase describes the overall phase of operators in the
+                  OperandRegistry.
                 type: string
             type: object
         type: object
