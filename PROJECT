@@ -3,19 +3,31 @@ layout: go.kubebuilder.io/v3
 projectName: operand-deployment-lifecycle-manager
 repo: github.com/IBM/operand-deployment-lifecycle-manager
 resources:
-- group: operator
+- controller: true
+  domain: ibm.com
+  group: operator
   kind: OperandRequest
+  path: github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1
   version: v1alpha1
-- group: operator
+- controller: true
+  domain: ibm.com
+  group: operator
   kind: OperandRegistry
+  path: github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1
   version: v1alpha1
-- group: operator
+- controller: true
+  domain: ibm.com
+  group: operator
   kind: OperandConfig
+  path: github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1
   version: v1alpha1
-- group: operator
+- controller: true
+  domain: ibm.com
+  group: operator
   kind: OperandBindInfo
+  path: github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1
   version: v1alpha1
-version: 3-alpha
+version: "3"
 plugins:
   manifests.sdk.operatorframework.io/v2: {}
   scorecard.sdk.operatorframework.io/v2: {}
