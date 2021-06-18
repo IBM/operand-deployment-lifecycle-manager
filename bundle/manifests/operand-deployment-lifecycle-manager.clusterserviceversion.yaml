@@ -477,7 +477,7 @@ spec:
   - email: support@ibm.com
     name: IBM Support
   maturity: stable
-  minKubeVersion: "1.19"
+  minKubeVersion: "1.19.0"
   provider:
     name: IBM
   replaces: operand-deployment-lifecycle-manager.v1.7.0
