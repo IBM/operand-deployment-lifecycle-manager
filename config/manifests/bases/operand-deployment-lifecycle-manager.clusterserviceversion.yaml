@@ -240,7 +240,7 @@ spec:
   - email: support@ibm.com
     name: IBM Support
   maturity: stable
-  minKubeVersion: "1.19.0"
+  minKubeVersion: 1.19.0
   provider:
     name: IBM
   version: 0.0.0
