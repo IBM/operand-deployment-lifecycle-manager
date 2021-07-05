@@ -13,7 +13,6 @@ require (
 	github.com/operator-framework/operator-lifecycle-manager v0.17.0
 	github.com/pkg/errors v0.9.1
 	k8s.io/api v0.20.5
-	k8s.io/apiextensions-apiserver v0.20.1
 	k8s.io/apimachinery v0.20.5
 	k8s.io/client-go v0.20.5
 	k8s.io/klog v1.0.0
