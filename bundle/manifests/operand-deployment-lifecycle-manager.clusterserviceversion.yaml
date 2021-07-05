@@ -643,7 +643,19 @@ spec:
                       key: namespaces
                 image: quay.io/opencloudio/odlm:latest
                 imagePullPolicy: Always
+                livenessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 8081
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
                 name: manager
+                readinessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 8081
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
                 resources:
                   limits:
                     cpu: 500m

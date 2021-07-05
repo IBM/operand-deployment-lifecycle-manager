@@ -135,7 +135,7 @@ spec:
     | -------------------------- | ----------- | ----------- |
     | Operand Deployment Lifecycle Manager | 200          | 0.2        |
     | **Total**                  | 200         | 0.2         |
-  
+
     ## Installing
 
     ### Create Operator NS, Group, Subscription
