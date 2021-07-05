@@ -127,27 +127,18 @@ spec:
     - [oc] version v3.11+ or [kubectl] v1.11.3+
     - Access to an Openshift v4.3+ cluster
 
+    ### Resources Required
+
+    #### Minimum scheduling capacity
+
+    | Software                   | Memory (MB) | CPU (cores) |
+    | -------------------------- | ----------- | ----------- |
+    | Operand Deployment Lifecycle Manager | 200          | 0.2        |
+    | **Total**                  | 200         | 0.2         |
+  
     ## Installing
 
-    ### 1. Create CatalogSource
-
-    ```yaml
-    apiVersion: operators.coreos.com/v1alpha1
-    kind: CatalogSource
-    metadata:
-      name: opencloud-operators
-      namespace: olm
-    spec:
-      displayName: IBMCS Operators
-      publisher: IBM
-      sourceType: grpc
-      image: docker.io/ibmcom/ibm-common-service-catalog:latest
-      updateStrategy:
-        registryPoll:
-          interval: 45m
-    ```
-
-    ### 2. Create Operator NS, Group, Subscription
+    ### Create Operator NS, Group, Subscription
 
     ```yaml
     apiVersion: v1
