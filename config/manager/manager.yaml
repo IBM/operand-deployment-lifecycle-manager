@@ -65,14 +65,14 @@ spec:
           httpGet:
             path: /readyz
             port: 8081
-          initialDelaySeconds: 15
-          periodSeconds: 20
+          initialDelaySeconds: 2
+          periodSeconds: 5
         readinessProbe:
           httpGet:
             path: /healthz
             port: 8081
-          initialDelaySeconds: 5
-          periodSeconds: 10
+          initialDelaySeconds: 2
+          periodSeconds: 3
         resources:
           limits:
             cpu: 500m
