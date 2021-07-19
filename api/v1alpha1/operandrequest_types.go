@@ -72,6 +72,7 @@ type Operand struct {
 	InstanceName string `json:"instanceName,omitempty"`
 	// Spec is used when users want to deploy multiple custom resources.
 	// It is the configuration map of custom resource.
+	// +kubebuilder:pruning:PreserveUnknownFields
 	// +nullable
 	// +optional
 	Spec *runtime.RawExtension `json:"spec,omitempty"`
