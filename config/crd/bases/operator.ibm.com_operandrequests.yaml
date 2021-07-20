@@ -87,6 +87,7 @@ spec:
                             description: Spec is used when users want to deploy multiple custom resources. It is the configuration map of custom resource.
                             nullable: true
                             type: object
+                            x-kubernetes-preserve-unknown-fields: true
                         required:
                         - name
                         type: object
