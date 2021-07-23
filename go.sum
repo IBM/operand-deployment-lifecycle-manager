@@ -48,8 +48,8 @@ github.com/Azure/go-autorest/tracing v0.6.0/go.mod h1:+vhtPC754Xsa23ID7GlGsrdKBp
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
-github.com/IBM/controller-filtered-cache v0.3.0 h1:RYCPSuLUu7BwE3oMsjv7LCHO2euhLfA/V7wgoRNK3ys=
-github.com/IBM/controller-filtered-cache v0.3.0/go.mod h1:gEDzSQxUwcdScwsw59MTwchTjh6vzLWaSPffIkr85U4=
+github.com/IBM/controller-filtered-cache v0.3.2 h1:ghyg9s/NyrlyLvZayj65jy4Vcc1dSyD2cee5fp6Ki8Q=
+github.com/IBM/controller-filtered-cache v0.3.2/go.mod h1:gEDzSQxUwcdScwsw59MTwchTjh6vzLWaSPffIkr85U4=
 github.com/IBM/ibm-namespace-scope-operator v1.0.0-alpha h1:xU3IXZ2ZDumuL36mjSqcPZa3mS7XUJSXQYLR7VMUGy8=
 github.com/IBM/ibm-namespace-scope-operator v1.0.0-alpha/go.mod h1:wkE4MMVf3IKwsu90Gxy4No/S5gZ/PC6EHKcoXKiX21Q=
 github.com/MakeNowJust/heredoc v0.0.0-20170808103936-bb23615498cd/go.mod h1:64YHyfSL2R96J44Nlwm39UHepQbyR5q10x7iYa1ks2E=

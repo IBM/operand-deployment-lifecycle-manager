@@ -3,7 +3,7 @@ module github.com/IBM/operand-deployment-lifecycle-manager
 go 1.16
 
 require (
-	github.com/IBM/controller-filtered-cache v0.3.0
+	github.com/IBM/controller-filtered-cache v0.3.2
 	github.com/IBM/ibm-namespace-scope-operator v1.0.0-alpha
 	github.com/coreos/etcd-operator v0.9.4
 	github.com/deckarep/golang-set v1.7.1
