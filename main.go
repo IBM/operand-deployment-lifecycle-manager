@@ -98,20 +98,9 @@ func main() {
 		LeaderElectionID:       "ab89bbb1.ibm.com",
 	}
 
-	scope := util.GetInstallScope()
 	watchNamespace := util.GetWatchNamespace()
 	isolatedModeEnable := util.GetIsolatedMode()
-	if scope == "namespaced" {
-		if !isolatedModeEnable {
-			options.NewCache = k8sutil.NewODLMCache(strings.Split(watchNamespace, ","), gvkLabelMap)
-		} else {
-			// SaaS or on-prem multi instances case
-			options.NewCache = cache.MultiNamespacedFilteredCacheBuilder(gvkLabelMap, strings.Split(watchNamespace, ","))
-		}
-	} else {
-		// cluster-scope ODLM
-		options.NewCache = cache.NewFilteredCacheBuilder(gvkLabelMap)
-	}
+	options.NewCache = k8sutil.NewODLMCache(isolatedModeEnable, strings.Split(watchNamespace, ","), gvkLabelMap)
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
 	if err != nil {
