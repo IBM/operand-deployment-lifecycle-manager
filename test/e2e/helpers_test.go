@@ -657,9 +657,9 @@ func newOperandRegistryCR(name, namespace, OperatorNamespace string) *v1alpha1.O
 				{
 					Name:            "jenkins",
 					Namespace:       OperatorNamespace,
-					SourceName:      "community-operators",
+					SourceName:      "redhat-operators",
 					SourceNamespace: "openshift-marketplace",
-					PackageName:     "jenkins-operator",
+					PackageName:     "openshift-jenkins-operator",
 					Channel:         "alpha",
 				},
 			},
