@@ -17,6 +17,8 @@
 package e2e
 
 import (
+	"fmt"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -33,6 +35,7 @@ var _ = Describe("Testing ODLM", func() {
 			// Create OperandRegistry
 			By("Create OperandRegistry")
 			reg, err := createOperandRegistry(OperandRegistryNamespace, OperatorNamespace)
+			fmt.Printf("The OperandRegistry is %v\n", reg)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(reg).ToNot(BeNil())
 
@@ -44,6 +47,7 @@ var _ = Describe("Testing ODLM", func() {
 			// Create OperandConfig
 			By("Create OperandConfig")
 			con, err := createOperandConfig(OperandRegistryNamespace)
+			fmt.Printf("The OperandRegistry is %v\n", con)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(con).ToNot(BeNil())
 
@@ -56,6 +60,7 @@ var _ = Describe("Testing ODLM", func() {
 			By("Create the first OperandRequest")
 			req1 := newOperandRequestWithoutBindinfo(OperandRequestCrName, OperandRequestNamespace1, OperandRegistryNamespace)
 			req1, err = createOperandRequest(req1)
+			fmt.Printf("The OperandRegistry is %v\n", req1)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(req1).ToNot(BeNil())
 
