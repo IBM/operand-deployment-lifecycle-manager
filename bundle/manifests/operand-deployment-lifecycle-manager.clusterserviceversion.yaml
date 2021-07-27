@@ -656,7 +656,7 @@ spec:
                   httpGet:
                     path: /healthz
                     port: 8081
-                  initialDelaySeconds: 60
+                  initialDelaySeconds: 3
                   timeoutSeconds: 3
                   periodSeconds: 20
                   failureThreshold: 10
