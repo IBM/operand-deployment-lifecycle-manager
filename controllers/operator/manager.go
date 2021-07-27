@@ -330,12 +330,12 @@ func (m *ODLMOperator) GetSubscription(ctx context.Context, name, namespace, pac
 // GetClusterServiceVersion gets the ClusterServiceVersion from the subscription
 func (m *ODLMOperator) GetClusterServiceVersion(ctx context.Context, sub *olmv1alpha1.Subscription) (*olmv1alpha1.ClusterServiceVersion, error) {
 	// Check the ClusterServiceVersion status in the subscription
-	if sub.Status.CurrentCSV == "" {
+	if sub.Status.InstalledCSV == "" {
 		klog.Warningf("The ClusterServiceVersion for Subscription %s is not ready. Will check it again", sub.Name)
 		return nil, nil
 	}
 
-	csvName := sub.Status.CurrentCSV
+	csvName := sub.Status.InstalledCSV
 	csvNamespace := sub.Namespace
 
 	if sub.Status.Install == nil || sub.Status.InstallPlanRef.Name == "" {
@@ -359,6 +359,8 @@ func (m *ODLMOperator) GetClusterServiceVersion(ctx context.Context, sub *olmv1a
 	} else {
 		if ip.Status.Phase == olmv1alpha1.InstallPlanPhaseFailed {
 			klog.Errorf("installplan %s/%s is failed", ipNamespace, ipName)
+		} else if ip.Status.Phase == olmv1alpha1.InstallPlanPhaseRequiresApproval {
+			klog.V(2).Infof("Installplan %s/%s is waiting for approval", ipNamespace, ipName)
 		} else if ip.Status.Phase != olmv1alpha1.InstallPlanPhaseComplete {
 			klog.Warningf("Installplan %s/%s is not ready", ipNamespace, ipName)
 			return nil, nil
