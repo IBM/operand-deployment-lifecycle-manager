@@ -69,7 +69,13 @@ func NewODLMCache(isolatedModeEnable bool, namespaces []string, gvkLabelMap map[
 			return nil, err
 		}
 
-		NewCache := filteredcache.MultiNamespacedFilteredCacheBuilder(gvkLabelMap, namespaces)
+		var NewCache cache.NewCacheFunc
+		if len(namespaces) == 1 && namespaces[0] == "" {
+			NewCache = filteredcache.NewFilteredCacheBuilder(gvkLabelMap)
+		} else {
+			NewCache = filteredcache.MultiNamespacedFilteredCacheBuilder(gvkLabelMap, namespaces)
+		}
+
 		// Create a default cache for the other resources
 		fallback, err := NewCache(config, opts)
 		if err != nil {
