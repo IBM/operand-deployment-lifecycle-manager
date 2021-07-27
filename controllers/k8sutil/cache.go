@@ -43,7 +43,7 @@ import (
 )
 
 // NewODLMCache implements a customized cache with a for ODLM
-func NewODLMCache(namespaces []string, gvkLabelMap map[schema.GroupVersionKind]filteredcache.Selector) cache.NewCacheFunc {
+func NewODLMCache(isolatedModeEnable bool, namespaces []string, gvkLabelMap map[schema.GroupVersionKind]filteredcache.Selector) cache.NewCacheFunc {
 	return func(config *rest.Config, opts cache.Options) (cache.Cache, error) {
 
 		// Get the frequency that informers are resynced
@@ -52,13 +52,30 @@ func NewODLMCache(namespaces []string, gvkLabelMap map[schema.GroupVersionKind]f
 			resync = *opts.Resync
 		}
 
+		var clusterGVKList []schema.GroupVersionKind
+		if !isolatedModeEnable {
+			GVKList := []schema.GroupVersionKind{
+				{Group: "operator.ibm.com", Kind: "OperandRequest", Version: "v1alpha1"},
+				{Group: "operator.ibm.com", Kind: "OperandRegistry", Version: "v1alpha1"},
+				{Group: "operator.ibm.com", Kind: "OperandConfig", Version: "v1alpha1"},
+				{Group: "operator.ibm.com", Kind: "OperandBindInfo", Version: "v1alpha1"},
+			}
+			clusterGVKList = append(clusterGVKList, GVKList...)
+		}
+
 		// Generate informermap to contain the gvks and their informers
-		informerMap, err := buildInformerMap(config, opts, resync)
+		informerMap, err := buildInformerMap(config, opts, resync, clusterGVKList)
 		if err != nil {
 			return nil, err
 		}
 
-		NewCache := filteredcache.MultiNamespacedFilteredCacheBuilder(gvkLabelMap, namespaces)
+		var NewCache cache.NewCacheFunc
+		if len(namespaces) == 1 && namespaces[0] == "" {
+			NewCache = filteredcache.NewFilteredCacheBuilder(gvkLabelMap)
+		} else {
+			NewCache = filteredcache.MultiNamespacedFilteredCacheBuilder(gvkLabelMap, namespaces)
+		}
+
 		// Create a default cache for the other resources
 		fallback, err := NewCache(config, opts)
 		if err != nil {
@@ -71,16 +88,9 @@ func NewODLMCache(namespaces []string, gvkLabelMap map[schema.GroupVersionKind]f
 }
 
 //buildInformerMap generates informerMap of the specified resource
-func buildInformerMap(config *rest.Config, opts cache.Options, resync time.Duration) (map[schema.GroupVersionKind]toolscache.SharedIndexInformer, error) {
+func buildInformerMap(config *rest.Config, opts cache.Options, resync time.Duration, clusterGVKList []schema.GroupVersionKind) (map[schema.GroupVersionKind]toolscache.SharedIndexInformer, error) {
 	// Initialize informerMap
 	informerMap := make(map[schema.GroupVersionKind]toolscache.SharedIndexInformer)
-
-	clusterGVKList := []schema.GroupVersionKind{
-		{Group: "operator.ibm.com", Kind: "OperandRequest", Version: "v1alpha1"},
-		{Group: "operator.ibm.com", Kind: "OperandRegistry", Version: "v1alpha1"},
-		{Group: "operator.ibm.com", Kind: "OperandConfig", Version: "v1alpha1"},
-		{Group: "operator.ibm.com", Kind: "OperandBindInfo", Version: "v1alpha1"},
-	}
 
 	for _, gvk := range clusterGVKList {
 
@@ -349,8 +359,14 @@ func (c ODLMCache) WaitForCacheSync(ctx context.Context) bool {
 		case <-ctx.Done():
 			waiting = false
 		case <-time.After(time.Second):
-			for _, informer := range c.informerMap {
-				waiting = !informer.HasSynced() && waiting
+			if len(c.informerMap) == 0 {
+				waiting = false
+			} else {
+				currentWaiting := false
+				for _, informer := range c.informerMap {
+					currentWaiting = !informer.HasSynced() || currentWaiting
+				}
+				waiting = currentWaiting
 			}
 		}
 	}
