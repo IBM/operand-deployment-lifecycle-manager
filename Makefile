@@ -178,7 +178,7 @@ scorecard: operator-sdk ## Run scorecard test
 
 ##@ Build
 
-build-operator-image: ## Build the operator image.
+build-operator-image: $(CONFIG_DOCKER_TARGET) ## Build the operator image.
 	@echo "Building the $(OPERATOR_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
 	@docker build -t $(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) \
 	--build-arg VCS_REF=$(VCS_REF) --build-arg VCS_URL=$(VCS_URL) \
