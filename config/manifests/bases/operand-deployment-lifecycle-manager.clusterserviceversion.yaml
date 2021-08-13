@@ -466,5 +466,5 @@ spec:
     name: IBM
   relatedImages:
   - image: quay.io/opencloudio/odlm
-    name: operand-deployment-lifecycle-manager
+    name: ODLM_IMAGE
   version: 0.0.0
