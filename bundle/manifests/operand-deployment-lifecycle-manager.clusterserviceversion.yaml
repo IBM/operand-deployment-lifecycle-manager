@@ -107,7 +107,7 @@ metadata:
     description: The Operand Deployment Lifecycle Manager provides a Kubernetes CRD-based
       API to manage the lifecycle of operands.
     olm.skipRange: '>=1.2.0 <1.8.0'
-    operators.operatorframework.io/builder: operator-sdk-v1.9.0
+    operators.operatorframework.io/builder: operator-sdk-v1.10.0+git
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/IBM/operand-deployment-lifecycle-manager
     support: IBM
@@ -644,22 +644,22 @@ spec:
                 image: quay.io/opencloudio/odlm:latest
                 imagePullPolicy: Always
                 livenessProbe:
+                  failureThreshold: 10
                   httpGet:
                     path: /readyz
                     port: 8081
                   initialDelaySeconds: 120
-                  timeoutSeconds: 10
                   periodSeconds: 60
-                  failureThreshold: 10
+                  timeoutSeconds: 10
                 name: manager
                 readinessProbe:
+                  failureThreshold: 10
                   httpGet:
                     path: /healthz
                     port: 8081
                   initialDelaySeconds: 3
-                  timeoutSeconds: 3
                   periodSeconds: 20
-                  failureThreshold: 10
+                  timeoutSeconds: 3
                 resources:
                   limits:
                     cpu: 500m
@@ -718,5 +718,8 @@ spec:
   minKubeVersion: 1.19.0
   provider:
     name: IBM
+  relatedImages:
+  - image: quay.io/opencloudio/odlm:1.8.0
+    name: ODLM_IMAGE
   replaces: operand-deployment-lifecycle-manager.v1.7.0
   version: 1.8.0
