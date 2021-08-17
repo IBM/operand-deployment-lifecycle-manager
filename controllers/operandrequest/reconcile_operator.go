@@ -368,7 +368,11 @@ func (r *Reconciler) absentOperatorsAndOperands(ctx context.Context, requestInst
 		}
 		configInstance, err := r.GetOperandConfig(ctx, registryKey)
 		if err != nil {
-			return err
+			if apierrors.IsNotFound(err) {
+				configInstance = &operatorv1alpha1.OperandConfig{}
+			} else {
+				return err
+			}
 		}
 		merr := &util.MultiErr{}
 		remainingOp := needDeletedOperands.Clone()
