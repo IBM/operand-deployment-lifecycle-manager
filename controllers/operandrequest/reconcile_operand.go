@@ -141,21 +141,25 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 			// Merge and Generate CR
 			if operand.Kind == "" {
 				configInstance, err := r.GetOperandConfig(ctx, registryKey)
-				if err != nil {
+				if err == nil {
+					// Check the requested Service Config if exist in specific OperandConfig
+					opdConfig := configInstance.GetService(operand.Name)
+					if opdConfig == nil {
+						klog.V(2).Infof("There is no service: %s from the OperandConfig instance: %s/%s, Skip creating CR for it", operand.Name, req.RegistryNamespace, req.Registry)
+						continue
+					}
+					err = r.reconcileCRwithConfig(ctx, opdConfig, opdRegistry.Namespace, csv)
+					if err != nil {
+						merr.Add(err)
+						requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceFailed, &r.Mutex)
+					}
+				} else if apierrors.IsNotFound(err) {
+					klog.Warningf("Failed to get %s OperandConfig: %s", operand.Name, err)
+				} else if err != nil {
 					merr.Add(errors.Wrapf(err, "failed to get the OperandConfig %s", registryKey.String()))
 					continue
 				}
-				// Check the requested Service Config if exist in specific OperandConfig
-				opdConfig := configInstance.GetService(operand.Name)
-				if opdConfig == nil {
-					klog.V(2).Infof("There is no service: %s from the OperandConfig instance: %s/%s, Skip creating CR for it", operand.Name, req.RegistryNamespace, req.Registry)
-					continue
-				}
-				err = r.reconcileCRwithConfig(ctx, opdConfig, opdRegistry.Namespace, csv)
-				if err != nil {
-					merr.Add(err)
-					requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceFailed, &r.Mutex)
-				}
+
 			} else {
 				err = r.reconcileCRwithRequest(ctx, requestInstance, operand, types.NamespacedName{Name: requestInstance.Name, Namespace: requestInstance.Namespace}, i)
 				if err != nil {
