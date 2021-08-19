@@ -83,19 +83,19 @@ fetch-test-crds:
 	}
 
 
-CONTROLLER_GEN ?= $(shell which controller-gen)
+CONTROLLER_GEN ?= $(shell pwd)/common/bin/controller-gen
 controller-gen: ## Download controller-gen locally if necessary.
 	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.6.1)
 
-KUSTOMIZE ?= $(shell which kustomize)
+KUSTOMIZE ?= $(shell pwd)/common/bin/kustomize
 kustomize: ## Download kustomize locally if necessary.
 	$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v3@v3.8.7)
 
-KIND ?= $(shell which kind)
+KIND ?= $(shell pwd)/common/bin/kind
 kind: ## Download kind locally if necessary.
 	$(call go-get-tool,$(KIND),sigs.k8s.io/kind@v0.10.0)
 
-ENVTEST = $(shell which setup-envtest)
+ENVTEST = $(shell pwd)/common/bin/setup-envtest
 setup-envtest: ## Download envtest-setup locally if necessary.
 	$(call go-get-tool,$(ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest@latest)
 
