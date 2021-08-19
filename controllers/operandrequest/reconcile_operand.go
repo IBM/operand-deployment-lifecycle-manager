@@ -155,7 +155,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 					}
 				} else if apierrors.IsNotFound(err) {
 					klog.Infof("Not Found OperandConfig: %s/%s", operand.Name, err)
-				} else if err != nil {
+				} else {
 					merr.Add(errors.Wrapf(err, "failed to get the OperandConfig %s", registryKey.String()))
 					continue
 				}

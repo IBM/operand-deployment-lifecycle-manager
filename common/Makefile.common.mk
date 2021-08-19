@@ -53,77 +53,53 @@ ifeq (, $(wildcard /usr/local/kubebuilder))
 	@./common/scripts/install-kubebuilder.sh
 endif
 
-# find or download controller-gen
-# download controller-gen if necessary
-controller-gen:
-ifeq (, $(CONTROLLER_GEN))
-	@{ \
-	set -e ;\
-	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
-	cd $$CONTROLLER_GEN_TMP_DIR ;\
-	go mod init tmp ;\
-	GO111MODULE=on go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.5.0 ;\
-	rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
-	}
-CONTROLLER_GEN=$(GOBIN)/controller-gen
-endif
-
-fetch-test-crds:
-	@{ \
-	curl -L -O "https://github.com/operator-framework/api/archive/v${OLM_API_VERSION}.tar.gz" ;\
-	tar -zxf v${OLM_API_VERSION}.tar.gz api-${OLM_API_VERSION}/crds && mv api-${OLM_API_VERSION}/crds ${ENVTEST_ASSETS_DIR}/crds ;\
-	rm -rf api-${OLM_API_VERSION} v${OLM_API_VERSION}.tar.gz ;\
-	}
-	@{ \
-	curl -L -O "https://github.com/horis233/jenkins-operator/archive/v0.3.3.tar.gz" ;\
-	tar -zxf v0.3.3.tar.gz jenkins-operator-0.3.3/deploy/crds && mv jenkins-operator-0.3.3/deploy/crds/jenkins_v1alpha2_jenkins_crd.yaml ${ENVTEST_ASSETS_DIR}/crds/jenkins_v1alpha2_jenkins_crd.yaml ;\
-	rm -rf jenkins-operator-0.3.3 v0.3.3.tar.gz ;\
-	}
-	@{ \
-	curl -L -O "https://github.com/horis233/etcd-operator/archive/v0.9.4-crd.tar.gz" ;\
-	tar -zxf v0.9.4-crd.tar.gz etcd-operator-0.9.4-crd/deploy/crds && mv etcd-operator-0.9.4-crd/deploy/crds/etcdclusters.etcd.database.coreos.com.crd.yaml ${ENVTEST_ASSETS_DIR}/crds/etcdclusters.etcd.database.coreos.com.crd.yaml ;\
-	rm -rf etcd-operator-0.9.4-crd v0.9.4-crd.tar.gz ;\
-	}
-	@{ \
-	curl -L -O "https://github.com/IBM/ibm-namespace-scope-operator/archive/v${NAMESPACESCOPE_VERSION}.tar.gz" ;\
-	tar -zxf v${NAMESPACESCOPE_VERSION}.tar.gz ibm-namespace-scope-operator-${NAMESPACESCOPE_VERSION}/bundle/manifests && mv ibm-namespace-scope-operator-${NAMESPACESCOPE_VERSION}/bundle/manifests/operator.ibm.com_namespacescopes.yaml ${ENVTEST_ASSETS_DIR}/crds/operator.ibm.com_namespacescopes.yaml ;\
-	rm -rf ibm-namespace-scope-operator-${NAMESPACESCOPE_VERSION} v${NAMESPACESCOPE_VERSION}.tar.gz ;\
-	}
-
-# find or download kustomize
-# download kustomize if necessary
-kustomize:
-ifeq (, $(KUSTOMIZE))
-	@{ \
-	set -e ;\
-	KUSTOMIZE_GEN_TMP_DIR=$$(mktemp -d) ;\
-	cd $$KUSTOMIZE_GEN_TMP_DIR ;\
-	go mod init tmp ;\
-	go get sigs.k8s.io/kustomize/kustomize/v4@v4.0.5 ;\
-	rm -rf $$KUSTOMIZE_GEN_TMP_DIR ;\
-	}
-KUSTOMIZE=$(GOBIN)/kustomize
-endif
-
-kind:
-ifeq (, $(KIND))
-	@{ \
-	set -e ;\
-	ZEN_TMP_DIR=$$(mktemp -d) ;\
-	cd $$ZEN_TMP_DIR ;\
-	go mod init tmp ;\
-	GO111MODULE=on go get sigs.k8s.io/kind@v0.10.0 ;\
-	rm -rf $$ZEN_TMP_DIR ;\
-	}
-KIND=$(GOBIN)/kind
-endif
-
+# find or download opm
+# download opm if necessary
 opm:
 ifeq (,$(OPM))
 	@./common/scripts/install-opm.sh
 endif
 
-FINDFILES=find . \( -path ./.git -o -path ./.github -o -path ./testbin \) -prune -o -type f
+fetch-test-crds:
+	@{ \
+	curl -L -O "https://github.com/operator-framework/api/archive/v${OLM_API_VERSION}.tar.gz" ;\
+	tar -zxf v${OLM_API_VERSION}.tar.gz api-${OLM_API_VERSION}/crds && mv api-${OLM_API_VERSION}/crds/* ${ENVCRDS_DIR} ;\
+	rm -rf api-${OLM_API_VERSION} v${OLM_API_VERSION}.tar.gz ;\
+	}
+	@{ \
+	curl -L -O "https://github.com/horis233/jenkins-operator/archive/v0.3.3.tar.gz" ;\
+	tar -zxf v0.3.3.tar.gz jenkins-operator-0.3.3/deploy/crds && mv jenkins-operator-0.3.3/deploy/crds/jenkins_v1alpha2_jenkins_crd.yaml ${ENVCRDS_DIR}/jenkins_v1alpha2_jenkins_crd.yaml ;\
+	rm -rf jenkins-operator-0.3.3 v0.3.3.tar.gz ;\
+	}
+	@{ \
+	curl -L -O "https://github.com/horis233/etcd-operator/archive/v0.9.4-crd.tar.gz" ;\
+	tar -zxf v0.9.4-crd.tar.gz etcd-operator-0.9.4-crd/deploy/crds && mv etcd-operator-0.9.4-crd/deploy/crds/etcdclusters.etcd.database.coreos.com.crd.yaml ${ENVCRDS_DIR}/etcdclusters.etcd.database.coreos.com.crd.yaml ;\
+	rm -rf etcd-operator-0.9.4-crd v0.9.4-crd.tar.gz ;\
+	}
+	@{ \
+	curl -L -O "https://github.com/IBM/ibm-namespace-scope-operator/archive/v${NAMESPACESCOPE_VERSION}.tar.gz" ;\
+	tar -zxf v${NAMESPACESCOPE_VERSION}.tar.gz ibm-namespace-scope-operator-${NAMESPACESCOPE_VERSION}/bundle/manifests && mv ibm-namespace-scope-operator-${NAMESPACESCOPE_VERSION}/bundle/manifests/operator.ibm.com_namespacescopes.yaml ${ENVCRDS_DIR}/operator.ibm.com_namespacescopes.yaml ;\
+	rm -rf ibm-namespace-scope-operator-${NAMESPACESCOPE_VERSION} v${NAMESPACESCOPE_VERSION}.tar.gz ;\
+	}
+
+
+CONTROLLER_GEN ?= $(shell which controller-gen)
+controller-gen: ## Download controller-gen locally if necessary.
+	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.6.1)
+
+KUSTOMIZE ?= $(shell which kustomize)
+kustomize: ## Download kustomize locally if necessary.
+	$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v3@v3.8.7)
+
+KIND ?= $(shell which kind)
+kind: ## Download kind locally if necessary.
+	$(call go-get-tool,$(KIND),sigs.k8s.io/kind@v0.10.0)
+
+ENVTEST = $(shell which setup-envtest)
+setup-envtest: ## Download envtest-setup locally if necessary.
+	$(call go-get-tool,$(ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest@latest)
+
+FINDFILES=find . \( -path ./.git -o -path ./.github -o -path ./testcrds \) -prune -o -type f
 XARGS = xargs -0 ${XARGS_FLAGS}
 CLEANXARGS = xargs ${XARGS_FLAGS}
 
@@ -139,16 +115,30 @@ lint-all: lint-copyright-banner lint-go
 # Run go vet for this project. More info: https://golang.org/cmd/vet/
 code-vet:
 	@echo go vet
-	go vet $$(go list ./... | grep -v /testbin)
+	go vet $$(go list ./...)
 
 # Run go fmt for this project
 code-fmt:
 	@echo go fmt
-	go fmt $$(go list ./... | grep -v /testbin)
+	go fmt $$(go list ./...)
 
 # Run go mod tidy to update dependencies
 code-tidy:
 	@echo go mod tidy
 	go mod tidy -v
 
-.PHONY: code-vet code-fmt code-tidy code-gen lint-copyright-banner lint-go lint-all config-docker operator-sdk kube-builder opm controller-gen fetch-test-crds kustomize kind
+# go-get-tool will 'go get' any package $2 and install it to $1.
+PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
+define go-get-tool
+@[ -f $(1) ] || { \
+set -e ;\
+TMP_DIR=$$(mktemp -d) ;\
+cd $$TMP_DIR ;\
+go mod init tmp ;\
+echo "Downloading $(2)" ;\
+GOBIN=$(PROJECT_DIR)/bin go get $(2) ;\
+rm -rf $$TMP_DIR ;\
+}
+endef
+
+.PHONY: code-vet code-fmt code-tidy code-gen lint-copyright-banner lint-go lint-all config-docker operator-sdk kube-builder opm setup-envtest controller-gen fetch-test-crds kustomize kind

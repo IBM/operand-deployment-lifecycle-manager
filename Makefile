@@ -17,12 +17,9 @@
 # Dependence tools
 KUBECTL ?= $(shell which kubectl)
 OPERATOR_SDK ?= $(shell which operator-sdk)
-CONTROLLER_GEN ?= $(shell which controller-gen)
-KUSTOMIZE ?= $(shell which kustomize)
 OPM ?= $(shell which opm)
-KIND ?= $(shell which kind)
 
-ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
+ENVCRDS_DIR=$(shell pwd)/testcrds
 
 # Specify whether this repo is build locally or not, default values is '1';
 # If set to 1, then you need to also set 'DOCKER_USERNAME' and 'DOCKER_PASSWORD'
@@ -160,14 +157,13 @@ generate-all: manifests kustomize operator-sdk ## Generate bundle manifests, met
 
 ##@ Test
 
-test: ## Run unit test on prow
+test: setup-envtest ## Run unit test on prow
 	@echo "Running unit tests for the controllers."
-	@mkdir -p ${ENVTEST_ASSETS_DIR}
-	@test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh \
-	|| curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/release-0.6/hack/setup-envtest.sh
-	@test -d ${ENVTEST_ASSETS_DIR}/crds || make fetch-test-crds
-	@source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); OPERATOR_NAMESPACE="ibm-operators" go test ./controllers/... -coverprofile cover.out
-	@rm -rf ${ENVTEST_ASSETS_DIR}
+	@mkdir -p ${ENVCRDS_DIR}
+	@make fetch-test-crds
+	@$(ENVTEST) use 1.21
+	@OPERATOR_NAMESPACE="ibm-operators" go test ./controllers/... -coverprofile cover.out
+	@rm -rf ${ENVCRDS_DIR}
 
 
 unit-test: generate code-fmt code-vet manifests ## Run unit test
@@ -179,14 +175,13 @@ e2e-test:
 
 e2e-test-kind: build-test-operator-image kind-start kind-load-img deploy-e2e e2e-test kind-delete
 
-coverage: ## Run code coverage test
+coverage: setup-envtest ## Run code coverage test
 	@echo "Running unit tests for the controllers."
-	@mkdir -p ${ENVTEST_ASSETS_DIR}
-	@test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh \
-	|| curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/master/hack/setup-envtest.sh
-	@test -d ${ENVTEST_ASSETS_DIR}/crds || make fetch-test-crds
-	@source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); OPERATOR_NAMESPACE="ibm-operators" common/scripts/codecov.sh ${BUILD_LOCALLY} "controllers"
-	@rm -rf ${ENVTEST_ASSETS_DIR}
+	@mkdir -p ${ENVCRDS_DIR}
+	@make fetch-test-crds
+	@$(ENVTEST) use 1.21
+	OPERATOR_NAMESPACE="ibm-operators" common/scripts/codecov.sh ${BUILD_LOCALLY} "controllers"
+	@rm -rf ${ENVCRDS_DIR}
 
 scorecard: operator-sdk ## Run scorecard test
 	@echo ... Running the scorecard test
