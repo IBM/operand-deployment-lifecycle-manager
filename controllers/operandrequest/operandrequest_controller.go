@@ -293,6 +293,10 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 				}
 				return false
 			},
+			DeleteFunc: func(e event.DeleteEvent) bool {
+				// Evaluates to false if the object has been confirmed deleted.
+				return false
+			},
 		})).
 		Watches(&source.Kind{Type: &operatorv1alpha1.OperandRegistry{}}, handler.EnqueueRequestsFromMapFunc(r.getRegistryToRequestMapper()), builder.WithPredicates(predicate.Funcs{
 			UpdateFunc: func(e event.UpdateEvent) bool {
