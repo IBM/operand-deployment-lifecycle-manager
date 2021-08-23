@@ -21,6 +21,7 @@
 package v1alpha1
 
 import (
+	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -588,6 +589,11 @@ func (in *Operator) DeepCopyInto(out *Operator) {
 		in, out := &in.TargetNamespaces, &out.TargetNamespaces
 		*out = make([]string, len(*in))
 		copy(*out, *in)
+	}
+	if in.SubscriptionConfig != nil {
+		in, out := &in.SubscriptionConfig, &out.SubscriptionConfig
+		*out = new(operatorsv1alpha1.SubscriptionConfig)
+		(*in).DeepCopyInto(*out)
 	}
 }
 

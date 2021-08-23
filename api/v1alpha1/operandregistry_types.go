@@ -68,6 +68,9 @@ type Operator struct {
 	// StartingCSV of the installation.
 	// +optional
 	StartingCSV string `json:"startingCSV,omitempty"`
+	// SubscriptionConfig is used to override operator configuration.
+	// +optional
+	SubscriptionConfig *olmv1alpha1.SubscriptionConfig `json:"subscriptionConfig,omitempty"`
 }
 
 // +kubebuilder:validation:Enum=public;private

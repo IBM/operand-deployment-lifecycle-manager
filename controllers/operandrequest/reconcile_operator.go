@@ -30,6 +30,7 @@ import (
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -166,22 +167,23 @@ func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance 
 
 	// Subscription existing and managed by OperandRequest controller
 	if _, ok := sub.Labels[constant.OpreqLabel]; ok {
-		// Subscription channel changed, update it.
-		if compareSub(sub, opt, registryKey, types.NamespacedName{Namespace: requestInstance.Namespace, Name: requestInstance.Name}) {
-			sub.Spec.CatalogSource = opt.SourceName
-			sub.Spec.Channel = opt.Channel
-			sub.Spec.CatalogSourceNamespace = opt.SourceNamespace
-			sub.Spec.Package = opt.PackageName
-			if opt.InstallPlanApproval != "" && sub.Spec.InstallPlanApproval != opt.InstallPlanApproval {
-				sub.Spec.InstallPlanApproval = opt.InstallPlanApproval
-			}
-			// add annotations to existing Subscriptions for upgrade case
-			if sub.Annotations == nil {
-				sub.Annotations = make(map[string]string)
-			}
-			sub.Annotations[registryKey.Namespace+"."+registryKey.Name+"/registry"] = "true"
-			sub.Annotations[registryKey.Namespace+"."+registryKey.Name+"/config"] = "true"
-			sub.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"/request"] = "true"
+		originalSub := sub.DeepCopy()
+		sub.Spec.CatalogSource = opt.SourceName
+		sub.Spec.Channel = opt.Channel
+		sub.Spec.CatalogSourceNamespace = opt.SourceNamespace
+		sub.Spec.Package = opt.PackageName
+		if opt.InstallPlanApproval != "" && sub.Spec.InstallPlanApproval != opt.InstallPlanApproval {
+			sub.Spec.InstallPlanApproval = opt.InstallPlanApproval
+		}
+		sub.Spec.Config = opt.SubscriptionConfig
+		// add annotations to existing Subscriptions for upgrade case
+		if sub.Annotations == nil {
+			sub.Annotations = make(map[string]string)
+		}
+		sub.Annotations[registryKey.Namespace+"."+registryKey.Name+"/registry"] = "true"
+		sub.Annotations[registryKey.Namespace+"."+registryKey.Name+"/config"] = "true"
+		sub.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"/request"] = "true"
+		if compareSub(sub, originalSub) {
 			if err = r.updateSubscription(ctx, requestInstance, sub); err != nil {
 				requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorFailed, "", mu)
 				return err
@@ -494,6 +496,7 @@ func (r *Reconciler) generateClusterObjects(o *operatorv1alpha1.Operator, regist
 			CatalogSourceNamespace: o.SourceNamespace,
 			InstallPlanApproval:    o.InstallPlanApproval,
 			StartingCSV:            o.StartingCSV,
+			Config:                 o.SubscriptionConfig,
 		},
 	}
 	sub.SetGroupVersionKind(schema.GroupVersionKind{Group: olmv1alpha1.SchemeGroupVersion.Group, Kind: "Subscription", Version: olmv1alpha1.SchemeGroupVersion.Version})
@@ -536,11 +539,6 @@ func (r *Reconciler) checkUninstallLabel(ctx context.Context, name, namespace st
 	return subLabels[constant.NotUninstallLabel] == "true"
 }
 
-func compareSub(sub *olmv1alpha1.Subscription, template *operatorv1alpha1.Operator, registryKey, requestKey types.NamespacedName) (needUpdate bool) {
-	anno := sub.Annotations
-	_, regExists := anno[registryKey.Namespace+"."+registryKey.Name+"/registry"]
-	_, conExists := anno[registryKey.Namespace+"."+registryKey.Name+"/config"]
-	_, reqExists := anno[requestKey.Namespace+"."+requestKey.Name+"/request"]
-	spec := sub.Spec
-	return !conExists || !regExists || !reqExists || spec.CatalogSource != template.SourceName || spec.Channel != template.Channel || spec.CatalogSourceNamespace != template.SourceNamespace || spec.Package != template.PackageName || spec.InstallPlanApproval != template.InstallPlanApproval
+func compareSub(sub *olmv1alpha1.Subscription, originalSub *olmv1alpha1.Subscription) (needUpdate bool) {
+	return !equality.Semantic.DeepEqual(sub.Spec, originalSub.Spec) || !equality.Semantic.DeepEqual(sub.Annotations, originalSub.Annotations)
 }
