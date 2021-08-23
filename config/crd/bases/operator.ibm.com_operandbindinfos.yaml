@@ -4,7 +4,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.5.0
+    controller-gen.kubebuilder.io/version: v0.6.1
   creationTimestamp: null
   name: operandbindinfos.operator.ibm.com
 spec:
@@ -35,10 +35,14 @@ spec:
         description: OperandBindInfo is the Schema for the operandbindinfoes API.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
@@ -50,24 +54,32 @@ spec:
                   description: SecretConfigmap is a pair of Secret and/or Configmap.
                   properties:
                     configmap:
-                      description: The configmap identifies an existing configmap object. if it exists, the ODLM will share to the namespace of the OperandRequest.
+                      description: The configmap identifies an existing configmap
+                        object. if it exists, the ODLM will share to the namespace
+                        of the OperandRequest.
                       type: string
                     secret:
-                      description: The secret identifies an existing secret. if it exists, the ODLM will share to the namespace of the OperandRequest.
+                      description: The secret identifies an existing secret. if it
+                        exists, the ODLM will share to the namespace of the OperandRequest.
                       type: string
                   type: object
-                description: The bindings section is used to specify information about the access/configuration data that is to be shared.
+                description: The bindings section is used to specify information about
+                  the access/configuration data that is to be shared.
                 type: object
               description:
                 type: string
               operand:
-                description: The deployed service identifies itself with its operand. This must match the name in the OperandRegistry in the current namespace.
+                description: The deployed service identifies itself with its operand.
+                  This must match the name in the OperandRegistry in the current namespace.
                 type: string
               registry:
-                description: The registry identifies the name of the name of the OperandRegistry CR from which this operand deployment is being requested.
+                description: The registry identifies the name of the name of the OperandRegistry
+                  CR from which this operand deployment is being requested.
                 type: string
               registryNamespace:
-                description: Specifies the namespace in which the OperandRegistry reside. The default is the current namespace in which the request is defined.
+                description: Specifies the namespace in which the OperandRegistry
+                  reside. The default is the current namespace in which the request
+                  is defined.
                 type: string
             required:
             - operand

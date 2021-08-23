@@ -23,6 +23,7 @@ import (
 
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -33,6 +34,25 @@ import (
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
 	// +kubebuilder:scaffold:imports
 )
+
+// CPU quantities
+var cpu100 = resource.NewMilliQuantity(100, resource.DecimalSI) // 100m
+var cpu500 = resource.NewMilliQuantity(500, resource.DecimalSI) // 500m
+
+// Memory quantities
+var memory300 = resource.NewQuantity(300*1024*1024, resource.BinarySI) // 300Mi
+var memory500 = resource.NewQuantity(500*1024*1024, resource.BinarySI) // 500Mi
+
+var SubConfig = &olmv1alpha1.SubscriptionConfig{
+	Resources: &corev1.ResourceRequirements{
+		Limits: map[corev1.ResourceName]resource.Quantity{
+			corev1.ResourceCPU:    *cpu500,
+			corev1.ResourceMemory: *memory500},
+		Requests: map[corev1.ResourceName]resource.Quantity{
+			corev1.ResourceCPU:    *cpu100,
+			corev1.ResourceMemory: *memory300},
+	},
+}
 
 // CreateNSName generates random namespace names. Namespaces are never deleted in test environment
 func CreateNSName(prefix string) string {
@@ -61,6 +81,39 @@ func OperandRegistryObj(name, namespace, subNamespace string) *apiv1alpha1.Opera
 					PackageName:     "etcd",
 					Channel:         "singlenamespace-alpha",
 					Scope:           "public",
+				},
+				{
+					Name:            "jenkins",
+					Namespace:       subNamespace,
+					SourceName:      "community-operators",
+					SourceNamespace: "openshift-marketplace",
+					PackageName:     "jenkins-operator",
+					Channel:         "alpha",
+					Scope:           "public",
+				},
+			},
+		},
+	}
+}
+
+// Return OperandRegistry obj
+func OperandRegistryObjwithCfg(name, namespace, subNamespace string) *apiv1alpha1.OperandRegistry {
+	return &apiv1alpha1.OperandRegistry{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: apiv1alpha1.OperandRegistrySpec{
+			Operators: []apiv1alpha1.Operator{
+				{
+					Name:               "etcd",
+					Namespace:          subNamespace,
+					SourceName:         "community-operators",
+					SourceNamespace:    "openshift-marketplace",
+					PackageName:        "etcd",
+					Channel:            "singlenamespace-alpha",
+					Scope:              "public",
+					SubscriptionConfig: SubConfig,
 				},
 				{
 					Name:            "jenkins",
