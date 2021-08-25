@@ -48,13 +48,13 @@
         "sourceImage": "ubi8-minimal",
         "sourceTag": "8.4-208",
         "destImage": "node-dubnium-ubi8-minimal",
-        "nodeVersion": "10.24.1_8.4-208"
+        "nodeVersion": "10.24.1"
     },
     {
         "imageType": "node",
         "sourceImage": "ubi8-minimal",
         "sourceTag": "8.4-208",
         "destImage": "node-fermium-ubi8-minimal",
-        "nodeVersion": "14.17.5_8.4.208"
+        "nodeVersion": "14.17.5"
     }
 ]
