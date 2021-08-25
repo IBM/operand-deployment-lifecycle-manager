@@ -1,0 +1,60 @@
+[
+    {
+        "imageType": "external",
+        "sourceRepo": "registry.access.redhat.com",
+        "sourceNamespace": "ubi8",
+        "sourceImage": "ubi",
+        "destStage": "edge",
+        "destNamespace": "build-images",
+        "destImage": "ubi8",
+        "tag": "8.4-209",
+        "updatePackages": []
+    },
+    {
+        "imageType": "external",
+        "sourceRepo": "registry.access.redhat.com",
+        "sourceNamespace": "ubi8",
+        "sourceImage": "ubi-minimal",
+        "destStage": "edge",
+        "destNamespace": "build-images",
+        "destImage": "ubi8-minimal",
+        "tag": "8.4-208",
+        "updatePackages": []
+    },
+    {
+        "imageType": "external",
+        "sourceRepo": "registry.access.redhat.com",
+        "sourceNamespace": "ubi7",
+        "sourceImage": "ubi",
+        "destStage": "edge",
+        "destNamespace": "build-images",
+        "destImage": "ubi7",
+        "tag": "7.9-441",
+        "updatePackages": []
+    },
+    {
+        "imageType": "external",
+        "sourceRepo": "registry.access.redhat.com",
+        "sourceNamespace": "ubi7",
+        "sourceImage": "ubi-minimal",
+        "destStage": "edge",
+        "destNamespace": "build-images",
+        "destImage": "ubi7-minimal",
+        "tag": "7.9-432",
+        "updatePackages": []
+    },
+    {
+        "imageType": "node",
+        "sourceImage": "ubi8-minimal",
+        "sourceTag": "8.4-208",
+        "destImage": "node-dubnium-ubi8-minimal",
+        "nodeVersion": "10.24.1_8.4-208"
+    },
+    {
+        "imageType": "node",
+        "sourceImage": "ubi8-minimal",
+        "sourceTag": "8.4-208",
+        "destImage": "node-fermium-ubi8-minimal",
+        "nodeVersion": "14.17.5_8.4.208"
+    }
+]
