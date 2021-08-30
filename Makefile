@@ -154,11 +154,13 @@ test: ## Run unit test on prow
 	@echo "Running unit tests for the controllers."
 	@mkdir -p ${ENVTEST_ASSETS_DIR}
 	@test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh \
-	|| curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/master/hack/setup-envtest.sh
+	|| curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.6.2/hack/setup-envtest.sh
 	@test -d ${ENVTEST_ASSETS_DIR}/crds || make fetch-olm-crds
 	@source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); OPERATOR_NAMESPACE="ibm-operators" go test ./controllers/... -coverprofile cover.out
 	@rm -rf ${ENVTEST_ASSETS_DIR}
 
+e2e-test-kind:
+	@echo "Running e2e tests for the controllers."
 
 unit-test: generate code-fmt code-vet manifests ## Run unit test
 	@make test
@@ -167,7 +169,7 @@ coverage: ## Run code coverage test
 	@echo "Running unit tests for the controllers."
 	@mkdir -p ${ENVTEST_ASSETS_DIR}
 	@test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh \
-	|| curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/master/hack/setup-envtest.sh
+	|| curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.6.2/hack/setup-envtest.sh
 	@test -d ${ENVTEST_ASSETS_DIR}/crds || make fetch-olm-crds
 	@source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); common/scripts/codecov.sh ${BUILD_LOCALLY} "controllers"
 	@rm -rf ${ENVTEST_ASSETS_DIR}
