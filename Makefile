@@ -159,6 +159,8 @@ test: ## Run unit test on prow
 	@source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); OPERATOR_NAMESPACE="ibm-operators" go test ./controllers/... -coverprofile cover.out
 	@rm -rf ${ENVTEST_ASSETS_DIR}
 
+e2e-test-kind:
+	@echo "Running e2e tests for the controllers."
 
 unit-test: generate code-fmt code-vet manifests ## Run unit test
 	@make test
