@@ -722,4 +722,4 @@ spec:
   - image: quay.io/opencloudio/odlm:1.10.0
     name: ODLM_IMAGE
   replaces: operand-deployment-lifecycle-manager.v1.9.0
-  version: 1.9.0
+  version: 1.10.0
