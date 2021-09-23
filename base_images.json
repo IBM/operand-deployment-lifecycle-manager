@@ -7,7 +7,7 @@
         "destStage": "edge",
         "destNamespace": "build-images",
         "destImage": "ubi8",
-        "tag": "8.4-209",
+        "tag": "8.4-211",
         "updatePackages": []
     },
     {
@@ -18,7 +18,7 @@
         "destStage": "edge",
         "destNamespace": "build-images",
         "destImage": "ubi8-minimal",
-        "tag": "8.4-208",
+        "tag": "8.4-210",
         "updatePackages": []
     },
     {
@@ -29,7 +29,7 @@
         "destStage": "edge",
         "destNamespace": "build-images",
         "destImage": "ubi7",
-        "tag": "7.9-441",
+        "tag": "7.9-483",
         "updatePackages": []
     },
     {
@@ -40,21 +40,21 @@
         "destStage": "edge",
         "destNamespace": "build-images",
         "destImage": "ubi7-minimal",
-        "tag": "7.9-432",
+        "tag": "7.9-471",
         "updatePackages": []
     },
     {
         "imageType": "node",
         "sourceImage": "ubi8-minimal",
-        "sourceTag": "8.4-208",
+        "sourceTag": "8.4-210",
         "destImage": "node-dubnium-ubi8-minimal",
         "nodeVersion": "10.24.1"
     },
     {
         "imageType": "node",
         "sourceImage": "ubi8-minimal",
-        "sourceTag": "8.4-208",
+        "sourceTag": "8.4-210",
         "destImage": "node-fermium-ubi8-minimal",
-        "nodeVersion": "14.17.5"
+        "nodeVersion": "14.17.6"
     }
 ]
