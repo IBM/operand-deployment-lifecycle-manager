@@ -39,6 +39,34 @@ type ConfigService struct {
 	Spec map[string]runtime.RawExtension `json:"spec"`
 	// State is a flag to enable or disable service.
 	State string `json:"state,omitempty"`
+	// Resources is used to specify the k8s resources that are needed for the service.
+	// +optional
+	Resources []ConfigResource `json:"resources,omitempty"`
+}
+
+// ConfigResource defines the resource needed for the service
+type ConfigResource struct {
+	// Name is the resource name.
+	Name string `json:"name"`
+	// Kind identifies the kind of the custom resource.
+	Kind string `json:"kind"`
+	// APIVersion defines the versioned schema of this representation of an object.
+	APIVersion string `json:"apiVersion"`
+	// Namespace is the namespace of the resource.
+	// +optional
+	Namespace string `json:"namespace,omitempty"`
+	// Labels are the labels used in the resource.
+	// +optional
+	Labels map[string]string `json:"labels,omitempty"`
+	// Annotations are the annotations used in the resource.
+	// +optional
+	Annotations map[string]string `json:"annotations,omitempty"`
+	// Force is used to determine whether the existing resource should be overwritten.
+	// +optional
+	Force bool `json:"force,omitempty"`
+	// Data is the configuration map of custom resource.
+	// +optional
+	Data map[string]runtime.RawExtension `json:"data,omitempty"`
 }
 
 // OperandConfigStatus defines the observed state of OperandConfig.

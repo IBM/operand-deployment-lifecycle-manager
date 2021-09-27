@@ -57,6 +57,53 @@ spec:
                     name:
                       description: Name is the subscription name.
                       type: string
+                    resources:
+                      description: Resources is used to specify the k8s resources
+                        that are needed for the service.
+                      items:
+                        description: ConfigResource defines the resource needed for
+                          the service
+                        properties:
+                          annotations:
+                            additionalProperties:
+                              type: string
+                            description: Annotations are the annotations used in the
+                              resource.
+                            type: object
+                          apiVersion:
+                            description: APIVersion defines the versioned schema of
+                              this representation of an object.
+                            type: string
+                          data:
+                            additionalProperties:
+                              type: object
+                              x-kubernetes-preserve-unknown-fields: true
+                            description: Data is the configuration map of custom resource.
+                            type: object
+                          force:
+                            description: Force is used to determine whether the existing
+                              resource should be overwritten.
+                            type: boolean
+                          kind:
+                            description: Kind identifies the kind of the custom resource.
+                            type: string
+                          labels:
+                            additionalProperties:
+                              type: string
+                            description: Labels are the labels used in the resource.
+                            type: object
+                          name:
+                            description: Name is the resource name.
+                            type: string
+                          namespace:
+                            description: Namespace is the namespace of the resource.
+                            type: string
+                        required:
+                        - apiVersion
+                        - kind
+                        - name
+                        type: object
+                      type: array
                     spec:
                       additionalProperties:
                         type: object
