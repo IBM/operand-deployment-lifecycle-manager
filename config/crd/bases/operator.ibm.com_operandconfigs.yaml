@@ -58,7 +58,7 @@ spec:
                       description: Name is the subscription name.
                       type: string
                     resources:
-                      description: Resources is used to specify the k8s resources
+                      description: Resources is used to specify the kubernetes resources
                         that are needed for the service.
                       items:
                         description: ConfigResource defines the resource needed for
@@ -78,14 +78,16 @@ spec:
                             additionalProperties:
                               type: object
                               x-kubernetes-preserve-unknown-fields: true
-                            description: Data is the configuration map of custom resource.
+                            description: Data is the configuration map of kubernetes
+                              resource.
                             type: object
                           force:
                             description: Force is used to determine whether the existing
-                              resource should be overwritten.
+                              kubernetes resource should be overwritten.
                             type: boolean
                           kind:
-                            description: Kind identifies the kind of the custom resource.
+                            description: Kind identifies the kind of the kubernetes
+                              resource.
                             type: string
                           labels:
                             additionalProperties:
