@@ -145,17 +145,17 @@ func OperandConfigObj(name, namespace string) *apiv1alpha1.OperandConfig {
 					},
 					Resources: []apiv1alpha1.ConfigResource{
 						{
-							Name:       "fakeConfigMap",
+							Name:       "fake-configmap",
 							APIVersion: "v1",
 							Kind:       "ConfigMap",
 							Labels: map[string]string{
-								"etcd": "etcd ConfigMap",
+								"etcd": "etcd-configmap",
 							},
 							Annotations: map[string]string{
-								"etcd": "etcd ConfigMap",
+								"etcd": "etcd-configmap",
 							},
-							Data: map[string]runtime.RawExtension{
-								"data": {Raw: []byte(`{"size": 3}`)},
+							Data: &runtime.RawExtension{
+								Raw: []byte(`{"size": "3"}`),
 							},
 							Force: false,
 						},
