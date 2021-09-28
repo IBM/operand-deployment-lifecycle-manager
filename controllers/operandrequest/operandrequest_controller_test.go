@@ -26,6 +26,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -311,6 +312,13 @@ var _ = Describe("OperandRegistry controller", func() {
 				return err
 			}, testutil.Timeout, testutil.Interval).Should(Succeed())
 
+			By("Checking of the k8s resource of the etcd operator")
+			Eventually(func() error {
+				etcdConfigMap := &corev1.ConfigMap{}
+				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "fakeConfigMap", Namespace: operatorNamespaceName}, etcdConfigMap)
+				return err
+			}, testutil.Timeout, testutil.Interval).Should(Succeed())
+
 			By("Disabling the etcd operator from first OperandRequest")
 			requestInstance1 := &operatorv1alpha1.OperandRequest{}
 			Expect(k8sClient.Get(ctx, requestKey1, requestInstance1)).Should(Succeed())
@@ -349,6 +357,8 @@ var _ = Describe("OperandRegistry controller", func() {
 
 			By("Deleting the second OperandRequest")
 			Expect(k8sClient.Delete(ctx, request2)).Should(Succeed())
+
+			// TODO: By("Checking the k8s resource has been deleted")
 
 			By("Checking operators have been deleted")
 			Eventually(func() bool {

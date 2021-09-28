@@ -32,6 +32,7 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog"
@@ -179,6 +180,63 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 
 // reconcileCRwithConfig merge and create custom resource base on OperandConfig and CSV alm-examples
 func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operatorv1alpha1.ConfigService, namespace string, csv *olmv1alpha1.ClusterServiceVersion) error {
+	merr := &util.MultiErr{}
+
+	// Create k8s resources required by service
+	if service.Resources != nil {
+		for _, res := range service.Resources {
+			if res.APIVersion == "" {
+				return fmt.Errorf("The APIVersion of k8s resource is empty for operator " + service.Name)
+			}
+
+			if res.Kind == "" {
+				return fmt.Errorf("The Kind of k8s resource is empty for operator " + service.Name)
+			}
+			if res.Name == "" {
+				return fmt.Errorf("The Name of k8s resource is empty for operator " + service.Name)
+			}
+			var k8sResNs string
+			if res.Namespace == "" {
+				k8sResNs = namespace
+			} else {
+				k8sResNs = res.Namespace
+			}
+
+			var k8sRes unstructured.Unstructured
+			k8sRes.SetAPIVersion(res.APIVersion)
+			k8sRes.SetKind(res.Kind)
+			k8sRes.SetName(res.Name)
+			k8sRes.SetNamespace(k8sResNs)
+
+			err := r.Client.Get(ctx, types.NamespacedName{
+				Name:      res.Name,
+				Namespace: k8sResNs,
+			}, &k8sRes)
+
+			if err != nil && !apierrors.IsNotFound(err) {
+				merr.Add(errors.Wrapf(err, "failed to get k8s resource %s/%s", k8sResNs, res.Name))
+			} else if apierrors.IsNotFound(err) {
+				if err := r.createK8sResource(ctx, k8sRes, res.Data, res.Labels, res.Annotations); err != nil {
+					merr.Add(err)
+				}
+			} else {
+				if checkLabel(k8sRes, map[string]string{constant.OpreqLabel: "true"}) {
+					// Update k8s resource
+					klog.V(3).Info("Found existing k8s resource: " + res.Name)
+					if err := r.updateK8sResource(ctx, k8sRes, res.Data, res.Labels, res.Annotations, res.Force); err != nil {
+						merr.Add(err)
+					}
+				} else {
+					klog.V(2).Infof("Skip the k8s resource %s/%s which is not created by ODLM", res.Kind, res.Name)
+				}
+			}
+		}
+
+		if len(merr.Errors) != 0 {
+			return merr
+		}
+	}
+
 	almExamples := csv.GetAnnotations()["alm-examples"]
 
 	// Convert CR template string to slice
@@ -187,8 +245,6 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 	if err != nil {
 		return errors.Wrapf(err, "failed to convert alm-examples in the Subscription %s/%s to slice", namespace, service.Name)
 	}
-
-	merr := &util.MultiErr{}
 
 	foundMap := make(map[string]bool)
 	for cr := range service.Spec {
@@ -715,6 +771,127 @@ func (r *Reconciler) checkCustomResource(ctx context.Context, requestInstance *o
 	return nil
 }
 
+func (r *Reconciler) createK8sResource(ctx context.Context, k8sResTemplate unstructured.Unstructured, k8sResConfig map[string]runtime.RawExtension, newLabels, newAnnotations map[string]string) error {
+	kind := k8sResTemplate.GetKind()
+	name := k8sResTemplate.GetName()
+	namespace := k8sResTemplate.GetNamespace()
+
+	for key, value := range k8sResConfig {
+		// Convert raw data into map[string]interface{}
+		specJSONString, _ := json.Marshal(k8sResTemplate.Object[key])
+		mergedK8sRes := util.MergeCR(specJSONString, value.Raw)
+
+		k8sResTemplate.Object[key] = mergedK8sRes
+	}
+
+	ensureLabel(k8sResTemplate, map[string]string{constant.OpreqLabel: "true"})
+	ensureLabel(k8sResTemplate, newLabels)
+	ensureAnnotation(k8sResTemplate, newAnnotations)
+
+	// Create the k8s resource
+	err := r.Create(ctx, &k8sResTemplate)
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		return errors.Wrap(err, "failed to create k8s resource")
+	}
+
+	klog.V(2).Infof("Finish creating the k8s Resource: -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+
+	return nil
+}
+
+func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstructured.Unstructured, k8sResConfig map[string]runtime.RawExtension, newLabels, newAnnotations map[string]string, forceUpdate bool) error {
+	kind := existingK8sRes.GetKind()
+	apiversion := existingK8sRes.GetAPIVersion()
+	name := existingK8sRes.GetName()
+	namespace := existingK8sRes.GetNamespace()
+
+	// Update the k8s res
+	err := wait.PollImmediate(constant.DefaultCRFetchPeriod, constant.DefaultCRFetchTimeout, func() (bool, error) {
+
+		existingK8sRes := unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"apiVersion": apiversion,
+				"kind":       kind,
+			},
+		}
+
+		err := r.Client.Get(ctx, types.NamespacedName{
+			Name:      name,
+			Namespace: namespace,
+		}, &existingK8sRes)
+
+		if err != nil {
+			return false, errors.Wrapf(err, "failed to get k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+		}
+
+		if !checkLabel(existingK8sRes, map[string]string{constant.OpreqLabel: "true"}) {
+			return true, nil
+		}
+
+		isEqual := checkAnnotation(existingK8sRes, newAnnotations) && checkLabel(existingK8sRes, newLabels)
+
+		for key, value := range k8sResConfig {
+			existingSubConfig, err := json.Marshal(existingK8sRes.Object[key])
+			if err != nil {
+				klog.Error(err)
+				return false, err
+			}
+			// Merge sub config from OperandConfig and existing k8s resource
+			updatedExistingSubConfig := util.MergeCR(value.Raw, existingSubConfig)
+
+			isEqual = isEqual && reflect.DeepEqual(existingK8sRes.Object[key], updatedExistingSubConfig)
+
+			existingK8sRes.Object[key] = updatedExistingSubConfig
+		}
+
+		CRgeneration := existingK8sRes.GetGeneration()
+
+		if isEqual && !forceUpdate {
+			return true, nil
+		}
+
+		ensureAnnotation(existingK8sRes, newAnnotations)
+		ensureLabel(existingK8sRes, newLabels)
+
+		klog.V(2).Infof("updating k8s resource with apiversion: %s, kind: %s, %s/%s", apiversion, kind, namespace, name)
+
+		err = r.Update(ctx, &existingK8sRes)
+
+		if err != nil {
+			return false, errors.Wrapf(err, "failed to update k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+		}
+
+		UpdatedK8sRes := unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"apiVersion": apiversion,
+				"kind":       kind,
+			},
+		}
+
+		err = r.Client.Get(ctx, types.NamespacedName{
+			Name:      name,
+			Namespace: namespace,
+		}, &UpdatedK8sRes)
+
+		if err != nil {
+			return false, errors.Wrapf(err, "failed to get k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+
+		}
+
+		if UpdatedK8sRes.GetGeneration() != CRgeneration {
+			klog.V(2).Infof("Finish updating the k8s Resource: -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+		}
+
+		return true, nil
+	})
+
+	if err != nil {
+		return errors.Wrapf(err, "failed to update k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+	}
+
+	return nil
+}
+
 func checkLabel(unstruct unstructured.Unstructured, labels map[string]string) bool {
 	for k, v := range labels {
 		if !hasLabel(unstruct, k) {
@@ -746,5 +923,39 @@ func ensureLabel(cr unstructured.Unstructured, labels map[string]string) bool {
 		existingLabels[k] = v
 	}
 	cr.SetLabels(existingLabels)
+	return true
+}
+
+func ensureAnnotation(cr unstructured.Unstructured, annotations map[string]string) bool {
+	if cr.GetAnnotations() == nil {
+		cr.SetAnnotations(make(map[string]string))
+	}
+	existingAnnotations := cr.GetAnnotations()
+	for k, v := range annotations {
+		existingAnnotations[k] = v
+	}
+	cr.SetAnnotations(existingAnnotations)
+	return true
+}
+
+func checkAnnotation(unstruct unstructured.Unstructured, annotations map[string]string) bool {
+	for k, v := range annotations {
+		if !hasAnnotation(unstruct, k) {
+			return false
+		}
+		if unstruct.GetAnnotations()[k] != v {
+			return false
+		}
+	}
+	return true
+}
+
+func hasAnnotation(cr unstructured.Unstructured, annotationName string) bool {
+	if cr.GetAnnotations() == nil {
+		return false
+	}
+	if _, ok := cr.GetAnnotations()[annotationName]; !ok {
+		return false
+	}
 	return true
 }
