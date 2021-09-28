@@ -914,7 +914,7 @@ func hasLabel(cr unstructured.Unstructured, labelName string) bool {
 	return true
 }
 
-func ensureLabel(cr unstructured.Unstructured, labels map[string]string) bool {
+func ensureLabel(cr unstructured.Unstructured, labels map[string]string) {
 	if cr.GetLabels() == nil {
 		cr.SetLabels(make(map[string]string))
 	}
@@ -923,10 +923,9 @@ func ensureLabel(cr unstructured.Unstructured, labels map[string]string) bool {
 		existingLabels[k] = v
 	}
 	cr.SetLabels(existingLabels)
-	return true
 }
 
-func ensureAnnotation(cr unstructured.Unstructured, annotations map[string]string) bool {
+func ensureAnnotation(cr unstructured.Unstructured, annotations map[string]string) {
 	if cr.GetAnnotations() == nil {
 		cr.SetAnnotations(make(map[string]string))
 	}
@@ -935,7 +934,6 @@ func ensureAnnotation(cr unstructured.Unstructured, annotations map[string]strin
 		existingAnnotations[k] = v
 	}
 	cr.SetAnnotations(existingAnnotations)
-	return true
 }
 
 func checkAnnotation(unstruct unstructured.Unstructured, annotations map[string]string) bool {
