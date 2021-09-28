@@ -315,7 +315,7 @@ var _ = Describe("OperandRegistry controller", func() {
 			By("Checking of the k8s resource of the etcd operator")
 			Eventually(func() error {
 				etcdConfigMap := &corev1.ConfigMap{}
-				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "fakeConfigMap", Namespace: operatorNamespaceName}, etcdConfigMap)
+				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "fake-configmap", Namespace: operatorNamespaceName}, etcdConfigMap)
 				return err
 			}, testutil.Timeout, testutil.Interval).Should(Succeed())
 
