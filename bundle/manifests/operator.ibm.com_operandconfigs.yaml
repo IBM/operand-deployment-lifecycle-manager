@@ -83,6 +83,7 @@ spec:
                             type: object
                             x-kubernetes-preserve-unknown-fields: true
                           force:
+                            default: true
                             description: Force is used to determine whether the existing
                               kubernetes resource should be overwritten.
                             type: boolean
@@ -110,7 +111,6 @@ spec:
                     spec:
                       additionalProperties:
                         type: object
-                        x-kubernetes-preserve-unknown-fields: true
                       description: Spec is the configuration map of custom resource.
                       type: object
                     state:
