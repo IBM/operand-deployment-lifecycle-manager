@@ -933,24 +933,24 @@ func ensureAnnotation(cr unstructured.Unstructured, annotations map[string]strin
 	cr.SetAnnotations(existingAnnotations)
 }
 
-func checkAnnotation(unstruct unstructured.Unstructured, annotations map[string]string) bool {
-	for k, v := range annotations {
-		if !hasAnnotation(unstruct, k) {
-			return false
-		}
-		if unstruct.GetAnnotations()[k] != v {
-			return false
-		}
-	}
-	return true
-}
+// func checkAnnotation(unstruct unstructured.Unstructured, annotations map[string]string) bool {
+// 	for k, v := range annotations {
+// 		if !hasAnnotation(unstruct, k) {
+// 			return false
+// 		}
+// 		if unstruct.GetAnnotations()[k] != v {
+// 			return false
+// 		}
+// 	}
+// 	return true
+// }
 
-func hasAnnotation(cr unstructured.Unstructured, annotationName string) bool {
-	if cr.GetAnnotations() == nil {
-		return false
-	}
-	if _, ok := cr.GetAnnotations()[annotationName]; !ok {
-		return false
-	}
-	return true
-}
+// func hasAnnotation(cr unstructured.Unstructured, annotationName string) bool {
+// 	if cr.GetAnnotations() == nil {
+// 		return false
+// 	}
+// 	if _, ok := cr.GetAnnotations()[annotationName]; !ok {
+// 		return false
+// 	}
+// 	return true
+// }
