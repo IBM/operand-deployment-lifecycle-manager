@@ -219,10 +219,10 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 					merr.Add(err)
 				}
 			} else {
-				if checkLabel(k8sRes, map[string]string{constant.OpreqLabel: "true"}) {
+				if checkLabel(k8sRes, map[string]string{constant.OpreqLabel: "true"}) && res.Force {
 					// Update k8s resource
 					klog.V(3).Info("Found existing k8s resource: " + res.Name)
-					if err := r.updateK8sResource(ctx, k8sRes, res.Data.Raw, res.Labels, res.Annotations, res.Force); err != nil {
+					if err := r.updateK8sResource(ctx, k8sRes, res.Data.Raw, res.Labels, res.Annotations); err != nil {
 						merr.Add(err)
 					}
 				} else {
@@ -782,10 +782,6 @@ func (r *Reconciler) createK8sResource(ctx context.Context, k8sResTemplate unstr
 	}
 
 	for k, v := range k8sResConfigDecoded {
-		// Convert raw data into map[string]interface{}
-		// templateJSONString, _ := json.Marshal(k8sResTemplate.Object[k])
-		// configJSONString, _ := json.Marshal(v)
-		// mergedK8sRes := util.MergeCR(templateJSONString, configJSONString)
 		k8sResTemplate.Object[k] = v
 	}
 
@@ -804,7 +800,7 @@ func (r *Reconciler) createK8sResource(ctx context.Context, k8sResTemplate unstr
 	return nil
 }
 
-func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstructured.Unstructured, k8sResConfig []byte, newLabels, newAnnotations map[string]string, forceUpdate bool) error {
+func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstructured.Unstructured, k8sResConfig []byte, newLabels, newAnnotations map[string]string) error {
 	kind := existingK8sRes.GetKind()
 	apiversion := existingK8sRes.GetAPIVersion()
 	name := existingK8sRes.GetName()
@@ -833,8 +829,7 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 			return true, nil
 		}
 
-		isEqual := checkAnnotation(existingK8sRes, newAnnotations) && checkLabel(existingK8sRes, newLabels)
-
+		// isEqual := checkAnnotation(existingK8sRes, newAnnotations) && checkLabel(existingK8sRes, newLabels)
 		k8sResConfigDecoded := make(map[string]interface{})
 		k8sResConfigUnmarshalErr := json.Unmarshal(k8sResConfig, &k8sResConfigDecoded)
 		if k8sResConfigUnmarshalErr != nil {
@@ -842,26 +837,15 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 		}
 
 		for k, v := range k8sResConfigDecoded {
-			// existingSubConfig, err := json.Marshal(existingK8sRes.Object[k])
-			// if err != nil {
-			// 	klog.Error(err)
-			// 	return false, err
-			// }
-			// configJSONString, _ := json.Marshal(v)
-
-			// Merge existing k8s resource and config from OperandConfig
-			// updatedExistingSubConfig := util.MergeCR(existingSubConfig, configJSONString)
-
-			isEqual = isEqual && reflect.DeepEqual(existingK8sRes.Object[k], v)
-
+			// isEqual = isEqual && reflect.DeepEqual(existingK8sRes.Object[k], v)
 			existingK8sRes.Object[k] = v
 		}
 
 		CRgeneration := existingK8sRes.GetGeneration()
 
-		if isEqual && !forceUpdate {
-			return true, nil
-		}
+		// if isEqual {
+		// 	return true, nil
+		// }
 
 		ensureAnnotation(existingK8sRes, newAnnotations)
 		ensureLabel(existingK8sRes, newLabels)
