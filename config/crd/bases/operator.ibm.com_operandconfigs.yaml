@@ -117,7 +117,6 @@ spec:
                       type: string
                   required:
                   - name
-                  - spec
                   type: object
                 type: array
             type: object
