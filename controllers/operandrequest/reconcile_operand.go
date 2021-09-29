@@ -207,6 +207,11 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 			k8sRes.SetName(res.Name)
 			k8sRes.SetNamespace(k8sResNs)
 
+			var k8sResConfig []byte
+			if res.Data != nil {
+				k8sResConfig = res.Data.Raw
+			}
+
 			err := r.Client.Get(ctx, types.NamespacedName{
 				Name:      res.Name,
 				Namespace: k8sResNs,
@@ -215,14 +220,14 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 			if err != nil && !apierrors.IsNotFound(err) {
 				merr.Add(errors.Wrapf(err, "failed to get k8s resource %s/%s", k8sResNs, res.Name))
 			} else if apierrors.IsNotFound(err) {
-				if err := r.createK8sResource(ctx, k8sRes, res.Data.Raw, res.Labels, res.Annotations); err != nil {
+				if err := r.createK8sResource(ctx, k8sRes, k8sResConfig, res.Labels, res.Annotations); err != nil {
 					merr.Add(err)
 				}
 			} else {
 				if checkLabel(k8sRes, map[string]string{constant.OpreqLabel: "true"}) && res.Force {
 					// Update k8s resource
 					klog.V(3).Info("Found existing k8s resource: " + res.Name)
-					if err := r.updateK8sResource(ctx, k8sRes, res.Data.Raw, res.Labels, res.Annotations); err != nil {
+					if err := r.updateK8sResource(ctx, k8sRes, k8sResConfig, res.Labels, res.Annotations); err != nil {
 						merr.Add(err)
 					}
 				} else {
