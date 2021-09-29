@@ -62,11 +62,14 @@ type ConfigResource struct {
 	// +optional
 	Annotations map[string]string `json:"annotations,omitempty"`
 	// Force is used to determine whether the existing kubernetes resource should be overwritten.
+	// +kubebuilder:default:=true
 	// +optional
 	Force bool `json:"force,omitempty"`
 	// Data is the configuration map of kubernetes resource.
+	// +kubebuilder:pruning:PreserveUnknownFields
+	// +nullable
 	// +optional
-	Data map[string]runtime.RawExtension `json:"data,omitempty"`
+	Data *runtime.RawExtension `json:"data,omitempty"`
 }
 
 // OperandConfigStatus defines the observed state of OperandConfig.
