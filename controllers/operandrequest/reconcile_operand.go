@@ -808,55 +808,90 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 	apiversion := existingK8sRes.GetAPIVersion()
 	name := existingK8sRes.GetName()
 	namespace := existingK8sRes.GetNamespace()
-
-	existingK8sRes = unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"apiVersion": apiversion,
-			"kind":       kind,
-		},
-	}
-
-	if err := r.Client.Get(ctx, types.NamespacedName{
-		Name:      name,
-		Namespace: namespace,
-	}, &existingK8sRes); err != nil {
-		return errors.Wrapf(err, "failed to get k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
-	}
-
-	if !checkLabel(existingK8sRes, map[string]string{constant.OpreqLabel: "true"}) {
+	if kind == "Job" {
+		klog.V(2).Infof("skip updating k8s resource with apiversion: %s, kind: %s, %s/%s", apiversion, kind, namespace, name)
 		return nil
 	}
 
-	// delete the existing k8s resource, some resources could not be updated after it has been created
-	if err := r.Client.Delete(ctx, &existingK8sRes); err != nil {
-		return errors.Wrapf(err, "failed to delete existing k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
-	}
-
-	// wait for the resource has been deleted
+	// Update the k8s res
 	err := wait.PollImmediate(constant.DefaultCRFetchPeriod, constant.DefaultCRFetchTimeout, func() (bool, error) {
+
+		existingK8sRes := unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"apiVersion": apiversion,
+				"kind":       kind,
+			},
+		}
+
 		err := r.Client.Get(ctx, types.NamespacedName{
 			Name:      name,
 			Namespace: namespace,
 		}, &existingK8sRes)
-		if err == nil {
-			// continue wait for the deletion
-			return false, nil
-		} else if err != nil && apierrors.IsNotFound(err) {
+
+		if err != nil {
+			return false, errors.Wrapf(err, "failed to get k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+		}
+
+		if !checkLabel(existingK8sRes, map[string]string{constant.OpreqLabel: "true"}) {
 			return true, nil
 		}
-		return false, errors.Wrapf(err, "failed to wait k8s resource deleted -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+
+		// isEqual := checkAnnotation(existingK8sRes, newAnnotations) && checkLabel(existingK8sRes, newLabels)
+		if k8sResConfig != nil {
+			k8sResConfigDecoded := make(map[string]interface{})
+			k8sResConfigUnmarshalErr := json.Unmarshal(k8sResConfig.Raw, &k8sResConfigDecoded)
+			if k8sResConfigUnmarshalErr != nil {
+				klog.Errorf("failed to unmarshal k8s Resource Config: %v", k8sResConfigUnmarshalErr)
+			}
+
+			for k, v := range k8sResConfigDecoded {
+				// isEqual = isEqual && reflect.DeepEqual(existingK8sRes.Object[k], v)
+				existingK8sRes.Object[k] = v
+			}
+		}
+
+		CRgeneration := existingK8sRes.GetGeneration()
+
+		// if isEqual {
+		// 	return true, nil
+		// }
+
+		ensureAnnotation(existingK8sRes, newAnnotations)
+		ensureLabel(existingK8sRes, newLabels)
+
+		klog.V(2).Infof("updating k8s resource with apiversion: %s, kind: %s, %s/%s", apiversion, kind, namespace, name)
+
+		err = r.Update(ctx, &existingK8sRes)
+
+		if err != nil {
+			return false, errors.Wrapf(err, "failed to update k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+		}
+
+		UpdatedK8sRes := unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"apiVersion": apiversion,
+				"kind":       kind,
+			},
+		}
+
+		err = r.Client.Get(ctx, types.NamespacedName{
+			Name:      name,
+			Namespace: namespace,
+		}, &UpdatedK8sRes)
+
+		if err != nil {
+			return false, errors.Wrapf(err, "failed to get k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+
+		}
+
+		if UpdatedK8sRes.GetGeneration() != CRgeneration {
+			klog.V(2).Infof("Finish updating the k8s Resource: -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+		}
+
+		return true, nil
 	})
 
 	if err != nil {
-		return errors.Wrapf(err, "failed to wait k8s resource deleted -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
-	}
-
-	var k8sRes unstructured.Unstructured
-	k8sRes.SetAPIVersion(apiversion)
-	k8sRes.SetKind(kind)
-	k8sRes.SetName(name)
-	k8sRes.SetNamespace(namespace)
-	if err = r.createK8sResource(ctx, k8sRes, k8sResConfig, newLabels, newAnnotations); err != nil {
 		return errors.Wrapf(err, "failed to update k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 	}
 
