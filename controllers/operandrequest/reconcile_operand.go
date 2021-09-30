@@ -797,9 +797,6 @@ func (r *Reconciler) createK8sResource(ctx context.Context, k8sResTemplate unstr
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return errors.Wrap(err, "failed to create k8s resource")
 	}
-	if apierrors.IsAlreadyExists(err) {
-		klog.Infof("resource already exists -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
-	}
 
 	klog.V(2).Infof("Finish creating the k8s Resource: -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 
