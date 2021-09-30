@@ -32,6 +32,7 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog"
@@ -207,11 +208,6 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 			k8sRes.SetName(res.Name)
 			k8sRes.SetNamespace(k8sResNs)
 
-			var k8sResConfig []byte
-			if res.Data != nil {
-				k8sResConfig = res.Data.Raw
-			}
-
 			err := r.Client.Get(ctx, types.NamespacedName{
 				Name:      res.Name,
 				Namespace: k8sResNs,
@@ -220,14 +216,14 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 			if err != nil && !apierrors.IsNotFound(err) {
 				merr.Add(errors.Wrapf(err, "failed to get k8s resource %s/%s", k8sResNs, res.Name))
 			} else if apierrors.IsNotFound(err) {
-				if err := r.createK8sResource(ctx, k8sRes, k8sResConfig, res.Labels, res.Annotations); err != nil {
+				if err := r.createK8sResource(ctx, k8sRes, res.Data, res.Labels, res.Annotations); err != nil {
 					merr.Add(err)
 				}
 			} else {
 				if checkLabel(k8sRes, map[string]string{constant.OpreqLabel: "true"}) && res.Force {
 					// Update k8s resource
 					klog.V(3).Info("Found existing k8s resource: " + res.Name)
-					if err := r.updateK8sResource(ctx, k8sRes, k8sResConfig, res.Labels, res.Annotations); err != nil {
+					if err := r.updateK8sResource(ctx, k8sRes, res.Data, res.Labels, res.Annotations); err != nil {
 						merr.Add(err)
 					}
 				} else {
@@ -775,19 +771,21 @@ func (r *Reconciler) checkCustomResource(ctx context.Context, requestInstance *o
 	return nil
 }
 
-func (r *Reconciler) createK8sResource(ctx context.Context, k8sResTemplate unstructured.Unstructured, k8sResConfig []byte, newLabels, newAnnotations map[string]string) error {
+func (r *Reconciler) createK8sResource(ctx context.Context, k8sResTemplate unstructured.Unstructured, k8sResConfig *runtime.RawExtension, newLabels, newAnnotations map[string]string) error {
 	kind := k8sResTemplate.GetKind()
 	name := k8sResTemplate.GetName()
 	namespace := k8sResTemplate.GetNamespace()
 
-	k8sResConfigDecoded := make(map[string]interface{})
-	k8sResConfigUnmarshalErr := json.Unmarshal(k8sResConfig, &k8sResConfigDecoded)
-	if k8sResConfigUnmarshalErr != nil {
-		klog.Errorf("failed to unmarshal k8s Resource Config: %v", k8sResConfigUnmarshalErr)
-	}
+	if k8sResConfig != nil {
+		k8sResConfigDecoded := make(map[string]interface{})
+		k8sResConfigUnmarshalErr := json.Unmarshal(k8sResConfig.Raw, &k8sResConfigDecoded)
+		if k8sResConfigUnmarshalErr != nil {
+			klog.Errorf("failed to unmarshal k8s Resource Config: %v", k8sResConfigUnmarshalErr)
+		}
 
-	for k, v := range k8sResConfigDecoded {
-		k8sResTemplate.Object[k] = v
+		for k, v := range k8sResConfigDecoded {
+			k8sResTemplate.Object[k] = v
+		}
 	}
 
 	ensureLabel(k8sResTemplate, map[string]string{constant.OpreqLabel: "true"})
@@ -805,11 +803,15 @@ func (r *Reconciler) createK8sResource(ctx context.Context, k8sResTemplate unstr
 	return nil
 }
 
-func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstructured.Unstructured, k8sResConfig []byte, newLabels, newAnnotations map[string]string) error {
+func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstructured.Unstructured, k8sResConfig *runtime.RawExtension, newLabels, newAnnotations map[string]string) error {
 	kind := existingK8sRes.GetKind()
 	apiversion := existingK8sRes.GetAPIVersion()
 	name := existingK8sRes.GetName()
 	namespace := existingK8sRes.GetNamespace()
+	if kind == "Job" {
+		klog.V(2).Infof("skip updating k8s resource with apiversion: %s, kind: %s, %s/%s", apiversion, kind, namespace, name)
+		return nil
+	}
 
 	// Update the k8s res
 	err := wait.PollImmediate(constant.DefaultCRFetchPeriod, constant.DefaultCRFetchTimeout, func() (bool, error) {
@@ -835,15 +837,17 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 		}
 
 		// isEqual := checkAnnotation(existingK8sRes, newAnnotations) && checkLabel(existingK8sRes, newLabels)
-		k8sResConfigDecoded := make(map[string]interface{})
-		k8sResConfigUnmarshalErr := json.Unmarshal(k8sResConfig, &k8sResConfigDecoded)
-		if k8sResConfigUnmarshalErr != nil {
-			klog.Errorf("failed to unmarshal k8s Resource Config: %v", k8sResConfigUnmarshalErr)
-		}
+		if k8sResConfig != nil {
+			k8sResConfigDecoded := make(map[string]interface{})
+			k8sResConfigUnmarshalErr := json.Unmarshal(k8sResConfig.Raw, &k8sResConfigDecoded)
+			if k8sResConfigUnmarshalErr != nil {
+				klog.Errorf("failed to unmarshal k8s Resource Config: %v", k8sResConfigUnmarshalErr)
+			}
 
-		for k, v := range k8sResConfigDecoded {
-			// isEqual = isEqual && reflect.DeepEqual(existingK8sRes.Object[k], v)
-			existingK8sRes.Object[k] = v
+			for k, v := range k8sResConfigDecoded {
+				// isEqual = isEqual && reflect.DeepEqual(existingK8sRes.Object[k], v)
+				existingK8sRes.Object[k] = v
+			}
 		}
 
 		CRgeneration := existingK8sRes.GetGeneration()
