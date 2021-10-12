@@ -19,7 +19,6 @@
 # This script needs to inputs
 # The CSV version that is currently in dev
 
-# cs operator
 CURRENT_DEV_CSV=$1
 NEW_DEV_CSV=$2
 PREVIOUS_DEV_CSV=$3
@@ -36,7 +35,6 @@ echo "Updated the bundle/manifests/operand-deployment-lifecycle-manager.clusters
 gsed -i "s/$CURRENT_DEV_CSV/$NEW_DEV_CSV/g" config/manifests/bases/operand-deployment-lifecycle-manager.clusterserviceversion.yaml
 echo "Updated the config/manifests/bases/operand-deployment-lifecycle-manager.clusterserviceversion.yaml"
 
-# Update cs operator version only
 gsed -i "s/OPERATOR_VERSION ?= $CURRENT_DEV_CSV/OPERATOR_VERSION ?= $NEW_DEV_CSV/g" Makefile
 echo "Updated the Makefile"
 gsed -i "s/$CURRENT_DEV_CSV/$NEW_DEV_CSV/g" version/version.go
