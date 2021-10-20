@@ -436,25 +436,3 @@ func (m *ODLMOperator) EnsureAnnotation(cr unstructured.Unstructured, annotation
 	}
 	cr.SetAnnotations(existingAnnotations)
 }
-
-// func (m *ODLMOperator) CheckAnnotation(unstruct unstructured.Unstructured, annotations map[string]string) bool {
-// 	for k, v := range annotations {
-// 		if !m.HasAnnotation(unstruct, k) {
-// 			return false
-// 		}
-// 		if unstruct.GetAnnotations()[k] != v {
-// 			return false
-// 		}
-// 	}
-// 	return true
-// }
-
-// func (m *ODLMOperator) HasAnnotation(cr unstructured.Unstructured, annotationName string) bool {
-// 	if cr.GetAnnotations() == nil {
-// 		return false
-// 	}
-// 	if _, ok := cr.GetAnnotations()[annotationName]; !ok {
-// 		return false
-// 	}
-// 	return true
-// }

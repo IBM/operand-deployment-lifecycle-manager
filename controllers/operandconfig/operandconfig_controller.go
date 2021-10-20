@@ -305,30 +305,6 @@ func (r *Reconciler) deleteK8sReousceFromStatus(ctx context.Context, serviceStat
 	return nil
 }
 
-// deleteK8sReousceFromConfig deletes the k8s resources from OperandConfig Spec when their operator is not deployed anymore
-// func (r *Reconciler) deleteK8sReousceFromConfig(ctx context.Context, service *operatorv1alpha1.ConfigService, op *operatorv1alpha1.Operator) error {
-// 	merr := &util.MultiErr{}
-
-// 	for _, resource := range service.Resources {
-// 		k8sAPIVersion := resource.APIVersion
-// 		k8sKind := resource.Kind
-// 		k8sName := resource.Name
-// 		k8sNamespace := op.Namespace
-// 		if resource.Namespace != "" {
-// 			k8sNamespace = resource.Namespace
-// 		}
-
-// 		err := r.deleteK8sReousce(ctx, k8sAPIVersion, k8sKind, k8sName, k8sNamespace)
-// 		if err != nil {
-// 			merr.Add(err)
-// 		}
-// 	}
-// 	if len(merr.Errors) != 0 {
-// 		return merr
-// 	}
-// 	return nil
-// }
-
 func (r *Reconciler) deleteK8sReousce(ctx context.Context, k8sAPIVersion, k8sKind, k8sName, k8sNamespace string) error {
 	var k8sUnstruct unstructured.Unstructured
 	k8sUnstruct.SetAPIVersion(k8sAPIVersion)
