@@ -630,6 +630,23 @@ func newOperandConfigCR(name, namespace string) *v1alpha1.OperandConfig {
 					Spec: map[string]runtime.RawExtension{
 						"jenkins": {Raw: []byte(`{"service":{"port": 8081}}`)},
 					},
+					Resources: []v1alpha1.ConfigResource{
+						{
+							Name:       "fake-configmap",
+							APIVersion: "v1",
+							Kind:       "ConfigMap",
+							Labels: map[string]string{
+								"jenkins": "configmap",
+							},
+							Annotations: map[string]string{
+								"jenkins": "configmap",
+							},
+							Data: &runtime.RawExtension{
+								Raw: []byte(`{"data": {"port": "8081"}}`),
+							},
+							Force: false,
+						},
+					},
 				},
 			},
 		},
@@ -773,4 +790,21 @@ func newOperandBindInfoCR(name, namespace, RegistryNamespace string) *v1alpha1.O
 			},
 		},
 	}
+}
+
+func waitConfigmapDeletion(name, namespace string) error {
+	obj := &corev1.ConfigMap{}
+	if err := wait.PollImmediate(WaitForRetry, WaitForTimeout, func() (done bool, err error) {
+		if err = k8sClient.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, obj); err != nil {
+			if errors.IsNotFound(err) {
+				return true, nil
+			}
+			return false, err
+		}
+		fmt.Println("    --- Waiting for ConfigMap deleted ...")
+		return false, nil
+	}); err != nil {
+		return err
+	}
+	return nil
 }

@@ -155,7 +155,7 @@ func OperandConfigObj(name, namespace string) *apiv1alpha1.OperandConfig {
 								"etcd": "etcd-configmap",
 							},
 							Data: &runtime.RawExtension{
-								Raw: []byte(`{"size": "3"}`),
+								Raw: []byte(`{"data": {"size": "3"}}`),
 							},
 							Force: false,
 						},
