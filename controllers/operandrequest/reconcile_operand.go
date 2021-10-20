@@ -220,7 +220,7 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 					merr.Add(err)
 				}
 			} else {
-				if checkLabel(k8sRes, map[string]string{constant.OpreqLabel: "true"}) && res.Force {
+				if r.CheckLabel(k8sRes, map[string]string{constant.OpreqLabel: "true"}) && res.Force {
 					// Update k8s resource
 					klog.V(3).Info("Found existing k8s resource: " + res.Name)
 					if err := r.updateK8sResource(ctx, k8sRes, res.Data, res.Labels, res.Annotations); err != nil {
@@ -284,7 +284,7 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 				continue
 			}
 		} else {
-			if checkLabel(crFromALM, map[string]string{constant.OpreqLabel: "true"}) {
+			if r.CheckLabel(crFromALM, map[string]string{constant.OpreqLabel: "true"}) {
 				// Update or Delete Custom Resource
 				if err := r.existingCustomResource(ctx, crFromALM, spec.(map[string]interface{}), service, namespace); err != nil {
 					merr.Add(err)
@@ -350,7 +350,7 @@ func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance
 		}
 		requestInstance.SetMemberCRStatus(operand.Name, name, operand.Kind, operand.APIVersion, &r.Mutex)
 	} else {
-		if checkLabel(crFromRequest, map[string]string{constant.OpreqLabel: "true"}) {
+		if r.CheckLabel(crFromRequest, map[string]string{constant.OpreqLabel: "true"}) {
 			// Update or Delete Custom resource
 			klog.V(3).Info("Found existing custom resource: " + operand.Kind)
 			if err := r.updateCustomResource(ctx, crFromRequest, requestKey.Namespace, operand.Kind, operand.Spec.Raw, map[string]interface{}{}); err != nil {
@@ -462,7 +462,7 @@ func (r *Reconciler) deleteAllCustomResource(ctx context.Context, csv *olmv1alph
 					klog.V(2).Info("Finish Deleting the CR: " + kind)
 					continue
 				}
-				if checkLabel(crTemplate, map[string]string{constant.OpreqLabel: "true"}) {
+				if r.CheckLabel(crTemplate, map[string]string{constant.OpreqLabel: "true"}) {
 					wg.Add(1)
 					go func() {
 						defer wg.Done()
@@ -513,7 +513,7 @@ func (r *Reconciler) createCustomResource(ctx context.Context, crTemplate unstru
 	crTemplate.Object["spec"] = mergedCR
 	crTemplate.SetNamespace(namespace)
 
-	ensureLabel(crTemplate, map[string]string{constant.OpreqLabel: "true"})
+	r.EnsureLabel(crTemplate, map[string]string{constant.OpreqLabel: "true"})
 
 	// Creat the CR
 	crerr := r.Create(ctx, &crTemplate)
@@ -575,7 +575,7 @@ func (r *Reconciler) updateCustomResource(ctx context.Context, existingCR unstru
 			return false, errors.Wrapf(err, "failed to get custom resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 		}
 
-		if !checkLabel(existingCR, map[string]string{constant.OpreqLabel: "true"}) {
+		if !r.CheckLabel(existingCR, map[string]string{constant.OpreqLabel: "true"}) {
 			return true, nil
 		}
 
@@ -671,7 +671,7 @@ func (r *Reconciler) deleteCustomResource(ctx context.Context, existingCR unstru
 	if apierrors.IsNotFound(err) {
 		klog.V(3).Infof("There is no custom resource: %s from custom resource definition: %s", name, kind)
 	} else {
-		if checkLabel(crShouldBeDeleted, map[string]string{constant.OpreqLabel: "true"}) && !checkLabel(crShouldBeDeleted, map[string]string{constant.NotUninstallLabel: "true"}) {
+		if r.CheckLabel(crShouldBeDeleted, map[string]string{constant.OpreqLabel: "true"}) && !r.CheckLabel(crShouldBeDeleted, map[string]string{constant.NotUninstallLabel: "true"}) {
 			klog.V(3).Infof("Deleting custom resource: %s from custom resource definition: %s", name, kind)
 			err := r.Delete(ctx, &crShouldBeDeleted)
 			if err != nil && !apierrors.IsNotFound(err) {
@@ -788,9 +788,9 @@ func (r *Reconciler) createK8sResource(ctx context.Context, k8sResTemplate unstr
 		}
 	}
 
-	ensureLabel(k8sResTemplate, map[string]string{constant.OpreqLabel: "true"})
-	ensureLabel(k8sResTemplate, newLabels)
-	ensureAnnotation(k8sResTemplate, newAnnotations)
+	r.EnsureLabel(k8sResTemplate, map[string]string{constant.OpreqLabel: "true"})
+	r.EnsureLabel(k8sResTemplate, newLabels)
+	r.EnsureAnnotation(k8sResTemplate, newAnnotations)
 
 	// Create the k8s resource
 	err := r.Create(ctx, &k8sResTemplate)
@@ -832,11 +832,11 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 			return false, errors.Wrapf(err, "failed to get k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 		}
 
-		if !checkLabel(existingK8sRes, map[string]string{constant.OpreqLabel: "true"}) {
+		if !r.CheckLabel(existingK8sRes, map[string]string{constant.OpreqLabel: "true"}) {
 			return true, nil
 		}
 
-		// isEqual := checkAnnotation(existingK8sRes, newAnnotations) && checkLabel(existingK8sRes, newLabels)
+		// isEqual := r.CheckAnnotation(existingK8sRes, newAnnotations) && r.CheckLabel(existingK8sRes, newLabels)
 		if k8sResConfig != nil {
 			k8sResConfigDecoded := make(map[string]interface{})
 			k8sResConfigUnmarshalErr := json.Unmarshal(k8sResConfig.Raw, &k8sResConfigDecoded)
@@ -856,8 +856,8 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 		// 	return true, nil
 		// }
 
-		ensureAnnotation(existingK8sRes, newAnnotations)
-		ensureLabel(existingK8sRes, newLabels)
+		r.EnsureAnnotation(existingK8sRes, newAnnotations)
+		r.EnsureLabel(existingK8sRes, newLabels)
 
 		klog.V(2).Infof("updating k8s resource with apiversion: %s, kind: %s, %s/%s", apiversion, kind, namespace, name)
 
@@ -898,68 +898,102 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 	return nil
 }
 
-func checkLabel(unstruct unstructured.Unstructured, labels map[string]string) bool {
-	for k, v := range labels {
-		if !hasLabel(unstruct, k) {
-			return false
+func (r *Reconciler) deleteK8sResource(ctx context.Context, existingK8sRes unstructured.Unstructured, namespace string) error {
+
+	kind := existingK8sRes.GetKind()
+	apiversion := existingK8sRes.GetAPIVersion()
+	name := existingK8sRes.GetName()
+
+	k8sResShouldBeDeleted := unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": apiversion,
+			"kind":       kind,
+		},
+	}
+	err := r.Client.Get(ctx, types.NamespacedName{
+		Name:      name,
+		Namespace: namespace,
+	}, &k8sResShouldBeDeleted)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return errors.Wrapf(err, "failed to get k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+	}
+	if apierrors.IsNotFound(err) {
+		klog.V(3).Infof("There is no k8s resource: %s from kind: %s", name, kind)
+	} else {
+		if r.CheckLabel(k8sResShouldBeDeleted, map[string]string{constant.OpreqLabel: "true"}) && !r.CheckLabel(k8sResShouldBeDeleted, map[string]string{constant.NotUninstallLabel: "true"}) {
+			klog.V(3).Infof("Deleting k8s resource: %s from kind: %s", name, kind)
+			err := r.Delete(ctx, &k8sResShouldBeDeleted)
+			if err != nil && !apierrors.IsNotFound(err) {
+				return errors.Wrapf(err, "failed to delete k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+			}
+			err = wait.PollImmediate(constant.DefaultCRDeletePeriod, constant.DefaultCRDeleteTimeout, func() (bool, error) {
+				klog.V(3).Infof("Waiting for k8s resource %s is removed ...", kind)
+				err := r.Client.Get(ctx, types.NamespacedName{
+					Name:      name,
+					Namespace: namespace,
+				}, &existingK8sRes)
+				if apierrors.IsNotFound(err) {
+					return true, nil
+				}
+				if err != nil {
+					return false, errors.Wrapf(err, "failed to get k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+				}
+				return false, nil
+			})
+			if err != nil {
+				return errors.Wrapf(err, "failed to delete k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+			}
+			klog.V(1).Infof("Finish deleting k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 		}
-		if unstruct.GetLabels()[k] != v {
-			return false
+	}
+	return nil
+}
+
+// deleteAllK8sResource remove k8s resource base on OperandConfig
+func (r *Reconciler) deleteAllK8sResource(ctx context.Context, csc *operatorv1alpha1.OperandConfig, operandName, namespace string) error {
+
+	service := csc.GetService(operandName)
+	if service == nil {
+		return nil
+	}
+
+	var k8sResourceList []operatorv1alpha1.ConfigResource
+	k8sResourceList = append(k8sResourceList, service.Resources...)
+
+	merr := &util.MultiErr{}
+	var (
+		wg sync.WaitGroup
+	)
+	for _, k8sRes := range k8sResourceList {
+		k8sResShouldBeDeleted := unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"apiVersion": k8sRes.APIVersion,
+				"kind":       k8sRes.Kind,
+				"metadata": map[string]interface{}{
+					"name": k8sRes.Name,
+				},
+			},
 		}
+		k8sNamespace := namespace
+		if k8sRes.Namespace != "" {
+			k8sNamespace = k8sRes.Namespace
+		}
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := r.deleteK8sResource(ctx, k8sResShouldBeDeleted, k8sNamespace); err != nil {
+				r.Mutex.Lock()
+				defer r.Mutex.Unlock()
+				merr.Add(err)
+				return
+			}
+		}()
 	}
-	return true
+	wg.Wait()
+
+	if len(merr.Errors) != 0 {
+		return merr
+	}
+	return nil
 }
-
-func hasLabel(cr unstructured.Unstructured, labelName string) bool {
-	if cr.GetLabels() == nil {
-		return false
-	}
-	if _, ok := cr.GetLabels()[labelName]; !ok {
-		return false
-	}
-	return true
-}
-
-func ensureLabel(cr unstructured.Unstructured, labels map[string]string) {
-	if cr.GetLabels() == nil {
-		cr.SetLabels(make(map[string]string))
-	}
-	existingLabels := cr.GetLabels()
-	for k, v := range labels {
-		existingLabels[k] = v
-	}
-	cr.SetLabels(existingLabels)
-}
-
-func ensureAnnotation(cr unstructured.Unstructured, annotations map[string]string) {
-	if cr.GetAnnotations() == nil {
-		cr.SetAnnotations(make(map[string]string))
-	}
-	existingAnnotations := cr.GetAnnotations()
-	for k, v := range annotations {
-		existingAnnotations[k] = v
-	}
-	cr.SetAnnotations(existingAnnotations)
-}
-
-// func checkAnnotation(unstruct unstructured.Unstructured, annotations map[string]string) bool {
-// 	for k, v := range annotations {
-// 		if !hasAnnotation(unstruct, k) {
-// 			return false
-// 		}
-// 		if unstruct.GetAnnotations()[k] != v {
-// 			return false
-// 		}
-// 	}
-// 	return true
-// }
-
-// func hasAnnotation(cr unstructured.Unstructured, annotationName string) bool {
-// 	if cr.GetAnnotations() == nil {
-// 		return false
-// 	}
-// 	if _, ok := cr.GetAnnotations()[annotationName]; !ok {
-// 		return false
-// 	}
-// 	return true
-// }

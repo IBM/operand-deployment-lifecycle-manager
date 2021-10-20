@@ -21,13 +21,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 
+	"github.com/mohae/deepcopy"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -101,6 +104,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, instance *operatorv1alpha
 		instance.Status.Phase = operatorv1alpha1.ServiceInit
 	}
 
+	originalStatus := deepcopy.Copy(instance.Status.ServiceStatus)
 	instance.Status.ServiceStatus = make(map[string]operatorv1alpha1.CrStatus)
 
 	registryInstance, err := r.GetOperandRegistry(ctx, types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace})
@@ -161,6 +165,44 @@ func (r *Reconciler) updateStatus(ctx context.Context, instance *operatorv1alpha
 			instance.Status.ServiceStatus[op.Name] = tmp
 		}
 
+		merr := &util.MultiErr{}
+
+		// handle the deletion of k8s resources
+		k8sError := r.deleteK8sReousceFromStatus(ctx, originalStatus.(map[string]operatorv1alpha1.CrStatus), service, &op)
+		if k8sError != nil {
+			merr.Add(k8sError)
+		}
+
+		// update the status for kubernetes resources
+		k8sResources := service.Resources
+		for _, resource := range k8sResources {
+			var k8sUnstruct unstructured.Unstructured
+			k8sAPIVersion := resource.APIVersion
+			k8sKind := resource.Kind
+			k8sName := resource.Name
+			k8sNamespace := op.Namespace
+			if resource.Namespace != "" {
+				k8sNamespace = resource.Namespace
+			}
+			resourceKey := k8sAPIVersion + "." + k8sKind + "." + k8sNamespace + "." + k8sName
+
+			k8sUnstruct.SetAPIVersion(k8sAPIVersion)
+			k8sUnstruct.SetKind(k8sKind)
+			k8sGetError := r.Client.Get(ctx, types.NamespacedName{
+				Name:      k8sName,
+				Namespace: k8sNamespace,
+			}, &k8sUnstruct)
+
+			if k8sGetError != nil && !apierrors.IsNotFound(k8sGetError) {
+				instance.Status.ServiceStatus[op.Name].CrStatus[resourceKey] = operatorv1alpha1.ServiceFailed
+			} else if apierrors.IsNotFound(k8sGetError) {
+				instance.Status.ServiceStatus[op.Name].CrStatus[resourceKey] = operatorv1alpha1.ServiceCreating
+			} else {
+				instance.Status.ServiceStatus[op.Name].CrStatus[resourceKey] = operatorv1alpha1.ServiceRunning
+			}
+		}
+
+		// update the status for custom resources
 		almExamples := csv.ObjectMeta.Annotations["alm-examples"]
 		if almExamples == "" {
 			klog.Warningf("Notfound alm-examples in the ClusterServiceVersion %s/%s", csv.Namespace, csv.Name)
@@ -174,8 +216,6 @@ func (r *Reconciler) updateStatus(ctx context.Context, instance *operatorv1alpha
 		if err != nil {
 			return errors.Wrapf(err, "failed to convert alm-examples in the Subscription %s/%s to slice", sub.Namespace, sub.Name)
 		}
-
-		merr := &util.MultiErr{}
 
 		// Merge OperandConfig and ClusterServiceVersion alm-examples
 		for _, crTemplate := range crTemplates {
@@ -223,6 +263,112 @@ func (r *Reconciler) updateStatus(ctx context.Context, instance *operatorv1alpha
 	klog.V(2).Info("Updating OperandConfig status")
 	instance.UpdateOperandPhase()
 
+	return nil
+}
+
+// deleteK8sReousceFromStatus deletes the k8s resources from OperandConfig Status when they are not defined in OperandConfig Spec anymore
+func (r *Reconciler) deleteK8sReousceFromStatus(ctx context.Context, serviceStatus map[string]operatorv1alpha1.CrStatus, service *operatorv1alpha1.ConfigService, op *operatorv1alpha1.Operator) error {
+	merr := &util.MultiErr{}
+	reg, _ := regexp.Compile(`^(.*)\.(.*)\.(.*)\.(.*)`)
+	var existingResList []string
+	for key := range serviceStatus[op.Name].CrStatus {
+		if reg.MatchString((key)) {
+			existingResList = append(existingResList, key)
+		}
+	}
+
+	for _, resKey := range existingResList {
+		separateRes := strings.Split(resKey, ".")
+		k8sAPIVersion := separateRes[0]
+		k8sKind := separateRes[1]
+		k8sNamespace := separateRes[2]
+		k8sName := separateRes[3]
+
+		k8sResources := service.Resources
+		isInConfig := false
+		for _, resource := range k8sResources {
+			if resource.Name == k8sName && resource.Kind == k8sKind {
+				isInConfig = true
+			}
+		}
+		// start the deletion if the resource found in status but not in config spec
+		if !isInConfig {
+			err := r.deleteK8sReousce(ctx, k8sAPIVersion, k8sKind, k8sName, k8sNamespace)
+			if err != nil {
+				merr.Add(err)
+			}
+		}
+	}
+	if len(merr.Errors) != 0 {
+		return merr
+	}
+	return nil
+}
+
+// deleteK8sReousceFromConfig deletes the k8s resources from OperandConfig Spec when their operator is not deployed anymore
+// func (r *Reconciler) deleteK8sReousceFromConfig(ctx context.Context, service *operatorv1alpha1.ConfigService, op *operatorv1alpha1.Operator) error {
+// 	merr := &util.MultiErr{}
+
+// 	for _, resource := range service.Resources {
+// 		k8sAPIVersion := resource.APIVersion
+// 		k8sKind := resource.Kind
+// 		k8sName := resource.Name
+// 		k8sNamespace := op.Namespace
+// 		if resource.Namespace != "" {
+// 			k8sNamespace = resource.Namespace
+// 		}
+
+// 		err := r.deleteK8sReousce(ctx, k8sAPIVersion, k8sKind, k8sName, k8sNamespace)
+// 		if err != nil {
+// 			merr.Add(err)
+// 		}
+// 	}
+// 	if len(merr.Errors) != 0 {
+// 		return merr
+// 	}
+// 	return nil
+// }
+
+func (r *Reconciler) deleteK8sReousce(ctx context.Context, k8sAPIVersion, k8sKind, k8sName, k8sNamespace string) error {
+	var k8sUnstruct unstructured.Unstructured
+	k8sUnstruct.SetAPIVersion(k8sAPIVersion)
+	k8sUnstruct.SetKind(k8sKind)
+	k8sGetError := r.Client.Get(ctx, types.NamespacedName{
+		Name:      k8sName,
+		Namespace: k8sNamespace,
+	}, &k8sUnstruct)
+
+	if k8sGetError != nil && !apierrors.IsNotFound(k8sGetError) {
+		return errors.Wrapf(k8sGetError, "failed to get k8s resource -- Kind: %s, NamespacedName: %s/%s", k8sKind, k8sNamespace, k8sName)
+	} else if apierrors.IsNotFound(k8sGetError) {
+		klog.V(3).Infof("There is no k8s resource -- Kind: %s, NamespacedName: %s/%s", k8sKind, k8sNamespace, k8sName)
+	} else {
+		if r.CheckLabel(k8sUnstruct, map[string]string{constant.OpreqLabel: "true"}) {
+			klog.V(3).Infof("Deleting k8s resource -- Kind: %s, NamespacedName: %s/%s", k8sKind, k8sNamespace, k8sName)
+			k8sDeleteError := r.Delete(ctx, &k8sUnstruct)
+			if k8sDeleteError != nil && !apierrors.IsNotFound(k8sDeleteError) {
+				return errors.Wrapf(k8sDeleteError, "failed to delete k8s resource -- Kind: %s, NamespacedName: %s/%s", k8sKind, k8sNamespace, k8sName)
+			}
+			waitErr := wait.PollImmediate(constant.DefaultCRDeletePeriod, constant.DefaultCRDeleteTimeout, func() (bool, error) {
+				klog.V(3).Infof("Waiting for k8s resource -- Kind: %s, NamespacedName: %s/%s removed ...", k8sKind, k8sNamespace, k8sName)
+				err := r.Client.Get(ctx, types.NamespacedName{
+					Name:      k8sName,
+					Namespace: k8sNamespace,
+				}, &k8sUnstruct)
+				if apierrors.IsNotFound(err) {
+					return true, nil
+				}
+				if err != nil {
+					return false, errors.Wrapf(err, "failed to get k8s resource -- Kind: %s, NamespacedName: %s/%s", k8sKind, k8sNamespace, k8sName)
+				}
+				return false, nil
+			})
+			if waitErr != nil {
+				return errors.Wrapf(waitErr, "failed to delete k8s resource -- Kind: %s, NamespacedName: %s/%s", k8sKind, k8sNamespace, k8sName)
+			}
+			klog.V(1).Infof("Finish deleting k8s resource -- Kind: %s, NamespacedName: %s/%s", k8sKind, k8sNamespace, k8sName)
+		}
+	}
 	return nil
 }
 

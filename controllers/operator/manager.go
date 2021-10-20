@@ -25,6 +25,7 @@ import (
 	operatorsv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
@@ -391,3 +392,69 @@ func (m *ODLMOperator) GetOperatorNamespace(installMode, namespace string) strin
 	}
 	return namespace
 }
+
+func (m *ODLMOperator) CheckLabel(unstruct unstructured.Unstructured, labels map[string]string) bool {
+	for k, v := range labels {
+		if !m.HasLabel(unstruct, k) {
+			return false
+		}
+		if unstruct.GetLabels()[k] != v {
+			return false
+		}
+	}
+	return true
+}
+
+func (m *ODLMOperator) HasLabel(cr unstructured.Unstructured, labelName string) bool {
+	if cr.GetLabels() == nil {
+		return false
+	}
+	if _, ok := cr.GetLabels()[labelName]; !ok {
+		return false
+	}
+	return true
+}
+
+func (m *ODLMOperator) EnsureLabel(cr unstructured.Unstructured, labels map[string]string) {
+	if cr.GetLabels() == nil {
+		cr.SetLabels(make(map[string]string))
+	}
+	existingLabels := cr.GetLabels()
+	for k, v := range labels {
+		existingLabels[k] = v
+	}
+	cr.SetLabels(existingLabels)
+}
+
+func (m *ODLMOperator) EnsureAnnotation(cr unstructured.Unstructured, annotations map[string]string) {
+	if cr.GetAnnotations() == nil {
+		cr.SetAnnotations(make(map[string]string))
+	}
+	existingAnnotations := cr.GetAnnotations()
+	for k, v := range annotations {
+		existingAnnotations[k] = v
+	}
+	cr.SetAnnotations(existingAnnotations)
+}
+
+// func (m *ODLMOperator) CheckAnnotation(unstruct unstructured.Unstructured, annotations map[string]string) bool {
+// 	for k, v := range annotations {
+// 		if !m.HasAnnotation(unstruct, k) {
+// 			return false
+// 		}
+// 		if unstruct.GetAnnotations()[k] != v {
+// 			return false
+// 		}
+// 	}
+// 	return true
+// }
+
+// func (m *ODLMOperator) HasAnnotation(cr unstructured.Unstructured, annotationName string) bool {
+// 	if cr.GetAnnotations() == nil {
+// 		return false
+// 	}
+// 	if _, ok := cr.GetAnnotations()[annotationName]; !ok {
+// 		return false
+// 	}
+// 	return true
+// }
