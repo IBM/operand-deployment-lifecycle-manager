@@ -321,6 +321,10 @@ func (r *Reconciler) deleteSubscription(ctx context.Context, operandName string,
 		if err := r.deleteAllCustomResource(ctx, csv, requestInstance, configInstance, operandName, op.Namespace); err != nil {
 			return err
 		}
+		klog.V(2).Infof("Deleting all the k8s Resources for CSV, Namespace: %s, Name: %s", csv.Namespace, csv.Name)
+		if err := r.deleteAllK8sResource(ctx, configInstance, operandName, op.Namespace); err != nil {
+			return err
+		}
 		if r.checkUninstallLabel(ctx, op.Name, namespace) {
 			klog.V(1).Infof("Operator %s has label operator.ibm.com/opreq-do-not-uninstall. Skip the uninstall", op.Name)
 			return nil

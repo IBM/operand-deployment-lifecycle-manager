@@ -107,6 +107,12 @@ var _ = Describe("Testing ODLM", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(jenkins).ToNot(BeNil())
 
+			// Check if the k8s resource is created
+			By("Check if the k8s resource is created")
+			jenkinsConfigmap, err := retrieveConfigmap("fake-configmap", OperatorNamespace)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(jenkinsConfigmap).ToNot(BeNil())
+
 			// Update the OperandConfig
 			By("Update the OperandConfig")
 			Eventually(func() bool {
@@ -226,6 +232,11 @@ var _ = Describe("Testing ODLM", func() {
 			// Delete the first OperandRequest
 			By("Delete the first OperandRequest")
 			err = deleteOperandRequest(req1)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Check if the k8s resource is deleted
+			By("Check if the k8s resource is deleted")
+			err = waitConfigmapDeletion("fake-configmap", OperatorNamespace)
 			Expect(err).ToNot(HaveOccurred())
 
 			// Update the channel of the etcd operator

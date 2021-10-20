@@ -7,6 +7,7 @@ require (
 	github.com/IBM/ibm-namespace-scope-operator v1.0.0-alpha
 	github.com/coreos/etcd-operator v0.9.4
 	github.com/deckarep/golang-set v1.7.1
+	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.14.0
 	github.com/operator-framework/api v0.6.2

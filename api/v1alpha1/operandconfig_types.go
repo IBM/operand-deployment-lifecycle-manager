@@ -123,10 +123,11 @@ const (
 	// when an OperandConfig is deleted.
 	ConfigFinalizer = "finalizer.config.ibm.com"
 
-	ServiceRunning ServicePhase = "Running"
-	ServiceFailed  ServicePhase = "Failed"
-	ServiceInit    ServicePhase = "Initialized"
-	ServiceNone    ServicePhase = ""
+	ServiceRunning  ServicePhase = "Running"
+	ServiceFailed   ServicePhase = "Failed"
+	ServiceInit     ServicePhase = "Initialized"
+	ServiceCreating ServicePhase = "Creating"
+	ServiceNone     ServicePhase = ""
 )
 
 // GetService obtains the service definition with the operand name.
@@ -158,10 +159,12 @@ func (r *OperandConfig) UpdateOperandPhase() {
 		notReadyNum int
 		runningNum  int
 		failedNum   int
+		creatingNum int
 	}{
 		notReadyNum: 0,
 		runningNum:  0,
 		failedNum:   0,
+		creatingNum: 0,
 	}
 	for _, operator := range r.Status.ServiceStatus {
 		for _, service := range operator.CrStatus {
@@ -170,11 +173,15 @@ func (r *OperandConfig) UpdateOperandPhase() {
 				operandStatusStat.runningNum++
 			case ServiceFailed:
 				operandStatusStat.failedNum++
+			case ServiceCreating:
+				operandStatusStat.creatingNum++
 			}
 		}
 	}
 	if operandStatusStat.failedNum > 0 {
 		r.Status.Phase = ServiceFailed
+	} else if operandStatusStat.creatingNum > 0 {
+		r.Status.Phase = ServiceCreating
 	} else if operandStatusStat.runningNum > 0 {
 		r.Status.Phase = ServiceRunning
 	} else {

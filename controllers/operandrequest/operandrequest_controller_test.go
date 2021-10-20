@@ -358,7 +358,12 @@ var _ = Describe("OperandRegistry controller", func() {
 			By("Deleting the second OperandRequest")
 			Expect(k8sClient.Delete(ctx, request2)).Should(Succeed())
 
-			// TODO: By("Checking the k8s resource has been deleted")
+			By("Checking the k8s resource has been deleted")
+			Eventually(func() bool {
+				etcdConfigMap := &corev1.ConfigMap{}
+				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "fake-configmap", Namespace: operatorNamespaceName}, etcdConfigMap)
+				return err != nil && errors.IsNotFound(err)
+			}, testutil.Timeout, testutil.Interval).Should(BeTrue())
 
 			By("Checking operators have been deleted")
 			Eventually(func() bool {
