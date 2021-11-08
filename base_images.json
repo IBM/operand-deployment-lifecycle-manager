@@ -7,7 +7,7 @@
         "destStage": "edge",
         "destNamespace": "build-images",
         "destImage": "ubi8",
-        "tag": "8.4-211",
+        "tag": "8.4-213",
         "updatePackages": []
     },
     {
@@ -18,7 +18,7 @@
         "destStage": "edge",
         "destNamespace": "build-images",
         "destImage": "ubi8-minimal",
-        "tag": "8.4-210",
+        "tag": "8.4-212",
         "updatePackages": []
     },
     {
@@ -46,14 +46,14 @@
     {
         "imageType": "node",
         "sourceImage": "ubi8-minimal",
-        "sourceTag": "8.4-210",
+        "sourceTag": "8.4-212",
         "destImage": "node-dubnium-ubi8-minimal",
         "nodeVersion": "10.24.1"
     },
     {
         "imageType": "node",
         "sourceImage": "ubi8-minimal",
-        "sourceTag": "8.4-210",
+        "sourceTag": "8.4-212",
         "destImage": "node-fermium-ubi8-minimal",
         "nodeVersion": "14.18.1"
     }
