@@ -838,15 +838,24 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 			hashedData := sha256.Sum256(k8sResConfig.Raw)
 			newHashedData = hex.EncodeToString(hashedData[:7])
 		}
+
 		if existingHashedData != newHashedData {
+			// create a new template of k8s resource
+			var templatek8sRes unstructured.Unstructured
+			templatek8sRes.SetAPIVersion(apiversion)
+			templatek8sRes.SetKind(kind)
+			templatek8sRes.SetName(name)
+			templatek8sRes.SetNamespace(namespace)
+
 			if newAnnotations == nil {
 				newAnnotations = make(map[string]string)
 			}
 			newAnnotations[constant.HashedData] = newHashedData
+
 			if err := r.deleteK8sResource(ctx, existingK8sRes, namespace); err != nil {
 				return errors.Wrap(err, "failed to update k8s resource")
 			}
-			if err := r.createK8sResource(ctx, existingK8sRes, k8sResConfig, newLabels, newAnnotations); err != nil {
+			if err := r.createK8sResource(ctx, templatek8sRes, k8sResConfig, newLabels, newAnnotations); err != nil {
 				return errors.Wrap(err, "failed to update k8s resource")
 			}
 		}
