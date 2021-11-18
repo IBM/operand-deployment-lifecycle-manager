@@ -839,6 +839,9 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 			newHashedData = hex.EncodeToString(hashedData[:7])
 		}
 		if existingHashedData != newHashedData {
+			if newAnnotations == nil {
+				newAnnotations = make(map[string]string)
+			}
 			newAnnotations[constant.HashedData] = newHashedData
 			if err := r.deleteK8sResource(ctx, existingK8sRes, namespace); err != nil {
 				return errors.Wrap(err, "failed to update k8s resource")
