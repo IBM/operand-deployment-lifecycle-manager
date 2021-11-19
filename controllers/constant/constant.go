@@ -49,6 +49,9 @@ const (
 	//FindOperandRegistry is the key for checking if the OperandRegistry is found
 	FindOperandRegistry string = "operator.ibm.com/operandregistry-is-not-found"
 
+	//HashedData is the key for checking the checksum of data section
+	HashedData string = "hashedData"
+
 	//DefaultRequestTimeout is the default timeout for kube request
 	DefaultRequestTimeout = 5 * time.Second
 

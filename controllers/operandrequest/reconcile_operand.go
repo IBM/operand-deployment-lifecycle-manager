@@ -809,7 +809,57 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 	name := existingK8sRes.GetName()
 	namespace := existingK8sRes.GetNamespace()
 	if kind == "Job" {
-		klog.V(2).Infof("skip updating k8s resource with apiversion: %s, kind: %s, %s/%s", apiversion, kind, namespace, name)
+		existingK8sRes := unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"apiVersion": apiversion,
+				"kind":       kind,
+			},
+		}
+
+		err := r.Client.Get(ctx, types.NamespacedName{
+			Name:      name,
+			Namespace: namespace,
+		}, &existingK8sRes)
+
+		if err != nil {
+			return errors.Wrapf(err, "failed to get k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+		}
+		if !r.CheckLabel(existingK8sRes, map[string]string{constant.OpreqLabel: "true"}) {
+			return nil
+		}
+
+		var existingHashedData string
+		var newHashedData string
+		if existingK8sRes.GetAnnotations() != nil {
+			existingHashedData = existingK8sRes.GetAnnotations()[constant.HashedData]
+		}
+
+		if k8sResConfig != nil {
+			hashedData := sha256.Sum256(k8sResConfig.Raw)
+			newHashedData = hex.EncodeToString(hashedData[:7])
+		}
+
+		if existingHashedData != newHashedData {
+			// create a new template of k8s resource
+			var templatek8sRes unstructured.Unstructured
+			templatek8sRes.SetAPIVersion(apiversion)
+			templatek8sRes.SetKind(kind)
+			templatek8sRes.SetName(name)
+			templatek8sRes.SetNamespace(namespace)
+
+			if newAnnotations == nil {
+				newAnnotations = make(map[string]string)
+			}
+			newAnnotations[constant.HashedData] = newHashedData
+
+			if err := r.deleteK8sResource(ctx, existingK8sRes, namespace); err != nil {
+				return errors.Wrap(err, "failed to update k8s resource")
+			}
+			if err := r.createK8sResource(ctx, templatek8sRes, k8sResConfig, newLabels, newAnnotations); err != nil {
+				return errors.Wrap(err, "failed to update k8s resource")
+			}
+		}
+
 		return nil
 	}
 
