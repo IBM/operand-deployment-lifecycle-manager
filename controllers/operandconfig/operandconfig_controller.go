@@ -184,7 +184,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, instance *operatorv1alpha
 			if resource.Namespace != "" {
 				k8sNamespace = resource.Namespace
 			}
-			resourceKey := k8sAPIVersion + "." + k8sKind + "." + k8sNamespace + "." + k8sName
+			resourceKey := k8sAPIVersion + "@" + k8sKind + "@" + k8sNamespace + "@" + k8sName
 
 			k8sUnstruct.SetAPIVersion(k8sAPIVersion)
 			k8sUnstruct.SetKind(k8sKind)
@@ -269,7 +269,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, instance *operatorv1alpha
 // deleteK8sReousceFromStatus deletes the k8s resources from OperandConfig Status when they are not defined in OperandConfig Spec anymore
 func (r *Reconciler) deleteK8sReousceFromStatus(ctx context.Context, serviceStatus map[string]operatorv1alpha1.CrStatus, service *operatorv1alpha1.ConfigService, op *operatorv1alpha1.Operator) error {
 	merr := &util.MultiErr{}
-	reg, _ := regexp.Compile(`^(.*)\.(.*)\.(.*)\.(.*)`)
+	reg, _ := regexp.Compile(`^(.*)\@(.*)\@(.*)\@(.*)`)
 	var existingResList []string
 	for key := range serviceStatus[op.Name].CrStatus {
 		if reg.MatchString((key)) {
