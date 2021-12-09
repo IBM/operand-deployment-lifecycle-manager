@@ -278,7 +278,14 @@ func (r *Reconciler) deleteK8sReousceFromStatus(ctx context.Context, serviceStat
 	}
 
 	for _, resKey := range existingResList {
-		separateRes := strings.Split(resKey, ".")
+		separateRes := strings.Split(resKey, "@")
+
+		// based on the regexp "regexp.Compile(`^(.*)\@(.*)\@(.*)\@(.*)`)" above, check if resKey can be split properly to a length 4 Slice
+		if len(separateRes) != 4 {
+			err := fmt.Errorf("%s cannot be split to a length 4 Slice by @", resKey)
+			merr.Add(err)
+			continue
+		}
 		k8sAPIVersion := separateRes[0]
 		k8sKind := separateRes[1]
 		k8sNamespace := separateRes[2]
