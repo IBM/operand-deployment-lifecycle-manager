@@ -192,14 +192,6 @@ e2e-test:
 
 e2e-test-kind: build-test-operator-image kind-start kind-load-img deploy-e2e e2e-test kind-delete
 
-coverage: setup-envtest ## Run code coverage test
-	@echo "Running unit tests for the controllers."
-	@mkdir -p ${ENVCRDS_DIR}
-	@make fetch-test-crds
-	@$(ENVTEST) use 1.21
-	OPERATOR_NAMESPACE="ibm-operators" common/scripts/codecov.sh ${BUILD_LOCALLY} "controllers"
-	@rm -rf ${ENVCRDS_DIR}
-
 scorecard: operator-sdk ## Run scorecard test
 	@echo ... Running the scorecard test
 	- $(OPERATOR_SDK) scorecard bundle --verbose
