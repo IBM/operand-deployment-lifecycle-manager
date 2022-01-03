@@ -109,6 +109,7 @@ const (
 	OperatorUpdating   OperatorPhase = "Updating"
 	OperatorFailed     OperatorPhase = "Failed"
 	OperatorInit       OperatorPhase = "Initialized"
+	OperatorNotFound   OperatorPhase = "Not Found"
 	OperatorNone       OperatorPhase = ""
 
 	ClusterPhaseNone       ClusterPhase = "Pending"

@@ -69,6 +69,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 			opdRegistry := registryInstance.GetOperator(operand.Name)
 			if opdRegistry == nil {
 				klog.Warningf("Cannot find %s in the OperandRegistry instance %s in the namespace %s ", operand.Name, req.Registry, req.RegistryNamespace)
+				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorNotFound, operatorv1alpha1.ServiceNotFound, &r.Mutex)
 				continue
 			}
 
