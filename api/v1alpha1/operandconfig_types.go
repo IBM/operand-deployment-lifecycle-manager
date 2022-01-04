@@ -127,6 +127,7 @@ const (
 	ServiceFailed   ServicePhase = "Failed"
 	ServiceInit     ServicePhase = "Initialized"
 	ServiceCreating ServicePhase = "Creating"
+	ServiceNotFound ServicePhase = "Not Found"
 	ServiceNone     ServicePhase = ""
 )
 
