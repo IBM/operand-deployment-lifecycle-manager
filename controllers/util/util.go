@@ -109,3 +109,21 @@ func WaitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
 		return true // timed out
 	}
 }
+
+// ResourceNamespaced returns true if the given resource is namespaced
+func ResourceNamespaced(dc discovery.DiscoveryInterface, apiGroupVersion, kind string) (bool, error) {
+	_, apiLists, err := dc.ServerGroupsAndResources()
+	if err != nil {
+		return false, err
+	}
+	for _, apiList := range apiLists {
+		if apiList.GroupVersion == apiGroupVersion {
+			for _, r := range apiList.APIResources {
+				if r.Kind == kind {
+					return r.Namespaced, nil
+				}
+			}
+		}
+	}
+	return false, nil
+}
