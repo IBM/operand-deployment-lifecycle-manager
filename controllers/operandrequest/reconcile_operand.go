@@ -30,11 +30,15 @@ import (
 
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/pkg/errors"
+	authorizationv1 "k8s.io/api/authorization/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	runtime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/discovery"
 	"k8s.io/klog"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
@@ -209,27 +213,32 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 			k8sRes.SetName(res.Name)
 			k8sRes.SetNamespace(k8sResNs)
 
-			err := r.Client.Get(ctx, types.NamespacedName{
-				Name:      res.Name,
-				Namespace: k8sResNs,
-			}, &k8sRes)
+			verbs := []string{"create", "delete", "get", "update"}
+			if r.checkResAuth(ctx, verbs, k8sRes) {
+				err := r.Client.Get(ctx, types.NamespacedName{
+					Name:      res.Name,
+					Namespace: k8sResNs,
+				}, &k8sRes)
 
-			if err != nil && !apierrors.IsNotFound(err) {
-				merr.Add(errors.Wrapf(err, "failed to get k8s resource %s/%s", k8sResNs, res.Name))
-			} else if apierrors.IsNotFound(err) {
-				if err := r.createK8sResource(ctx, k8sRes, res.Data, res.Labels, res.Annotations); err != nil {
-					merr.Add(err)
-				}
-			} else {
-				if r.CheckLabel(k8sRes, map[string]string{constant.OpreqLabel: "true"}) && res.Force {
-					// Update k8s resource
-					klog.V(3).Info("Found existing k8s resource: " + res.Name)
-					if err := r.updateK8sResource(ctx, k8sRes, res.Data, res.Labels, res.Annotations); err != nil {
+				if err != nil && !apierrors.IsNotFound(err) {
+					merr.Add(errors.Wrapf(err, "failed to get k8s resource %s/%s", k8sResNs, res.Name))
+				} else if apierrors.IsNotFound(err) {
+					if err := r.createK8sResource(ctx, k8sRes, res.Data, res.Labels, res.Annotations); err != nil {
 						merr.Add(err)
 					}
 				} else {
-					klog.V(2).Infof("Skip the k8s resource %s/%s which is not created by ODLM", res.Kind, res.Name)
+					if r.CheckLabel(k8sRes, map[string]string{constant.OpreqLabel: "true"}) && res.Force {
+						// Update k8s resource
+						klog.V(3).Info("Found existing k8s resource: " + res.Name)
+						if err := r.updateK8sResource(ctx, k8sRes, res.Data, res.Labels, res.Annotations); err != nil {
+							merr.Add(err)
+						}
+					} else {
+						klog.V(2).Infof("Skip the k8s resource %s/%s which is not created by ODLM", res.Kind, res.Name)
+					}
 				}
+			} else {
+				klog.Infof("ODLM doesn't have enough permission to reconcile k8s resource -- Kind: %s, NamespacedName: %s/%s", res.Kind, k8sResNs, res.Name)
 			}
 		}
 
@@ -1047,4 +1056,65 @@ func (r *Reconciler) deleteAllK8sResource(ctx context.Context, csc *operatorv1al
 		return merr
 	}
 	return nil
+}
+
+func (r *Reconciler) checkResAuth(ctx context.Context, verbs []string, k8sResTemplate unstructured.Unstructured) bool {
+	kind := k8sResTemplate.GetKind()
+	apiversion := k8sResTemplate.GetAPIVersion()
+	name := k8sResTemplate.GetName()
+	namespace := k8sResTemplate.GetNamespace()
+
+	dc := discovery.NewDiscoveryClientForConfigOrDie(r.Config)
+	if namespaced, err := util.ResourceNamespaced(dc, apiversion, kind); err != nil {
+		klog.Errorf("Failed to check resource scope for Kind: %s, NamespacedName: %s/%s, %v", kind, namespace, name, err)
+	} else if !namespaced {
+		namespace = ""
+	}
+
+	gvk := schema.FromAPIVersionAndKind(apiversion, kind)
+	gvr, err := r.ResourceForKind(gvk, namespace)
+	if err != nil {
+		klog.Errorf("Failed to get GroupVersionResource from GroupVersionKind, %v", err)
+		return false
+	}
+
+	for _, verb := range verbs {
+		sar := &authorizationv1.SelfSubjectAccessReview{
+			Spec: authorizationv1.SelfSubjectAccessReviewSpec{
+				ResourceAttributes: &authorizationv1.ResourceAttributes{
+					Namespace: namespace,
+					Verb:      verb,
+					Group:     gvr.Group,
+					Resource:  gvr.Resource,
+				},
+			},
+		}
+		if err := r.Create(ctx, sar); err != nil {
+			klog.Errorf("Failed to check operator permission for Kind: %s, NamespacedName: %s/%s, %v", kind, namespace, name, err)
+			return false
+		}
+
+		klog.V(2).Infof("Operator %s permission in namespace %s for Kind: %s, Allowed: %t, Denied: %t, Reason: %s", verb, namespace, kind, sar.Status.Allowed, sar.Status.Denied, sar.Status.Reason)
+
+		if !sar.Status.Allowed {
+			return false
+		}
+	}
+	return true
+}
+
+func (r *Reconciler) ResourceForKind(gvk schema.GroupVersionKind, namespace string) (*schema.GroupVersionResource, error) {
+	mapper := meta.NewDefaultRESTMapper([]schema.GroupVersion{gvk.GroupVersion()})
+
+	if namespace != "" {
+		mapper.Add(gvk, meta.RESTScopeRoot)
+	} else {
+		mapper.Add(gvk, meta.RESTScopeNamespace)
+	}
+
+	mapping, err := mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
+	if err != nil {
+		return nil, err
+	}
+	return &mapping.Resource, nil
 }
