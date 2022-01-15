@@ -339,35 +339,6 @@ func (m *ODLMOperator) GetClusterServiceVersion(ctx context.Context, sub *olmv1a
 	csvName := sub.Status.InstalledCSV
 	csvNamespace := sub.Namespace
 
-	if sub.Status.Install == nil || sub.Status.InstallPlanRef.Name == "" {
-		klog.Warningf("The Installplan for Subscription %s is not ready. Will check it again", sub.Name)
-		return nil, nil
-	}
-
-	// If the installplan is deleted after is completed, ODLM won't block the CR update.
-
-	ipName := sub.Status.InstallPlanRef.Name
-	ipNamespace := sub.Namespace
-	ip := &olmv1alpha1.InstallPlan{}
-	ipKey := types.NamespacedName{
-		Name:      ipName,
-		Namespace: ipNamespace,
-	}
-	if err := m.Client.Get(ctx, ipKey, ip); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return nil, errors.Wrapf(err, "failed to get Installplan")
-		}
-	} else {
-		if ip.Status.Phase == olmv1alpha1.InstallPlanPhaseFailed {
-			klog.Errorf("installplan %s/%s is failed", ipNamespace, ipName)
-		} else if ip.Status.Phase == olmv1alpha1.InstallPlanPhaseRequiresApproval {
-			klog.V(2).Infof("Installplan %s/%s is waiting for approval", ipNamespace, ipName)
-		} else if ip.Status.Phase != olmv1alpha1.InstallPlanPhaseComplete {
-			klog.Warningf("Installplan %s/%s is not ready", ipNamespace, ipName)
-			return nil, nil
-		}
-	}
-
 	csv := &olmv1alpha1.ClusterServiceVersion{}
 	csvKey := types.NamespacedName{
 		Name:      csvName,

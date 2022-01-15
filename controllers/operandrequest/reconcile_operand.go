@@ -130,15 +130,33 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 				continue
 			}
 
-			if csv.Status.Phase == olmv1alpha1.CSVPhaseFailed {
-				merr.Add(fmt.Errorf("the ClusterServiceVersion of Subscription %s/%s is Failed", namespace, operatorName))
-				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
+			if sub.Status.Install == nil || sub.Status.InstallPlanRef.Name == "" {
+				klog.Warningf("The Installplan for Subscription %s is not ready. Will check it again", sub.Name)
 				continue
 			}
-			if csv.Status.Phase != olmv1alpha1.CSVPhaseSucceeded {
-				klog.Errorf("the ClusterServiceVersion of Subscription %s/%s is not Ready", namespace, operatorName)
-				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorInstalling, "", &r.Mutex)
-				continue
+
+			// If the installplan is deleted after is completed, ODLM won't block the CR update.
+
+			ipName := sub.Status.InstallPlanRef.Name
+			ipNamespace := sub.Namespace
+			ip := &olmv1alpha1.InstallPlan{}
+			ipKey := types.NamespacedName{
+				Name:      ipName,
+				Namespace: ipNamespace,
+			}
+			if err := r.Client.Get(ctx, ipKey, ip); err != nil {
+				if !apierrors.IsNotFound(err) {
+					merr.Add(errors.Wrapf(err, "failed to get Installplan"))
+				}
+			} else {
+				if ip.Status.Phase == olmv1alpha1.InstallPlanPhaseFailed {
+					klog.Errorf("installplan %s/%s is failed", ipNamespace, ipName)
+				} else if ip.Status.Phase == olmv1alpha1.InstallPlanPhaseRequiresApproval {
+					klog.V(2).Infof("Installplan %s/%s is waiting for approval", ipNamespace, ipName)
+				} else if ip.Status.Phase != olmv1alpha1.InstallPlanPhaseComplete {
+					klog.Warningf("Installplan %s/%s is not ready", ipNamespace, ipName)
+					continue
+				}
 			}
 
 			klog.V(3).Info("Generating customresource base on ClusterServiceVersion: ", csv.GetName())
