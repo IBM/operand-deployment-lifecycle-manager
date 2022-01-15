@@ -130,13 +130,14 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 				continue
 			}
 
+			// It the installplan is not created yet, ODLM will try later
 			if sub.Status.Install == nil || sub.Status.InstallPlanRef.Name == "" {
 				klog.Warningf("The Installplan for Subscription %s is not ready. Will check it again", sub.Name)
+				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorInstalling, "", &r.Mutex)
 				continue
 			}
 
 			// If the installplan is deleted after is completed, ODLM won't block the CR update.
-
 			ipName := sub.Status.InstallPlanRef.Name
 			ipNamespace := sub.Namespace
 			ip := &olmv1alpha1.InstallPlan{}
@@ -151,8 +152,10 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 			} else {
 				if ip.Status.Phase == olmv1alpha1.InstallPlanPhaseFailed {
 					klog.Errorf("installplan %s/%s is failed", ipNamespace, ipName)
+					continue
 				} else if ip.Status.Phase == olmv1alpha1.InstallPlanPhaseRequiresApproval {
 					klog.V(2).Infof("Installplan %s/%s is waiting for approval", ipNamespace, ipName)
+					continue
 				} else if ip.Status.Phase != olmv1alpha1.InstallPlanPhaseComplete {
 					klog.Warningf("Installplan %s/%s is not ready", ipNamespace, ipName)
 					continue
