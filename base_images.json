@@ -55,6 +55,6 @@
         "sourceImage": "ubi8-minimal",
         "sourceTag": "8.5-218",
         "destImage": "node-fermium-ubi8-minimal",
-        "nodeVersion": "14.18.2"
+        "nodeVersion": "14.18.3"
     }
 ]
