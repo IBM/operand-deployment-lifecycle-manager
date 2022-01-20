@@ -39,10 +39,9 @@ type Reconciler struct {
 
 // Reconcile watchs on the Subscription of the target namespace and apply the recovery to fixing the Subscription failed error
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reconcileErr error) {
-	// Fetch the OperandRequest instance
+	// Fetch the subscription instance
 	subscriptionInstance := &olmv1alpha1.Subscription{}
 	if err := r.Client.Get(ctx, req.NamespacedName, subscriptionInstance); err != nil {
-		// Error reading the object - requeue the request.
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
@@ -58,7 +57,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 				client.InNamespace(subscriptionInstance.Namespace),
 			}
 			if err := r.Client.List(ctx, csvList, opts...); err != nil {
-				// Error reading the object - requeue the request.
 				return ctrl.Result{}, client.IgnoreNotFound(err)
 			}
 
@@ -71,7 +69,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 							Namespace: csv.Namespace,
 						}
 						if err := r.Client.Get(ctx, csvKey, csvInstance); err != nil {
-							// Error reading the object - requeue the request.
 							return ctrl.Result{}, client.IgnoreNotFound(err)
 						}
 						r.Client.Delete(ctx, csvInstance)
@@ -85,7 +82,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
 }
 
-// SetupWithManager adds OperandRequest controller to the manager.
+// SetupWithManager adds subscription to watch to the manager.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&olmv1alpha1.Subscription{}).Complete(r)

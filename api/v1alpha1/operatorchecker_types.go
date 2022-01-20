@@ -17,25 +17,10 @@
 package v1alpha1
 
 import (
-	// "strings"
-	// "sync"
-	// "time"
-
-	// corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	// runtime "k8s.io/apimachinery/pkg/runtime"
-	// "k8s.io/apimachinery/pkg/types"
-	// "sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
-// // The OperandRequestSpec identifies one or more specific operands (from a specific Registry) that should actually be installed.
-// type OperatorCheckerSpec struct {
-// 	// Requests defines a list of operands installation.
-// 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Operators Request List"
-// 	Request []Request `json:"requests"`
-// }
 
 // OperatorCheckerStatus defines the observed state of OperatorChecker.
 type OperatorCheckerStatus struct {
@@ -72,11 +57,8 @@ type OperatorChecker struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// Spec   OperandRequestSpec   `json:"spec,omitempty"`
 	Status OperatorCheckerStatus `json:"status,omitempty"`
 }
-
-// +kubebuilder:object:root=true
 
 // OperatorCheckerList contains a list of OperatorChecker.
 type OperatorCheckerList struct {
