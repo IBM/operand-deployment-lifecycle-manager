@@ -46,6 +46,7 @@ import (
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/operandregistry"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/operandrequest"
 	deploy "github.com/IBM/operand-deployment-lifecycle-manager/controllers/operator"
+	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/operatorchecker"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/util"
 	// +kubebuilder:scaffold:imports
 )
@@ -140,6 +141,12 @@ func main() {
 			klog.Errorf("unable to create controller NamespaceScope: %v", err)
 			os.Exit(1)
 		}
+	}
+	if err = (&operatorchecker.Reconciler{
+		ODLMOperator: deploy.NewODLMOperator(mgr, "OperatorChecker"),
+	}).SetupWithManager(mgr); err != nil {
+		klog.Errorf("unable to create controller OperatorChecker: %v", err)
+		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder
 
