@@ -19,7 +19,6 @@ package operatorchecker
 import (
 	"context"
 	"strings"
-	"sync"
 
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"k8s.io/apimachinery/pkg/types"
@@ -34,7 +33,6 @@ import (
 // Reconciler reconciles a OperatorChecker object
 type Reconciler struct {
 	*deploy.ODLMOperator
-	Mutex sync.Mutex
 }
 
 // Reconcile watchs on the Subscription of the target namespace and apply the recovery to fixing the Subscription failed error
@@ -48,6 +46,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	klog.V(2).Info("Operator Checker is monitoring Subscription...")
 
 	if _, ok := subscriptionInstance.Labels[constant.OpreqLabel]; !ok {
+		return
+	}
+	if subscriptionInstance.Status.State == "AtLatestKnown" {
 		return
 	}
 	for _, condition := range subscriptionInstance.Status.Conditions {
