@@ -251,6 +251,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, instance *operatorv1alpha
 			if getError != nil && !apierrors.IsNotFound(getError) {
 				instance.Status.ServiceStatus[op.Name].CrStatus[kind] = operatorv1alpha1.ServiceFailed
 			} else if apierrors.IsNotFound(getError) {
+				instance.Status.ServiceStatus[op.Name].CrStatus[kind] = operatorv1alpha1.ServiceCreating
 			} else {
 				instance.Status.ServiceStatus[op.Name].CrStatus[kind] = operatorv1alpha1.ServiceRunning
 			}
