@@ -48,7 +48,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	if _, ok := subscriptionInstance.Labels[constant.OpreqLabel]; !ok {
 		return
 	}
-	if subscriptionInstance.Status.State == "AtLatestKnown" {
+	if subscriptionInstance.Status.State != "" {
 		return
 	}
 	for _, condition := range subscriptionInstance.Status.Conditions {
@@ -72,7 +72,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 						if err := r.Client.Get(ctx, csvKey, csvInstance); err != nil {
 							return ctrl.Result{}, client.IgnoreNotFound(err)
 						}
-						r.Client.Delete(ctx, csvInstance)
+						if err := r.Client.Delete(ctx, csvInstance); err != nil {
+							return ctrl.Result{}, client.IgnoreNotFound(err)
+						}
 					}
 					break
 				}
