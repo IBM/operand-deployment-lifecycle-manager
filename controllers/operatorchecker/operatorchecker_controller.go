@@ -48,7 +48,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	if _, ok := subscriptionInstance.Labels[constant.OpreqLabel]; !ok {
 		return
 	}
-	if subscriptionInstance.Status.State == "AtLatestKnown" {
+	if subscriptionInstance.Status.State != "" {
 		return
 	}
 	for _, condition := range subscriptionInstance.Status.Conditions {
