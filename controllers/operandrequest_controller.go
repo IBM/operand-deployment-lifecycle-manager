@@ -126,6 +126,11 @@ func (r *OperandRequestReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 		return ctrl.Result{}, merr
 	}
 
+	// Re-get the instance from cluster to check the latest status
+	if err := r.Get(context.TODO(), req.NamespacedName, requestInstance); err != nil {
+		// Error reading the object - requeue the request.
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
 	// Check if all csv deploy succeed
 	if requestInstance.Status.Phase != operatorv1alpha1.ClusterPhaseRunning {
 		klog.V(2).Info("Waiting for all operators and operands to be deployed successfully ...")
