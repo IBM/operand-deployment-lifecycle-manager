@@ -56,6 +56,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 			return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
 		}
 		if len(csvList) != 1 {
+			klog.Warning("Not found matched CSV, CSVList length: ", len(csvList))
 			return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
 		}
 		csv := csvList[0]
@@ -80,6 +81,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 			return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
 		}
 		if len(csvList) != 1 {
+			klog.Warning("Not found matched CSV, CSVList length: ", len(csvList))
 			return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
 		}
 		csv := csvList[0]
