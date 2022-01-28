@@ -75,4 +75,7 @@ const (
 
 	//DefaultSubDeleteTimeout is the default timeout for deleting a subscription
 	DefaultSubDeleteTimeout = 10 * time.Minute
+
+	//DefaultCSVWaitPeriod is the default period for wait CSV ready
+	DefaultCSVWaitPeriod = 1 * time.Minute
 )

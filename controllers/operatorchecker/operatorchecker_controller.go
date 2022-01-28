@@ -17,15 +17,11 @@
 package operatorchecker
 
 import (
-	"fmt"
-	"time"
-	"errors"
 	"context"
 	"strings"
+	"time"
 
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -41,54 +37,63 @@ type Reconciler struct {
 
 // Reconcile watchs on the Subscription of the target namespace and apply the recovery to fixing the Subscription failed error
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reconcileErr error) {
-	// Fetch the subscription instance
-	subscriptionInstance := &olmv1alpha1.Subscription{}
-	if err := r.Client.Get(ctx, req.NamespacedName, subscriptionInstance); err != nil {
+	subscriptionInstance, err := r.getSubscription(ctx, req)
+	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	klog.V(2).Info("Operator Checker is monitoring Subscription...")
 
 	if _, ok := subscriptionInstance.Labels[constant.OpreqLabel]; !ok {
-		return
+		return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
 	}
 
 	if subscriptionInstance.Status.CurrentCSV == "" && subscriptionInstance.Status.State == "" {
 		// cover fresh install case
-		csv, err := r.getCSVBySubscription(ctx, subscriptionInstance)
+		csvList, err := r.getCSVBySubscription(ctx, subscriptionInstance)
 		if err != nil {
-			// not found csv
 			klog.Error(err)
-			return
+			return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
 		}
-		err = wait.PollImmediate(time.Second*3, time.Minute*1, func() (bool, error) {
-			if subscriptionInstance.Status.CurrentCSV == "" && subscriptionInstance.Status.State == "" {
-				return false, nil
-			}
-			return true, nil
-		})
+		if len(csvList) != 1 {
+			return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
+		}
+		csv := csvList[0]
+
+		time.Sleep(constant.DefaultCSVWaitPeriod)
+		subscriptionInstance, err := r.getSubscription(ctx, req)
+		if err != nil {
+			return ctrl.Result{}, client.IgnoreNotFound(err)
+		}
 		if subscriptionInstance.Status.CurrentCSV == "" && subscriptionInstance.Status.State == "" {
-			r.deleteCSV(ctx, csv.Name, csv.Namespace)
+			if err = r.deleteCSV(ctx, csv.Name, csv.Namespace); err != nil {
+				return ctrl.Result{}, client.IgnoreNotFound(err)
+			}
 		}
 	}
 
 	if subscriptionInstance.Status.CurrentCSV != "" && subscriptionInstance.Status.State == "UpgradePending" {
 		// cover upgrade case
-		csv, err := r.getCSVBySubscription(ctx, subscriptionInstance)
+		csvList, err := r.getCSVBySubscription(ctx, subscriptionInstance)
 		if err != nil {
-			// get multi versions of CSV
 			klog.Error(err)
-			return
+			return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
 		}
-		if subscriptionInstance.Status.CurrentCSV != fmt.Sprintf("%v", csv.Spec.Version) {
-			err = wait.PollImmediate(time.Second*3, time.Minute*1, func() (bool, error) {
-				if subscriptionInstance.Status.CurrentCSV != "" && subscriptionInstance.Status.State == "UpgradePending" {
-					return false, nil
-				}
-				return true, nil
-			})
+		if len(csvList) != 1 {
+			return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
+		}
+		csv := csvList[0]
+
+		if subscriptionInstance.Status.CurrentCSV != csv.Spec.Version.String() {
+			time.Sleep(constant.DefaultCSVWaitPeriod)
+			subscriptionInstance, err := r.getSubscription(ctx, req)
+			if err != nil {
+				return ctrl.Result{}, client.IgnoreNotFound(err)
+			}
 			if subscriptionInstance.Status.CurrentCSV != "" && subscriptionInstance.Status.State == "UpgradePending" {
-				r.deleteCSV(ctx, csv.Name, csv.Namespace)
+				if err = r.deleteCSV(ctx, csv.Name, csv.Namespace); err != nil {
+					return ctrl.Result{}, client.IgnoreNotFound(err)
+				}
 			}
 		}
 	}
@@ -96,7 +101,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
 }
 
-func (r *Reconciler) getCSVBySubscription(ctx context.Context, subscriptionInstance *olmv1alpha1.Subscription) (*olmv1alpha1.ClusterServiceVersion, error) {
+func (r *Reconciler) getCSVBySubscription(ctx context.Context, subscriptionInstance *olmv1alpha1.Subscription) ([]olmv1alpha1.ClusterServiceVersion, error) {
 	csvList := &olmv1alpha1.ClusterServiceVersionList{}
 	opts := []client.ListOption{
 		client.InNamespace(subscriptionInstance.Namespace),
@@ -111,22 +116,22 @@ func (r *Reconciler) getCSVBySubscription(ctx context.Context, subscriptionInsta
 			matchCSVList = append(matchCSVList, csv)
 		}
 	}
+	return matchCSVList, nil
+}
 
-	if len(matchCSVList) == 1 {
-		return &matchCSVList[0], nil
+func (r *Reconciler) getSubscription(ctx context.Context, req ctrl.Request) (*olmv1alpha1.Subscription, error) {
+	// Fetch the subscription instance
+	subscriptionInstance := &olmv1alpha1.Subscription{}
+	if err := r.Client.Get(ctx, req.NamespacedName, subscriptionInstance); err != nil {
+		return nil, err
 	}
-	return nil, errors.New("Fail to find matched CSV")
+	return subscriptionInstance, nil
 }
 
 func (r *Reconciler) deleteCSV(ctx context.Context, name, namespace string) error {
 	csvInstance := &olmv1alpha1.ClusterServiceVersion{}
-	csvKey := types.NamespacedName{
-		Name:      name,
-		Namespace: namespace,
-	}
-	if err := r.Client.Get(ctx, csvKey, csvInstance); err != nil {
-		return client.IgnoreNotFound(err)
-	}
+	csvInstance.Name = name
+	csvInstance.Namespace = namespace
 	if err := r.Client.Delete(ctx, csvInstance); err != nil {
 		return client.IgnoreNotFound(err)
 	}
