@@ -7,7 +7,7 @@
         "destStage": "edge",
         "destNamespace": "build-images",
         "destImage": "ubi8",
-        "tag": "8.5-200",
+        "tag": "8.5-226",
         "updatePackages": []
     },
     {
@@ -18,43 +18,22 @@
         "destStage": "edge",
         "destNamespace": "build-images",
         "destImage": "ubi8-minimal",
-        "tag": "8.5-204",
-        "updatePackages": []
-    },
-    {
-        "imageType": "external",
-        "sourceRepo": "registry.access.redhat.com",
-        "sourceNamespace": "ubi7",
-        "sourceImage": "ubi",
-        "destStage": "edge",
-        "destNamespace": "build-images",
-        "destImage": "ubi7",
-        "tag": "7.9-516",
-        "updatePackages": []
-    },
-    {
-        "imageType": "external",
-        "sourceRepo": "registry.access.redhat.com",
-        "sourceNamespace": "ubi7",
-        "sourceImage": "ubi-minimal",
-        "destStage": "edge",
-        "destNamespace": "build-images",
-        "destImage": "ubi7-minimal",
-        "tag": "7.9-503",
+        "tag": "8.5-230",
         "updatePackages": []
     },
     {
         "imageType": "node",
         "sourceImage": "ubi8-minimal",
-        "sourceTag": "8.5-204",
-        "destImage": "node-dubnium-ubi8-minimal",
-        "nodeVersion": "10.24.1"
-    },
-    {
-        "imageType": "node",
-        "sourceImage": "ubi8-minimal",
-        "sourceTag": "8.5-204",
+        "sourceTag": "8.5-230",
         "destImage": "node-fermium-ubi8-minimal",
-        "nodeVersion": "14.18.1"
+        "nodeVersion": "14.19.0"
+    },
+    {
+        "imageType": "node",
+        "sourceImage": "ubi8-minimal",
+        "sourceTag": "8.5-230",
+        "destImage": "node-fermium-npm8-ubi8-minimal",
+        "nodeVersion": "14.19.0",
+        "npmVersion": "8"
     }
 ]
