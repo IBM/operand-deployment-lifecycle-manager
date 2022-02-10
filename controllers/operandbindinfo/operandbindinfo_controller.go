@@ -82,7 +82,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		}
 	}()
 
-	klog.V(2).Infof("Reconciling OperandBindInfo: %s", req.NamespacedName)
+	klog.V(1).Infof("Reconciling OperandBindInfo: %s", req.NamespacedName)
 
 	// If the finalizer is added, EnsureFinalizer() will return true. If the finalizer is already there, EnsureFinalizer() will return false
 	if bindInfoInstance.EnsureFinalizer() {
@@ -266,9 +266,9 @@ func (r *Reconciler) copySecret(ctx context.Context, sourceName, targetName, sou
 			if err := r.Update(ctx, secretCopy); err != nil {
 				return false, errors.Wrapf(err, "failed to update secret %s/%s", targetNs, targetName)
 			}
-			return false, nil
+		} else {
+			return false, errors.Wrapf(err, "failed to create secret %s/%s", targetNs, targetName)
 		}
-		return false, errors.Wrapf(err, "failed to create secret %s/%s", targetNs, targetName)
 	}
 
 	ensureLabelsForSecret(secret, map[string]string{
@@ -282,7 +282,7 @@ func (r *Reconciler) copySecret(ctx context.Context, sourceName, targetName, sou
 		klog.Errorf("failed to update Secret %s in the namespace %s: %v", secret.Name, secret.Namespace, err)
 		return false, err
 	}
-	klog.V(2).Infof("Copy secret %s from the namespace %s to secret %s in the namespace %s", sourceName, sourceNs, targetName, targetNs)
+	klog.V(1).Infof("Secret %s is copied from the namespace %s to secret %s in the namespace %s", sourceName, sourceNs, targetName, targetNs)
 
 	return false, nil
 }
@@ -344,10 +344,9 @@ func (r *Reconciler) copyConfigmap(ctx context.Context, sourceName, targetName, 
 			if err := r.Update(ctx, cmCopy); err != nil {
 				return false, errors.Wrapf(err, "failed to update ConfigMap %s/%s", targetNs, sourceName)
 			}
-			return false, nil
+		} else {
+			return false, errors.Wrapf(err, "failed to create ConfigMap %s/%s", targetNs, sourceName)
 		}
-		return false, errors.Wrapf(err, "failed to create ConfigMap %s/%s", targetNs, sourceName)
-
 	}
 	// Set the OperandBindInfo label for the ConfigMap
 	ensureLabelsForConfigMap(cm, map[string]string{
@@ -360,7 +359,7 @@ func (r *Reconciler) copyConfigmap(ctx context.Context, sourceName, targetName, 
 	if err := r.Update(ctx, cm); err != nil {
 		return false, errors.Wrapf(err, "failed to update ConfigMap %s/%s", cm.Namespace, cm.Name)
 	}
-	klog.V(2).Infof("Copy configmap %s from the namespace %s to the namespace %s", sourceName, sourceNs, targetNs)
+	klog.V(1).Infof("Configmap %s is copied from the namespace %s to the namespace %s", sourceName, sourceNs, targetNs)
 
 	return false, nil
 }
@@ -536,13 +535,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 			return false
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			labels := e.Object.GetLabels()
-			for labelKey, labelValue := range labels {
-				if labelKey == constant.OpbiTypeLabel {
-					return labelValue == "original"
-				}
-			}
-			return false
+			return true
 		},
 	}
 
