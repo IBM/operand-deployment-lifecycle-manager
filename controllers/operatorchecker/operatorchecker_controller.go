@@ -73,7 +73,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		}
 	}
 
-	if subscriptionInstance.Status.CurrentCSV != "" && subscriptionInstance.Status.State == "UpgradePending" {
+	if subscriptionInstance.Status.CurrentCSV != "" && subscriptionInstance.Status.InstalledCSV != "" && subscriptionInstance.Status.InstalledCSV != subscriptionInstance.Status.CurrentCSV && subscriptionInstance.Status.State == "UpgradePending" {
 		// cover upgrade case
 		csvList, err := r.getCSVBySubscription(ctx, subscriptionInstance)
 		if err != nil {
@@ -92,7 +92,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 			if err != nil {
 				return ctrl.Result{}, client.IgnoreNotFound(err)
 			}
-			if subscriptionInstance.Status.CurrentCSV != "" && subscriptionInstance.Status.State == "UpgradePending" {
+			if subscriptionInstance.Status.CurrentCSV != "" && subscriptionInstance.Status.InstalledCSV != "" && subscriptionInstance.Status.InstalledCSV != subscriptionInstance.Status.CurrentCSV && subscriptionInstance.Status.State == "UpgradePending" {
 				if err = r.deleteCSV(ctx, csv.Name, csv.Namespace); err != nil {
 					return ctrl.Result{}, client.IgnoreNotFound(err)
 				}
