@@ -101,6 +101,7 @@ func main() {
 
 	watchNamespace := util.GetWatchNamespace()
 	isolatedModeEnable := util.GetIsolatedMode()
+	operatorCheckerDisable := util.GetoperatorCheckerMode()
 	options.NewCache = k8sutil.NewODLMCache(isolatedModeEnable, strings.Split(watchNamespace, ","), gvkLabelMap)
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
@@ -142,11 +143,13 @@ func main() {
 			os.Exit(1)
 		}
 	}
-	if err = (&operatorchecker.Reconciler{
-		ODLMOperator: deploy.NewODLMOperator(mgr, "OperatorChecker"),
-	}).SetupWithManager(mgr); err != nil {
-		klog.Errorf("unable to create controller OperatorChecker: %v", err)
-		os.Exit(1)
+	if !operatorCheckerDisable {
+		if err = (&operatorchecker.Reconciler{
+			ODLMOperator: deploy.NewODLMOperator(mgr, "OperatorChecker"),
+		}).SetupWithManager(mgr); err != nil {
+			klog.Errorf("unable to create controller OperatorChecker: %v", err)
+			os.Exit(1)
+		}
 	}
 	// +kubebuilder:scaffold:builder
 
