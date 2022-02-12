@@ -60,6 +60,14 @@ func GetIsolatedMode() bool {
 	return true
 }
 
+func GetoperatorCheckerMode() bool {
+	isEnable, found := os.LookupEnv("OPERATORCHECKER_MODE")
+	if found && isEnable == "false" {
+		return true
+	}
+	return false
+}
+
 // ResourceExists returns true if the given resource kind exists
 // in the given api groupversion
 func ResourceExists(dc discovery.DiscoveryInterface, apiGroupVersion, kind string) (bool, error) {
