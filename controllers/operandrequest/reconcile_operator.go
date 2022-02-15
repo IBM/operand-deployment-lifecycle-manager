@@ -176,7 +176,9 @@ func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance 
 		if opt.InstallPlanApproval != "" && sub.Spec.InstallPlanApproval != opt.InstallPlanApproval {
 			sub.Spec.InstallPlanApproval = opt.InstallPlanApproval
 		}
-		sub.Spec.Config = opt.SubscriptionConfig
+		if opt.SubscriptionConfig != nil {
+			sub.Spec.Config = opt.SubscriptionConfig
+		}
 		// add annotations to existing Subscriptions for upgrade case
 		if sub.Annotations == nil {
 			sub.Annotations = make(map[string]string)
