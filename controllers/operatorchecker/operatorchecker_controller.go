@@ -73,7 +73,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		}
 	}
 
-	if subscriptionInstance.Status.CurrentCSV != "" && subscriptionInstance.Status.InstalledCSV != "" && subscriptionInstance.Status.InstalledCSV != subscriptionInstance.Status.CurrentCSV && subscriptionInstance.Status.State == "UpgradePending" {
+	if subscriptionInstance.Status.State == "UpgradePending" && subscriptionInstance.Status.CurrentCSV != "" && subscriptionInstance.Status.InstalledCSV != "" {
 		// cover upgrade case
 		csvList, err := r.getCSVBySubscription(ctx, subscriptionInstance)
 		if err != nil {
@@ -86,13 +86,18 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		}
 		csv := csvList[0]
 
-		if subscriptionInstance.Status.CurrentCSV != csv.Spec.Version.String() {
+		currentCSVVersion := ""
+		if len(strings.SplitN(subscriptionInstance.Status.CurrentCSV, ".", 2)) == 2 {
+			currentCSVVersion = strings.SplitN(subscriptionInstance.Status.CurrentCSV, ".", 2)[1]
+		}
+
+		if currentCSVVersion != csv.Spec.Version.String() {
 			time.Sleep(constant.DefaultCSVWaitPeriod)
 			subscriptionInstance, err := r.getSubscription(ctx, req)
 			if err != nil {
 				return ctrl.Result{}, client.IgnoreNotFound(err)
 			}
-			if subscriptionInstance.Status.CurrentCSV != "" && subscriptionInstance.Status.InstalledCSV != "" && subscriptionInstance.Status.InstalledCSV != subscriptionInstance.Status.CurrentCSV && subscriptionInstance.Status.State == "UpgradePending" {
+			if subscriptionInstance.Status.State == "UpgradePending" && subscriptionInstance.Status.CurrentCSV != "" && subscriptionInstance.Status.InstalledCSV != "" {
 				if err = r.deleteCSV(ctx, csv.Name, csv.Namespace); err != nil {
 					return ctrl.Result{}, client.IgnoreNotFound(err)
 				}
@@ -114,7 +119,8 @@ func (r *Reconciler) getCSVBySubscription(ctx context.Context, subscriptionInsta
 
 	var matchCSVList = []olmv1alpha1.ClusterServiceVersion{}
 	for _, csv := range csvList.Items {
-		if strings.Contains(csv.Name, subscriptionInstance.Name) {
+		csvPackageName := csv.GetAnnotations()["operatorframework.io/properties"]
+		if strings.Contains(csvPackageName, subscriptionInstance.Spec.Package) {
 			matchCSVList = append(matchCSVList, csv)
 		}
 	}
