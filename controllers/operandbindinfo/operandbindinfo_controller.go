@@ -21,8 +21,11 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"strings"
+	"time"
 
 	"github.com/pkg/errors"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -259,15 +262,35 @@ func (r *Reconciler) copySecret(ctx context.Context, sourceName, targetName, sou
 	if err := controllerutil.SetControllerReference(requestInstance, secretCopy, r.Scheme); err != nil {
 		return false, errors.Wrapf(err, "failed to set OperandRequest %s as the owner of Secret %s", requestInstance.Name, targetName)
 	}
+
+	var podRefreshment bool
 	// Create the Secret in the OperandRequest namespace
 	if err := r.Create(ctx, secretCopy); err != nil {
 		if apierrors.IsAlreadyExists(err) {
 			// If already exist, update the Secret
+			existingSecret := &corev1.Secret{}
+			if err := r.Client.Get(ctx, types.NamespacedName{Namespace: targetNs, Name: targetName}, existingSecret); err != nil {
+				return false, errors.Wrapf(err, "failed to get secret %s/%s", targetNs, targetName)
+			}
+			prevResourceVersion := existingSecret.ResourceVersion
 			if err := r.Update(ctx, secretCopy); err != nil {
 				return false, errors.Wrapf(err, "failed to update secret %s/%s", targetNs, targetName)
 			}
+			curSecret := &corev1.Secret{}
+			if err := r.Client.Get(ctx, types.NamespacedName{Namespace: targetNs, Name: targetName}, curSecret); err != nil {
+				return false, errors.Wrapf(err, "failed to get secret %s/%s", targetNs, targetName)
+			}
+			curResourceVersion := curSecret.ResourceVersion
+			if prevResourceVersion != curResourceVersion {
+				podRefreshment = true
+			}
 		} else {
 			return false, errors.Wrapf(err, "failed to create secret %s/%s", targetNs, targetName)
+		}
+		if podRefreshment {
+			if err := r.refreshPods(targetNs, targetName, "secret"); err != nil {
+				return false, errors.Wrapf(err, "failed to refresh pods mounting secret %s/%s", targetNs, targetName)
+			}
 		}
 	}
 
@@ -337,17 +360,39 @@ func (r *Reconciler) copyConfigmap(ctx context.Context, sourceName, targetName, 
 	if err := controllerutil.SetControllerReference(requestInstance, cmCopy, r.Scheme); err != nil {
 		return false, errors.Wrapf(err, "failed to set OperandRequest %s as the owner of ConfigMap %s", requestInstance.Name, sourceName)
 	}
+
+	var podRefreshment bool
 	// Create the ConfigMap in the OperandRequest namespace
 	if err := r.Create(ctx, cmCopy); err != nil {
 		if apierrors.IsAlreadyExists(err) {
 			// If already exist, update the ConfigMap
+			existingCm := &corev1.ConfigMap{}
+			if err := r.Client.Get(ctx, types.NamespacedName{Namespace: targetNs, Name: targetName}, existingCm); err != nil {
+				return false, errors.Wrapf(err, "failed to get ConfigMap %s/%s", targetNs, targetName)
+			}
+			prevResourceVersion := existingCm.ResourceVersion
 			if err := r.Update(ctx, cmCopy); err != nil {
 				return false, errors.Wrapf(err, "failed to update ConfigMap %s/%s", targetNs, sourceName)
+			}
+			curCm := &corev1.ConfigMap{}
+			if err := r.Client.Get(ctx, types.NamespacedName{Namespace: targetNs, Name: targetName}, curCm); err != nil {
+				return false, errors.Wrapf(err, "failed to get ConfigMap %s/%s", targetNs, targetName)
+			}
+			curResourceVersion := curCm.ResourceVersion
+			if prevResourceVersion != curResourceVersion {
+				podRefreshment = true
 			}
 		} else {
 			return false, errors.Wrapf(err, "failed to create ConfigMap %s/%s", targetNs, sourceName)
 		}
 	}
+
+	if podRefreshment {
+		if err := r.refreshPods(targetNs, targetName, "configmap"); err != nil {
+			return false, errors.Wrapf(err, "failed to refresh pods mounting ConfigMap %s/%s", targetNs, targetName)
+		}
+	}
+
 	// Set the OperandBindInfo label for the ConfigMap
 	ensureLabelsForConfigMap(cm, map[string]string{
 		constant.OpbiNsLabel:   bindInfoInstance.Namespace,
@@ -511,6 +556,151 @@ func toOpbiRequest() handler.MapFunc {
 		}
 		return opbiInstance
 	}
+}
+
+func (r *Reconciler) refreshPods(ns, name, resourceType string) error {
+	merr := &util.MultiErr{}
+	if err := r.refreshPodsFromDeploy(ns, name, resourceType); err != nil {
+		merr.Add(err)
+	}
+	if err := r.refreshPodsFromSts(ns, name, resourceType); err != nil {
+		merr.Add(err)
+	}
+	if err := r.refreshPodsFromDaemonSet(ns, name, resourceType); err != nil {
+		merr.Add(err)
+	}
+
+	if len(merr.Errors) != 0 {
+		return merr
+	}
+
+	return nil
+}
+
+func (r *Reconciler) refreshPodsFromDeploy(ns, name, resourceType string) error {
+	timeNow := time.Now().Format("2006-1-2.1504")
+	deploymentCandidates := []appsv1.Deployment{}
+	deployments := &appsv1.DeploymentList{}
+	opts := []client.ListOption{
+		client.MatchingLabels{constant.BindInfoRefreshLabel: "enabled"},
+		client.InNamespace(ns),
+	}
+	if err := r.Client.List(context.TODO(), deployments, opts...); err != nil {
+		return fmt.Errorf("error getting deployments: %v", err)
+	}
+	for _, deployment := range deployments.Items {
+		if resourceList, ok := deployment.Annotations["bindinfoRefresh/"+resourceType]; ok {
+			resources := strings.Split(resourceList, ",")
+			for _, r := range resources {
+				if r == name {
+					deploymentCandidates = append(deploymentCandidates, deployment)
+					break
+				}
+			}
+
+		}
+	}
+	for _, deployment := range deploymentCandidates {
+		//in case of deployments not having labels section, create the label section
+		if deployment.ObjectMeta.Annotations == nil {
+			deployment.ObjectMeta.Annotations = make(map[string]string)
+		}
+		if deployment.Spec.Template.ObjectMeta.Annotations == nil {
+			deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+		}
+		deployment.ObjectMeta.Annotations["bindinfo/restartTime"] = timeNow
+		deployment.Spec.Template.ObjectMeta.Annotations["bindinfo/restartTime"] = timeNow
+		err := r.Client.Update(context.TODO(), &deployment)
+		if err != nil {
+			return fmt.Errorf("error updating deployment: %v", err)
+		}
+		klog.V(2).Infof("BindInfo controller refreshing deployment %s/%s to pick up updated bindinfos", deployment.Namespace, deployment.Name)
+	}
+	return nil
+}
+
+func (r *Reconciler) refreshPodsFromSts(ns, name, resourceType string) error {
+	timeNow := time.Now().Format("2006-1-2.1504")
+	statefulSetCandidates := []appsv1.StatefulSet{}
+	statefulSets := &appsv1.StatefulSetList{}
+	opts := []client.ListOption{
+		client.MatchingLabels{constant.BindInfoRefreshLabel: "enabled"},
+		client.InNamespace(ns),
+	}
+	if err := r.Client.List(context.TODO(), statefulSets, opts...); err != nil {
+		return fmt.Errorf("error getting statefulSets: %v", err)
+	}
+	for _, statefulSet := range statefulSets.Items {
+		if resourceList, ok := statefulSet.Annotations["bindinfoRefresh/"+resourceType]; ok {
+			resources := strings.Split(resourceList, ",")
+			for _, r := range resources {
+				if r == name {
+					statefulSetCandidates = append(statefulSetCandidates, statefulSet)
+					break
+				}
+			}
+
+		}
+	}
+	for _, statefulSet := range statefulSetCandidates {
+		//in case of statefulSets not having labels section, create the label section
+		if statefulSet.ObjectMeta.Annotations == nil {
+			statefulSet.ObjectMeta.Annotations = make(map[string]string)
+		}
+		if statefulSet.Spec.Template.ObjectMeta.Annotations == nil {
+			statefulSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+		}
+		statefulSet.ObjectMeta.Annotations["bindinfo/restartTime"] = timeNow
+		statefulSet.Spec.Template.ObjectMeta.Annotations["bindinfo/restartTime"] = timeNow
+		err := r.Client.Update(context.TODO(), &statefulSet)
+		if err != nil {
+			return fmt.Errorf("error updating StatefulSet: %v", err)
+		}
+		klog.V(2).Infof("BindInfo controller refreshing StatefulSet %s/%s to pick up updated bindinfos", statefulSet.Namespace, statefulSet.Name)
+	}
+	return nil
+}
+
+func (r *Reconciler) refreshPodsFromDaemonSet(ns, name, resourceType string) error {
+	timeNow := time.Now().Format("2006-1-2.1504")
+	daemonSetCandidates := []appsv1.DaemonSet{}
+	daemonSets := &appsv1.DaemonSetList{}
+	opts := []client.ListOption{
+		client.MatchingLabels{constant.BindInfoRefreshLabel: "enabled"},
+		client.InNamespace(ns),
+	}
+	if err := r.Client.List(context.TODO(), daemonSets, opts...); err != nil {
+		return fmt.Errorf("error getting daemonSets: %v", err)
+	}
+	for _, daemonSet := range daemonSets.Items {
+		if resourceList, ok := daemonSet.Annotations["bindinfoRefresh/"+resourceType]; ok {
+			resources := strings.Split(resourceList, ",")
+			for _, r := range resources {
+				if r == name {
+					daemonSetCandidates = append(daemonSetCandidates, daemonSet)
+					break
+				}
+			}
+
+		}
+	}
+	for _, daemonSet := range daemonSetCandidates {
+		//in case of daemonSets not having labels section, create the label section
+		if daemonSet.ObjectMeta.Annotations == nil {
+			daemonSet.ObjectMeta.Annotations = make(map[string]string)
+		}
+		if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
+			daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+		}
+		daemonSet.ObjectMeta.Annotations["bindinfo/restartTime"] = timeNow
+		daemonSet.Spec.Template.ObjectMeta.Annotations["bindinfo/restartTime"] = timeNow
+		err := r.Client.Update(context.TODO(), &daemonSet)
+		if err != nil {
+			return fmt.Errorf("error updating daemonSet: %v", err)
+		}
+		klog.V(2).Infof("BindInfo controller refreshing daemonSet %s/%s to pick up updated bindinfos", daemonSet.Namespace, daemonSet.Name)
+	}
+	return nil
 }
 
 // SetupWithManager adds OperandBindInfo controller to the manager.

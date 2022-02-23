@@ -24,6 +24,7 @@ import (
 	olmv1 "github.com/operator-framework/api/pkg/operators/v1"
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	operatorsv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -87,6 +88,15 @@ func main() {
 		},
 		corev1.SchemeGroupVersion.WithKind("ConfigMap"): {
 			LabelSelector: constant.OpbiTypeLabel,
+		},
+		appsv1.SchemeGroupVersion.WithKind("Deployment"): {
+			LabelSelector: constant.BindInfoRefreshLabel,
+		},
+		appsv1.SchemeGroupVersion.WithKind("StatefulSet"): {
+			LabelSelector: constant.BindInfoRefreshLabel,
+		},
+		appsv1.SchemeGroupVersion.WithKind("DaemonSet"): {
+			LabelSelector: constant.BindInfoRefreshLabel,
 		},
 	}
 

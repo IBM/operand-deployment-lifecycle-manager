@@ -40,6 +40,9 @@ const (
 	//OpbiTypeLabel is the label used to label if secrets/configmaps are "original" or "copy"
 	OpbiTypeLabel string = "operator.ibm.com/managedBy-opbi"
 
+	//BindInfoRefreshLabel is the label used to label if secrets/configmaps are "original" or "copy"
+	BindInfoRefreshLabel string = "operator.ibm.com/bindinfoRefresh"
+
 	//NamespaceScopeCrName is the name use to get NamespaceScopeCrName instance
 	NamespaceScopeCrName string = "nss-managedby-odlm"
 
