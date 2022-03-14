@@ -62,7 +62,7 @@ func GetIsolatedMode() bool {
 
 func GetoperatorCheckerMode() bool {
 	isEnable, found := os.LookupEnv("OPERATORCHECKER_MODE")
-	if found && isEnable == "false" {
+	if !found || isEnable == "false" {
 		return true
 	}
 	return false
