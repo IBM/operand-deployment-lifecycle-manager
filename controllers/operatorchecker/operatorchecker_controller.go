@@ -73,38 +73,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		}
 	}
 
-	if subscriptionInstance.Status.State == "UpgradePending" && subscriptionInstance.Status.CurrentCSV != "" && subscriptionInstance.Status.InstalledCSV != "" {
-		// cover upgrade case
-		csvList, err := r.getCSVBySubscription(ctx, subscriptionInstance)
-		if err != nil {
-			klog.Error(err)
-			return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
-		}
-		if len(csvList) != 1 {
-			klog.Warning("Not found matched CSV, CSVList length: ", len(csvList))
-			return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
-		}
-		csv := csvList[0]
-
-		currentCSVVersion := ""
-		if len(strings.SplitN(subscriptionInstance.Status.CurrentCSV, ".", 2)) == 2 {
-			currentCSVVersion = strings.SplitN(subscriptionInstance.Status.CurrentCSV, ".", 2)[1]
-		}
-
-		if currentCSVVersion != csv.Spec.Version.String() {
-			time.Sleep(constant.DefaultCSVWaitPeriod)
-			subscriptionInstance, err := r.getSubscription(ctx, req)
-			if err != nil {
-				return ctrl.Result{}, client.IgnoreNotFound(err)
-			}
-			if subscriptionInstance.Status.State == "UpgradePending" && subscriptionInstance.Status.CurrentCSV != "" && subscriptionInstance.Status.InstalledCSV != "" {
-				if err = r.deleteCSV(ctx, csv.Name, csv.Namespace); err != nil {
-					return ctrl.Result{}, client.IgnoreNotFound(err)
-				}
-			}
-		}
-	}
-
 	return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
 }
 
