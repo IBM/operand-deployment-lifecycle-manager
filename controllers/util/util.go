@@ -61,11 +61,11 @@ func GetIsolatedMode() bool {
 }
 
 func GetoperatorCheckerMode() bool {
-	isEnable, found := os.LookupEnv("OPERATORCHECKER_MODE")
-	if !found || isEnable == "false" {
-		return true
-	}
-	return false
+	// isEnable, found := os.LookupEnv("OPERATORCHECKER_MODE")
+	// if !found || isEnable == "false" {
+	// 	return true
+	// }
+	return true
 }
 
 // ResourceExists returns true if the given resource kind exists
