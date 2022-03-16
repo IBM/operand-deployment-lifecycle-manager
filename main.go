@@ -142,12 +142,16 @@ func main() {
 			os.Exit(1)
 		}
 	}
-	if err = (&operatorchecker.Reconciler{
-		ODLMOperator: deploy.NewODLMOperator(mgr, "OperatorChecker"),
-	}).SetupWithManager(mgr); err != nil {
-		klog.Errorf("unable to create controller OperatorChecker: %v", err)
-		os.Exit(1)
+
+	if false {
+		if err = (&operatorchecker.Reconciler{
+			ODLMOperator: deploy.NewODLMOperator(mgr, "OperatorChecker"),
+		}).SetupWithManager(mgr); err != nil {
+			klog.Errorf("unable to create controller OperatorChecker: %v", err)
+			os.Exit(1)
+		}
 	}
+
 	// +kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("health", healthz.Ping); err != nil {
