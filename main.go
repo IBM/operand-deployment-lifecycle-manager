@@ -153,12 +153,14 @@ func main() {
 			os.Exit(1)
 		}
 	}
-	if !operatorCheckerDisable {
-		if err = (&operatorchecker.Reconciler{
-			ODLMOperator: deploy.NewODLMOperator(mgr, "OperatorChecker"),
-		}).SetupWithManager(mgr); err != nil {
-			klog.Errorf("unable to create controller OperatorChecker: %v", err)
-			os.Exit(1)
+	if false {
+		if !operatorCheckerDisable {
+			if err = (&operatorchecker.Reconciler{
+				ODLMOperator: deploy.NewODLMOperator(mgr, "OperatorChecker"),
+			}).SetupWithManager(mgr); err != nil {
+				klog.Errorf("unable to create controller OperatorChecker: %v", err)
+				os.Exit(1)
+			}
 		}
 	}
 	// +kubebuilder:scaffold:builder
