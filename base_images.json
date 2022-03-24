@@ -7,7 +7,7 @@
         "destStage": "edge",
         "destNamespace": "build-images",
         "destImage": "ubi8",
-        "tag": "8.5-226",
+        "tag": "8.5-236.1647448331",
         "updatePackages": []
     },
     {
@@ -18,22 +18,33 @@
         "destStage": "edge",
         "destNamespace": "build-images",
         "destImage": "ubi8-minimal",
-        "tag": "8.5-230",
+        "tag": "8.5-240",
+        "updatePackages": []
+    },
+    {
+        "imageType": "external",
+        "sourceRepo": "quay.io",
+        "sourceNamespace": "operator-framework",
+        "sourceImage": "helm-operator",
+        "destStage": "edge",
+        "destNamespace": "build-images",
+        "destImage": "helm-operator",
+        "tag": "v1.18.1",
         "updatePackages": []
     },
     {
         "imageType": "node",
         "sourceImage": "ubi8-minimal",
-        "sourceTag": "8.5-230",
+        "sourceTag": "8.5-240",
         "destImage": "node-fermium-ubi8-minimal",
-        "nodeVersion": "14.19.0"
+        "nodeVersion": "14.19.1"
     },
     {
         "imageType": "node",
         "sourceImage": "ubi8-minimal",
-        "sourceTag": "8.5-230",
+        "sourceTag": "8.5-240",
         "destImage": "node-fermium-npm8-ubi8-minimal",
-        "nodeVersion": "14.19.0",
+        "nodeVersion": "14.19.1",
         "npmVersion": "8"
     }
 ]
