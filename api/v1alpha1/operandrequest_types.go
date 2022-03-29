@@ -477,7 +477,7 @@ func (r *OperandRequest) UpdateClusterPhase() {
 		clusterPhase = ClusterPhaseInstalling
 	} else if clusterStatusStat.creatingNum > 0 {
 		clusterPhase = ClusterPhaseCreating
-	} else if clusterStatusStat.runningNum > 0 || len(r.Status.Members) == 0 {
+	} else if clusterStatusStat.runningNum > 0 {
 		clusterPhase = ClusterPhaseRunning
 	} else {
 		clusterPhase = ClusterPhaseNone
