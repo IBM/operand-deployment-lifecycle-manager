@@ -58,7 +58,7 @@ spec:
             configMapKeyRef:
               name: odlm-scope
               key: namespaces
-        image: quay.io/opencloudio/odlm:latest
+        image: icr.io/cpopen/odlm:latest
         imagePullPolicy: Always
         name: manager
         livenessProbe:
