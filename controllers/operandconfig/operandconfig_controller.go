@@ -114,6 +114,8 @@ func (r *Reconciler) updateStatus(ctx context.Context, instance *operatorv1alpha
 
 	for _, op := range registryInstance.Spec.Operators {
 
+		op := op
+
 		service := instance.GetService(op.Name)
 		if service == nil {
 			continue
