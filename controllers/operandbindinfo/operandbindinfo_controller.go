@@ -601,6 +601,7 @@ func (r *Reconciler) refreshPodsFromDeploy(ns, name, resourceType string) error 
 		}
 	}
 	for _, deployment := range deploymentCandidates {
+		deployment := deployment
 		//in case of deployments not having labels section, create the label section
 		if deployment.ObjectMeta.Annotations == nil {
 			deployment.ObjectMeta.Annotations = make(map[string]string)
@@ -643,6 +644,7 @@ func (r *Reconciler) refreshPodsFromSts(ns, name, resourceType string) error {
 		}
 	}
 	for _, statefulSet := range statefulSetCandidates {
+		statefulSet := statefulSet
 		//in case of statefulSets not having labels section, create the label section
 		if statefulSet.ObjectMeta.Annotations == nil {
 			statefulSet.ObjectMeta.Annotations = make(map[string]string)
@@ -685,6 +687,7 @@ func (r *Reconciler) refreshPodsFromDaemonSet(ns, name, resourceType string) err
 		}
 	}
 	for _, daemonSet := range daemonSetCandidates {
+		daemonSet := daemonSet
 		//in case of daemonSets not having labels section, create the label section
 		if daemonSet.ObjectMeta.Annotations == nil {
 			daemonSet.ObjectMeta.Annotations = make(map[string]string)
