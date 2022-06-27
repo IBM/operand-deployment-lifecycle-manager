@@ -721,5 +721,4 @@ spec:
   relatedImages:
   - image: icr.io/cpopen/odlm:1.18.0
     name: ODLM_IMAGE
-  replaces: operand-deployment-lifecycle-manager.v1.17.0
   version: 1.18.0
