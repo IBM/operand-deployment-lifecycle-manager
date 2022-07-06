@@ -52,6 +52,6 @@
         "sourceImage": "ubi8-minimal",
         "sourceTag": "8.6-854",
         "destImage": "node-v16-ubi8-minimal",
-        "nodeVersion": "16.15.0"
+        "nodeVersion": "16.15.1"
     }
 ]
