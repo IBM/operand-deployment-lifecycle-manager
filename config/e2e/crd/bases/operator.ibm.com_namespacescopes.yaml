@@ -32,6 +32,7 @@ spec:
           metadata:
             type: object
           spec:
+            x-kubernetes-preserve-unknown-fields: true
             description: NamespaceScopeSpec defines the desired state of NamespaceScope
             properties:
               configmapName:

@@ -47,6 +47,7 @@ spec:
           metadata:
             type: object
           spec:
+            x-kubernetes-preserve-unknown-fields: true
             description: OperandBindInfoSpec defines the desired state of OperandBindInfo.
             properties:
               bindings:
