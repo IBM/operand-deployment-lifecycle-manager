@@ -112,6 +112,10 @@ func (r *Reconciler) reconcileOperator(ctx context.Context, requestInstance *ope
 			}
 			wg.Wait()
 		}
+
+		if len(merr.Errors) != 0 {
+			return merr
+		}
 	}
 
 	mergePatch, _ := json.Marshal(map[string]interface{}{
@@ -170,9 +174,15 @@ func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance 
 	if _, ok := sub.Labels[constant.OpreqLabel]; ok {
 		originalSub := sub.DeepCopy()
 		sub.Spec.CatalogSource = opt.SourceName
-		sub.Spec.Channel = opt.Channel
 		sub.Spec.CatalogSourceNamespace = opt.SourceNamespace
 		sub.Spec.Package = opt.PackageName
+		v1IsLarger, convertErr := util.CompareVersion(opt.Channel, originalSub.Spec.Channel)
+		if convertErr != nil {
+			return convertErr
+		}
+		if v1IsLarger {
+			sub.Spec.Channel = opt.Channel
+		}
 		if opt.InstallPlanApproval != "" && sub.Spec.InstallPlanApproval != opt.InstallPlanApproval {
 			sub.Spec.InstallPlanApproval = opt.InstallPlanApproval
 		}
