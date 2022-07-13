@@ -138,7 +138,7 @@ func ResourceNamespaced(dc discovery.DiscoveryInterface, apiGroupVersion, kind s
 	return false, nil
 }
 
-func CompareVersion(v1, v2 string) (v1IsLarger bool, err error) {
+func CompareChannelVersion(v1, v2 string) (v1IsLarger bool, err error) {
 	_, v1Cut, isExist := strings.Cut(v1, "v")
 	if !isExist {
 		v1Cut = "0.0"
@@ -178,4 +178,13 @@ func CompareVersion(v1, v2 string) (v1IsLarger bool, err error) {
 		}
 	}
 	return false, nil
+}
+
+func Contains(list []string, s string) bool {
+	for _, v := range list {
+		if v == s {
+			return true
+		}
+	}
+	return false
 }
