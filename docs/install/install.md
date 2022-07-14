@@ -70,7 +70,7 @@ metadata:
   name: operand-deployment-lifecycle-manager
   namespace: odlm
 spec:
-  channel: v3
+  channel: v3.20
   name: ibm-odlm
   source: opencloud-operators
   sourceNamespace: olm
@@ -122,7 +122,7 @@ spec:
   operators:
   - name: ibm-cert-manager-operator
     namespace: odlm
-    channel: v3
+    channel: v3.20
     packageName: ibm-cert-manager-operator
     scope: public
     sourceName: opencloud-operators

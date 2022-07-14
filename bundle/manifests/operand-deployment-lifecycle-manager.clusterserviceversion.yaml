@@ -268,7 +268,7 @@ spec:
       name: operand-deployment-lifecycle-manager
       namespace: odlm
     spec:
-      channel: v3
+      channel: v3.20
       name: ibm-odlm
       source: opencloud-operators
       sourceNamespace: olm
