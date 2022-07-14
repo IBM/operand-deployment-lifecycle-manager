@@ -458,6 +458,8 @@ func (r *OperandRequest) UpdateClusterPhase() {
 			clusterStatusStat.runningNum++
 		case OperatorInstalling:
 			clusterStatusStat.installingNum++
+		case OperatorUpdating:
+			clusterStatusStat.installingNum++
 		default:
 		}
 

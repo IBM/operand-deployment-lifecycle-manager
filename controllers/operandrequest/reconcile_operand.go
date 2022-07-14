@@ -168,12 +168,15 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 			} else {
 				if ip.Status.Phase == olmv1alpha1.InstallPlanPhaseFailed {
 					klog.Errorf("installplan %s/%s is failed", ipNamespace, ipName)
+					requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
 					continue
 				} else if ip.Status.Phase == olmv1alpha1.InstallPlanPhaseRequiresApproval {
 					klog.V(2).Infof("Installplan %s/%s is waiting for approval", ipNamespace, ipName)
+					requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorInstalling, "", &r.Mutex)
 					continue
 				} else if ip.Status.Phase != olmv1alpha1.InstallPlanPhaseComplete {
 					klog.Warningf("Installplan %s/%s is not ready", ipNamespace, ipName)
+					requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorInstalling, "", &r.Mutex)
 					continue
 				}
 			}
