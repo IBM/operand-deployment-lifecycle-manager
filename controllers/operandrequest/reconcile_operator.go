@@ -177,7 +177,7 @@ func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance 
 		sub.Spec.CatalogSourceNamespace = opt.SourceNamespace
 		sub.Spec.Package = opt.PackageName
 		// For singleton services, compare the channel version to install the latest one
-		if checkSingletonServices(opt.Name) {
+		if CheckSingletonServices(opt.Name) {
 			v1IsLarger, convertErr := util.CompareChannelVersion(opt.Channel, originalSub.Spec.Channel)
 			if convertErr != nil {
 				return convertErr
@@ -565,7 +565,7 @@ func compareSub(sub *olmv1alpha1.Subscription, originalSub *olmv1alpha1.Subscrip
 	return !equality.Semantic.DeepEqual(sub.Spec, originalSub.Spec) || !equality.Semantic.DeepEqual(sub.Annotations, originalSub.Annotations)
 }
 
-func checkSingletonServices(operator string) bool {
+func CheckSingletonServices(operator string) bool {
 	singletonServices := []string{"ibm-cert-manager-operator", "ibm-licensing-operator"}
 	return util.Contains(singletonServices, operator)
 }
