@@ -51,6 +51,7 @@ spec:
           metadata:
             type: object
           spec:
+            x-kubernetes-preserve-unknown-fields: true
             description: OperandRegistrySpec defines the desired state of OperandRegistry.
             properties:
               operators:
