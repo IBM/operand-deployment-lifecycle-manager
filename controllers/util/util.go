@@ -19,6 +19,8 @@ package util
 import (
 	"os"
 	"sort"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -134,4 +136,55 @@ func ResourceNamespaced(dc discovery.DiscoveryInterface, apiGroupVersion, kind s
 		}
 	}
 	return false, nil
+}
+
+func CompareChannelVersion(v1, v2 string) (v1IsLarger bool, err error) {
+	_, v1Cut, isExist := strings.Cut(v1, "v")
+	if !isExist {
+		v1Cut = "0.0"
+	}
+	v1Slice := strings.Split(v1Cut, ".")
+	if len(v1Slice) == 1 {
+		v1Cut = v1Cut + ".0"
+	}
+
+	_, v2Cut, isExist := strings.Cut(v2, "v")
+	if !isExist {
+		v1Cut = "0.0"
+	}
+	v2Slice := strings.Split(v2Cut, ".")
+	if len(v2Slice) == 1 {
+		v2Cut = v2Cut + ".0"
+	}
+
+	v1Slice = strings.Split(v1Cut, ".")
+	v2Slice = strings.Split(v2Cut, ".")
+	for index := range v1Slice {
+		v1SplitInt, e1 := strconv.Atoi(v1Slice[index])
+		if e1 != nil {
+			return false, e1
+		}
+		v2SplitInt, e2 := strconv.Atoi(v2Slice[index])
+		if e2 != nil {
+			return false, e2
+		}
+
+		if v1SplitInt > v2SplitInt {
+			return true, nil
+		} else if v1SplitInt == v2SplitInt {
+			continue
+		} else {
+			return false, nil
+		}
+	}
+	return false, nil
+}
+
+func Contains(list []string, s string) bool {
+	for _, v := range list {
+		if v == s {
+			return true
+		}
+	}
+	return false
 }

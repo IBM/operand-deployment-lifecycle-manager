@@ -112,6 +112,10 @@ func (r *Reconciler) reconcileOperator(ctx context.Context, requestInstance *ope
 			}
 			wg.Wait()
 		}
+
+		if len(merr.Errors) != 0 {
+			return merr
+		}
 	}
 
 	mergePatch, _ := json.Marshal(map[string]interface{}{
@@ -170,9 +174,20 @@ func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance 
 	if _, ok := sub.Labels[constant.OpreqLabel]; ok {
 		originalSub := sub.DeepCopy()
 		sub.Spec.CatalogSource = opt.SourceName
-		sub.Spec.Channel = opt.Channel
 		sub.Spec.CatalogSourceNamespace = opt.SourceNamespace
 		sub.Spec.Package = opt.PackageName
+		// For singleton services, compare the channel version to install the latest one
+		if CheckSingletonServices(opt.Name) {
+			v1IsLarger, convertErr := util.CompareChannelVersion(opt.Channel, originalSub.Spec.Channel)
+			if convertErr != nil {
+				return convertErr
+			}
+			if v1IsLarger {
+				sub.Spec.Channel = opt.Channel
+			}
+		} else {
+			sub.Spec.Channel = opt.Channel
+		}
 		if opt.InstallPlanApproval != "" && sub.Spec.InstallPlanApproval != opt.InstallPlanApproval {
 			sub.Spec.InstallPlanApproval = opt.InstallPlanApproval
 		}
@@ -548,4 +563,9 @@ func (r *Reconciler) checkUninstallLabel(ctx context.Context, name, namespace st
 
 func compareSub(sub *olmv1alpha1.Subscription, originalSub *olmv1alpha1.Subscription) (needUpdate bool) {
 	return !equality.Semantic.DeepEqual(sub.Spec, originalSub.Spec) || !equality.Semantic.DeepEqual(sub.Annotations, originalSub.Annotations)
+}
+
+func CheckSingletonServices(operator string) bool {
+	singletonServices := []string{"ibm-cert-manager-operator", "ibm-licensing-operator"}
+	return util.Contains(singletonServices, operator)
 }
