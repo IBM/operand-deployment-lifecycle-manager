@@ -7,7 +7,7 @@
         "destStage": "edge",
         "destNamespace": "build-images",
         "destImage": "ubi8",
-        "tag": "8.6-855",
+        "tag": "8.6-903",
         "updatePackages": []
     },
     {
@@ -18,7 +18,7 @@
         "destStage": "edge",
         "destNamespace": "build-images",
         "destImage": "ubi8-minimal",
-        "tag": "8.6-854",
+        "tag": "8.6-902",
         "updatePackages": []
     },
     {
@@ -29,29 +29,30 @@
         "destStage": "edge",
         "destNamespace": "build-images",
         "destImage": "helm-operator",
-        "tag": "v1.22.0",
+        "tag": "v1.22.2",
         "updatePackages": []
     },
     {
         "imageType": "node",
         "sourceImage": "ubi8-minimal",
-        "sourceTag": "8.6-854",
+        "sourceTag": "8.6-902",
         "destImage": "node-fermium-ubi8-minimal",
-        "nodeVersion": "14.19.3"
+        "nodeVersion": "14.20.0"
     },
     {
         "imageType": "node",
         "sourceImage": "ubi8-minimal",
-        "sourceTag": "8.6-854",
+        "sourceTag": "8.6-902",
         "destImage": "node-fermium-npm8-ubi8-minimal",
-        "nodeVersion": "14.19.3",
+        "nodeVersion": "14.20.0",
         "npmVersion": "8"
     },
     {
         "imageType": "node",
         "sourceImage": "ubi8-minimal",
-        "sourceTag": "8.6-854",
+        "sourceTag": "8.6-902",
         "destImage": "node-v16-ubi8-minimal",
-        "nodeVersion": "16.15.1"
+        "nodeVersion": "16.17.0"
     }
+    
 ]
