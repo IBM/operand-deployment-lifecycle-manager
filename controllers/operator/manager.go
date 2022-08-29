@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	operatorsv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
@@ -36,6 +37,7 @@ import (
 
 	apiv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
 	constant "github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
+	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/util"
 )
 
 // ODLMOperator is the struct for ODLM controllers
@@ -64,6 +66,13 @@ func (m *ODLMOperator) GetOperandRegistry(ctx context.Context, key types.Namespa
 	if err := m.Client.Get(ctx, key, reg); err != nil {
 		return nil, err
 	}
+	// Get excluded CatalogSource from annotation
+	// excluded-catalogsource: catalogsource1, catalogsource2
+	var excludedCatalogSources []string
+	if reg.Annotations != nil && reg.Annotations["excluded-catalogsource"] != "" {
+		excludedCatalogSources = strings.Split(reg.Annotations["excluded-catalogsource"], ",")
+	}
+
 	for i, o := range reg.Spec.Operators {
 		if o.Scope == "" {
 			reg.Spec.Operators[i].Scope = apiv1alpha1.ScopePrivate
@@ -75,7 +84,7 @@ func (m *ODLMOperator) GetOperandRegistry(ctx context.Context, key types.Namespa
 			reg.Spec.Operators[i].InstallPlanApproval = olmv1alpha1.ApprovalAutomatic
 		}
 		if o.SourceName == "" || o.SourceNamespace == "" {
-			catalogSourceName, catalogSourceNs, err := m.GetCatalogSourceFromPackage(ctx, o.PackageName, o.Namespace, o.Channel, key.Namespace)
+			catalogSourceName, catalogSourceNs, err := m.GetCatalogSourceFromPackage(ctx, o.PackageName, o.Namespace, o.Channel, key.Namespace, excludedCatalogSources)
 			if err != nil {
 				return reg, err
 			}
@@ -125,7 +134,7 @@ func (s sortableCatalogSource) Less(i, j int) bool {
 	return s[i].Namespace < s[j].Namespace
 }
 
-func (m *ODLMOperator) GetCatalogSourceFromPackage(ctx context.Context, packageName, namespace, channel, registryNs string) (catalogSourceName string, catalogSourceNs string, err error) {
+func (m *ODLMOperator) GetCatalogSourceFromPackage(ctx context.Context, packageName, namespace, channel, registryNs string, excludedCatalogSources []string) (catalogSourceName string, catalogSourceNs string, err error) {
 	packageManifestList := &operatorsv1.PackageManifestList{}
 	opts := []client.ListOption{
 		client.MatchingFields{"metadata.name": packageName},
@@ -141,11 +150,15 @@ func (m *ODLMOperator) GetCatalogSourceFromPackage(ctx context.Context, packageN
 		klog.Warningf("Not found PackageManifest %s in the namespace %s has channel %s", packageName, namespace, channel)
 		return "", "", nil
 	case 1:
+		if excludedCatalogSources != nil && util.Contains(excludedCatalogSources, packageManifestList.Items[0].Status.CatalogSource) {
+			klog.Warningf("Not found available CatalogSource for PackageManifest %s in the namespace %s, CatalogSource %s is excluded from OperandRegistry annotations", packageName, namespace, packageManifestList.Items[0].Status.CatalogSource)
+			return "", "", nil
+		}
 		return packageManifestList.Items[0].Status.CatalogSource, packageManifestList.Items[0].Status.CatalogSourceNamespace, nil
 	default:
 		var catalogSourceCandidate []CatalogSource
 		for _, pm := range packageManifestList.Items {
-			if !channelCheck(channel, pm.Status.Channels) {
+			if !channelCheck(channel, pm.Status.Channels) || (excludedCatalogSources != nil && util.Contains(excludedCatalogSources, pm.Status.CatalogSource)) {
 				continue
 			}
 			catalogSourceCandidate = append(catalogSourceCandidate, CatalogSource{Name: pm.Status.CatalogSource, Namespace: pm.Status.CatalogSourceNamespace, OpNamespace: namespace, RegistryNamespace: registryNs})
