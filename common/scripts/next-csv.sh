@@ -62,5 +62,5 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
     echo "Updated the version/version.go"
 
 else
-	echo "Not support on other operating system"
+    echo "Not support on other operating system"
 fi
