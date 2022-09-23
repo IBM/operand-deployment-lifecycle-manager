@@ -171,12 +171,11 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 				klog.Warningf("ClusterServiceVersion for the Subscription %s in the namespace %s is not ready yet, retry", operatorName, namespace)
 				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorInstalling, "", &r.Mutex)
 				continue
-			}
-			
+				
 			//Check csv status
-			if csv.Status.Phase != olmv1alpha1.CSVPhaseSucceeded  {
-				klog.Errorf("ClusterServiceVersion %s status is not succeeded in the namespace %s", csv.Name, csv.Namespace)
-				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
+			}else if csv.Status.Phase != olmv1alpha1.CSVPhaseSucceeded  {
+				klog.Warningf("ClusterServiceVersion %s phase is not succeeded in the namespace %s yet, retry", csv.Name, csv.Namespace)
+				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorInstalling, "", &r.Mutex)
 				continue
 			} 
 
