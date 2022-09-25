@@ -150,12 +150,10 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 				if !apierrors.IsNotFound(err) {
 					merr.Add(errors.Wrapf(err, "failed to get Installplan"))
 				}
-			} else {
-				if ip.Status.Phase == olmv1alpha1.InstallPlanPhaseFailed {
-					klog.Errorf("installplan %s/%s is failed", ipNamespace, ipName)
-					requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
-					continue
-				} 
+			} else if ip.Status.Phase == olmv1alpha1.InstallPlanPhaseFailed {
+				klog.Errorf("installplan %s/%s is failed", ipNamespace, ipName)
+				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
+				continue
 			}
 
 			csv, err := r.GetClusterServiceVersion(ctx, sub)
@@ -171,13 +169,13 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 				klog.Warningf("ClusterServiceVersion for the Subscription %s in the namespace %s is not ready yet, retry", operatorName, namespace)
 				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorInstalling, "", &r.Mutex)
 				continue
-				
-			//Check csv status
-			}else if csv.Status.Phase != olmv1alpha1.CSVPhaseSucceeded  {
+
+				//Check csv status
+			} else if csv.Status.Phase != olmv1alpha1.CSVPhaseSucceeded {
 				klog.Warningf("ClusterServiceVersion %s phase is not succeeded in the namespace %s yet, retry", csv.Name, csv.Namespace)
 				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorInstalling, "", &r.Mutex)
 				continue
-			} 
+			}
 
 			klog.V(3).Info("Generating customresource base on ClusterServiceVersion: ", csv.GetName())
 			requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorRunning, "", &r.Mutex)
