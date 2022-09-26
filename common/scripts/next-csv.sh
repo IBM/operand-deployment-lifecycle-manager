@@ -26,7 +26,7 @@ PREVIOUS_DEV_CSV=$3
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
 	# Linux OS
     # Update bundle/manifests/operand-deployment-lifecycle-manager.clusterserviceversion.yaml
-    sed -i "s/<$CURRENT_DEV_CSV/<$NEW_DEV_CSV/g" bundle/manifests/operand-deployment-lifecycle-manager.clusterserviceversion.yaml
+    sed -i "/olm.skipRange/s/$CURRENT_DEV_CSV/$NEW_DEV_CSV/g" bundle/manifests/operand-deployment-lifecycle-manager.clusterserviceversion.yaml
     sed -i "s/operand-deployment-lifecycle-manager.v$CURRENT_DEV_CSV/operand-deployment-lifecycle-manager.v$NEW_DEV_CSV/g" bundle/manifests/operand-deployment-lifecycle-manager.clusterserviceversion.yaml
     sed -i "s/odlm:$CURRENT_DEV_CSV/odlm:$NEW_DEV_CSV/g" bundle/manifests/operand-deployment-lifecycle-manager.clusterserviceversion.yaml
     sed -i "s/version: $CURRENT_DEV_CSV/version: $NEW_DEV_CSV/g" bundle/manifests/operand-deployment-lifecycle-manager.clusterserviceversion.yaml
@@ -34,7 +34,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     echo "Updated the bundle/manifests/operand-deployment-lifecycle-manager.clusterserviceversion.yaml"
 
     # Update config/manifests/bases/operand-deployment-lifecycle-manager.clusterserviceversion.yaml
-    sed -i "s/$CURRENT_DEV_CSV/$NEW_DEV_CSV/g" config/manifests/bases/operand-deployment-lifecycle-manager.clusterserviceversion.yaml
+    sed -i "/olm.skipRange/s/$CURRENT_DEV_CSV/$NEW_DEV_CSV/g" config/manifests/bases/operand-deployment-lifecycle-manager.clusterserviceversion.yaml
     echo "Updated the config/manifests/bases/operand-deployment-lifecycle-manager.clusterserviceversion.yaml"
 
     sed -i "s/OPERATOR_VERSION ?= $CURRENT_DEV_CSV/OPERATOR_VERSION ?= $NEW_DEV_CSV/g" Makefile
@@ -45,7 +45,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
 elif [[ "$OSTYPE" == "darwin"* ]]; then
     # Mac OSX
     # Update bundle/manifests/operand-deployment-lifecycle-manager.clusterserviceversion.yaml
-    sed -i "" "s/<$CURRENT_DEV_CSV/<$NEW_DEV_CSV/g" bundle/manifests/operand-deployment-lifecycle-manager.clusterserviceversion.yaml
+    sed -i "" "/olm.skipRange/s/$CURRENT_DEV_CSV/$NEW_DEV_CSV/g" bundle/manifests/operand-deployment-lifecycle-manager.clusterserviceversion.yaml
     sed -i "" "s/operand-deployment-lifecycle-manager.v$CURRENT_DEV_CSV/operand-deployment-lifecycle-manager.v$NEW_DEV_CSV/g" bundle/manifests/operand-deployment-lifecycle-manager.clusterserviceversion.yaml
     sed -i "" "s/odlm:$CURRENT_DEV_CSV/odlm:$NEW_DEV_CSV/g" bundle/manifests/operand-deployment-lifecycle-manager.clusterserviceversion.yaml
     sed -i "" "s/version: $CURRENT_DEV_CSV/version: $NEW_DEV_CSV/g" bundle/manifests/operand-deployment-lifecycle-manager.clusterserviceversion.yaml
@@ -53,7 +53,7 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
     echo "Updated the bundle/manifests/operand-deployment-lifecycle-manager.clusterserviceversion.yaml"
 
     # Update config/manifests/bases/operand-deployment-lifecycle-manager.clusterserviceversion.yaml
-    sed -i "" "s/$CURRENT_DEV_CSV/$NEW_DEV_CSV/g" config/manifests/bases/operand-deployment-lifecycle-manager.clusterserviceversion.yaml
+    sed -i "" "/olm.skipRange/s/$CURRENT_DEV_CSV/$NEW_DEV_CSV/g" config/manifests/bases/operand-deployment-lifecycle-manager.clusterserviceversion.yaml
     echo "Updated the config/manifests/bases/operand-deployment-lifecycle-manager.clusterserviceversion.yaml"
 
     sed -i "" "s/OPERATOR_VERSION ?= $CURRENT_DEV_CSV/OPERATOR_VERSION ?= $NEW_DEV_CSV/g" Makefile
