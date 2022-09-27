@@ -90,7 +90,7 @@ func (m *ODLMOperator) GetOperandRegistry(ctx context.Context, key types.Namespa
 			}
 
 			if catalogSourceName == "" || catalogSourceNs == "" {
-				klog.Warningf("no catalogsource found for %v", o.PackageName)
+				klog.V(2).Infof("no catalogsource found for %v", o.PackageName)
 			}
 
 			reg.Spec.Operators[i].SourceName, reg.Spec.Operators[i].SourceNamespace = catalogSourceName, catalogSourceNs
