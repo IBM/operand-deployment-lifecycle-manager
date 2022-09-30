@@ -90,7 +90,7 @@ func (m *ODLMOperator) GetOperandRegistry(ctx context.Context, key types.Namespa
 			}
 
 			if catalogSourceName == "" || catalogSourceNs == "" {
-				klog.Warningf("no catalogsource found for %v", o.PackageName)
+				klog.V(2).Infof("no catalogsource found for %v", o.PackageName)
 			}
 
 			reg.Spec.Operators[i].SourceName, reg.Spec.Operators[i].SourceNamespace = catalogSourceName, catalogSourceNs
@@ -147,11 +147,11 @@ func (m *ODLMOperator) GetCatalogSourceFromPackage(ctx context.Context, packageN
 
 	switch number {
 	case 0:
-		klog.Warningf("Not found PackageManifest %s in the namespace %s has channel %s", packageName, namespace, channel)
+		klog.V(2).Infof("Not found PackageManifest %s in the namespace %s has channel %s", packageName, namespace, channel)
 		return "", "", nil
 	case 1:
 		if excludedCatalogSources != nil && util.Contains(excludedCatalogSources, packageManifestList.Items[0].Status.CatalogSource) {
-			klog.Warningf("Not found available CatalogSource for PackageManifest %s in the namespace %s, CatalogSource %s is excluded from OperandRegistry annotations", packageName, namespace, packageManifestList.Items[0].Status.CatalogSource)
+			klog.V(2).Infof("Not found available CatalogSource for PackageManifest %s in the namespace %s, CatalogSource %s is excluded from OperandRegistry annotations", packageName, namespace, packageManifestList.Items[0].Status.CatalogSource)
 			return "", "", nil
 		}
 		return packageManifestList.Items[0].Status.CatalogSource, packageManifestList.Items[0].Status.CatalogSourceNamespace, nil
