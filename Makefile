@@ -73,7 +73,7 @@ OPERATOR_IMAGE_NAME ?= odlm
 # Current Operator bundle image name
 BUNDLE_IMAGE_NAME ?= odlm-operator-bundle
 # Current Operator version
-OPERATOR_VERSION ?= 1.20.0
+OPERATOR_VERSION ?= 2.0.0
 
 # Kind cluster name
 KIND_CLUSTER_NAME ?= "odlm"
@@ -233,6 +233,16 @@ build-test-operator-image: $(CONFIG_DOCKER_TARGET) ## Build the operator test im
 	--build-arg GOARCH=$(LOCAL_ARCH) -f Dockerfile .
 
 ##@ Release
+
+build-dev-bundle-image:
+	docker build -f bundle.Dockerfile -t $(QUAY_REGISTRY)/$(BUNDLE_IMAGE_NAME):dev .
+	docker push $(QUAY_REGISTRY)/$(BUNDLE_IMAGE_NAME):dev
+
+build-dev-catalog-source:
+	opm -u docker index add --bundles $(QUAY_REGISTRY)/$(BUNDLE_IMAGE_NAME):dev --tag $(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME)-catalog:dev
+	docker push $(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME)-catalog:dev
+
+build-dev-catalog: build-dev-bundle-image build-dev-catalog-source
 
 build-push-dev-image: build-operator-dev-image  ## Build and push the operator dev images.
 	@echo "Pushing the $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(VERSION) docker image to $(DEV_REGISTRY)..."

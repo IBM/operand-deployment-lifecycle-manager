@@ -106,7 +106,7 @@ metadata:
     createdAt: "2020-11-12T17:05:48Z"
     description: The Operand Deployment Lifecycle Manager provides a Kubernetes CRD-based
       API to manage the lifecycle of operands.
-    olm.skipRange: '>=1.2.0 <1.20.0'
+    olm.skipRange: '>=1.2.0 <2.0.0'
     operators.operatorframework.io/builder: operator-sdk-v1.11.0+git
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/IBM/operand-deployment-lifecycle-manager
@@ -116,7 +116,7 @@ metadata:
     operatorframework.io/arch.ppc64le: supported
     operatorframework.io/arch.s390x: supported
     operatorframework.io/os.linux: supported
-  name: operand-deployment-lifecycle-manager.v1.20.0
+  name: operand-deployment-lifecycle-manager.v2.0.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -638,10 +638,10 @@ spec:
                       fieldPath: metadata.namespace
                 - name: WATCH_NAMESPACE
                   valueFrom:
-                    configMapKeyRef:
-                      name: odlm-scope
-                      key: namespaces
-                image: icr.io/cpopen/odlm:latest
+                    fieldRef:
+                      apiVersion: v1
+                      fieldPath: metadata.annotations['olm.targetNamespaces']
+                image: quay.io/daniel_fan/odlm:v2.0-dev
                 imagePullPolicy: Always
                 livenessProbe:
                   failureThreshold: 10
@@ -719,6 +719,6 @@ spec:
   provider:
     name: IBM
   relatedImages:
-  - image: icr.io/cpopen/odlm:1.20.0
+  - image: icr.io/cpopen/odlm:2.0.0
     name: ODLM_IMAGE
-  version: 1.20.0
+  version: 2.0.0
