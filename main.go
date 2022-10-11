@@ -110,7 +110,8 @@ func main() {
 	}
 
 	watchNamespace := util.GetWatchNamespace()
-	isolatedModeEnable := util.GetIsolatedMode()
+	// isolatedModeEnable := util.GetIsolatedMode()
+	isolatedModeEnable := true
 	operatorCheckerDisable := util.GetoperatorCheckerMode()
 	options.NewCache = k8sutil.NewODLMCache(isolatedModeEnable, strings.Split(watchNamespace, ","), gvkLabelMap)
 
