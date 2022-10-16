@@ -101,6 +101,7 @@ type OperandConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// +kubebuilder:pruning:PreserveUnknownFields
 	Spec   OperandConfigSpec   `json:"spec,omitempty"`
 	Status OperandConfigStatus `json:"status,omitempty"`
 }
