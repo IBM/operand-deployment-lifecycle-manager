@@ -7,7 +7,7 @@
         "destStage": "edge",
         "destNamespace": "build-images",
         "destImage": "ubi8",
-        "tag": "8.6-943",
+        "tag": "8.6-943.1665521450",
         "updatePackages": []
     },
     {
@@ -29,7 +29,7 @@
         "destStage": "edge",
         "destNamespace": "build-images",
         "destImage": "helm-operator",
-        "tag": "v1.23.0",
+        "tag": "v1.25.0",
         "updatePackages": []
     },
     {
@@ -52,7 +52,7 @@
         "sourceImage": "ubi8-minimal",
         "sourceTag": "8.6-941",
         "destImage": "node-v16-ubi8-minimal",
-        "nodeVersion": "16.17.1"
+        "nodeVersion": "16.18.0"
     }
     
 ]
