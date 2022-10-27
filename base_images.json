@@ -54,5 +54,4 @@
         "destImage": "node-v16-ubi8-minimal",
         "nodeVersion": "16.18.0"
     }
-    
 ]
