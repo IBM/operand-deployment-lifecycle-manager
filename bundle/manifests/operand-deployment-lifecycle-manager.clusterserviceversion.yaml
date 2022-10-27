@@ -107,7 +107,7 @@ metadata:
     description: The Operand Deployment Lifecycle Manager provides a Kubernetes CRD-based
       API to manage the lifecycle of operands.
     olm.skipRange: '>=1.2.0 <2.0.0'
-    operators.operatorframework.io/builder: operator-sdk-v1.11.0+git
+    operators.operatorframework.io/builder: operator-sdk-v1.24.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/IBM/operand-deployment-lifecycle-manager
     support: IBM
@@ -122,7 +122,7 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-    - description: OperandBindInfo is the Schema for the operandbindinfoes API. Documentation For additional details regarding install parameters check https://ibm.biz/icpfs39install. License By installing this product you accept the license terms https://ibm.biz/icpfs39license
+    - description: OperandBindInfo is the Schema for the operandbindinfoes API.
       displayName: OperandBindInfo
       kind: OperandBindInfo
       name: operandbindinfos.operator.ibm.com
@@ -133,7 +133,7 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.phase
       version: v1alpha1
-    - description: OperandConfig is the Schema for the operandconfigs API. Documentation For additional details regarding install parameters check https://ibm.biz/icpfs39install. License By installing this product you accept the license terms https://ibm.biz/icpfs39license
+    - description: OperandConfig is the Schema for the operandconfigs API.
       displayName: OperandConfig
       kind: OperandConfig
       name: operandconfigs.operator.ibm.com
@@ -148,7 +148,7 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.phase
       version: v1alpha1
-    - description: OperandRegistry is the Schema for the operandregistries API. Documentation For additional details regarding install parameters check https://ibm.biz/icpfs39install. License By installing this product you accept the license terms https://ibm.biz/icpfs39license
+    - description: OperandRegistry is the Schema for the operandregistries API.
       displayName: OperandRegistry
       kind: OperandRegistry
       name: operandregistries.operator.ibm.com
@@ -168,7 +168,7 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.phase
       version: v1alpha1
-    - description: OperandRequest is the Schema for the operandrequests API. Documentation For additional details regarding install parameters check https://ibm.biz/icpfs39install. License By installing this product you accept the license terms https://ibm.biz/icpfs39license
+    - description: OperandRequest is the Schema for the operandrequests API.
       displayName: OperandRequest
       kind: OperandRequest
       name: operandrequests.operator.ibm.com
@@ -594,7 +594,11 @@ spec:
           - watch
         serviceAccountName: operand-deployment-lifecycle-manager
       deployments:
-      - name: operand-deployment-lifecycle-manager
+      - label:
+          app.kubernetes.io/instance: operand-deployment-lifecycle-manager
+          app.kubernetes.io/managed-by: operand-deployment-lifecycle-manager
+          app.kubernetes.io/name: operand-deployment-lifecycle-manager
+        name: operand-deployment-lifecycle-manager
         spec:
           replicas: 1
           selector:
@@ -639,7 +643,6 @@ spec:
                 - name: WATCH_NAMESPACE
                   valueFrom:
                     fieldRef:
-                      apiVersion: v1
                       fieldPath: metadata.annotations['olm.targetNamespaces']
                 image: icr.io/cpopen/odlm:latest
                 imagePullPolicy: Always
@@ -652,6 +655,10 @@ spec:
                   periodSeconds: 60
                   timeoutSeconds: 10
                 name: manager
+                ports:
+                - containerPort: 9443
+                  name: webhook-server
+                  protocol: TCP
                 readinessProbe:
                   failureThreshold: 10
                   httpGet:
@@ -675,9 +682,18 @@ spec:
                   privileged: false
                   readOnlyRootFilesystem: true
                   runAsNonRoot: true
+                volumeMounts:
+                - mountPath: /tmp/k8s-webhook-server/serving-certs
+                  name: cert
+                  readOnly: true
               serviceAccount: operand-deployment-lifecycle-manager
               serviceAccountName: operand-deployment-lifecycle-manager
               terminationGracePeriodSeconds: 10
+              volumes:
+              - name: cert
+                secret:
+                  defaultMode: 420
+                  secretName: webhook-server-cert
       permissions:
       - rules:
         - apiGroups:
@@ -722,3 +738,24 @@ spec:
   - image: icr.io/cpopen/odlm:2.0.0
     name: ODLM_IMAGE
   version: 2.0.0
+  webhookdefinitions:
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: operand-deployment-lifecycle-manager
+    failurePolicy: Fail
+    generateName: moperandrequest.kb.io
+    rules:
+    - apiGroups:
+      - operator.ibm.com
+      apiVersions:
+      - v1alpha1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - operandrequests
+    sideEffects: None
+    targetPort: 9443
+    type: MutatingAdmissionWebhook
+    webhookPath: /mutate-operator-ibm-com-v1alpha1-operandrequest

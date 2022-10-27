@@ -1,5 +1,9 @@
 domain: ibm.com
-layout: go.kubebuilder.io/v3
+layout:
+- go.kubebuilder.io/v3
+plugins:
+  manifests.sdk.operatorframework.io/v2: {}
+  scorecard.sdk.operatorframework.io/v2: {}
 projectName: operand-deployment-lifecycle-manager
 repo: github.com/IBM/operand-deployment-lifecycle-manager
 resources:
@@ -9,6 +13,10 @@ resources:
   kind: OperandRequest
   path: github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1
   version: v1alpha1
+  webhooks:
+    defaulting: true
+    validation: true
+    webhookVersion: v1
 - controller: true
   domain: ibm.com
   group: operator
@@ -28,6 +36,3 @@ resources:
   path: github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1
   version: v1alpha1
 version: "3"
-plugins:
-  manifests.sdk.operatorframework.io/v2: {}
-  scorecard.sdk.operatorframework.io/v2: {}

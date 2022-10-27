@@ -164,6 +164,10 @@ func main() {
 			}
 		}
 	}
+	if err = (&operatorv1alpha1.OperandRequest{}).SetupWebhookWithManager(mgr); err != nil {
+		klog.Error(err, "unable to create webhook", "webhook", "OperandRequest")
+		os.Exit(1)
+	}
 	// +kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("health", healthz.Ping); err != nil {
