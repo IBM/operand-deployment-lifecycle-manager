@@ -73,7 +73,7 @@ OPERATOR_IMAGE_NAME ?= odlm
 # Current Operator bundle image name
 BUNDLE_IMAGE_NAME ?= odlm-operator-bundle
 # Current Operator version
-OPERATOR_VERSION ?= 1.20.0
+OPERATOR_VERSION ?= 2.0.0
 
 # Kind cluster name
 KIND_CLUSTER_NAME ?= "odlm"
