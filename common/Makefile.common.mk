@@ -19,8 +19,8 @@
 # GKE section
 ############################################################
 PROJECT ?= oceanic-guard-191815
-ZONE    ?= us-west1-a
-CLUSTER ?= prow
+ZONE    ?= us-east5-c
+CLUSTER ?= bedrock-prow
 NAMESPACESCOPE_VERSION = 1.1.1
 OLM_API_VERSION = 0.3.8
 
