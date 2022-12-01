@@ -46,18 +46,11 @@ import (
 
 func (r *Reconciler) reconcileOperator(ctx context.Context, requestInstance *operatorv1alpha1.OperandRequest) error {
 	klog.V(1).Infof("Reconciling Operators for OperandRequest: %s/%s", requestInstance.GetNamespace(), requestInstance.GetName())
-	var returnErr error
 	// It is important to NOT pass the set directly into defer functions.
 	// The arguments to the deferred function are evaluated when the defer executes
 	failedDeletedOperands := gset.NewSet()
 	// Update request status
 	defer func() {
-		if failedDeletedOperands.Cardinality() != 0 {
-			klog.Infof("Failed to delete operands, %s", strings.Trim(fmt.Sprint(failedDeletedOperands.ToSlice()), "[]"))
-			returnErr = fmt.Errorf("time out to clean operators %s ", strings.Trim(fmt.Sprint(failedDeletedOperands.ToSlice()), "[]"))
-		} else {
-			returnErr = nil
-		}
 		requestInstance.FreshMemberStatus(&failedDeletedOperands)
 		requestInstance.UpdateClusterPhase()
 	}()
@@ -149,7 +142,7 @@ func (r *Reconciler) reconcileOperator(ctx context.Context, requestInstance *ope
 	}
 	klog.V(1).Infof("Finished reconciling Operators for OperandRequest: %s/%s", requestInstance.GetNamespace(), requestInstance.GetName())
 
-	return returnErr
+	return nil
 }
 
 func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance *operatorv1alpha1.OperandRequest, registryInstance *operatorv1alpha1.OperandRegistry, operand operatorv1alpha1.Operand, registryKey types.NamespacedName, mu sync.Locker) error {
