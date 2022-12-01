@@ -21,6 +21,7 @@ import (
 	"sync"
 	"time"
 
+	gset "github.com/deckarep/golang-set"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
@@ -388,10 +389,10 @@ func (r *OperandRequest) setOperandReadyCondition(operandPhase ServicePhase, nam
 }
 
 // FreshMemberStatus cleanup Member status from the Member status list.
-func (r *OperandRequest) FreshMemberStatus() {
+func (r *OperandRequest) FreshMemberStatus(failedDeletedOperands *gset.Set) {
 	newMembers := []MemberStatus{}
 	for index, m := range r.Status.Members {
-		if foundOperand(r.Spec.Requests, m.Name) {
+		if foundOperand(r.Spec.Requests, m.Name) || (*failedDeletedOperands).Contains(m.Name) {
 			newMembers = append(newMembers, r.Status.Members[index])
 		}
 	}
@@ -457,6 +458,8 @@ func (r *OperandRequest) UpdateClusterPhase() {
 		case OperatorRunning:
 			clusterStatusStat.runningNum++
 		case OperatorInstalling:
+			clusterStatusStat.installingNum++
+		case OperatorUpdating:
 			clusterStatusStat.installingNum++
 		default:
 		}
