@@ -100,21 +100,6 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 				klog.Warningf("Subscription %s in the namespace %s isn't created by ODLM", sub.Name, sub.Namespace)
 			}
 
-			// check config annotation in subscription, identify the first ODLM has the priority to reconcile
-			var firstMatch string
-			reg, _ := regexp.Compile(`^(.*)\.(.*)\/config`)
-			for anno := range sub.Annotations {
-				if reg.MatchString(anno) {
-					firstMatch = anno
-					break
-				}
-			}
-
-			if firstMatch != "" && firstMatch != regNs+"."+regName+"/config" {
-				klog.V(2).Infof("Subscription %s in the namespace %s is currently managed by %s", sub.Name, sub.Namespace, firstMatch)
-				continue
-			}
-
 			// It the installplan is not created yet, ODLM will try later
 			if sub.Status.Install == nil || sub.Status.InstallPlanRef.Name == "" {
 				klog.Warningf("The Installplan for Subscription %s is not ready. Will check it again", sub.Name)
@@ -157,6 +142,22 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 
 			klog.V(3).Info("Generating customresource base on ClusterServiceVersion: ", csv.GetName())
 			requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorRunning, "", &r.Mutex)
+
+			// check config annotation in subscription, identify the first ODLM has the priority to reconcile
+			var firstMatch string
+			reg, _ := regexp.Compile(`^(.*)\.(.*)\/config`)
+			for anno := range sub.Annotations {
+				if reg.MatchString(anno) {
+					firstMatch = anno
+					break
+				}
+			}
+
+			if firstMatch != "" && firstMatch != regNs+"."+regName+"/config" {
+				klog.V(2).Infof("Subscription %s in the namespace %s is currently managed by %s, Skip creating CR for it", sub.Name, sub.Namespace, firstMatch)
+				requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceRunning, &r.Mutex)
+				continue
+			}
 
 			// Merge and Generate CR
 			if operand.Kind == "" {
