@@ -42,10 +42,12 @@ type Operator struct {
 	// - "cluster": operator is deployed in "openshift-operators" namespace;
 	// +optional
 	InstallMode string `json:"installMode,omitempty"`
-	// The namespace in which operator CR should be deployed.
-	// Also the namespace in which operator should be deployed when InstallMode is empty or set to "namespace".
+	// The namespace in which operator should be deployed when InstallMode is empty or set to "namespace".
 	// +optional
 	Namespace string `json:"namespace,omitempty"`
+	// The namespace in which operator CR should be deployed.
+	// +optional
+	ServiceNamespace string `json:"serviceNamespace,omitempty"`
 	// Name of a CatalogSource that defines where and how to find the channel.
 	SourceName string `json:"sourceName,omitempty"`
 	// The Kubernetes namespace where the CatalogSource used is located.
