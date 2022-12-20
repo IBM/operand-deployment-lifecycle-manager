@@ -124,8 +124,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 
 	// Fetch the OperandRegistry instance
 	registryKey := bindInfoInstance.GetRegistryKey()
-	registryInstance := &operatorv1alpha1.OperandRegistry{}
-	if err := r.Client.Get(ctx, registryKey, registryInstance); err != nil {
+	registryInstance, err := r.GetOperandRegistry(ctx, registryKey)
+	if err != nil {
 		if apierrors.IsNotFound(err) {
 			klog.Errorf("failed to find OperandRegistry from the NamespacedName %s: %v", registryKey.String(), err)
 			r.Recorder.Eventf(bindInfoInstance, corev1.EventTypeWarning, "NotFound", "NotFound OperandRegistry from the NamespacedName %s", registryKey.String())
@@ -147,7 +147,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		r.Recorder.Eventf(bindInfoInstance, corev1.EventTypeWarning, "NotFound", "NotFound operator %s in the OperandRegistry %s", bindInfoInstance.Spec.Operand, registryInstance.Name)
 		return ctrl.Result{}, nil
 	}
-	operandNamespace := operandOperator.Namespace
+	operandNamespace := operandOperator.ServiceNamespace
 
 	// If Secret or ConfigMap not found, reconcile will requeue after 1 min
 	var requeue bool
