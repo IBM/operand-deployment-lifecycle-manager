@@ -308,14 +308,14 @@ var _ = Describe("OperandRegistry controller", func() {
 			By("Checking of the CR of the etcd operator")
 			Eventually(func() error {
 				etcdCluster := &v1beta2.EtcdCluster{}
-				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "example", Namespace: operatorNamespaceName}, etcdCluster)
+				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "example", Namespace: registryNamespaceName}, etcdCluster)
 				return err
 			}, testutil.Timeout, testutil.Interval).Should(Succeed())
 
 			By("Checking of the k8s resource of the etcd operator")
 			Eventually(func() error {
 				etcdConfigMap := &corev1.ConfigMap{}
-				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "fake-configmap", Namespace: operatorNamespaceName}, etcdConfigMap)
+				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "fake-configmap", Namespace: registryNamespaceName}, etcdConfigMap)
 				return err
 			}, testutil.Timeout, testutil.Interval).Should(Succeed())
 
@@ -328,7 +328,7 @@ var _ = Describe("OperandRegistry controller", func() {
 			}, testutil.Timeout, testutil.Interval).Should(Succeed())
 			Eventually(func() error {
 				etcdCluster := &v1beta2.EtcdCluster{}
-				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "example", Namespace: operatorNamespaceName}, etcdCluster)
+				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "example", Namespace: registryNamespaceName}, etcdCluster)
 				return err
 			}, testutil.Timeout, testutil.Interval).Should(Succeed())
 
@@ -341,7 +341,7 @@ var _ = Describe("OperandRegistry controller", func() {
 			}, testutil.Timeout, testutil.Interval).Should(Succeed())
 			Eventually(func() bool {
 				etcdCluster := &v1beta2.EtcdCluster{}
-				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "example", Namespace: operatorNamespaceName}, etcdCluster)
+				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "example", Namespace: registryNamespaceName}, etcdCluster)
 				return err != nil && errors.IsNotFound(err)
 			}, testutil.Timeout, testutil.Interval).Should(BeTrue())
 
@@ -361,7 +361,7 @@ var _ = Describe("OperandRegistry controller", func() {
 			By("Checking the k8s resource has been deleted")
 			Eventually(func() bool {
 				etcdConfigMap := &corev1.ConfigMap{}
-				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "fake-configmap", Namespace: operatorNamespaceName}, etcdConfigMap)
+				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "fake-configmap", Namespace: registryNamespaceName}, etcdConfigMap)
 				return err != nil && errors.IsNotFound(err)
 			}, testutil.Timeout, testutil.Interval).Should(BeTrue())
 
