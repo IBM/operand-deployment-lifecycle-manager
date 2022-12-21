@@ -77,9 +77,8 @@ spec:
                         be deployed.
                       type: string
                     namespace:
-                      description: The namespace in which operator CR should be deployed.
-                        Also the namespace in which operator should be deployed when
-                        InstallMode is empty or set to "namespace".
+                      description: The namespace in which operator should be deployed
+                        when InstallMode is empty or set to "namespace".
                       type: string
                     packageName:
                       description: Name of the package that defines the applications.
@@ -92,6 +91,9 @@ spec:
                       enum:
                       - public
                       - private
+                      type: string
+                    serviceNamespace:
+                      description: The namespace in which operator CR should be deployed.
                       type: string
                     sourceName:
                       description: Name of a CatalogSource that defines where and

@@ -107,7 +107,7 @@ metadata:
     description: The Operand Deployment Lifecycle Manager provides a Kubernetes CRD-based
       API to manage the lifecycle of operands.
     olm.skipRange: '>=1.2.0 <2.0.0'
-    operators.operatorframework.io/builder: operator-sdk-v1.11.0+git
+    operators.operatorframework.io/builder: operator-sdk-v1.24.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/IBM/operand-deployment-lifecycle-manager
     support: IBM
@@ -535,7 +535,11 @@ spec:
   install:
     spec:
       deployments:
-      - name: operand-deployment-lifecycle-manager
+      - label:
+          app.kubernetes.io/instance: operand-deployment-lifecycle-manager
+          app.kubernetes.io/managed-by: operand-deployment-lifecycle-manager
+          app.kubernetes.io/name: operand-deployment-lifecycle-manager
+        name: operand-deployment-lifecycle-manager
         spec:
           replicas: 1
           selector:
@@ -580,7 +584,6 @@ spec:
                 - name: WATCH_NAMESPACE
                   valueFrom:
                     fieldRef:
-                      apiVersion: v1
                       fieldPath: metadata.annotations['olm.targetNamespaces']
                 image: icr.io/cpopen/odlm:latest
                 imagePullPolicy: Always

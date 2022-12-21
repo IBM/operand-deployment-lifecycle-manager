@@ -188,7 +188,7 @@ bundle-manifests:
 
 generate-all: manifests kustomize operator-sdk ## Generate bundle manifests, metadata and package manifests
 	$(OPERATOR_SDK) generate kustomize manifests -q
-	- make bundle-manifests CHANNELS=v3.20 DEFAULT_CHANNEL=v3.20
+	- make bundle-manifests CHANNELS=v4.0 DEFAULT_CHANNEL=v4.0
 
 ##@ Test
 

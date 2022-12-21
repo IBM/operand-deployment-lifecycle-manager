@@ -1,3 +1,12 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Create Custom Resource by OperandRequest](#create-custom-resource-by-operandrequest)
+  - [How to create Custom Resource by OperandRequest](#how-to-create-custom-resource-by-operandrequest)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Create Custom Resource by OperandRequest
 
 Using OperandConfig can apply a default custom resource according to the alm-example in the CSV, which provides convenience to users using a template to customize their own custom resource.

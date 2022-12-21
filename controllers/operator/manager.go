@@ -83,6 +83,12 @@ func (m *ODLMOperator) GetOperandRegistry(ctx context.Context, key types.Namespa
 		if o.InstallPlanApproval == "" {
 			reg.Spec.Operators[i].InstallPlanApproval = olmv1alpha1.ApprovalAutomatic
 		}
+		if o.Namespace == "" {
+			reg.Spec.Operators[i].Namespace = key.Namespace
+		}
+		if o.ServiceNamespace == "" {
+			reg.Spec.Operators[i].ServiceNamespace = key.Namespace
+		}
 		if o.SourceName == "" || o.SourceNamespace == "" {
 			catalogSourceName, catalogSourceNs, err := m.GetCatalogSourceFromPackage(ctx, o.PackageName, o.Namespace, o.Channel, key.Namespace, excludedCatalogSources)
 			if err != nil {
