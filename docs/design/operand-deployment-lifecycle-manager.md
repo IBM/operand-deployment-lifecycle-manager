@@ -66,13 +66,14 @@ spec:
   operators:
   - name: jenkins [3]
     namespace: default [4]
-    channel: alpha [5]
-    packageName: jenkins-operator [6]
-    scope: public [7]
-    sourceName: community-operators [8]
-    sourceNamespace: openshift-marketplace [9]
-    installMode: cluster [10]
-    installPlanApproval: Manual [11]
+    serviceNamespace: default [5]
+    channel: alpha [6]
+    packageName: jenkins-operator [7]
+    scope: public [8]
+    sourceName: community-operators [9]
+    sourceNamespace: openshift-marketplace [10]
+    installMode: cluster [11]
+    installPlanApproval: Manual [12]
 ```
 
 The OperandRegistry Custom Resource (CR) lists OLM Operator information for operands that may be requested for installation and/or access by an application that runs in a namespace. The registry CR specifies:
@@ -80,14 +81,15 @@ The OperandRegistry Custom Resource (CR) lists OLM Operator information for oper
 1. `name` of the OperandRegistry
 2. `namespace` of the OperandRegistry
 3. `name` is the name of the operator, which should be the same as the services name in the OperandConfig and OperandRequest.
-4. `namespace` defines the namespace where the operator and its CR will be deployed. (1) When InstallMode is `cluster`, the operator will be deployed into the `openshift-operators` namespace and the operator CRs will be deployed into the namespace this parameter defines. (2) When InstallMode is empty or set to `namespace`, it is the namespace where both operator and operator CR will be deployed.
-5. `channel` is the name of OLM channel that is subscribed for the operator.
-6. `packageName` is the name of the package in CatalogSource that is subscribed for the operator.
-7. (optional) `scope` is an indicator, either public or private, that dictates whether deployment can be requested from other namespaces (public) or only from the namespace of this OperandRegistry (private). The default value is private.
-8. `sourceName` is the name of the CatalogSource.
-9. `sourceNamespace` is the namespace of the CatalogSource.
-10. (optional) `installMode` is the install mode of the operator, can be either `namespace` (OLM one namespace) or `cluster` (OLM all namespaces). The default value is `namespace`. Operator is deployed in `openshift-operators` namespace when InstallMode is set to `cluster`.
-11. (optional) `installPlanApproval` is the approval mode for emitted installplan. The default value is `Automatic`.
+4. (optional) `namespace` defines the namespace where the operator will be deployed. (1) When InstallMode is `cluster`, the operator will be deployed into the `openshift-operators` namespace. (2) When InstallMode is empty or set to `namespace`, it is the namespace where operator will be deployed. (3) If the `namespace` value is empty, the operator will be deployed in the same namespace as this OperandRegistry.
+5. (optional) `serviceNamespace` defines the namespace where the operator's CR will be deployed. If the `serviceNamespace` value is empty, the operator's CR will be deployed in the same namespace as this OperandRegistry.
+6. `channel` is the name of OLM channel that is subscribed for the operator.
+7. `packageName` is the name of the package in CatalogSource that is subscribed for the operator.
+8. (optional) `scope` is an indicator, either public or private, that dictates whether deployment can be requested from other namespaces (public) or only from the namespace of this OperandRegistry (private). The default value is private.
+9. `sourceName` is the name of the CatalogSource.
+10. `sourceNamespace` is the namespace of the CatalogSource.
+11. (optional) `installMode` is the install mode of the operator, can be either `namespace` (OLM one namespace) or `cluster` (OLM all namespaces). The default value is `namespace`. Operator is deployed in `openshift-operators` namespace when InstallMode is set to `cluster`.
+12. (optional) `installPlanApproval` is the approval mode for emitted installplan. The default value is `Automatic`.
 
 ## OperandConfig Spec
 
@@ -245,11 +247,12 @@ metadata:
 spec:
   operand: jenkins [3]
   registry: example-service [4]
-  description: "Binding information that should be accessible to jenkins adopters" [5]
-  bindings: [6]
+  registryNamespace: example-service-ns [5]
+  description: "Binding information that should be accessible to jenkins adopters" [6]
+  bindings: [7]
     public:
-      secret: jenkins-operator-credentials-example [7]
-      configmap: jenkins-operator-base-configuration-example [8]
+      secret: jenkins-operator-credentials-example [8]
+      configmap: jenkins-operator-base-configuration-example [9]
 ```
 
 Fields in this CR are described below.
@@ -257,11 +260,12 @@ Fields in this CR are described below.
 1. `name` of the OperandBindInfo
 2. `namespace` of the OperandBindInfo
 3. The `operand` should be the the individual operator name.
-4. The `registry` section must match the name in the OperandRegistry CR in the current namespace.
-5. `description` is used to add a detailed description of a service.
-6. The `bindings` section is used to specify information about the access/configuration data that is to be shared. If the key of the bindings map is prefixed with public, it means the secret and/or configmap can be shared with the requester in the other namespace. If the key of the bindings map is prefixed with private, it means the secret and/or configmap can only be shared within its own namespace. If the key of the bindings map is prefixed with protected, it means the secret and/or configmap can only be shared if it is explicitly declared in the OperandRequest.
-7. The `secret` field names an existing secret, if any, that has been created and holds information that is to be shared with the requester.
-8. The `configmap` field identifies a configmap object, if any, that should be shared with the requester
+4. The `registry` identifies the name of the OperandRegistry CR in which this operand information is registered.
+5. (optional) `registryNamespace` identifies the namespace in which the OperandRegistry CR is defined. **Note:** If the `registryNamespace` is not specified then it is assumed that the OperandRegistry CR is in the current (OperandBindInfo's) namespace.
+6. `description` is used to add a detailed description of a service.
+7. The `bindings` section is used to specify information about the access/configuration data that is to be shared. If the key of the bindings map is prefixed with public, it means the secret and/or configmap can be shared with the requester in the other namespace. If the key of the bindings map is prefixed with private, it means the secret and/or configmap can only be shared within its own namespace. If the key of the bindings map is prefixed with protected, it means the secret and/or configmap can only be shared if it is explicitly declared in the OperandRequest.
+8. The `secret` field names an existing secret, if any, that has been created and holds information that is to be shared with the requester.
+9. The `configmap` field identifies a configmap object, if any, that should be shared with the requester
 
 ODLM will use the OperandBindInfo CR to pass information to an adopter when they create a OperandRequest to access the service, assuming that both have compatible scopes. ODLM will copy the information from the shared service's "OperandBindInfo.bindinfo[].secret" and/or "OperandBindInfo.bindinfo[].configmap" to the requester namespace.
 
