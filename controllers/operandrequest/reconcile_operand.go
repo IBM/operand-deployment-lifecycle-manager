@@ -189,6 +189,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 					if err != nil {
 						merr.Add(err)
 						requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceFailed, &r.Mutex)
+						continue
 					}
 				} else if apierrors.IsNotFound(err) {
 					klog.Infof("Not Found OperandConfig: %s/%s", operand.Name, err)
@@ -202,6 +203,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 				if err != nil {
 					merr.Add(err)
 					requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceFailed, &r.Mutex)
+					continue
 				}
 			}
 			requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceRunning, &r.Mutex)
