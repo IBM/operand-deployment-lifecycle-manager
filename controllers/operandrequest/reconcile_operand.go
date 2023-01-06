@@ -65,8 +65,6 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 			merr.Add(errors.Wrapf(err, "failed to get the OperandRegistry %s", registryKey.String()))
 			continue
 		}
-		regName := registryInstance.ObjectMeta.Name
-		regNs := registryInstance.ObjectMeta.Namespace
 
 		for i, operand := range req.Operands {
 
@@ -159,18 +157,18 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 			klog.V(3).Info("Generating customresource base on ClusterServiceVersion: ", csv.GetName())
 			requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorRunning, "", &r.Mutex)
 
-			// check config annotation in subscription, identify the first ODLM has the priority to reconcile
-			var firstMatch string
-			reg, _ := regexp.Compile(`^(.*)\.(.*)\/config`)
-			for anno := range sub.Annotations {
-				if reg.MatchString(anno) {
-					firstMatch = anno
-					break
+			// find the OperandRequest which has the same operator's channel version as existing subscription.
+			// ODLM will only reconcile Operand based on OperandConfig for this OperandRequest
+			var requestList []string
+			reg, _ := regexp.Compile(`^(.*)\.(.*)\/request`)
+			for anno, version := range sub.Annotations {
+				if reg.MatchString(anno) && version == sub.Spec.Channel {
+					requestList = append(requestList, anno)
 				}
 			}
 
-			if firstMatch != "" && firstMatch != regNs+"."+regName+"/config" {
-				klog.V(2).Infof("Subscription %s in the namespace %s is currently managed by %s, Skip creating CR for it", sub.Name, sub.Namespace, firstMatch)
+			if len(requestList) == 0 || !util.Contains(requestList, requestInstance.Namespace+"."+requestInstance.Name+"/request") {
+				klog.V(2).Infof("Subscription %s in the namespace %s is NOT managed by %s/%s, Skip reconciling Operands", sub.Name, sub.Namespace, requestInstance.Namespace, requestInstance.Name)
 				requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceRunning, &r.Mutex)
 				continue
 			}
@@ -182,7 +180,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 					// Check the requested Service Config if exist in specific OperandConfig
 					opdConfig := configInstance.GetService(operand.Name)
 					if opdConfig == nil {
-						klog.V(2).Infof("There is no service: %s from the OperandConfig instance: %s/%s, Skip creating CR for it", operand.Name, req.RegistryNamespace, req.Registry)
+						klog.V(2).Infof("There is no service: %s from the OperandConfig instance: %s/%s, Skip reconciling Operands", operand.Name, registryKey.Namespace, req.Registry)
 						continue
 					}
 					err = r.reconcileCRwithConfig(ctx, opdConfig, opdRegistry.ServiceNamespace, csv)
