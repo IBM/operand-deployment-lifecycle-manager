@@ -401,10 +401,7 @@ func (r *Reconciler) deleteSubscription(ctx context.Context, operandName string,
 }
 
 func (r *Reconciler) absentOperatorsAndOperands(ctx context.Context, requestInstance *operatorv1alpha1.OperandRequest, failedDeletedOperands *gset.Set) error {
-	needDeletedOperands, err := r.getNeedDeletedOperands(ctx, requestInstance)
-	if err != nil {
-		return err
-	}
+	needDeletedOperands := r.getNeedDeletedOperands(requestInstance)
 
 	var (
 		wg sync.WaitGroup
@@ -454,47 +451,24 @@ func (r *Reconciler) absentOperatorsAndOperands(ctx context.Context, requestInst
 	return nil
 }
 
-func (r *Reconciler) getNeedDeletedOperands(ctx context.Context, requestInstance *operatorv1alpha1.OperandRequest) (gset.Set, error) {
+func (r *Reconciler) getNeedDeletedOperands(requestInstance *operatorv1alpha1.OperandRequest) gset.Set {
 	klog.V(3).Info("Getting the operater need to be delete")
 	deployedOperands := gset.NewSet()
 	for _, req := range requestInstance.Status.Members {
 		deployedOperands.Add(req.Name)
 	}
 
-	currentOperands, err := r.getCurrentOperands(ctx, requestInstance)
-	if err != nil {
-		return nil, err
+	currentOperands := gset.NewSet()
+	if requestInstance.DeletionTimestamp.IsZero() {
+		for _, req := range requestInstance.Spec.Requests {
+			for _, op := range req.Operands {
+				currentOperands.Add(op.Name)
+			}
+		}
 	}
 
 	needDeleteOperands := deployedOperands.Difference(currentOperands)
-	return needDeleteOperands, nil
-}
-
-func (r *Reconciler) getCurrentOperands(ctx context.Context, requestInstance *operatorv1alpha1.OperandRequest) (gset.Set, error) {
-	klog.V(3).Info("Getting the operaters have been deployed")
-	deployedOperands := gset.NewSet()
-	for _, req := range requestInstance.Spec.Requests {
-		registryKey := requestInstance.GetRegistryKey(req)
-		requestList, err := r.ListOperandRequestsByRegistry(ctx, registryKey)
-		if err != nil {
-			return nil, err
-		}
-		for _, item := range requestList {
-			if !item.DeletionTimestamp.IsZero() {
-				continue
-			}
-			for _, existingReq := range item.Spec.Requests {
-				existRegistryKey := item.GetRegistryKey(existingReq)
-				if registryKey.String() != existRegistryKey.String() {
-					continue
-				}
-				for _, operand := range existingReq.Operands {
-					deployedOperands.Add(operand.Name)
-				}
-			}
-		}
-	}
-	return deployedOperands, nil
+	return needDeleteOperands
 }
 
 func (r *Reconciler) generateClusterObjects(o *operatorv1alpha1.Operator, registryKey, requestKey types.NamespacedName) *clusterObjects {
@@ -506,7 +480,7 @@ func (r *Reconciler) generateClusterObjects(o *operatorv1alpha1.Operator, regist
 	annotations := map[string]string{
 		registryKey.Namespace + "." + registryKey.Name + "/registry": "true",
 		registryKey.Namespace + "." + registryKey.Name + "/config":   "true",
-		requestKey.Namespace + "." + requestKey.Name + "/request":    "true",
+		requestKey.Namespace + "." + requestKey.Name + "/request":    o.Channel,
 	}
 
 	klog.V(3).Info("Generating Namespace: ", o.Namespace)
