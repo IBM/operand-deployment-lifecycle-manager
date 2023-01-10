@@ -27,6 +27,7 @@ import (
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -272,17 +273,11 @@ func (r *Reconciler) copySecret(ctx context.Context, sourceName, targetName, sou
 			if err := r.Client.Get(ctx, types.NamespacedName{Namespace: targetNs, Name: targetName}, existingSecret); err != nil {
 				return false, errors.Wrapf(err, "failed to get secret %s/%s", targetNs, targetName)
 			}
-			prevResourceVersion := existingSecret.ResourceVersion
-			if err := r.Update(ctx, secretCopy); err != nil {
-				return false, errors.Wrapf(err, "failed to update secret %s/%s", targetNs, targetName)
-			}
-			curSecret := &corev1.Secret{}
-			if err := r.Client.Get(ctx, types.NamespacedName{Namespace: targetNs, Name: targetName}, curSecret); err != nil {
-				return false, errors.Wrapf(err, "failed to get secret %s/%s", targetNs, targetName)
-			}
-			curResourceVersion := curSecret.ResourceVersion
-			if prevResourceVersion != curResourceVersion {
+			if needUpdate := compareSecret(secretCopy, existingSecret); needUpdate {
 				podRefreshment = true
+				if err := r.Update(ctx, secretCopy); err != nil {
+					return false, errors.Wrapf(err, "failed to update secret %s/%s", targetNs, targetName)
+				}
 			}
 		} else {
 			return false, errors.Wrapf(err, "failed to create secret %s/%s", targetNs, targetName)
@@ -370,17 +365,11 @@ func (r *Reconciler) copyConfigmap(ctx context.Context, sourceName, targetName, 
 			if err := r.Client.Get(ctx, types.NamespacedName{Namespace: targetNs, Name: targetName}, existingCm); err != nil {
 				return false, errors.Wrapf(err, "failed to get ConfigMap %s/%s", targetNs, targetName)
 			}
-			prevResourceVersion := existingCm.ResourceVersion
-			if err := r.Update(ctx, cmCopy); err != nil {
-				return false, errors.Wrapf(err, "failed to update ConfigMap %s/%s", targetNs, sourceName)
-			}
-			curCm := &corev1.ConfigMap{}
-			if err := r.Client.Get(ctx, types.NamespacedName{Namespace: targetNs, Name: targetName}, curCm); err != nil {
-				return false, errors.Wrapf(err, "failed to get ConfigMap %s/%s", targetNs, targetName)
-			}
-			curResourceVersion := curCm.ResourceVersion
-			if prevResourceVersion != curResourceVersion {
+			if needUpdate := compareConfigMap(cmCopy, existingCm); needUpdate {
 				podRefreshment = true
+				if err := r.Update(ctx, cmCopy); err != nil {
+					return false, errors.Wrapf(err, "failed to update ConfigMap %s/%s", targetNs, sourceName)
+				}
 			}
 		} else {
 			return false, errors.Wrapf(err, "failed to create ConfigMap %s/%s", targetNs, sourceName)
@@ -789,4 +778,12 @@ func ensureLabelsForConfigMap(cm *corev1.ConfigMap, labels map[string]string) {
 	for k, v := range labels {
 		cm.Labels[k] = v
 	}
+}
+
+func compareSecret(secret *corev1.Secret, existingSecret *corev1.Secret) (needUpdate bool) {
+	return !equality.Semantic.DeepEqual(secret.GetLabels(), existingSecret.GetLabels()) || !equality.Semantic.DeepEqual(secret.Type, existingSecret.Type) || !equality.Semantic.DeepEqual(secret.Data, existingSecret.Data) || !equality.Semantic.DeepEqual(secret.StringData, existingSecret.StringData)
+}
+
+func compareConfigMap(configMap *corev1.ConfigMap, existingConfigMap *corev1.ConfigMap) (needUpdate bool) {
+	return !equality.Semantic.DeepEqual(configMap.GetLabels(), existingConfigMap.GetLabels()) || !equality.Semantic.DeepEqual(configMap.Data, existingConfigMap.Data) || !equality.Semantic.DeepEqual(configMap.BinaryData, existingConfigMap.BinaryData)
 }
