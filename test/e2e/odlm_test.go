@@ -109,7 +109,7 @@ var _ = Describe("Testing ODLM", func() {
 
 			// Check if the k8s resource is created
 			By("Check if the k8s resource is created")
-			jenkinsConfigmap, err := retrieveConfigmap("fake-configmap", OperandRegistryNamespace)
+			jenkinsConfigmap, err := retrieveConfigmap("jenkins-configmap", OperandRegistryNamespace)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(jenkinsConfigmap).ToNot(BeNil())
 
@@ -170,11 +170,11 @@ var _ = Describe("Testing ODLM", func() {
 
 			// Check if the secret and configmap are copied
 			By("Check if the secret and configmap are copied")
-			sec, err := retrieveSecret("jenkins-operator-credentials-example", OperandRequestNamespace2)
+			sec, err := retrieveSecret("jenkins-secret", OperandRequestNamespace2)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(sec).ToNot(BeNil())
 
-			cm, err := retrieveConfigmap("jenkins-operator-init-configuration-example", OperandRequestNamespace2)
+			cm, err := retrieveConfigmap("jenkins-configmap", OperandRequestNamespace2)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cm).ToNot(BeNil())
 
@@ -184,7 +184,7 @@ var _ = Describe("Testing ODLM", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cm).ToNot(BeNil())
 
-			cm, err = retrieveConfigmap("jenkins-public-bindinfo-jenkins-operator-base-configuration-example", OperandRequestNamespace1)
+			cm, err = retrieveConfigmap("jenkins-public-bindinfo-jenkins-second-configmap", OperandRequestNamespace1)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cm).ToNot(BeNil())
 
@@ -236,7 +236,7 @@ var _ = Describe("Testing ODLM", func() {
 
 			// Check if the k8s resource is deleted
 			By("Check if the k8s resource is deleted")
-			err = waitConfigmapDeletion("fake-configmap", OperandRegistryNamespace)
+			err = waitConfigmapDeletion("jenkins-configmap", OperandRegistryNamespace)
 			Expect(err).ToNot(HaveOccurred())
 
 			// Update the channel of the etcd operator

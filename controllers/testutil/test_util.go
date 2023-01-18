@@ -145,7 +145,7 @@ func OperandConfigObj(name, namespace string) *apiv1alpha1.OperandConfig {
 					},
 					Resources: []apiv1alpha1.ConfigResource{
 						{
-							Name:       "fake-configmap",
+							Name:       "jenkins-configmap",
 							APIVersion: "v1",
 							Kind:       "ConfigMap",
 							Labels: map[string]string{
