@@ -488,7 +488,7 @@ func updateOperandBindInfo(ns string) (*v1alpha1.OperandBindInfo, error) {
 			return false, err
 		}
 		secretCm := bi.Spec.Bindings["public"]
-		secretCm.Configmap = "jenkins-operator-base-configuration-example"
+		secretCm.Configmap = "jenkins-second-configmap"
 		bi.Spec.Bindings["public"] = secretCm
 		if err := k8sClient.Update(context.TODO(), bi); err != nil {
 			fmt.Println("    --- Waiting for OperandBindInfo instance stable ...")
@@ -632,7 +632,7 @@ func newOperandConfigCR(name, namespace string) *v1alpha1.OperandConfig {
 					},
 					Resources: []v1alpha1.ConfigResource{
 						{
-							Name:       "fake-configmap",
+							Name:       "jenkins-configmap",
 							APIVersion: "v1",
 							Kind:       "ConfigMap",
 							Labels: map[string]string{
@@ -643,6 +643,36 @@ func newOperandConfigCR(name, namespace string) *v1alpha1.OperandConfig {
 							},
 							Data: &runtime.RawExtension{
 								Raw: []byte(`{"data": {"port": "8081"}}`),
+							},
+							Force: false,
+						},
+						{
+							Name:       "jenkins-second-configmap",
+							APIVersion: "v1",
+							Kind:       "ConfigMap",
+							Labels: map[string]string{
+								"jenkins": "configmap",
+							},
+							Annotations: map[string]string{
+								"jenkins": "configmap",
+							},
+							Data: &runtime.RawExtension{
+								Raw: []byte(`{"data": {"port": "8080"}}`),
+							},
+							Force: false,
+						},
+						{
+							Name:       "jenkins-secret",
+							APIVersion: "v1",
+							Kind:       "Secret",
+							Labels: map[string]string{
+								"jenkins": "secret",
+							},
+							Annotations: map[string]string{
+								"jenkins": "secret",
+							},
+							Data: &runtime.RawExtension{
+								Raw: []byte(`{"type": "Opaque", "data": {"password": "UyFCXCpkJHpEc2I9", "username": "YWRtaW4="}}`),
 							},
 							Force: false,
 						},
@@ -663,23 +693,21 @@ func newOperandRegistryCR(name, namespace, OperatorNamespace string) *v1alpha1.O
 		Spec: v1alpha1.OperandRegistrySpec{
 			Operators: []v1alpha1.Operator{
 				{
-					Name:             "etcd",
-					Namespace:        OperatorNamespace,
-					ServiceNamespace: OperatorNamespace,
-					SourceName:       "community-operators",
-					SourceNamespace:  "openshift-marketplace",
-					PackageName:      "etcd",
-					Channel:          "singlenamespace-alpha",
-					Scope:            v1alpha1.ScopePublic,
+					Name:            "etcd",
+					Namespace:       OperatorNamespace,
+					SourceName:      "community-operators",
+					SourceNamespace: "openshift-marketplace",
+					PackageName:     "etcd",
+					Channel:         "singlenamespace-alpha",
+					Scope:           v1alpha1.ScopePublic,
 				},
 				{
-					Name:             "jenkins",
-					Namespace:        OperatorNamespace,
-					ServiceNamespace: OperatorNamespace,
-					SourceName:       "community-operators",
-					SourceNamespace:  "openshift-marketplace",
-					PackageName:      "jenkins-operator",
-					Channel:          "alpha",
+					Name:            "jenkins",
+					Namespace:       OperatorNamespace,
+					SourceName:      "community-operators",
+					SourceNamespace: "openshift-marketplace",
+					PackageName:     "jenkins-operator",
+					Channel:         "alpha",
 				},
 			},
 		},
@@ -696,23 +724,21 @@ func newOperandRegistryCRforKind(name, namespace, OperatorNamespace string) *v1a
 		Spec: v1alpha1.OperandRegistrySpec{
 			Operators: []v1alpha1.Operator{
 				{
-					Name:             "etcd",
-					Namespace:        OperatorNamespace,
-					ServiceNamespace: OperatorNamespace,
-					SourceName:       "operatorhubio-catalog",
-					SourceNamespace:  "olm",
-					PackageName:      "etcd",
-					Channel:          "singlenamespace-alpha",
-					Scope:            v1alpha1.ScopePublic,
+					Name:            "etcd",
+					Namespace:       OperatorNamespace,
+					SourceName:      "operatorhubio-catalog",
+					SourceNamespace: "olm",
+					PackageName:     "etcd",
+					Channel:         "singlenamespace-alpha",
+					Scope:           v1alpha1.ScopePublic,
 				},
 				{
-					Name:             "jenkins",
-					Namespace:        OperatorNamespace,
-					ServiceNamespace: OperatorNamespace,
-					SourceName:       "operatorhubio-catalog",
-					SourceNamespace:  "olm",
-					PackageName:      "jenkins-operator",
-					Channel:          "alpha",
+					Name:            "jenkins",
+					Namespace:       OperatorNamespace,
+					SourceName:      "operatorhubio-catalog",
+					SourceNamespace: "olm",
+					PackageName:     "jenkins-operator",
+					Channel:         "alpha",
 				},
 			},
 		},
@@ -762,8 +788,8 @@ func newOperandRequestWithBindinfo(name, namespace, RegistryNamespace string) *v
 							Name: "jenkins",
 							Bindings: map[string]v1alpha1.SecretConfigmap{
 								"public": {
-									Secret:    "jenkins-operator-credentials-example",
-									Configmap: "jenkins-operator-init-configuration-example",
+									Secret:    "jenkins-secret",
+									Configmap: "jenkins-configmap",
 								},
 							},
 						},
@@ -788,8 +814,8 @@ func newOperandBindInfoCR(name, namespace, RegistryNamespace string) *v1alpha1.O
 
 			Bindings: map[string]v1alpha1.SecretConfigmap{
 				"public": {
-					Secret:    "jenkins-operator-credentials-example",
-					Configmap: "jenkins-operator-init-configuration-example",
+					Secret:    "jenkins-secret",
+					Configmap: "jenkins-configmap",
 				},
 			},
 		},

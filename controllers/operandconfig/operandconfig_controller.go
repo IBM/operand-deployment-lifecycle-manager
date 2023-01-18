@@ -182,7 +182,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, instance *operatorv1alpha
 			k8sAPIVersion := resource.APIVersion
 			k8sKind := resource.Kind
 			k8sName := resource.Name
-			k8sNamespace := op.ServiceNamespace
+			k8sNamespace := instance.Namespace
 			if resource.Namespace != "" {
 				k8sNamespace = resource.Namespace
 			}
@@ -247,7 +247,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, instance *operatorv1alpha
 
 			getError := r.Client.Get(ctx, types.NamespacedName{
 				Name:      name,
-				Namespace: op.ServiceNamespace,
+				Namespace: instance.Namespace,
 			}, &unstruct)
 
 			if getError != nil && !apierrors.IsNotFound(getError) {

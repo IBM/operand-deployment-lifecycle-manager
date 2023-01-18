@@ -183,7 +183,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 						klog.V(2).Infof("There is no service: %s from the OperandConfig instance: %s/%s, Skip reconciling Operands", operand.Name, registryKey.Namespace, req.Registry)
 						continue
 					}
-					err = r.reconcileCRwithConfig(ctx, opdConfig, opdRegistry.ServiceNamespace, csv)
+					err = r.reconcileCRwithConfig(ctx, opdConfig, configInstance.Namespace, csv)
 					if err != nil {
 						merr.Add(err)
 						requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceFailed, &r.Mutex)

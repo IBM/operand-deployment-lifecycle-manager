@@ -80,7 +80,9 @@ spec:
                       type: string
                     namespace:
                       description: The namespace in which operator should be deployed
-                        when InstallMode is empty or set to "namespace".
+                        when InstallMode is empty or set to "namespace". If the namespace
+                        is not set, the operator namespace is the same as OperandRegistry
+                        Namespace
                       type: string
                     packageName:
                       description: Name of the package that defines the applications.
@@ -93,9 +95,6 @@ spec:
                       enum:
                       - public
                       - private
-                      type: string
-                    serviceNamespace:
-                      description: The namespace in which operator CR should be deployed.
                       type: string
                     sourceName:
                       description: Name of a CatalogSource that defines where and
