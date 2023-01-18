@@ -73,7 +73,7 @@ var _ = Describe("Testing ODLM", func() {
 
 			// Check if the custom resource is created
 			By("Check if the custom resource is created")
-			etcdCluster, err := retrieveEtcd("example", OperatorNamespace)
+			etcdCluster, err := retrieveEtcd("example", OperandRegistryNamespace)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(etcdCluster).ToNot(BeNil())
 
@@ -103,13 +103,13 @@ var _ = Describe("Testing ODLM", func() {
 
 			// Check if the custom resource is created
 			By("Check if the custom resource is created")
-			jenkins, err := retrieveJenkins("example", OperatorNamespace)
+			jenkins, err := retrieveJenkins("example", OperandRegistryNamespace)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(jenkins).ToNot(BeNil())
 
 			// Check if the k8s resource is created
 			By("Check if the k8s resource is created")
-			jenkinsConfigmap, err := retrieveConfigmap("fake-configmap", OperatorNamespace)
+			jenkinsConfigmap, err := retrieveConfigmap("fake-configmap", OperandRegistryNamespace)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(jenkinsConfigmap).ToNot(BeNil())
 
@@ -120,7 +120,7 @@ var _ = Describe("Testing ODLM", func() {
 				if err != nil {
 					return false
 				}
-				etcdCluster, err := retrieveEtcd("example", OperatorNamespace)
+				etcdCluster, err := retrieveEtcd("example", OperandRegistryNamespace)
 				if err != nil {
 					return false
 				}
@@ -236,7 +236,7 @@ var _ = Describe("Testing ODLM", func() {
 
 			// Check if the k8s resource is deleted
 			By("Check if the k8s resource is deleted")
-			err = waitConfigmapDeletion("fake-configmap", OperatorNamespace)
+			err = waitConfigmapDeletion("fake-configmap", OperandRegistryNamespace)
 			Expect(err).ToNot(HaveOccurred())
 
 			// Update the channel of the etcd operator

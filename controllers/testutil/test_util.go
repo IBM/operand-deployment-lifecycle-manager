@@ -81,7 +81,6 @@ func OperandRegistryObj(name, namespace, subNamespace string) *apiv1alpha1.Opera
 					PackageName:     "etcd",
 					Channel:         "singlenamespace-alpha",
 					Scope:           "public",
-					// ServiceNamespace: namespace,
 				},
 				{
 					Name:            "jenkins",
@@ -91,7 +90,6 @@ func OperandRegistryObj(name, namespace, subNamespace string) *apiv1alpha1.Opera
 					PackageName:     "jenkins-operator",
 					Channel:         "alpha",
 					Scope:           "public",
-					// ServiceNamespace: namespace,
 				},
 			},
 		},
@@ -116,7 +114,6 @@ func OperandRegistryObjwithCfg(name, namespace, subNamespace string) *apiv1alpha
 					Channel:            "singlenamespace-alpha",
 					Scope:              "public",
 					SubscriptionConfig: SubConfig,
-					// ServiceNamespace:   namespace,
 				},
 				{
 					Name:            "jenkins",
@@ -126,7 +123,6 @@ func OperandRegistryObjwithCfg(name, namespace, subNamespace string) *apiv1alpha
 					PackageName:     "jenkins-operator",
 					Channel:         "alpha",
 					Scope:           "public",
-					// ServiceNamespace: namespace,
 				},
 			},
 		},

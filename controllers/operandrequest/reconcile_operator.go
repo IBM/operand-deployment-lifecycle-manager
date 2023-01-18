@@ -362,11 +362,11 @@ func (r *Reconciler) deleteSubscription(ctx context.Context, operandName string,
 
 	if csv != nil {
 		klog.V(2).Infof("Deleting all the Custom Resources for CSV, Namespace: %s, Name: %s", csv.Namespace, csv.Name)
-		if err := r.deleteAllCustomResource(ctx, csv, requestInstance, configInstance, operandName, op.ServiceNamespace); err != nil {
+		if err := r.deleteAllCustomResource(ctx, csv, requestInstance, configInstance, operandName, configInstance.Namespace); err != nil {
 			return err
 		}
 		klog.V(2).Infof("Deleting all the k8s Resources for CSV, Namespace: %s, Name: %s", csv.Namespace, csv.Name)
-		if err := r.deleteAllK8sResource(ctx, configInstance, operandName, op.ServiceNamespace); err != nil {
+		if err := r.deleteAllK8sResource(ctx, configInstance, operandName, configInstance.Namespace); err != nil {
 			return err
 		}
 		if r.checkUninstallLabel(ctx, op.Name, namespace) {

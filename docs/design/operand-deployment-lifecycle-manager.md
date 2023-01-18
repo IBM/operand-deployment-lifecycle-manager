@@ -66,7 +66,6 @@ spec:
   operators:
   - name: jenkins [3]
     namespace: default [4]
-    serviceNamespace: default [5]
     channel: alpha [6]
     packageName: jenkins-operator [7]
     scope: public [8]
@@ -82,14 +81,13 @@ The OperandRegistry Custom Resource (CR) lists OLM Operator information for oper
 2. `namespace` of the OperandRegistry
 3. `name` is the name of the operator, which should be the same as the services name in the OperandConfig and OperandRequest.
 4. (optional) `namespace` defines the namespace where the operator will be deployed. (1) When InstallMode is `cluster`, the operator will be deployed into the `openshift-operators` namespace. (2) When InstallMode is empty or set to `namespace`, it is the namespace where operator will be deployed. (3) If the `namespace` value is empty, the operator will be deployed in the same namespace as this OperandRegistry.
-5. (optional) `serviceNamespace` defines the namespace where the operator's CR will be deployed. If the `serviceNamespace` value is empty, the operator's CR will be deployed in the same namespace as this OperandRegistry.
-6. `channel` is the name of OLM channel that is subscribed for the operator.
-7. `packageName` is the name of the package in CatalogSource that is subscribed for the operator.
-8. (optional) `scope` is an indicator, either public or private, that dictates whether deployment can be requested from other namespaces (public) or only from the namespace of this OperandRegistry (private). The default value is private.
-9. `sourceName` is the name of the CatalogSource.
-10. `sourceNamespace` is the namespace of the CatalogSource.
-11. (optional) `installMode` is the install mode of the operator, can be either `namespace` (OLM one namespace) or `cluster` (OLM all namespaces). The default value is `namespace`. Operator is deployed in `openshift-operators` namespace when InstallMode is set to `cluster`.
-12. (optional) `installPlanApproval` is the approval mode for emitted installplan. The default value is `Automatic`.
+5. `channel` is the name of OLM channel that is subscribed for the operator.
+6. `packageName` is the name of the package in CatalogSource that is subscribed for the operator.
+7. (optional) `scope` is an indicator, either public or private, that dictates whether deployment can be requested from other namespaces (public) or only from the namespace of this OperandRegistry (private). The default value is private.
+8. `sourceName` is the name of the CatalogSource.
+9. `sourceNamespace` is the namespace of the CatalogSource.
+10. (optional) `installMode` is the install mode of the operator, can be either `namespace` (OLM one namespace) or `cluster` (OLM all namespaces). The default value is `namespace`. Operator is deployed in `openshift-operators` namespace when InstallMode is set to `cluster`.
+11. (optional) `installPlanApproval` is the approval mode for emitted installplan. The default value is `Automatic`.
 
 ## OperandConfig Spec
 

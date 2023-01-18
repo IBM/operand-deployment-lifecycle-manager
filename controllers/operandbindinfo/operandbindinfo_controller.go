@@ -148,7 +148,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		r.Recorder.Eventf(bindInfoInstance, corev1.EventTypeWarning, "NotFound", "NotFound operator %s in the OperandRegistry %s", bindInfoInstance.Spec.Operand, registryInstance.Name)
 		return ctrl.Result{}, nil
 	}
-	operandNamespace := operandOperator.ServiceNamespace
+	operandNamespace := registryInstance.Namespace
 
 	// If Secret or ConfigMap not found, reconcile will requeue after 1 min
 	var requeue bool
