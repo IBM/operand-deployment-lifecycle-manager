@@ -369,7 +369,7 @@ func (r *Reconciler) deleteSubscription(ctx context.Context, operandName string,
 		if err := r.deleteAllK8sResource(ctx, configInstance, operandName, configInstance.Namespace); err != nil {
 			return err
 		}
-		if r.checkUninstallLabel(ctx, op.Name, namespace) {
+		if r.checkUninstallLabel(sub) {
 			klog.V(1).Infof("Operator %s has label operator.ibm.com/opreq-do-not-uninstall. Skip the uninstall", op.Name)
 			return nil
 		}
@@ -551,13 +551,7 @@ func generateOperatorGroup(namespace string, targetNamespaces []string) *olmv1.O
 	return og
 }
 
-func (r *Reconciler) checkUninstallLabel(ctx context.Context, name, namespace string) bool {
-	sub := &olmv1alpha1.Subscription{}
-	subKey := types.NamespacedName{Name: name, Namespace: namespace}
-	if err := r.Client.Get(ctx, subKey, sub); err != nil {
-		klog.Warning("failed to get subscription: ", err)
-		return true
-	}
+func (r *Reconciler) checkUninstallLabel(sub *olmv1alpha1.Subscription) bool {
 	subLabels := sub.GetLabels()
 	return subLabels[constant.NotUninstallLabel] == "true"
 }
