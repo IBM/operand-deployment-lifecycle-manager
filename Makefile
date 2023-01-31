@@ -69,6 +69,12 @@ else
 ARTIFACTORYA_REGISTRY ?= "docker-na-public.artifactory.swg-devops.com/hyc-cloud-private-scratch-docker-local/ibmcom"
 endif
 
+ifdef DEV_REGISTRY
+DEV_REGISTRY := $(DEV_REGISTRY)
+else
+DEV_REGISTRY := ${QUAY_REGISTRY}
+endif
+
 # Current Operator image name
 OPERATOR_IMAGE_NAME ?= odlm
 # Current Operator bundle image name

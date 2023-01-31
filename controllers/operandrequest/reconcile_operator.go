@@ -168,12 +168,17 @@ func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance 
 
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			// Subscription does not exist, create a new one
-			if err = r.createSubscription(ctx, requestInstance, opt, registryKey); err != nil {
-				requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorFailed, "", mu)
-				return err
+			if opt.SupportStatus == operatorv1alpha1.MaintainedSupportStatus {
+				requestInstance.SetNoSuitableRegistryCondition(registryKey.String(), opt.Name+" is in maintenance status", operatorv1alpha1.ResourceTypeOperandRegistry, corev1.ConditionTrue, &r.Mutex)
+				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorNotFound, operatorv1alpha1.ServiceNotFound, mu)
+			} else {
+				// Subscription does not exist, create a new one
+				if err = r.createSubscription(ctx, requestInstance, opt, registryKey); err != nil {
+					requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorFailed, "", mu)
+					return err
+				}
+				requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorInstalling, "", mu)
 			}
-			requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorInstalling, "", mu)
 			return nil
 		}
 		return err
