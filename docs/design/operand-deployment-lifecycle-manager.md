@@ -66,13 +66,14 @@ spec:
   operators:
   - name: jenkins [3]
     namespace: default [4]
-    channel: alpha [6]
-    packageName: jenkins-operator [7]
-    scope: public [8]
-    sourceName: community-operators [9]
-    sourceNamespace: openshift-marketplace [10]
-    installMode: cluster [11]
-    installPlanApproval: Manual [12]
+    channel: alpha [5]
+    packageName: jenkins-operator [6]
+    scope: public [7]
+    sourceName: community-operators [8]
+    sourceNamespace: openshift-marketplace [9]
+    installMode: cluster [10]
+    installPlanApproval: Manual [11]
+    supportStatus: continuous [12]
 ```
 
 The OperandRegistry Custom Resource (CR) lists OLM Operator information for operands that may be requested for installation and/or access by an application that runs in a namespace. The registry CR specifies:
@@ -88,6 +89,7 @@ The OperandRegistry Custom Resource (CR) lists OLM Operator information for oper
 9. `sourceNamespace` is the namespace of the CatalogSource.
 10. (optional) `installMode` is the install mode of the operator, can be either `namespace` (OLM one namespace) or `cluster` (OLM all namespaces). The default value is `namespace`. Operator is deployed in `openshift-operators` namespace when InstallMode is set to `cluster`.
 11. (optional) `installPlanApproval` is the approval mode for emitted installplan. The default value is `Automatic`.
+12. (optional) `supportStatus` is the support status for services. (1) When SupportStatus is `continous`, operator is supported to be fresh deployed via OperandRequest from scratch. (2) When SupportStatus is `maintained`, operator is not supported to be fresh deployed via OperandRequest, only upgrade and deletion are allowed. The default value is `continous`
 
 ## OperandConfig Spec
 

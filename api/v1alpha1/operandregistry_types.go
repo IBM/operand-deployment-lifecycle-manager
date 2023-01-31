@@ -71,6 +71,12 @@ type Operator struct {
 	// SubscriptionConfig is used to override operator configuration.
 	// +optional
 	SubscriptionConfig *olmv1alpha1.SubscriptionConfig `json:"subscriptionConfig,omitempty"`
+	// SupportStatus is used to indicate the support status for services.
+	// Valid values are:
+	// - "continuous" (default): operator is supported to be fresh deployed via OperandRequest from scratch
+	// - "maintained" operator is not supported to be fresh deployed via OperandRequest, only upgrade and deletion are allowed
+	// +optional
+	SupportStatus string `json:"supportStatus,omitempty"`
 }
 
 // +kubebuilder:validation:Enum=public;private
@@ -90,6 +96,13 @@ const (
 	InstallModeCluster string = "cluster"
 	// InstallModeNamespace means install the operator in one namespace mode.
 	InstallModeNamespace string = "namespace"
+)
+
+const (
+	// MaintainedSupportStatus means NOT supporting fresh deployment for the operator
+	MaintainedSupportStatus string = "maintained"
+	// ContinuousSupportStatus means supporting fresh deployment for the operator
+	ContinuousSupportStatus string = "continuous"
 )
 
 // OperandRegistrySpec defines the desired state of OperandRegistry.

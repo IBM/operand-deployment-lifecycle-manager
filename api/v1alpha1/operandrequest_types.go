@@ -266,7 +266,7 @@ func (r *OperandRequest) SetNoSuitableRegistryCondition(name, message string, rt
 	r.setCondition(*c)
 }
 
-// SetOutofScopeCondition creates a NotFoundCondition.
+// SetOutofScopeCondition creates a OutofScopeCondition.
 func (r *OperandRequest) SetOutofScopeCondition(name string, rt ResourceType, cs corev1.ConditionStatus, mu sync.Locker) {
 	mu.Lock()
 	defer mu.Unlock()
