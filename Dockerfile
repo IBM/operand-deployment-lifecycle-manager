@@ -1,5 +1,4 @@
 # Build the manager binary
-# trigger build
 FROM golang:1.20.0 as builder
 ARG GOARCH
 
