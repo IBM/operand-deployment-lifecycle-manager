@@ -311,12 +311,18 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 			Namespace: namespace,
 		}, &crFromALM)
 
+		foundInConfig := false
 		for cr := range service.Spec {
 			if strings.EqualFold(crFromALM.GetKind(), cr) {
 				foundMap[cr] = true
+				foundInConfig = true
 			}
 		}
 
+		if !foundInConfig {
+			klog.Warningf("%v in the alm-example doesn't exist in the OperandConfig for %v", crFromALM.GetKind(), csv.GetName())
+			continue
+		}
 		if err != nil && !apierrors.IsNotFound(err) {
 			merr.Add(errors.Wrapf(err, "failed to get the custom resource %s/%s", namespace, name))
 			continue
