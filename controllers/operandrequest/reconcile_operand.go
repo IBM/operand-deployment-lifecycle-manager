@@ -17,6 +17,7 @@
 package operandrequest
 
 import (
+	// "time"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -40,6 +41,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"
 	"k8s.io/klog"
+	// "github.com/buger/jsonparser"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
 	constant "github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
@@ -183,7 +185,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 						klog.V(2).Infof("There is no service: %s from the OperandConfig instance: %s/%s, Skip reconciling Operands", operand.Name, registryKey.Namespace, req.Registry)
 						continue
 					}
-					err = r.reconcileCRwithConfig(ctx, opdConfig, configInstance.Namespace, csv)
+					err = r.reconcileCRwithConfig(ctx, opdConfig, configInstance.Namespace, csv, requestInstance, &r.Mutex)
 					if err != nil {
 						merr.Add(err)
 						requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceFailed, &r.Mutex)
@@ -197,7 +199,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 				}
 
 			} else {
-				err = r.reconcileCRwithRequest(ctx, requestInstance, operand, types.NamespacedName{Name: requestInstance.Name, Namespace: requestInstance.Namespace}, i)
+				err = r.reconcileCRwithRequest(ctx, requestInstance, operand, types.NamespacedName{Name: requestInstance.Name, Namespace: requestInstance.Namespace}, i, &r.Mutex)
 				if err != nil {
 					merr.Add(err)
 					requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceFailed, &r.Mutex)
@@ -215,7 +217,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 }
 
 // reconcileCRwithConfig merge and create custom resource base on OperandConfig and CSV alm-examples
-func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operatorv1alpha1.ConfigService, namespace string, csv *olmv1alpha1.ClusterServiceVersion) error {
+func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operatorv1alpha1.ConfigService, namespace string, csv *olmv1alpha1.ClusterServiceVersion, requestInstance *operatorv1alpha1.OperandRequest, mu sync.Locker) error {
 	merr := &util.MultiErr{}
 
 	// Create k8s resources required by service
@@ -331,6 +333,22 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 					merr.Add(err)
 					continue
 				}
+                statusSpec, err := r.getOperandStatus(crFromALM)
+				if err != nil {
+					return err
+				} else {
+					serviceKind := crFromALM.GetKind()
+					if serviceKind != "OperandRequest" && statusSpec.ObjectName != "" {
+						klog.Infof("statusSpec transcribed from config: %+v", statusSpec)
+						var resources []operatorv1alpha1.OperandStatus
+						resources = append(resources, statusSpec)
+						serviceSpec := newServiceStatus(name, namespace, crFromALM.GetAPIVersion(), serviceKind, "Ready", false, resources)
+						klog.Infof("serviceSpec from config: %+v", serviceSpec)
+						requestInstance.SetServiceStatus(serviceSpec, name, mu)
+					} else{
+						klog.Infof("Resource %+v is either an operandrequest or has an empty statusSpec: %+v", name, statusSpec)
+					}
+				}
 			} else {
 				klog.V(2).Info("Skip the custom resource not created by ODLM")
 			}
@@ -350,7 +368,7 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 }
 
 // reconcileCRwithRequest merge and create custom resource base on OperandRequest and CSV alm-examples
-func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance *operatorv1alpha1.OperandRequest, operand operatorv1alpha1.Operand, requestKey types.NamespacedName, index int) error {
+func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance *operatorv1alpha1.OperandRequest, operand operatorv1alpha1.Operand, requestKey types.NamespacedName, index int, mu sync.Locker) error {
 	merr := &util.MultiErr{}
 
 	// Create an unstructured object for CR and check its value
@@ -397,6 +415,22 @@ func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance
 			if err := r.updateCustomResource(ctx, crFromRequest, requestKey.Namespace, operand.Kind, operand.Spec.Raw, map[string]interface{}{}); err != nil {
 				return err
 			}
+			statusSpec, err := r.getOperandStatus(crFromRequest)
+			if err != nil {
+				return err
+			} else {
+				klog.Infof("statusSpec transcribed from request: %+v", statusSpec.ManagedResources)
+			}
+			var resources []operatorv1alpha1.OperandStatus
+			resources = append(resources, statusSpec)
+			var serviceSpec operatorv1alpha1.ServiceStatus
+			serviceSpec.OperandName = operand.Name
+			serviceSpec.ApiVersion = operand.APIVersion
+			serviceSpec.Kind = operand.Kind
+			serviceSpec.Type = "Ready"
+			serviceSpec.Status = false //TODO logic to determine readiness
+			serviceSpec.Resources = resources
+			requestInstance.SetServiceStatus(serviceSpec, operand.Name, mu)
 		} else {
 			klog.V(2).Info("Skip the custom resource not created by ODLM")
 		}
@@ -406,6 +440,55 @@ func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance
 		return merr
 	}
 	return nil
+}
+
+func (r *Reconciler) getOperandStatus(existingCR unstructured.Unstructured) (operatorv1alpha1.OperandStatus, error) {
+	// var testCrRefined map[string]interface{} //operatorv1alpha1.OperandStatus
+	// testCR, errtest := json.Marshal(existingCR.Object["status"]) //status.service output is nil it's not grabbing anything. item.item does not work at all, it has to be top level so either status or spec
+	// if errtest != nil {
+	// 	klog.Error(errtest)
+	// }
+	// errtest = json.Unmarshal(testCR, &testCrRefined)
+	// var testCrDoubleRefined operatorv1alpha1.OperandStatus
+	// testCR2, errtest := json.Marshal(testCrRefined["service"])
+	// errtest = json.Unmarshal(testCR2, &testCrDoubleRefined)
+	// // klog.Infof("Name: %s test output: %+v map string interface output: %+v || service field print out: %+v", name, testCR, testCrRefined, testCrRefined["service"])
+	// klog.Infof("Name: %s || testtCR2: %+v || double refined: %+v || managed resources: %+v", name, testCR2, testCrDoubleRefined, testCrDoubleRefined.ManagedResources)
+
+	byteStatus, err := json.Marshal(existingCR.Object["status"])
+	if err != nil {
+		klog.Error(err)
+	}
+	var rawStatus map[string]interface{}
+	err = json.Unmarshal(byteStatus, &rawStatus)
+	if err != nil {
+		klog.Error(err)
+	}
+	var serviceStatus operatorv1alpha1.OperandStatus
+	byteService, err := json.Marshal(rawStatus["service"])
+	err = json.Unmarshal(byteService, &serviceStatus)
+	if err != nil {
+		klog.Error(err)
+	}
+	// klog.Infof("Name: %s test output: %+v map string interface output: %+v || service field print out: %+v", name, testCR, testCrRefined, testCrRefined["service"])
+	klog.Infof("Name: %s || testCR2: %+v || double refined: %+v || managed resources: %+v", serviceStatus.ObjectName, byteService, serviceStatus, serviceStatus.ManagedResources)
+
+	//retrieve status from given operand
+	//return service_status object
+	return serviceStatus, err
+}
+
+func newServiceStatus(operandName string, namespace string, apiVersion string, kind string, ready string, status bool, resources []operatorv1alpha1.OperandStatus) operatorv1alpha1.ServiceStatus{
+    var serviceSpec operatorv1alpha1.ServiceStatus
+	serviceSpec.OperandName = operandName
+	serviceSpec.Namespace = namespace
+	serviceSpec.ApiVersion = apiVersion
+	serviceSpec.Kind = kind
+	serviceSpec.Type = ready
+	serviceSpec.Status = status //TODO logic to determine readiness
+	// serviceSpec.LastUpdateTime = time.Now().Format(time.RFC3339)
+	serviceSpec.Resources = resources
+	return serviceSpec
 }
 
 // deleteAllCustomResource remove custom resource base on OperandConfig and CSV alm-examples
@@ -596,7 +679,6 @@ func (r *Reconciler) updateCustomResource(ctx context.Context, existingCR unstru
 	kind := existingCR.GetKind()
 	apiversion := existingCR.GetAPIVersion()
 	name := existingCR.GetName()
-
 	// Update the CR
 	err := wait.PollImmediate(constant.DefaultCRFetchPeriod, constant.DefaultCRFetchTimeout, func() (bool, error) {
 
@@ -685,6 +767,13 @@ func (r *Reconciler) updateCustomResource(ctx context.Context, existingCR unstru
 
 	if err != nil {
 		return errors.Wrapf(err, "failed to update custom resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+	}
+
+	statusSpec, err := r.getOperandStatus(existingCR)
+	if err != nil {
+		return err
+	} else {
+		klog.Infof("statusSpec transcribed from updateCustomResource: %+v", statusSpec.ManagedResources)
 	}
 
 	return nil

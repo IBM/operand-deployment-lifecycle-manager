@@ -20,6 +20,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	// "encoding/json"
 
 	gset "github.com/deckarep/golang-set"
 	corev1 "k8s.io/api/core/v1"
@@ -27,6 +28,8 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	// "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/klog"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -149,6 +152,38 @@ type Condition struct {
 	Message string `json:"message,omitempty"`
 }
 
+type ResourceStatus struct{ //Status of CRs not created by ODLM
+	ObjectName string `json:"objectName,omitempty"`
+	ApiVersion string `json:"apiVersion,omitempty"`
+	Namespace string `json:"namespace,omitempty"`
+	Kind string `json:"kind,omitempty"`
+	Type string `json:"type,omitempty"`
+	Status bool `json:"status,omitempty"`
+	// LastTransitionTime string `json:"lastTransitionTime"` //might need to change the variable type
+	// Message string `json:"message"`
+}
+type OperandStatus struct { //Top level CR status ie the CR created by ODLM
+	ObjectName string `json:"objectName,omitempty"`
+	ApiVersion string `json:"apiVersion,omitempty"`
+	Namespace string `json:"namespace,omitempty"`
+	Kind string `json:"kind,omitempty"`
+	Type string `json:"type,omitempty"`
+	Status bool `json:"status,omitempty"`
+	// LastTransitionTime string `json:"lastTransitionTime,omitempty"` //might need to change the variable type
+	// Message string `json:"message,omitempty"`
+	ManagedResources []ResourceStatus `json:"managedResources,omitempty"`
+}
+type ServiceStatus struct { //Top level service status
+	OperandName string `json:"operandName,omitempty"`
+	ApiVersion string `json:"apiVersion,omitempty"`
+	Namespace string `json:"namespace,omitempty"`
+	Kind string `json:"kind,omitempty"`
+	Type string `json:"type,omitempty"`
+	Status bool `json:"status,omitempty"`
+	// LastUpdateTime string `json:"lastTransitionTime,omitempty"`
+	Resources []OperandStatus `json:"resources,omitempty"`
+}
+
 // OperandRequestStatus defines the observed state of OperandRequest.
 type OperandRequestStatus struct {
 	// Conditions represents the current state of the Request Service.
@@ -162,6 +197,8 @@ type OperandRequestStatus struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="Phase",xDescriptors="urn:alm:descriptor:io.kubernetes.phase"
 	// +optional
 	Phase ClusterPhase `json:"phase,omitempty"`
+	//Services reflect the status of operands beyond whether they have been created
+	Services []ServiceStatus `json:"services,omitempty"`
 }
 
 // MemberPhase shows the phase of the operator and operator instance.
@@ -323,6 +360,18 @@ func newCondition(condType ConditionType, status corev1.ConditionStatus, reason,
 	}
 }
 
+// func newServiceStatus(operandName string, namespace string, apiVersion string, kind string, ready string, status bool, resources []OperandStatus) ServiceStatus{
+//     var serviceSpec ServiceStatus
+// 	serviceSpec.OperandName = operandName
+// 	serviceSpec.Namespace = namespace
+// 	serviceSpec.ApiVersion = apiVersion
+// 	serviceSpec.Kind = kind
+// 	serviceSpec.Type = ready
+// 	serviceSpec.Status = status //TODO logic to determine readiness
+// 	serviceSpec.Resources = resources
+// 	return serviceSpec
+// }
+
 // SetMemberStatus appends a Member status in the Member status list.
 func (r *OperandRequest) SetMemberStatus(name string, operatorPhase OperatorPhase, operandPhase ServicePhase, mu sync.Locker) {
 	mu.Lock()
@@ -373,6 +422,35 @@ func (r *OperandRequest) RemoveMemberCRStatus(name, CRName, CRKind string, mu sy
 	}
 }
 
+func (r *OperandRequest) SetServiceStatus(service ServiceStatus, name string, mu sync.Locker){
+	mu.Lock()
+	defer mu.Unlock()
+	//Remove previous status
+	//Set new status
+	klog.Infof("service status from set service: %+v", service)
+	pos, _ := getServiceStatus(&r.Status, name)
+	if pos != -1 {
+		if service.Resources[0].ObjectName != "" {
+			r.Status.Services[pos] = service
+			for i, _ := range service.Resources {
+				r.Status.Services[pos].Resources = append(r.Status.Services[pos].Resources, service.Resources[i])
+				klog.Infof("r.Status.Services[pos].Resources: %+v", r.Status.Services[pos].Resources)
+			}
+			klog.Infof("passed empty resource check")
+		} else {
+			klog.Infof("did not pass empty resource check")
+		}
+		klog.Infof("pos != -1 pos: %+v", pos)
+	} else {
+		klog.Infof("pos == -1")
+		r.Status.Services = append(r.Status.Services, service)
+		pos, _ := getServiceStatus(&r.Status, name)
+		for i, _ := range service.Resources {
+			r.Status.Services[pos].Resources = append(r.Status.Services[pos].Resources, service.Resources[i])
+		}
+	}
+}
+
 func (r *OperandRequest) setOperatorReadyCondition(operatorPhase OperatorPhase, name string) {
 	if operatorPhase == OperatorRunning {
 		r.setReadyCondition(name, ResourceTypeOperator, corev1.ConditionTrue)
@@ -419,6 +497,29 @@ func getMemberStatus(status *OperandRequestStatus, name string) (int, *MemberSta
 	}
 	return -1, nil
 }
+
+func getServiceStatus(status *OperandRequestStatus, name string) (int, *ServiceStatus){
+	for i, s := range status.Services {
+		if name == s.OperandName{
+			klog.Infof("getServiceStatus status: %+v", s)
+			return i, &s
+		}
+	}
+	return -1, nil
+}
+
+// func getOperandStatus(status *OperandRequestStatus, serviceName string, operandName string) (int, int, *ServiceStatus){
+// 	for i, s := range status.Services {
+// 		if serviceName == s.OperandName{
+// 			for j, o := range status.Services.Resources {
+// 				if operandName == o.ObjectName{
+// 					return i, j, &s
+// 				}
+// 			}
+// 		}
+// 	}
+// 	return -1, -1, nil
+// }
 
 func newMemberStatus(name string, operatorPhase OperatorPhase, operandPhase ServicePhase) MemberStatus {
 	return MemberStatus{
