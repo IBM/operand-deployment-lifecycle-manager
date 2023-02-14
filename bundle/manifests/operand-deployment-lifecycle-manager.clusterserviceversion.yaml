@@ -583,8 +583,9 @@ spec:
                       fieldPath: metadata.namespace
                 - name: WATCH_NAMESPACE
                   valueFrom:
-                    fieldRef:
-                      fieldPath: metadata.annotations['olm.targetNamespaces']
+                    configMapKeyRef:
+                      name: namespace-scope
+                      key: namespaces
                 image: icr.io/cpopen/odlm:latest
                 imagePullPolicy: Always
                 livenessProbe:
