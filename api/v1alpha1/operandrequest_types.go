@@ -173,11 +173,10 @@ type OperandStatus struct { //Top level CR status ie the CR created by ODLM
 	// Message string `json:"message,omitempty"`
 	ManagedResources []ResourceStatus `json:"managedResources,omitempty"`
 }
+
 type ServiceStatus struct { //Top level service status
-	OperandName string `json:"operandName,omitempty"`
-	ApiVersion string `json:"apiVersion,omitempty"`
+	OperatorName string `json:"operatorName,omitempty"`
 	Namespace string `json:"namespace,omitempty"`
-	Kind string `json:"kind,omitempty"`
 	Type string `json:"type,omitempty"`
 	Status bool `json:"status,omitempty"`
 	// LastUpdateTime string `json:"lastTransitionTime,omitempty"`
@@ -360,18 +359,6 @@ func newCondition(condType ConditionType, status corev1.ConditionStatus, reason,
 	}
 }
 
-// func newServiceStatus(operandName string, namespace string, apiVersion string, kind string, ready string, status bool, resources []OperandStatus) ServiceStatus{
-//     var serviceSpec ServiceStatus
-// 	serviceSpec.OperandName = operandName
-// 	serviceSpec.Namespace = namespace
-// 	serviceSpec.ApiVersion = apiVersion
-// 	serviceSpec.Kind = kind
-// 	serviceSpec.Type = ready
-// 	serviceSpec.Status = status //TODO logic to determine readiness
-// 	serviceSpec.Resources = resources
-// 	return serviceSpec
-// }
-
 // SetMemberStatus appends a Member status in the Member status list.
 func (r *OperandRequest) SetMemberStatus(name string, operatorPhase OperatorPhase, operandPhase ServicePhase, mu sync.Locker) {
 	mu.Lock()
@@ -422,32 +409,36 @@ func (r *OperandRequest) RemoveMemberCRStatus(name, CRName, CRKind string, mu sy
 	}
 }
 
-func (r *OperandRequest) SetServiceStatus(service ServiceStatus, name string, mu sync.Locker){
+func (r *OperandRequest) SetServiceStatus(service ServiceStatus, mu sync.Locker){
 	mu.Lock()
 	defer mu.Unlock()
-	//Remove previous status
-	//Set new status
-	klog.Infof("service status from set service: %+v", service)
-	pos, _ := getServiceStatus(&r.Status, name)
+	klog.Infof("inside setServiceStatus for %+v", service.OperatorName)
+	pos, _ := getServiceStatus(&r.Status, service.OperatorName)
 	if pos != -1 {
-		if service.Resources[0].ObjectName != "" {
+		if len(r.Status.Services[pos].Resources) == 0 {
 			r.Status.Services[pos] = service
-			for i, _ := range service.Resources {
-				r.Status.Services[pos].Resources = append(r.Status.Services[pos].Resources, service.Resources[i])
-				klog.Infof("r.Status.Services[pos].Resources: %+v", r.Status.Services[pos].Resources)
-			}
-			klog.Infof("passed empty resource check")
+			klog.Infof("List of resources empty for %+v", r.Status.Services[pos].OperatorName)
 		} else {
-			klog.Infof("did not pass empty resource check")
+			if r.Status.Services[pos].Status != service.Status{
+				r.Status.Services[pos].Status = service.Status
+			}
+			for i, _ := range service.Resources {
+				if service.Resources[i].ObjectName != "" {
+					resourcePos, _ := getResourceStatus(r.Status.Services[pos].Resources, service.Resources[i].ObjectName)
+					klog.Infof("comparison successful")
+					if resourcePos != -1 {
+						r.Status.Services[pos].Resources[resourcePos] = service.Resources[i]
+						klog.Infof("resourcePos != -1 rp=%+v || Resource: %+v", resourcePos, service.Resources[i])
+					} else {
+						r.Status.Services[pos].Resources = append(r.Status.Services[pos].Resources, service.Resources[i])
+						klog.Infof("resourcePos == -1 Resource: %+v", service.Resources[i])
+					}
+				}
+			}
 		}
-		klog.Infof("pos != -1 pos: %+v", pos)
 	} else {
-		klog.Infof("pos == -1")
 		r.Status.Services = append(r.Status.Services, service)
-		pos, _ := getServiceStatus(&r.Status, name)
-		for i, _ := range service.Resources {
-			r.Status.Services[pos].Resources = append(r.Status.Services[pos].Resources, service.Resources[i])
-		}
+		klog.Infof("Service did not exist yet for %+v", service.OperatorName)
 	}
 }
 
@@ -500,26 +491,21 @@ func getMemberStatus(status *OperandRequestStatus, name string) (int, *MemberSta
 
 func getServiceStatus(status *OperandRequestStatus, name string) (int, *ServiceStatus){
 	for i, s := range status.Services {
-		if name == s.OperandName{
-			klog.Infof("getServiceStatus status: %+v", s)
+		if name == s.OperatorName{
 			return i, &s
 		}
 	}
 	return -1, nil
 }
 
-// func getOperandStatus(status *OperandRequestStatus, serviceName string, operandName string) (int, int, *ServiceStatus){
-// 	for i, s := range status.Services {
-// 		if serviceName == s.OperandName{
-// 			for j, o := range status.Services.Resources {
-// 				if operandName == o.ObjectName{
-// 					return i, j, &s
-// 				}
-// 			}
-// 		}
-// 	}
-// 	return -1, -1, nil
-// }
+func getResourceStatus(resources []OperandStatus, name string) (int, *OperandStatus){
+	for i, r := range resources {
+		if name == resources[i].ObjectName {
+			return i, &r
+		}
+	}
+	return -1, nil
+}
 
 func newMemberStatus(name string, operatorPhase OperatorPhase, operandPhase ServicePhase) MemberStatus {
 	return MemberStatus{

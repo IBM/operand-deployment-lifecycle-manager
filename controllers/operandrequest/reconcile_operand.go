@@ -333,18 +333,18 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 					merr.Add(err)
 					continue
 				}
-                statusSpec, err := r.getOperandStatus(crFromALM)
+                managedBy, err := r.getManagedBy(crFromALM)
+				statusSpec, err := r.getOperandStatus(crFromALM)
 				if err != nil {
 					return err
 				} else {
 					serviceKind := crFromALM.GetKind()
 					if serviceKind != "OperandRequest" && statusSpec.ObjectName != "" {
-						klog.Infof("statusSpec transcribed from config: %+v", statusSpec)
 						var resources []operatorv1alpha1.OperandStatus
 						resources = append(resources, statusSpec)
-						serviceSpec := newServiceStatus(name, namespace, crFromALM.GetAPIVersion(), serviceKind, "Ready", false, resources)
+						serviceSpec := newServiceStatus(managedBy, namespace, resources)
 						klog.Infof("serviceSpec from config: %+v", serviceSpec)
-						requestInstance.SetServiceStatus(serviceSpec, name, mu)
+						requestInstance.SetServiceStatus(serviceSpec, mu)
 					} else{
 						klog.Infof("Resource %+v is either an operandrequest or has an empty statusSpec: %+v", name, statusSpec)
 					}
@@ -415,22 +415,19 @@ func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance
 			if err := r.updateCustomResource(ctx, crFromRequest, requestKey.Namespace, operand.Kind, operand.Spec.Raw, map[string]interface{}{}); err != nil {
 				return err
 			}
+			managedBy, err := r.getManagedBy(crFromRequest)
 			statusSpec, err := r.getOperandStatus(crFromRequest)
 			if err != nil {
 				return err
 			} else {
-				klog.Infof("statusSpec transcribed from request: %+v", statusSpec.ManagedResources)
+				if operand.Kind != "OperandRequest" && statusSpec.ObjectName != "" {
+					var resources []operatorv1alpha1.OperandStatus
+					resources = append(resources, statusSpec)
+					serviceSpec := newServiceStatus(managedBy, requestKey.Namespace, resources)
+					klog.Infof("serviceSpec from request: %+v", serviceSpec)
+					requestInstance.SetServiceStatus(serviceSpec, mu)
+				}
 			}
-			var resources []operatorv1alpha1.OperandStatus
-			resources = append(resources, statusSpec)
-			var serviceSpec operatorv1alpha1.ServiceStatus
-			serviceSpec.OperandName = operand.Name
-			serviceSpec.ApiVersion = operand.APIVersion
-			serviceSpec.Kind = operand.Kind
-			serviceSpec.Type = "Ready"
-			serviceSpec.Status = false //TODO logic to determine readiness
-			serviceSpec.Resources = resources
-			requestInstance.SetServiceStatus(serviceSpec, operand.Name, mu)
 		} else {
 			klog.V(2).Info("Skip the custom resource not created by ODLM")
 		}
@@ -442,19 +439,35 @@ func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance
 	return nil
 }
 
-func (r *Reconciler) getOperandStatus(existingCR unstructured.Unstructured) (operatorv1alpha1.OperandStatus, error) {
-	// var testCrRefined map[string]interface{} //operatorv1alpha1.OperandStatus
-	// testCR, errtest := json.Marshal(existingCR.Object["status"]) //status.service output is nil it's not grabbing anything. item.item does not work at all, it has to be top level so either status or spec
-	// if errtest != nil {
-	// 	klog.Error(errtest)
-	// }
-	// errtest = json.Unmarshal(testCR, &testCrRefined)
-	// var testCrDoubleRefined operatorv1alpha1.OperandStatus
-	// testCR2, errtest := json.Marshal(testCrRefined["service"])
-	// errtest = json.Unmarshal(testCR2, &testCrDoubleRefined)
-	// // klog.Infof("Name: %s test output: %+v map string interface output: %+v || service field print out: %+v", name, testCR, testCrRefined, testCrRefined["service"])
-	// klog.Infof("Name: %s || testtCR2: %+v || double refined: %+v || managed resources: %+v", name, testCR2, testCrDoubleRefined, testCrDoubleRefined.ManagedResources)
+func (r *Reconciler) getManagedBy(existingCR unstructured.Unstructured) (string, error){
+	byteMetadata, err := json.Marshal(existingCR.Object["metadata"])
+	if err != nil {
+		klog.Error(err)
+		return "", err
+	}
+	var rawMetadata map[string]interface{}
+	err = json.Unmarshal(byteMetadata, &rawMetadata)
+	if err != nil {
+		klog.Error(err)
+		return "", err
+	}
+	byteLabels, err := json.Marshal(rawMetadata["labels"])
+	var parsedLabels map[string]string
+	err = json.Unmarshal(byteLabels, &parsedLabels)
+	if err != nil {
+		klog.Error(err)
+		return "", err
+	}
+	var managedBy string
+	for key, value := range parsedLabels {
+		if key == "app.kubernetes.io/managed-by" {
+			managedBy = value
+		}
+	}
+	return managedBy, nil
+}
 
+func (r *Reconciler) getOperandStatus(existingCR unstructured.Unstructured) (operatorv1alpha1.OperandStatus, error) {
 	byteStatus, err := json.Marshal(existingCR.Object["status"])
 	if err != nil {
 		klog.Error(err)
@@ -470,21 +483,30 @@ func (r *Reconciler) getOperandStatus(existingCR unstructured.Unstructured) (ope
 	if err != nil {
 		klog.Error(err)
 	}
-	// klog.Infof("Name: %s test output: %+v map string interface output: %+v || service field print out: %+v", name, testCR, testCrRefined, testCrRefined["service"])
-	klog.Infof("Name: %s || testCR2: %+v || double refined: %+v || managed resources: %+v", serviceStatus.ObjectName, byteService, serviceStatus, serviceStatus.ManagedResources)
-
-	//retrieve status from given operand
-	//return service_status object
 	return serviceStatus, err
 }
 
-func newServiceStatus(operandName string, namespace string, apiVersion string, kind string, ready string, status bool, resources []operatorv1alpha1.OperandStatus) operatorv1alpha1.ServiceStatus{
+func newServiceStatus(operatorName string, namespace string, resources []operatorv1alpha1.OperandStatus) operatorv1alpha1.ServiceStatus{
     var serviceSpec operatorv1alpha1.ServiceStatus
-	serviceSpec.OperandName = operandName
+	serviceSpec.OperatorName = operatorName
 	serviceSpec.Namespace = namespace
-	serviceSpec.ApiVersion = apiVersion
-	serviceSpec.Kind = kind
-	serviceSpec.Type = ready
+	serviceSpec.Type = "Ready" //should this be something more specific? Like operandNameReady?
+	status := true
+	for i, _ := range resources {
+		if resources[i].Status == false {
+			status = false
+			klog.Infof("resource status = false for %+v", operatorName)
+			break
+		} else {
+			for j, _ := range resources[i].ManagedResources {
+				if resources[i].ManagedResources[j].Status == false {
+					status = false
+					klog.Infof("managed resource status = false for %+v", operatorName)
+					break
+				}
+			}
+		}
+	}
 	serviceSpec.Status = status //TODO logic to determine readiness
 	// serviceSpec.LastUpdateTime = time.Now().Format(time.RFC3339)
 	serviceSpec.Resources = resources
@@ -767,13 +789,6 @@ func (r *Reconciler) updateCustomResource(ctx context.Context, existingCR unstru
 
 	if err != nil {
 		return errors.Wrapf(err, "failed to update custom resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
-	}
-
-	statusSpec, err := r.getOperandStatus(existingCR)
-	if err != nil {
-		return err
-	} else {
-		klog.Infof("statusSpec transcribed from updateCustomResource: %+v", statusSpec.ManagedResources)
 	}
 
 	return nil
