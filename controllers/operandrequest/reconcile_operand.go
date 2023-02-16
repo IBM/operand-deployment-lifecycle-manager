@@ -17,7 +17,6 @@
 package operandrequest
 
 import (
-	// "time"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -41,7 +40,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"
 	"k8s.io/klog"
-	// "github.com/buger/jsonparser"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
 	constant "github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"

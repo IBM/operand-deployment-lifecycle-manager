@@ -20,7 +20,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	// "encoding/json"
 	"context"
 
 	client "sigs.k8s.io/controller-runtime/pkg/client"
@@ -31,8 +30,6 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	// "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/klog"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -412,10 +409,9 @@ func (r *OperandRequest) RemoveMemberCRStatus(name, CRName, CRKind string, mu sy
 	}
 }
 
-func (r *OperandRequest) SetServiceStatus(ctx context.Context, service ServiceStatus, updater client.Client, mu sync.Locker) error {
+func (r *OperandRequest) SetServiceStatus(ctx context.Context, service ServiceStatus, updater client.StatusClient, mu sync.Locker) error {
 	mu.Lock()
 	defer mu.Unlock()
-	klog.Infof("inside setServiceStatus for %+v", service.OperatorName)
 	pos, _ := getServiceStatus(&r.Status, service.OperatorName)
 	if pos != -1 {
 		if len(r.Status.Services[pos].Resources) == 0 {
