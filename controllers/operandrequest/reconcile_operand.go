@@ -478,30 +478,30 @@ func (r *Reconciler) getManagedBy(existingCR unstructured.Unstructured) (string,
 }
 
 func (r *Reconciler) getOperandStatus(existingCR unstructured.Unstructured) (operatorv1alpha1.OperandStatus, error) {
-	merr := &util.MultiErr{}
+	var emptyStatus operatorv1alpha1.OperandStatus
 	byteStatus, err := json.Marshal(existingCR.Object["status"])
 	if err != nil {
 		klog.Error(err)
-		merr.Add(err)
+		return emptyStatus, err
 	}
 	var rawStatus map[string]interface{}
 	err = json.Unmarshal(byteStatus, &rawStatus)
 	if err != nil {
 		klog.Error(err)
-		merr.Add(err)
+		return emptyStatus, err
 	}
 	var serviceStatus operatorv1alpha1.OperandStatus
 	byteService, err := json.Marshal(rawStatus["service"])
 	if err != nil {
 		klog.Error(err)
-		merr.Add(err)
+		return emptyStatus, err
 	}
 	err = json.Unmarshal(byteService, &serviceStatus)
 	if err != nil {
 		klog.Error(err)
-		merr.Add(err)
+		return emptyStatus, err
 	}
-	return serviceStatus, merr
+	return serviceStatus, nil
 }
 
 func newServiceStatus(operatorName string, namespace string, resources []operatorv1alpha1.OperandStatus) operatorv1alpha1.ServiceStatus {
