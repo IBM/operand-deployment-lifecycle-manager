@@ -185,7 +185,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 						klog.V(2).Infof("There is no service: %s from the OperandConfig instance: %s/%s, Skip reconciling Operands", operand.Name, registryKey.Namespace, req.Registry)
 						continue
 					}
-					err = r.reconcileCRwithConfig(ctx, opdConfig, configInstance.Namespace, csv, requestInstance, &r.Mutex)
+					err = r.reconcileCRwithConfig(ctx, opdConfig, configInstance.Namespace, csv, requestInstance, sub.Namespace, &r.Mutex)
 					if err != nil {
 						merr.Add(err)
 						requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceFailed, &r.Mutex)
@@ -199,7 +199,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 				}
 
 			} else {
-				err = r.reconcileCRwithRequest(ctx, requestInstance, operand, types.NamespacedName{Name: requestInstance.Name, Namespace: requestInstance.Namespace}, i, &r.Mutex)
+				err = r.reconcileCRwithRequest(ctx, requestInstance, operand, types.NamespacedName{Name: requestInstance.Name, Namespace: requestInstance.Namespace}, i, sub.Namespace, &r.Mutex)
 				if err != nil {
 					merr.Add(err)
 					requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceFailed, &r.Mutex)
@@ -217,7 +217,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 }
 
 // reconcileCRwithConfig merge and create custom resource base on OperandConfig and CSV alm-examples
-func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operatorv1alpha1.ConfigService, namespace string, csv *olmv1alpha1.ClusterServiceVersion, requestInstance *operatorv1alpha1.OperandRequest, mu sync.Locker) error {
+func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operatorv1alpha1.ConfigService, namespace string, csv *olmv1alpha1.ClusterServiceVersion, requestInstance *operatorv1alpha1.OperandRequest, operatorNamespace string, mu sync.Locker) error {
 	merr := &util.MultiErr{}
 
 	// Create k8s resources required by service
@@ -334,19 +334,21 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 					continue
 				}
 				managedBy, err := r.getManagedBy(crFromALM)
+				if err != nil {
+					return err
+				}
 				statusSpec, err := r.getOperandStatus(crFromALM)
 				if err != nil {
 					return err
-				} else {
-					serviceKind := crFromALM.GetKind()
-					if serviceKind != "OperandRequest" && statusSpec.ObjectName != "" {
-						var resources []operatorv1alpha1.OperandStatus
-						resources = append(resources, statusSpec)
-						serviceSpec := newServiceStatus(managedBy, namespace, resources)
-						seterr := requestInstance.SetServiceStatus(serviceSpec, ctx, r.Client, mu)
-						if seterr != nil {
-							return seterr
-						}
+				}
+				serviceKind := crFromALM.GetKind()
+				if serviceKind != "OperandRequest" && statusSpec.ObjectName != "" {
+					var resources []operatorv1alpha1.OperandStatus
+					resources = append(resources, statusSpec)
+					serviceSpec := newServiceStatus(managedBy, operatorNamespace, resources)
+					seterr := requestInstance.SetServiceStatus(ctx, serviceSpec, r.Client, mu)
+					if seterr != nil {
+						return seterr
 					}
 				}
 			} else {
@@ -368,7 +370,7 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 }
 
 // reconcileCRwithRequest merge and create custom resource base on OperandRequest and CSV alm-examples
-func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance *operatorv1alpha1.OperandRequest, operand operatorv1alpha1.Operand, requestKey types.NamespacedName, index int, mu sync.Locker) error {
+func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance *operatorv1alpha1.OperandRequest, operand operatorv1alpha1.Operand, requestKey types.NamespacedName, index int, operatorNamespace string, mu sync.Locker) error {
 	merr := &util.MultiErr{}
 
 	// Create an unstructured object for CR and check its value
@@ -416,18 +418,20 @@ func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance
 				return err
 			}
 			managedBy, err := r.getManagedBy(crFromRequest)
+			if err != nil {
+				return err
+			}
 			statusSpec, err := r.getOperandStatus(crFromRequest)
 			if err != nil {
 				return err
-			} else {
-				if operand.Kind != "OperandRequest" && statusSpec.ObjectName != "" {
-					var resources []operatorv1alpha1.OperandStatus
-					resources = append(resources, statusSpec)
-					serviceSpec := newServiceStatus(managedBy, requestKey.Namespace, resources)
-					seterr := requestInstance.SetServiceStatus(serviceSpec, ctx, r.Client, mu)
-					if seterr != nil {
-						return seterr
-					}
+			}
+			if operand.Kind != "OperandRequest" && statusSpec.ObjectName != "" {
+				var resources []operatorv1alpha1.OperandStatus
+				resources = append(resources, statusSpec)
+				serviceSpec := newServiceStatus(managedBy, operatorNamespace, resources)
+				seterr := requestInstance.SetServiceStatus(ctx, serviceSpec, r.Client, mu)
+				if seterr != nil {
+					return seterr
 				}
 			}
 		} else {
@@ -454,6 +458,10 @@ func (r *Reconciler) getManagedBy(existingCR unstructured.Unstructured) (string,
 		return "", err
 	}
 	byteLabels, err := json.Marshal(rawMetadata["labels"])
+	if err != nil {
+		klog.Error(err)
+		return "", err
+	}
 	var parsedLabels map[string]string
 	err = json.Unmarshal(byteLabels, &parsedLabels)
 	if err != nil {
@@ -470,22 +478,30 @@ func (r *Reconciler) getManagedBy(existingCR unstructured.Unstructured) (string,
 }
 
 func (r *Reconciler) getOperandStatus(existingCR unstructured.Unstructured) (operatorv1alpha1.OperandStatus, error) {
+	merr := &util.MultiErr{}
 	byteStatus, err := json.Marshal(existingCR.Object["status"])
 	if err != nil {
 		klog.Error(err)
+		merr.Add(err)
 	}
 	var rawStatus map[string]interface{}
 	err = json.Unmarshal(byteStatus, &rawStatus)
 	if err != nil {
 		klog.Error(err)
+		merr.Add(err)
 	}
 	var serviceStatus operatorv1alpha1.OperandStatus
 	byteService, err := json.Marshal(rawStatus["service"])
+	if err != nil {
+		klog.Error(err)
+		merr.Add(err)
+	}
 	err = json.Unmarshal(byteService, &serviceStatus)
 	if err != nil {
 		klog.Error(err)
+		merr.Add(err)
 	}
-	return serviceStatus, err
+	return serviceStatus, merr
 }
 
 func newServiceStatus(operatorName string, namespace string, resources []operatorv1alpha1.OperandStatus) operatorv1alpha1.ServiceStatus {

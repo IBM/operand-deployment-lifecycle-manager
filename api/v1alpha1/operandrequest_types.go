@@ -412,7 +412,7 @@ func (r *OperandRequest) RemoveMemberCRStatus(name, CRName, CRKind string, mu sy
 	}
 }
 
-func (r *OperandRequest) SetServiceStatus(service ServiceStatus, ctx context.Context, updater client.Client, mu sync.Locker) error {
+func (r *OperandRequest) SetServiceStatus(ctx context.Context, service ServiceStatus, updater client.Client, mu sync.Locker) error {
 	mu.Lock()
 	defer mu.Unlock()
 	klog.Infof("inside setServiceStatus for %+v", service.OperatorName)
