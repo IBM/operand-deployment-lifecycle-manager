@@ -17,10 +17,10 @@
 package v1alpha1
 
 import (
+	"context"
 	"strings"
 	"sync"
 	"time"
-	"context"
 
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -428,7 +428,7 @@ func (r *OperandRequest) SetServiceStatus(ctx context.Context, service ServiceSt
 					return updateerr
 				}
 			}
-			for i, _ := range service.Resources {
+			for i := range service.Resources {
 				if service.Resources[i].ObjectName != "" {
 					resourcePos, _ := getResourceStatus(r.Status.Services[pos].Resources, service.Resources[i].ObjectName)
 					if resourcePos != -1 {

@@ -508,12 +508,12 @@ func newServiceStatus(operatorName string, namespace string, resources []operato
 	serviceSpec.Namespace = namespace
 	// serviceSpec.Type = "Ready" //should this be something more specific? Like operandNameReady?
 	status := "Ready"
-	for i, _ := range resources {
+	for i := range resources {
 		if resources[i].Status == "NotReady" {
 			status = "NotReady"
 			break
 		} else {
-			for j, _ := range resources[i].ManagedResources {
+			for j := range resources[i].ManagedResources {
 				if resources[i].ManagedResources[j].Status == "NotReady" {
 					status = "NotReady"
 					break
