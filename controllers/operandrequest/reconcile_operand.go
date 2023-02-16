@@ -343,10 +343,7 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 						var resources []operatorv1alpha1.OperandStatus
 						resources = append(resources, statusSpec)
 						serviceSpec := newServiceStatus(managedBy, namespace, resources)
-						klog.Infof("serviceSpec from config: %+v", serviceSpec)
-						requestInstance.SetServiceStatus(serviceSpec, mu)
-					} else{
-						klog.Infof("Resource %+v is either an operandrequest or has an empty statusSpec: %+v", name, statusSpec)
+						requestInstance.SetServiceStatus(serviceSpec, ctx, r.Client, mu)
 					}
 				}
 			} else {
@@ -424,8 +421,7 @@ func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance
 					var resources []operatorv1alpha1.OperandStatus
 					resources = append(resources, statusSpec)
 					serviceSpec := newServiceStatus(managedBy, requestKey.Namespace, resources)
-					klog.Infof("serviceSpec from request: %+v", serviceSpec)
-					requestInstance.SetServiceStatus(serviceSpec, mu)
+					requestInstance.SetServiceStatus(serviceSpec, ctx, r.Client, mu)
 				}
 			}
 		} else {
@@ -490,18 +486,16 @@ func newServiceStatus(operatorName string, namespace string, resources []operato
     var serviceSpec operatorv1alpha1.ServiceStatus
 	serviceSpec.OperatorName = operatorName
 	serviceSpec.Namespace = namespace
-	serviceSpec.Type = "Ready" //should this be something more specific? Like operandNameReady?
-	status := true
+	// serviceSpec.Type = "Ready" //should this be something more specific? Like operandNameReady?
+	status := "Ready"
 	for i, _ := range resources {
-		if resources[i].Status == false {
-			status = false
-			klog.Infof("resource status = false for %+v", operatorName)
+		if resources[i].Status == "NotReady" {
+			status = "NotReady"
 			break
 		} else {
 			for j, _ := range resources[i].ManagedResources {
-				if resources[i].ManagedResources[j].Status == false {
-					status = false
-					klog.Infof("managed resource status = false for %+v", operatorName)
+				if resources[i].ManagedResources[j].Status == "NotReady" {
+					status = "NotReady"
 					break
 				}
 			}

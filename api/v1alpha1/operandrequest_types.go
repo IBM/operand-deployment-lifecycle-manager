@@ -21,6 +21,9 @@ import (
 	"sync"
 	"time"
 	// "encoding/json"
+	"context"
+	
+	client "sigs.k8s.io/controller-runtime/pkg/client"
 
 	gset "github.com/deckarep/golang-set"
 	corev1 "k8s.io/api/core/v1"
@@ -157,8 +160,8 @@ type ResourceStatus struct{ //Status of CRs not created by ODLM
 	ApiVersion string `json:"apiVersion,omitempty"`
 	Namespace string `json:"namespace,omitempty"`
 	Kind string `json:"kind,omitempty"`
-	Type string `json:"type,omitempty"`
-	Status bool `json:"status,omitempty"`
+	// Type string `json:"type,omitempty"`
+	Status string `json:"status,omitempty"`
 	// LastTransitionTime string `json:"lastTransitionTime"` //might need to change the variable type
 	// Message string `json:"message"`
 }
@@ -167,8 +170,8 @@ type OperandStatus struct { //Top level CR status ie the CR created by ODLM
 	ApiVersion string `json:"apiVersion,omitempty"`
 	Namespace string `json:"namespace,omitempty"`
 	Kind string `json:"kind,omitempty"`
-	Type string `json:"type,omitempty"`
-	Status bool `json:"status,omitempty"`
+	// Type string `json:"type,omitempty"`
+	Status string `json:"status,omitempty"`
 	// LastTransitionTime string `json:"lastTransitionTime,omitempty"` //might need to change the variable type
 	// Message string `json:"message,omitempty"`
 	ManagedResources []ResourceStatus `json:"managedResources,omitempty"`
@@ -177,8 +180,8 @@ type OperandStatus struct { //Top level CR status ie the CR created by ODLM
 type ServiceStatus struct { //Top level service status
 	OperatorName string `json:"operatorName,omitempty"`
 	Namespace string `json:"namespace,omitempty"`
-	Type string `json:"type,omitempty"`
-	Status bool `json:"status,omitempty"`
+	// Type string `json:"type,omitempty"`
+	Status string `json:"status,omitempty"`
 	// LastUpdateTime string `json:"lastTransitionTime,omitempty"`
 	Resources []OperandStatus `json:"resources,omitempty"`
 }
@@ -409,7 +412,7 @@ func (r *OperandRequest) RemoveMemberCRStatus(name, CRName, CRKind string, mu sy
 	}
 }
 
-func (r *OperandRequest) SetServiceStatus(service ServiceStatus, mu sync.Locker){
+func (r *OperandRequest) SetServiceStatus(service ServiceStatus, ctx context.Context, updater client.Client, mu sync.Locker){
 	mu.Lock()
 	defer mu.Unlock()
 	klog.Infof("inside setServiceStatus for %+v", service.OperatorName)
@@ -417,28 +420,28 @@ func (r *OperandRequest) SetServiceStatus(service ServiceStatus, mu sync.Locker)
 	if pos != -1 {
 		if len(r.Status.Services[pos].Resources) == 0 {
 			r.Status.Services[pos] = service
-			klog.Infof("List of resources empty for %+v", r.Status.Services[pos].OperatorName)
+			updater.Status().Update(ctx, r)
 		} else {
 			if r.Status.Services[pos].Status != service.Status{
 				r.Status.Services[pos].Status = service.Status
+				updater.Status().Update(ctx, r)
 			}
 			for i, _ := range service.Resources {
 				if service.Resources[i].ObjectName != "" {
 					resourcePos, _ := getResourceStatus(r.Status.Services[pos].Resources, service.Resources[i].ObjectName)
-					klog.Infof("comparison successful")
 					if resourcePos != -1 {
 						r.Status.Services[pos].Resources[resourcePos] = service.Resources[i]
-						klog.Infof("resourcePos != -1 rp=%+v || Resource: %+v", resourcePos, service.Resources[i])
+						updater.Status().Update(ctx, r)
 					} else {
 						r.Status.Services[pos].Resources = append(r.Status.Services[pos].Resources, service.Resources[i])
-						klog.Infof("resourcePos == -1 Resource: %+v", service.Resources[i])
+						updater.Status().Update(ctx, r)
 					}
 				}
 			}
 		}
 	} else {
 		r.Status.Services = append(r.Status.Services, service)
-		klog.Infof("Service did not exist yet for %+v", service.OperatorName)
+		updater.Status().Update(ctx, r)
 	}
 }
 
