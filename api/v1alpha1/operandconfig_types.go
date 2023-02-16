@@ -142,7 +142,7 @@ func (r *OperandConfig) GetService(operandName string) *ConfigService {
 	return nil
 }
 
-//InitConfigServiceStatus initializes service status in the OperandConfig instance.
+// InitConfigServiceStatus initializes service status in the OperandConfig instance.
 func (r *OperandConfig) InitConfigServiceStatus() {
 	r.Status.ServiceStatus = make(map[string]CrStatus)
 

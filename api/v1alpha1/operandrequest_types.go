@@ -22,7 +22,7 @@ import (
 	"time"
 	// "encoding/json"
 	"context"
-	
+
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 
 	gset "github.com/deckarep/golang-set"
@@ -155,11 +155,11 @@ type Condition struct {
 	Message string `json:"message,omitempty"`
 }
 
-type ResourceStatus struct{ //Status of CRs not created by ODLM
+type ResourceStatus struct { //Status of CRs not created by ODLM
 	ObjectName string `json:"objectName,omitempty"`
-	ApiVersion string `json:"apiVersion,omitempty"`
-	Namespace string `json:"namespace,omitempty"`
-	Kind string `json:"kind,omitempty"`
+	APIVersion string `json:"apiVersion,omitempty"`
+	Namespace  string `json:"namespace,omitempty"`
+	Kind       string `json:"kind,omitempty"`
 	// Type string `json:"type,omitempty"`
 	Status string `json:"status,omitempty"`
 	// LastTransitionTime string `json:"lastTransitionTime"` //might need to change the variable type
@@ -167,9 +167,9 @@ type ResourceStatus struct{ //Status of CRs not created by ODLM
 }
 type OperandStatus struct { //Top level CR status ie the CR created by ODLM
 	ObjectName string `json:"objectName,omitempty"`
-	ApiVersion string `json:"apiVersion,omitempty"`
-	Namespace string `json:"namespace,omitempty"`
-	Kind string `json:"kind,omitempty"`
+	APIVersion string `json:"apiVersion,omitempty"`
+	Namespace  string `json:"namespace,omitempty"`
+	Kind       string `json:"kind,omitempty"`
 	// Type string `json:"type,omitempty"`
 	Status string `json:"status,omitempty"`
 	// LastTransitionTime string `json:"lastTransitionTime,omitempty"` //might need to change the variable type
@@ -179,7 +179,7 @@ type OperandStatus struct { //Top level CR status ie the CR created by ODLM
 
 type ServiceStatus struct { //Top level service status
 	OperatorName string `json:"operatorName,omitempty"`
-	Namespace string `json:"namespace,omitempty"`
+	Namespace    string `json:"namespace,omitempty"`
 	// Type string `json:"type,omitempty"`
 	Status string `json:"status,omitempty"`
 	// LastUpdateTime string `json:"lastTransitionTime,omitempty"`
@@ -412,7 +412,7 @@ func (r *OperandRequest) RemoveMemberCRStatus(name, CRName, CRKind string, mu sy
 	}
 }
 
-func (r *OperandRequest) SetServiceStatus(service ServiceStatus, ctx context.Context, updater client.Client, mu sync.Locker){
+func (r *OperandRequest) SetServiceStatus(service ServiceStatus, ctx context.Context, updater client.Client, mu sync.Locker) error {
 	mu.Lock()
 	defer mu.Unlock()
 	klog.Infof("inside setServiceStatus for %+v", service.OperatorName)
@@ -420,29 +420,45 @@ func (r *OperandRequest) SetServiceStatus(service ServiceStatus, ctx context.Con
 	if pos != -1 {
 		if len(r.Status.Services[pos].Resources) == 0 {
 			r.Status.Services[pos] = service
-			updater.Status().Update(ctx, r)
+			updateerr := updater.Status().Update(ctx, r)
+			if updateerr != nil {
+				return updateerr
+			}
 		} else {
-			if r.Status.Services[pos].Status != service.Status{
+			if r.Status.Services[pos].Status != service.Status {
 				r.Status.Services[pos].Status = service.Status
-				updater.Status().Update(ctx, r)
+				updateerr := updater.Status().Update(ctx, r)
+				if updateerr != nil {
+					return updateerr
+				}
 			}
 			for i, _ := range service.Resources {
 				if service.Resources[i].ObjectName != "" {
 					resourcePos, _ := getResourceStatus(r.Status.Services[pos].Resources, service.Resources[i].ObjectName)
 					if resourcePos != -1 {
 						r.Status.Services[pos].Resources[resourcePos] = service.Resources[i]
-						updater.Status().Update(ctx, r)
+						updateerr := updater.Status().Update(ctx, r)
+						if updateerr != nil {
+							return updateerr
+						}
 					} else {
 						r.Status.Services[pos].Resources = append(r.Status.Services[pos].Resources, service.Resources[i])
-						updater.Status().Update(ctx, r)
+						updateerr := updater.Status().Update(ctx, r)
+						if updateerr != nil {
+							return updateerr
+						}
 					}
 				}
 			}
 		}
 	} else {
 		r.Status.Services = append(r.Status.Services, service)
-		updater.Status().Update(ctx, r)
+		updateerr := updater.Status().Update(ctx, r)
+		if updateerr != nil {
+			return updateerr
+		}
 	}
+	return nil
 }
 
 func (r *OperandRequest) setOperatorReadyCondition(operatorPhase OperatorPhase, name string) {
@@ -492,16 +508,16 @@ func getMemberStatus(status *OperandRequestStatus, name string) (int, *MemberSta
 	return -1, nil
 }
 
-func getServiceStatus(status *OperandRequestStatus, name string) (int, *ServiceStatus){
+func getServiceStatus(status *OperandRequestStatus, name string) (int, *ServiceStatus) {
 	for i, s := range status.Services {
-		if name == s.OperatorName{
+		if name == s.OperatorName {
 			return i, &s
 		}
 	}
 	return -1, nil
 }
 
-func getResourceStatus(resources []OperandStatus, name string) (int, *OperandStatus){
+func getResourceStatus(resources []OperandStatus, name string) (int, *OperandStatus) {
 	for i, r := range resources {
 		if name == resources[i].ObjectName {
 			return i, &r
@@ -589,7 +605,7 @@ func (r *OperandRequest) GetRegistryKey(req Request) types.NamespacedName {
 	return types.NamespacedName{Namespace: regNs, Name: regName}
 }
 
-//InitRequestStatus OperandConfig status.
+// InitRequestStatus OperandConfig status.
 func (r *OperandRequest) InitRequestStatus() bool {
 	isInitialized := true
 	if r.Status.Phase == "" {

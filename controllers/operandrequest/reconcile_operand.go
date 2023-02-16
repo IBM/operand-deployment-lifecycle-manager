@@ -333,7 +333,7 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 					merr.Add(err)
 					continue
 				}
-                managedBy, err := r.getManagedBy(crFromALM)
+				managedBy, err := r.getManagedBy(crFromALM)
 				statusSpec, err := r.getOperandStatus(crFromALM)
 				if err != nil {
 					return err
@@ -343,7 +343,10 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 						var resources []operatorv1alpha1.OperandStatus
 						resources = append(resources, statusSpec)
 						serviceSpec := newServiceStatus(managedBy, namespace, resources)
-						requestInstance.SetServiceStatus(serviceSpec, ctx, r.Client, mu)
+						seterr := requestInstance.SetServiceStatus(serviceSpec, ctx, r.Client, mu)
+						if seterr != nil {
+							return seterr
+						}
 					}
 				}
 			} else {
@@ -421,7 +424,10 @@ func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance
 					var resources []operatorv1alpha1.OperandStatus
 					resources = append(resources, statusSpec)
 					serviceSpec := newServiceStatus(managedBy, requestKey.Namespace, resources)
-					requestInstance.SetServiceStatus(serviceSpec, ctx, r.Client, mu)
+					seterr := requestInstance.SetServiceStatus(serviceSpec, ctx, r.Client, mu)
+					if seterr != nil {
+						return seterr
+					}
 				}
 			}
 		} else {
@@ -435,7 +441,7 @@ func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance
 	return nil
 }
 
-func (r *Reconciler) getManagedBy(existingCR unstructured.Unstructured) (string, error){
+func (r *Reconciler) getManagedBy(existingCR unstructured.Unstructured) (string, error) {
 	byteMetadata, err := json.Marshal(existingCR.Object["metadata"])
 	if err != nil {
 		klog.Error(err)
@@ -482,8 +488,8 @@ func (r *Reconciler) getOperandStatus(existingCR unstructured.Unstructured) (ope
 	return serviceStatus, err
 }
 
-func newServiceStatus(operatorName string, namespace string, resources []operatorv1alpha1.OperandStatus) operatorv1alpha1.ServiceStatus{
-    var serviceSpec operatorv1alpha1.ServiceStatus
+func newServiceStatus(operatorName string, namespace string, resources []operatorv1alpha1.OperandStatus) operatorv1alpha1.ServiceStatus {
+	var serviceSpec operatorv1alpha1.ServiceStatus
 	serviceSpec.OperatorName = operatorName
 	serviceSpec.Namespace = namespace
 	// serviceSpec.Type = "Ready" //should this be something more specific? Like operandNameReady?
