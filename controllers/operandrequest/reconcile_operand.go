@@ -183,7 +183,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 						klog.V(2).Infof("There is no service: %s from the OperandConfig instance: %s/%s, Skip reconciling Operands", operand.Name, registryKey.Namespace, req.Registry)
 						continue
 					}
-					err = r.reconcileCRwithConfig(ctx, opdConfig, configInstance.Namespace, csv)
+					err = r.reconcileCRwithConfig(ctx, opdConfig, configInstance.Namespace, csv, requestInstance, sub.Namespace, &r.Mutex)
 					if err != nil {
 						merr.Add(err)
 						requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceFailed, &r.Mutex)
@@ -197,7 +197,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 				}
 
 			} else {
-				err = r.reconcileCRwithRequest(ctx, requestInstance, operand, types.NamespacedName{Name: requestInstance.Name, Namespace: requestInstance.Namespace}, i)
+				err = r.reconcileCRwithRequest(ctx, requestInstance, operand, types.NamespacedName{Name: requestInstance.Name, Namespace: requestInstance.Namespace}, i, sub.Namespace, &r.Mutex)
 				if err != nil {
 					merr.Add(err)
 					requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceFailed, &r.Mutex)
@@ -215,7 +215,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 }
 
 // reconcileCRwithConfig merge and create custom resource base on OperandConfig and CSV alm-examples
-func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operatorv1alpha1.ConfigService, namespace string, csv *olmv1alpha1.ClusterServiceVersion) error {
+func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operatorv1alpha1.ConfigService, namespace string, csv *olmv1alpha1.ClusterServiceVersion, requestInstance *operatorv1alpha1.OperandRequest, operatorNamespace string, mu sync.Locker) error {
 	merr := &util.MultiErr{}
 
 	// Create k8s resources required by service
@@ -337,6 +337,24 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 					merr.Add(err)
 					continue
 				}
+				managedBy, err := r.getManagedBy(crFromALM)
+				if err != nil {
+					return err
+				}
+				statusSpec, err := r.getOperandStatus(crFromALM)
+				if err != nil {
+					return err
+				}
+				serviceKind := crFromALM.GetKind()
+				if serviceKind != "OperandRequest" && statusSpec.ObjectName != "" {
+					var resources []operatorv1alpha1.OperandStatus
+					resources = append(resources, statusSpec)
+					serviceSpec := newServiceStatus(managedBy, operatorNamespace, resources)
+					seterr := requestInstance.SetServiceStatus(ctx, serviceSpec, r.Client, mu)
+					if seterr != nil {
+						return seterr
+					}
+				}
 			} else {
 				klog.V(2).Info("Skip the custom resource not created by ODLM")
 			}
@@ -356,7 +374,7 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 }
 
 // reconcileCRwithRequest merge and create custom resource base on OperandRequest and CSV alm-examples
-func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance *operatorv1alpha1.OperandRequest, operand operatorv1alpha1.Operand, requestKey types.NamespacedName, index int) error {
+func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance *operatorv1alpha1.OperandRequest, operand operatorv1alpha1.Operand, requestKey types.NamespacedName, index int, operatorNamespace string, mu sync.Locker) error {
 	merr := &util.MultiErr{}
 
 	// Create an unstructured object for CR and check its value
@@ -403,6 +421,23 @@ func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance
 			if err := r.updateCustomResource(ctx, crFromRequest, requestKey.Namespace, operand.Kind, operand.Spec.Raw, map[string]interface{}{}); err != nil {
 				return err
 			}
+			managedBy, err := r.getManagedBy(crFromRequest)
+			if err != nil {
+				return err
+			}
+			statusSpec, err := r.getOperandStatus(crFromRequest)
+			if err != nil {
+				return err
+			}
+			if operand.Kind != "OperandRequest" && statusSpec.ObjectName != "" {
+				var resources []operatorv1alpha1.OperandStatus
+				resources = append(resources, statusSpec)
+				serviceSpec := newServiceStatus(managedBy, operatorNamespace, resources)
+				seterr := requestInstance.SetServiceStatus(ctx, serviceSpec, r.Client, mu)
+				if seterr != nil {
+					return seterr
+				}
+			}
 		} else {
 			klog.V(2).Info("Skip the custom resource not created by ODLM")
 		}
@@ -412,6 +447,90 @@ func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance
 		return merr
 	}
 	return nil
+}
+
+func (r *Reconciler) getManagedBy(existingCR unstructured.Unstructured) (string, error) {
+	byteMetadata, err := json.Marshal(existingCR.Object["metadata"])
+	if err != nil {
+		klog.Error(err)
+		return "", err
+	}
+	var rawMetadata map[string]interface{}
+	err = json.Unmarshal(byteMetadata, &rawMetadata)
+	if err != nil {
+		klog.Error(err)
+		return "", err
+	}
+	byteLabels, err := json.Marshal(rawMetadata["labels"])
+	if err != nil {
+		klog.Error(err)
+		return "", err
+	}
+	var parsedLabels map[string]string
+	err = json.Unmarshal(byteLabels, &parsedLabels)
+	if err != nil {
+		klog.Error(err)
+		return "", err
+	}
+	var managedBy string
+	for key, value := range parsedLabels {
+		if key == "app.kubernetes.io/managed-by" {
+			managedBy = value
+		}
+	}
+	return managedBy, nil
+}
+
+func (r *Reconciler) getOperandStatus(existingCR unstructured.Unstructured) (operatorv1alpha1.OperandStatus, error) {
+	var emptyStatus operatorv1alpha1.OperandStatus
+	byteStatus, err := json.Marshal(existingCR.Object["status"])
+	if err != nil {
+		klog.Error(err)
+		return emptyStatus, err
+	}
+	var rawStatus map[string]interface{}
+	err = json.Unmarshal(byteStatus, &rawStatus)
+	if err != nil {
+		klog.Error(err)
+		return emptyStatus, err
+	}
+	var serviceStatus operatorv1alpha1.OperandStatus
+	byteService, err := json.Marshal(rawStatus["service"])
+	if err != nil {
+		klog.Error(err)
+		return emptyStatus, err
+	}
+	err = json.Unmarshal(byteService, &serviceStatus)
+	if err != nil {
+		klog.Error(err)
+		return emptyStatus, err
+	}
+	return serviceStatus, nil
+}
+
+func newServiceStatus(operatorName string, namespace string, resources []operatorv1alpha1.OperandStatus) operatorv1alpha1.ServiceStatus {
+	var serviceSpec operatorv1alpha1.ServiceStatus
+	serviceSpec.OperatorName = operatorName
+	serviceSpec.Namespace = namespace
+	// serviceSpec.Type = "Ready" //should this be something more specific? Like operandNameReady?
+	status := "Ready"
+	for i := range resources {
+		if resources[i].Status == "NotReady" {
+			status = "NotReady"
+			break
+		} else {
+			for j := range resources[i].ManagedResources {
+				if resources[i].ManagedResources[j].Status == "NotReady" {
+					status = "NotReady"
+					break
+				}
+			}
+		}
+	}
+	serviceSpec.Status = status //TODO logic to determine readiness
+	// serviceSpec.LastUpdateTime = time.Now().Format(time.RFC3339)
+	serviceSpec.Resources = resources
+	return serviceSpec
 }
 
 // deleteAllCustomResource remove custom resource base on OperandConfig and CSV alm-examples
@@ -602,7 +721,6 @@ func (r *Reconciler) updateCustomResource(ctx context.Context, existingCR unstru
 	kind := existingCR.GetKind()
 	apiversion := existingCR.GetAPIVersion()
 	name := existingCR.GetName()
-
 	// Update the CR
 	err := wait.PollImmediate(constant.DefaultCRFetchPeriod, constant.DefaultCRFetchTimeout, func() (bool, error) {
 

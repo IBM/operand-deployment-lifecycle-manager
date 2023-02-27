@@ -87,7 +87,7 @@ func NewODLMCache(isolatedModeEnable bool, namespaces []string, gvkLabelMap map[
 	}
 }
 
-//buildInformerMap generates informerMap of the specified resource
+// buildInformerMap generates informerMap of the specified resource
 func buildInformerMap(config *rest.Config, opts cache.Options, resync time.Duration, clusterGVKList []schema.GroupVersionKind) (map[schema.GroupVersionKind]toolscache.SharedIndexInformer, error) {
 	// Initialize informerMap
 	informerMap := make(map[schema.GroupVersionKind]toolscache.SharedIndexInformer)

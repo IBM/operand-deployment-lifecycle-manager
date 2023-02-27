@@ -386,7 +386,7 @@ func updateEtcdChannel(ns string) error {
 	return nil
 }
 
-//checkNameSpaceandOperatorGroup makes
+// checkNameSpaceandOperatorGroup makes
 func checkNameSpaceandOperatorGroup(ns string) error {
 	if err := wait.PollImmediate(WaitForRetry, WaitForTimeout, func() (done bool, err error) {
 		createTestNamespace(ns)

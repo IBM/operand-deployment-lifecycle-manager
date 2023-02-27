@@ -17,9 +17,12 @@
 package v1alpha1
 
 import (
+	"context"
 	"strings"
 	"sync"
 	"time"
+
+	client "sigs.k8s.io/controller-runtime/pkg/client"
 
 	gset "github.com/deckarep/golang-set"
 	corev1 "k8s.io/api/core/v1"
@@ -149,6 +152,37 @@ type Condition struct {
 	Message string `json:"message,omitempty"`
 }
 
+type ResourceStatus struct { //Status of CRs not created by ODLM
+	ObjectName string `json:"objectName,omitempty"`
+	APIVersion string `json:"apiVersion,omitempty"`
+	Namespace  string `json:"namespace,omitempty"`
+	Kind       string `json:"kind,omitempty"`
+	// Type string `json:"type,omitempty"`
+	Status string `json:"status,omitempty"`
+	// LastTransitionTime string `json:"lastTransitionTime"` //might need to change the variable type
+	// Message string `json:"message"`
+}
+type OperandStatus struct { //Top level CR status ie the CR created by ODLM
+	ObjectName string `json:"objectName,omitempty"`
+	APIVersion string `json:"apiVersion,omitempty"`
+	Namespace  string `json:"namespace,omitempty"`
+	Kind       string `json:"kind,omitempty"`
+	// Type string `json:"type,omitempty"`
+	Status string `json:"status,omitempty"`
+	// LastTransitionTime string `json:"lastTransitionTime,omitempty"` //might need to change the variable type
+	// Message string `json:"message,omitempty"`
+	ManagedResources []ResourceStatus `json:"managedResources,omitempty"`
+}
+
+type ServiceStatus struct { //Top level service status
+	OperatorName string `json:"operatorName,omitempty"`
+	Namespace    string `json:"namespace,omitempty"`
+	// Type string `json:"type,omitempty"`
+	Status string `json:"status,omitempty"`
+	// LastUpdateTime string `json:"lastTransitionTime,omitempty"`
+	Resources []OperandStatus `json:"resources,omitempty"`
+}
+
 // OperandRequestStatus defines the observed state of OperandRequest.
 type OperandRequestStatus struct {
 	// Conditions represents the current state of the Request Service.
@@ -162,6 +196,8 @@ type OperandRequestStatus struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="Phase",xDescriptors="urn:alm:descriptor:io.kubernetes.phase"
 	// +optional
 	Phase ClusterPhase `json:"phase,omitempty"`
+	//Services reflect the status of operands beyond whether they have been created
+	Services []ServiceStatus `json:"services,omitempty"`
 }
 
 // MemberPhase shows the phase of the operator and operator instance.
@@ -373,6 +409,54 @@ func (r *OperandRequest) RemoveMemberCRStatus(name, CRName, CRKind string, mu sy
 	}
 }
 
+func (r *OperandRequest) SetServiceStatus(ctx context.Context, service ServiceStatus, updater client.StatusClient, mu sync.Locker) error {
+	mu.Lock()
+	defer mu.Unlock()
+	pos, _ := getServiceStatus(&r.Status, service.OperatorName)
+	if pos != -1 {
+		if len(r.Status.Services[pos].Resources) == 0 {
+			r.Status.Services[pos] = service
+			updateerr := updater.Status().Update(ctx, r)
+			if updateerr != nil {
+				return updateerr
+			}
+		} else {
+			if r.Status.Services[pos].Status != service.Status {
+				r.Status.Services[pos].Status = service.Status
+				updateerr := updater.Status().Update(ctx, r)
+				if updateerr != nil {
+					return updateerr
+				}
+			}
+			for i := range service.Resources {
+				if service.Resources[i].ObjectName != "" {
+					resourcePos, _ := getResourceStatus(r.Status.Services[pos].Resources, service.Resources[i].ObjectName)
+					if resourcePos != -1 {
+						r.Status.Services[pos].Resources[resourcePos] = service.Resources[i]
+						updateerr := updater.Status().Update(ctx, r)
+						if updateerr != nil {
+							return updateerr
+						}
+					} else {
+						r.Status.Services[pos].Resources = append(r.Status.Services[pos].Resources, service.Resources[i])
+						updateerr := updater.Status().Update(ctx, r)
+						if updateerr != nil {
+							return updateerr
+						}
+					}
+				}
+			}
+		}
+	} else {
+		r.Status.Services = append(r.Status.Services, service)
+		updateerr := updater.Status().Update(ctx, r)
+		if updateerr != nil {
+			return updateerr
+		}
+	}
+	return nil
+}
+
 func (r *OperandRequest) setOperatorReadyCondition(operatorPhase OperatorPhase, name string) {
 	if operatorPhase == OperatorRunning {
 		r.setReadyCondition(name, ResourceTypeOperator, corev1.ConditionTrue)
@@ -415,6 +499,24 @@ func getMemberStatus(status *OperandRequestStatus, name string) (int, *MemberSta
 	for i, m := range status.Members {
 		if name == m.Name {
 			return i, &m
+		}
+	}
+	return -1, nil
+}
+
+func getServiceStatus(status *OperandRequestStatus, name string) (int, *ServiceStatus) {
+	for i, s := range status.Services {
+		if name == s.OperatorName {
+			return i, &s
+		}
+	}
+	return -1, nil
+}
+
+func getResourceStatus(resources []OperandStatus, name string) (int, *OperandStatus) {
+	for i, r := range resources {
+		if name == resources[i].ObjectName {
+			return i, &r
 		}
 	}
 	return -1, nil
@@ -499,7 +601,7 @@ func (r *OperandRequest) GetRegistryKey(req Request) types.NamespacedName {
 	return types.NamespacedName{Namespace: regNs, Name: regName}
 }
 
-//InitRequestStatus OperandConfig status.
+// InitRequestStatus OperandConfig status.
 func (r *OperandRequest) InitRequestStatus() bool {
 	isInitialized := true
 	if r.Status.Phase == "" {

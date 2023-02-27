@@ -217,7 +217,52 @@ spec:
               phase:
                 description: Phase is the cluster running phase.
                 type: string
+              services:
+                description: Status for each of the services and their dependent resources specified in this request
+                type: array
+                items:
+                  type: object
+                  properties:
+                    namespace:
+                      type: string
+                    operatorName:
+                      type: string
+                    resources:
+                      description: Status of CRs created by ODLM that belong to a given service. This info comes from CRs like IM's Authentication and is populated by ODLM.
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          apiVersion:
+                            type: string
+                          kind:
+                            type: string
+                          managedResources:
+                            description: Status of resources that fall under the umbrella of the CR in the level above.
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                apiVersion:
+                                  type: string
+                                kind:
+                                  type: string
+                                namespace:
+                                  type: string
+                                objectName:
+                                  type: string
+                                status:
+                                  type: string
+                          namespace:
+                            type: string
+                          objectName:
+                            type: string
+                          status:
+                            type: string
+                    status:
+                      type: string
             type: object
+            x-kubernetes-preserve-unknown-fields: true
         type: object
     served: true
     storage: true
