@@ -63,10 +63,12 @@ spec:
                       description: Description of a common service.
                       type: string
                     installMode:
-                      description: 'The install mode of an operator, either namespace
-                        or cluster. Valid values are: - "namespace" (default): operator
+                      description: 'The install mode of an operator, could be namespace, 
+                        cluster or no-op. Valid values are: - "namespace" (default): operator
                         is deployed in namespace of OperandRegistry; - "cluster":
-                        operator is deployed in "openshift-operators" namespace;'
+                        operator is deployed in "openshift-operators" namespace; - "no-op":
+                        operator is not supported to be fresh deployed via OperandRequest, 
+                        only upgrade and deletion are allowed;'
                       type: string
                     installPlanApproval:
                       description: 'Approval mode for emitted InstallPlans. Valid
@@ -2026,14 +2028,6 @@ spec:
                             type: object
                           type: array
                       type: object
-                    supportStatus:
-                      description: 'SupportStatus is used to indicate the support
-                        status for services. Valid values are: - "continuous" (default):
-                        operator is supported to be fresh deployed via OperandRequest
-                        from scratch - "maintained" operator is not supported to be
-                        fresh deployed via OperandRequest, only upgrade and deletion
-                        are allowed'
-                      type: string
                     targetNamespaces:
                       description: The target namespace of the OperatorGroups.
                       items:

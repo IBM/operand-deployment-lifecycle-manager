@@ -86,9 +86,6 @@ func (m *ODLMOperator) GetOperandRegistry(ctx context.Context, key types.Namespa
 		if o.Namespace == "" {
 			reg.Spec.Operators[i].Namespace = key.Namespace
 		}
-		if o.SupportStatus == "" {
-			reg.Spec.Operators[i].SupportStatus = apiv1alpha1.ContinuousSupportStatus
-		}
 		if o.SourceName == "" || o.SourceNamespace == "" {
 			catalogSourceName, catalogSourceNs, err := m.GetCatalogSourceFromPackage(ctx, o.PackageName, o.Namespace, o.Channel, key.Namespace, excludedCatalogSources)
 			if err != nil {
