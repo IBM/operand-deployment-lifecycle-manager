@@ -100,6 +100,7 @@ type OperandRegistrySpec struct {
 	// Operators is a list of operator OLM definition.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Operators Registry List"
 	// +optional
+	// +kubebuilder:pruning:PreserveUnknownFields
 	Operators []Operator `json:"operators,omitempty"`
 }
 
