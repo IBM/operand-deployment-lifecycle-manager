@@ -194,7 +194,7 @@ func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance 
 		}
 		sub.Annotations[registryKey.Namespace+"."+registryKey.Name+"/registry"] = "true"
 		sub.Annotations[registryKey.Namespace+"."+registryKey.Name+"/config"] = "true"
-		sub.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"/request"] = opt.Channel
+		sub.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/request"] = opt.Channel
 
 		sub.Spec.CatalogSource = opt.SourceName
 		sub.Spec.CatalogSourceNamespace = opt.SourceNamespace
@@ -202,7 +202,7 @@ func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance 
 
 		// check request annotation in subscription, get all available channels
 		var semverlList []string
-		reg, _ := regexp.Compile(`^(.*)\.(.*)\/request`)
+		reg, _ := regexp.Compile(`^(.*)\.(.*)\.(.*)\/request`)
 		for anno, channel := range sub.Annotations {
 			if reg.MatchString(anno) && semver.IsValid(channel) {
 				semverlList = append(semverlList, channel)
@@ -331,11 +331,11 @@ func (r *Reconciler) deleteSubscription(ctx context.Context, operandName string,
 	// remove request in annotation of subscription
 	reqName := requestInstance.ObjectMeta.Name
 	reqNs := requestInstance.ObjectMeta.Namespace
-	delete(sub.Annotations, reqNs+"."+reqName+"/request")
+	delete(sub.Annotations, reqNs+"."+reqName+"."+op.Name+"/request")
 
 	var semverlList []string
 	var annoSlice []string
-	reg, _ := regexp.Compile(`^(.*)\.(.*)\/request`)
+	reg, _ := regexp.Compile(`^(.*)\.(.*)\.(.*)\/request`)
 	for anno, channel := range sub.Annotations {
 		if reg.MatchString(anno) {
 			annoSlice = append(annoSlice, anno)
@@ -483,9 +483,9 @@ func (r *Reconciler) generateClusterObjects(o *operatorv1alpha1.Operator, regist
 		constant.OpreqLabel: "true",
 	}
 	annotations := map[string]string{
-		registryKey.Namespace + "." + registryKey.Name + "/registry": "true",
-		registryKey.Namespace + "." + registryKey.Name + "/config":   "true",
-		requestKey.Namespace + "." + requestKey.Name + "/request":    o.Channel,
+		registryKey.Namespace + "." + registryKey.Name + "/registry":             "true",
+		registryKey.Namespace + "." + registryKey.Name + "/config":               "true",
+		requestKey.Namespace + "." + requestKey.Name + "." + o.Name + "/request": o.Channel,
 	}
 
 	klog.V(3).Info("Generating Namespace: ", o.Namespace)

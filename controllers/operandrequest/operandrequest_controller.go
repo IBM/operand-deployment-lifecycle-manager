@@ -245,14 +245,14 @@ func (r *Reconciler) getRegistryToRequestMapper() handler.MapFunc {
 
 func (r *Reconciler) getSubToRequestMapper() handler.MapFunc {
 	return func(object client.Object) []ctrl.Request {
-		reg, _ := regexp.Compile(`^(.*)\.(.*)\/request`)
+		reg, _ := regexp.Compile(`^(.*)\.(.*)\.(.*)\/request`)
 		annotations := object.GetAnnotations()
 		var reqName, reqNamespace string
 		for annotation := range annotations {
 			if reg.MatchString(annotation) {
 				annotationSlices := strings.Split(annotation, ".")
 				reqNamespace = annotationSlices[0]
-				reqName = strings.Split(annotationSlices[1], "/")[0]
+				reqName = annotationSlices[1]
 			}
 		}
 		if reqNamespace == "" || reqName == "" {
