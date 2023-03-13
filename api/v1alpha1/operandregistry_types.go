@@ -27,6 +27,7 @@ import (
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // Operator defines the desired state of Operators.
+// +kubebuilder:pruning:PreserveUnknownFields
 type Operator struct {
 	// A unique name for the operator whose operand may be deployed.
 	Name string `json:"name"`
@@ -100,7 +101,6 @@ type OperandRegistrySpec struct {
 	// Operators is a list of operator OLM definition.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Operators Registry List"
 	// +optional
-	// +kubebuilder:pruning:PreserveUnknownFields
 	Operators []Operator `json:"operators,omitempty"`
 }
 

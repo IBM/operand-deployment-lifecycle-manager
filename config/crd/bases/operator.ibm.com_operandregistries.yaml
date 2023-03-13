@@ -2036,8 +2036,8 @@ spec:
                   - name
                   - packageName
                   type: object
+                  x-kubernetes-preserve-unknown-fields: true
                 type: array
-                x-kubernetes-preserve-unknown-fields: true
             type: object
             x-kubernetes-preserve-unknown-fields: true
           status:
