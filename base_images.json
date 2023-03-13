@@ -1,57 +1,75 @@
 [
-    {
-        "imageType": "external",
-        "sourceRepo": "registry.access.redhat.com",
-        "sourceNamespace": "ubi8",
-        "sourceImage": "ubi",
-        "destStage": "edge",
-        "destNamespace": "build-images",
-        "destImage": "ubi8",
-        "tag": "8.6-990",
-        "updatePackages": []
-    },
-    {
-        "imageType": "external",
-        "sourceRepo": "registry.access.redhat.com",
-        "sourceNamespace": "ubi8",
-        "sourceImage": "ubi-minimal",
-        "destStage": "edge",
-        "destNamespace": "build-images",
-        "destImage": "ubi8-minimal",
-        "tag": "8.6-994",
-        "updatePackages": []
-    },
-    {
-        "imageType": "external",
-        "sourceRepo": "quay.io",
-        "sourceNamespace": "operator-framework",
-        "sourceImage": "helm-operator",
-        "destStage": "edge",
-        "destNamespace": "build-images",
-        "destImage": "helm-operator",
-        "tag": "v1.25.1",
-        "updatePackages": []
-    },
-    {
-        "imageType": "node",
-        "sourceImage": "ubi8-minimal",
-        "sourceTag": "8.6-994",
-        "destImage": "node-fermium-ubi8-minimal",
-        "nodeVersion": "14.21.1"
-    },
-    {
-        "imageType": "node",
-        "sourceImage": "ubi8-minimal",
-        "sourceTag": "8.6-994",
-        "destImage": "node-fermium-npm8-ubi8-minimal",
-        "nodeVersion": "14.21.1",
-        "npmVersion": "8"
-    },
-    {
-        "imageType": "node",
-        "sourceImage": "ubi8-minimal",
-        "sourceTag": "8.6-994",
-        "destImage": "node-v16-ubi8-minimal",
-        "nodeVersion": "16.18.1"
-    }
+  {
+    "imageType": "external",
+    "sourceRepo": "registry.access.redhat.com",
+    "sourceNamespace": "ubi8",
+    "sourceImage": "ubi",
+    "destStage": "edge",
+    "destNamespace": "build-images",
+    "destImage": "ubi8",
+    "tag": "8.7-1090",
+    "updatePackages": []
+  },
+  {
+    "imageType": "external",
+    "sourceRepo": "registry.access.redhat.com",
+    "sourceNamespace": "ubi8",
+    "sourceImage": "ubi-minimal",
+    "destStage": "edge",
+    "destNamespace": "build-images",
+    "destImage": "ubi8-minimal",
+    "tag": "8.7-1085",
+    "updatePackages": []
+  },
+  {
+    "imageType": "external",
+    "sourceRepo": "registry.access.redhat.com",
+    "sourceNamespace": "ubi9",
+    "sourceImage": "ubi-micro",
+    "destStage": "edge",
+    "destNamespace": "build-images",
+    "destImage": "ubi9-micro",
+    "tag": "9.1.0-15",
+    "updatePackages": []
+  },
+  {
+    "imageType": "external",
+    "sourceRepo": "quay.io",
+    "sourceNamespace": "operator-framework",
+    "sourceImage": "helm-operator",
+    "destStage": "edge",
+    "destNamespace": "build-images",
+    "destImage": "helm-operator",
+    "tag": "v1.27.0",
+    "updatePackages": []
+  },
+  {
+    "imageType": "node",
+    "sourceImage": "ubi8-minimal",
+    "sourceTag": "8.7-1085",
+    "destImage": "node-fermium-ubi8-minimal",
+    "nodeVersion": "14.21.3"
+  },
+  {
+    "imageType": "node",
+    "sourceImage": "ubi8-minimal",
+    "sourceTag": "8.7-1085",
+    "destImage": "node-fermium-npm8-ubi8-minimal",
+    "nodeVersion": "14.21.3",
+    "npmVersion": "8"
+  },
+  {
+    "imageType": "node",
+    "sourceImage": "ubi8-minimal",
+    "sourceTag": "8.7-1085",
+    "destImage": "node-v16-ubi8-minimal",
+    "nodeVersion": "16.19.1"
+  },
+  {
+    "imageType": "node",
+    "sourceImage": "ubi8-minimal",
+    "sourceTag": "8.7-1085",
+    "destImage": "node-v18-ubi8-minimal",
+    "nodeVersion": "18.15.0"
+  }
 ]
