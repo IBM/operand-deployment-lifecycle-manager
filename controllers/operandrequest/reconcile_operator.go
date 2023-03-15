@@ -224,11 +224,17 @@ func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance 
 			sub.Spec.Config = opt.SubscriptionConfig
 		}
 		if compareSub(sub, originalSub) {
-			if err = r.updateSubscription(ctx, requestInstance, sub); err != nil {
-				requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorFailed, "", mu)
-				return err
+			if opt.InstallMode == operatorv1alpha1.InstallModeNoop {
+				requestInstance.SetNoSuitableRegistryCondition(registryKey.String(), opt.Name+" is in maintenance status", operatorv1alpha1.ResourceTypeOperandRegistry, corev1.ConditionTrue, &r.Mutex)
+				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorRunning, operatorv1alpha1.ServiceRunning, mu)
+			} else {
+				// Subscription updates for not discontinued services
+				if err = r.updateSubscription(ctx, requestInstance, sub); err != nil {
+					requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorFailed, "", mu)
+					return err
+				}
+				requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorUpdating, "", mu)
 			}
-			requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorUpdating, "", mu)
 		}
 	} else {
 		// Subscription existing and not managed by OperandRequest controller
