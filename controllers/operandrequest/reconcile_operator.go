@@ -232,14 +232,9 @@ func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance 
 			if err = r.updateSubscription(ctx, requestInstance, sub); err != nil {
 				requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorFailed, "", mu)
 				return err
+			}
+			requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorUpdating, "", mu)
 		}
-
-		// Subscription updates for not discontinued services
-		if err = r.updateSubscription(ctx, requestInstance, sub); err != nil {
-			requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorFailed, "", mu)
-			return err
-		}
-		requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorUpdating, "", mu)
 	} else {
 		// Subscription existing and not managed by OperandRequest controller
 		klog.V(1).Infof("Subscription %s in namespace %s isn't created by ODLM. Ignore update/delete it.", sub.Name, sub.Namespace)
