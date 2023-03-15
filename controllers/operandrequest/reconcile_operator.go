@@ -196,46 +196,50 @@ func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance 
 		sub.Annotations[registryKey.Namespace+"."+registryKey.Name+"/config"] = "true"
 		sub.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/request"] = opt.Channel
 
-		sub.Spec.CatalogSource = opt.SourceName
-		sub.Spec.CatalogSourceNamespace = opt.SourceNamespace
-		sub.Spec.Package = opt.PackageName
+		if opt.InstallMode == operatorv1alpha1.InstallModeNoop {
+			requestInstance.SetNoSuitableRegistryCondition(registryKey.String(), opt.Name+" is in maintenance status", operatorv1alpha1.ResourceTypeOperandRegistry, corev1.ConditionTrue, &r.Mutex)
+			requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorRunning, operatorv1alpha1.ServiceRunning, mu)
+		} else {
+			sub.Spec.CatalogSource = opt.SourceName
+			sub.Spec.CatalogSourceNamespace = opt.SourceNamespace
+			sub.Spec.Package = opt.PackageName
 
-		// check request annotation in subscription, get all available channels
-		var semverlList []string
-		reg, _ := regexp.Compile(`^(.*)\.(.*)\.(.*)\/request`)
-		for anno, channel := range sub.Annotations {
-			if reg.MatchString(anno) && semver.IsValid(channel) {
-				semverlList = append(semverlList, channel)
+			// check request annotation in subscription, get all available channels
+			var semverlList []string
+			reg, _ := regexp.Compile(`^(.*)\.(.*)\.(.*)\/request`)
+			for anno, channel := range sub.Annotations {
+				if reg.MatchString(anno) && semver.IsValid(channel) {
+					semverlList = append(semverlList, channel)
+				}
 			}
-		}
-		if len(semverlList) == 0 {
-			// channel is not valid semantic version
-			sub.Spec.Channel = opt.Channel
-		} else if !util.Contains(semverlList, sub.Spec.Channel) {
-			// upgrade channel to minimal version existing in annotation
-			sort.Sort(semver.ByVersion(semverlList))
-			sub.Spec.Channel = semverlList[0]
-		}
+			if len(semverlList) == 0 {
+				// channel is not valid semantic version
+				sub.Spec.Channel = opt.Channel
+			} else if !util.Contains(semverlList, sub.Spec.Channel) {
+				// upgrade channel to minimal version existing in annotation
+				sort.Sort(semver.ByVersion(semverlList))
+				sub.Spec.Channel = semverlList[0]
+			}
 
-		if opt.InstallPlanApproval != "" && sub.Spec.InstallPlanApproval != opt.InstallPlanApproval {
-			sub.Spec.InstallPlanApproval = opt.InstallPlanApproval
-		}
-		if opt.SubscriptionConfig != nil {
-			sub.Spec.Config = opt.SubscriptionConfig
+			if opt.InstallPlanApproval != "" && sub.Spec.InstallPlanApproval != opt.InstallPlanApproval {
+				sub.Spec.InstallPlanApproval = opt.InstallPlanApproval
+			}
+			if opt.SubscriptionConfig != nil {
+				sub.Spec.Config = opt.SubscriptionConfig
+			}
 		}
 		if compareSub(sub, originalSub) {
-			if opt.InstallMode == operatorv1alpha1.InstallModeNoop {
-				requestInstance.SetNoSuitableRegistryCondition(registryKey.String(), opt.Name+" is in maintenance status", operatorv1alpha1.ResourceTypeOperandRegistry, corev1.ConditionTrue, &r.Mutex)
-				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorRunning, operatorv1alpha1.ServiceRunning, mu)
-			} else {
-				// Subscription updates for not discontinued services
-				if err = r.updateSubscription(ctx, requestInstance, sub); err != nil {
-					requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorFailed, "", mu)
-					return err
-				}
-				requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorUpdating, "", mu)
-			}
+			if err = r.updateSubscription(ctx, requestInstance, sub); err != nil {
+				requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorFailed, "", mu)
+				return err
 		}
+
+		// Subscription updates for not discontinued services
+		if err = r.updateSubscription(ctx, requestInstance, sub); err != nil {
+			requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorFailed, "", mu)
+			return err
+		}
+		requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorUpdating, "", mu)
 	} else {
 		// Subscription existing and not managed by OperandRequest controller
 		klog.V(1).Infof("Subscription %s in namespace %s isn't created by ODLM. Ignore update/delete it.", sub.Name, sub.Namespace)
