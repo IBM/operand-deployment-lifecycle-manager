@@ -196,32 +196,41 @@ func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance 
 		sub.Annotations[registryKey.Namespace+"."+registryKey.Name+"/config"] = "true"
 		sub.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/request"] = opt.Channel
 
-		sub.Spec.CatalogSource = opt.SourceName
-		sub.Spec.CatalogSourceNamespace = opt.SourceNamespace
-		sub.Spec.Package = opt.PackageName
+		if opt.InstallMode == operatorv1alpha1.InstallModeNoop {
+			requestInstance.SetNoSuitableRegistryCondition(registryKey.String(), opt.Name+" is in maintenance status", operatorv1alpha1.ResourceTypeOperandRegistry, corev1.ConditionTrue, &r.Mutex)
+			requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorRunning, operatorv1alpha1.ServiceRunning, mu)
 
-		// check request annotation in subscription, get all available channels
-		var semverlList []string
-		reg, _ := regexp.Compile(`^(.*)\.(.*)\.(.*)\/request`)
-		for anno, channel := range sub.Annotations {
-			if reg.MatchString(anno) && semver.IsValid(channel) {
-				semverlList = append(semverlList, channel)
+			//set operator channel back to previous one if it is tombstone service
+			sub.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/request"] = sub.Spec.Channel
+		} else {
+
+			sub.Spec.CatalogSource = opt.SourceName
+			sub.Spec.CatalogSourceNamespace = opt.SourceNamespace
+			sub.Spec.Package = opt.PackageName
+
+			// check request annotation in subscription, get all available channels
+			var semverlList []string
+			reg, _ := regexp.Compile(`^(.*)\.(.*)\.(.*)\/request`)
+			for anno, channel := range sub.Annotations {
+				if reg.MatchString(anno) && semver.IsValid(channel) {
+					semverlList = append(semverlList, channel)
+				}
 			}
-		}
-		if len(semverlList) == 0 {
-			// channel is not valid semantic version
-			sub.Spec.Channel = opt.Channel
-		} else if !util.Contains(semverlList, sub.Spec.Channel) {
-			// upgrade channel to minimal version existing in annotation
-			sort.Sort(semver.ByVersion(semverlList))
-			sub.Spec.Channel = semverlList[0]
-		}
+			if len(semverlList) == 0 {
+				// channel is not valid semantic version
+				sub.Spec.Channel = opt.Channel
+			} else if !util.Contains(semverlList, sub.Spec.Channel) {
+				// upgrade channel to minimal version existing in annotation
+				sort.Sort(semver.ByVersion(semverlList))
+				sub.Spec.Channel = semverlList[0]
+			}
 
-		if opt.InstallPlanApproval != "" && sub.Spec.InstallPlanApproval != opt.InstallPlanApproval {
-			sub.Spec.InstallPlanApproval = opt.InstallPlanApproval
-		}
-		if opt.SubscriptionConfig != nil {
-			sub.Spec.Config = opt.SubscriptionConfig
+			if opt.InstallPlanApproval != "" && sub.Spec.InstallPlanApproval != opt.InstallPlanApproval {
+				sub.Spec.InstallPlanApproval = opt.InstallPlanApproval
+			}
+			if opt.SubscriptionConfig != nil {
+				sub.Spec.Config = opt.SubscriptionConfig
+			}
 		}
 		if compareSub(sub, originalSub) {
 			if err = r.updateSubscription(ctx, requestInstance, sub); err != nil {
