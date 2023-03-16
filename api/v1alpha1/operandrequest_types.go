@@ -498,7 +498,7 @@ func (r *OperandRequest) GetRegistryKey(req Request) types.NamespacedName {
 	return types.NamespacedName{Namespace: regNs, Name: regName}
 }
 
-//InitRequestStatus OperandConfig status.
+// InitRequestStatus OperandConfig status.
 func (r *OperandRequest) InitRequestStatus() bool {
 	isInitialized := true
 	if r.Status.Phase == "" {
