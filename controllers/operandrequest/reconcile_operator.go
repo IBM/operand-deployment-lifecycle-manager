@@ -199,9 +199,10 @@ func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance 
 		if opt.InstallMode == operatorv1alpha1.InstallModeNoop {
 			requestInstance.SetNoSuitableRegistryCondition(registryKey.String(), opt.Name+" is in maintenance status", operatorv1alpha1.ResourceTypeOperandRegistry, corev1.ConditionTrue, &r.Mutex)
 			requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorRunning, operatorv1alpha1.ServiceRunning, mu)
-		} else {
+
 			//set operator channel back to previous one if it is tombstone service
 			sub.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/request"] = sub.Spec.Channel
+		} else {
 
 			sub.Spec.CatalogSource = opt.SourceName
 			sub.Spec.CatalogSourceNamespace = opt.SourceNamespace
