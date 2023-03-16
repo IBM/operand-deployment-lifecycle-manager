@@ -202,7 +202,7 @@ func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance 
 		} else {
 			//set operator channel back to previous one if it is tombstone service
 			sub.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/request"] = sub.Spec.Channel
-			
+
 			sub.Spec.CatalogSource = opt.SourceName
 			sub.Spec.CatalogSourceNamespace = opt.SourceNamespace
 			sub.Spec.Package = opt.PackageName
