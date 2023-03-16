@@ -89,7 +89,7 @@ func ResourceExists(dc discovery.DiscoveryInterface, apiGroupVersion, kind strin
 	return false, nil
 }
 
-//StringSliceContentEqual checks if the contant from two string slice are the same
+// StringSliceContentEqual checks if the contant from two string slice are the same
 func StringSliceContentEqual(a, b []string) bool {
 	if len(a) != len(b) {
 		return false
