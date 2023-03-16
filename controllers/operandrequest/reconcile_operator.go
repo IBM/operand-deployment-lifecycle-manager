@@ -194,13 +194,15 @@ func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance 
 		}
 		sub.Annotations[registryKey.Namespace+"."+registryKey.Name+"/registry"] = "true"
 		sub.Annotations[registryKey.Namespace+"."+registryKey.Name+"/config"] = "true"
+		sub.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/request"] = opt.Channel
 
 		if opt.InstallMode == operatorv1alpha1.InstallModeNoop {
 			requestInstance.SetNoSuitableRegistryCondition(registryKey.String(), opt.Name+" is in maintenance status", operatorv1alpha1.ResourceTypeOperandRegistry, corev1.ConditionTrue, &r.Mutex)
 			requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorRunning, operatorv1alpha1.ServiceRunning, mu)
 		} else {
-			sub.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/request"] = opt.Channel
-
+			//set operator channel back to previous one if it is tombstone service
+			sub.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/request"] = sub.Spec.Channel
+			
 			sub.Spec.CatalogSource = opt.SourceName
 			sub.Spec.CatalogSourceNamespace = opt.SourceNamespace
 			sub.Spec.Package = opt.PackageName
