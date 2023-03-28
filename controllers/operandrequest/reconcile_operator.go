@@ -204,10 +204,6 @@ func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance 
 			sub.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/request"] = sub.Spec.Channel
 		} else {
 
-			sub.Spec.CatalogSource = opt.SourceName
-			sub.Spec.CatalogSourceNamespace = opt.SourceNamespace
-			sub.Spec.Package = opt.PackageName
-
 			// check request annotation in subscription, get all available channels
 			var semverlList []string
 			reg, _ := regexp.Compile(`^(.*)\.(.*)\.(.*)\/request`)
@@ -225,12 +221,20 @@ func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance 
 				sub.Spec.Channel = semverlList[0]
 			}
 
-			if opt.InstallPlanApproval != "" && sub.Spec.InstallPlanApproval != opt.InstallPlanApproval {
-				sub.Spec.InstallPlanApproval = opt.InstallPlanApproval
+			// update the spec iff channel in sub matches channel in opreg
+			if sub.Spec.Channel == opt.Channel {
+				sub.Spec.CatalogSource = opt.SourceName
+				sub.Spec.CatalogSourceNamespace = opt.SourceNamespace
+				sub.Spec.Package = opt.PackageName
+
+				if opt.InstallPlanApproval != "" && sub.Spec.InstallPlanApproval != opt.InstallPlanApproval {
+					sub.Spec.InstallPlanApproval = opt.InstallPlanApproval
+				}
+				if opt.SubscriptionConfig != nil {
+					sub.Spec.Config = opt.SubscriptionConfig
+				}
 			}
-			if opt.SubscriptionConfig != nil {
-				sub.Spec.Config = opt.SubscriptionConfig
-			}
+
 		}
 		if compareSub(sub, originalSub) {
 			if err = r.updateSubscription(ctx, requestInstance, sub); err != nil {
