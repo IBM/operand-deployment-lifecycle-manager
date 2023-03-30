@@ -18,13 +18,11 @@ package operandrequest
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"regexp"
 	"sort"
 	"strings"
 	"sync"
-	"time"
 
 	gset "github.com/deckarep/golang-set"
 	olmv1 "github.com/operator-framework/api/pkg/operators/v1"
@@ -37,7 +35,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -50,10 +47,13 @@ func (r *Reconciler) reconcileOperator(ctx context.Context, requestInstance *ope
 	klog.V(1).Infof("Reconciling Operators for OperandRequest: %s/%s", requestInstance.GetNamespace(), requestInstance.GetName())
 	// It is important to NOT pass the set directly into defer functions.
 	// The arguments to the deferred function are evaluated when the defer executes
-	failedDeletedOperands := gset.NewSet()
+	remainingOperands := gset.NewSet()
+	for _, m := range requestInstance.Status.Members {
+		remainingOperands.Add(m.Name)
+	}
 	// Update request status
 	defer func() {
-		requestInstance.FreshMemberStatus(&failedDeletedOperands)
+		requestInstance.FreshMemberStatus(&remainingOperands)
 		requestInstance.UpdateClusterPhase()
 	}()
 
@@ -68,20 +68,6 @@ func (r *Reconciler) reconcileOperator(ctx context.Context, requestInstance *ope
 				requestInstance.SetNoSuitableRegistryCondition(registryKey.String(), err.Error(), operatorv1alpha1.ResourceTypeOperandRegistry, corev1.ConditionTrue, &r.Mutex)
 			}
 			klog.Errorf("Failed to get suitable OperandRegistry %s: %v", registryKey.String(), err)
-			t := time.Now()
-			formatted := fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02d",
-				t.Year(), t.Month(), t.Day(),
-				t.Hour(), t.Minute(), t.Second())
-			mergePatch, _ := json.Marshal(map[string]interface{}{
-				"metadata": map[string]interface{}{
-					"annotations": map[string]interface{}{
-						constant.FindOperandRegistry: formatted,
-					},
-				},
-			})
-			if patchErr := r.Patch(ctx, requestInstance, client.RawPatch(types.MergePatchType, mergePatch)); patchErr != nil {
-				return utilerrors.NewAggregate([]error{err, patchErr})
-			}
 			return err
 		}
 		merr := &util.MultiErr{}
@@ -122,24 +108,8 @@ func (r *Reconciler) reconcileOperator(ctx context.Context, requestInstance *ope
 		}
 	}
 
-	// TODO: update OperandRequest status before patching. Otherwise, the status will be lost.
-	// It is really corner case which would not cause any issue so far since the Status will finally be Running.
-	// Need to consider a more elegant way to preserve status instead of calling Client API like below
-	// requestInstance.FreshMemberStatus(&failedDeletedOperands)
-
-	mergePatch, _ := json.Marshal(map[string]interface{}{
-		"metadata": map[string]interface{}{
-			"annotations": map[string]interface{}{
-				constant.FindOperandRegistry: "false",
-			},
-		},
-	})
-	if err := r.Patch(ctx, requestInstance, client.RawPatch(types.MergePatchType, mergePatch)); err != nil {
-		return err
-	}
-
 	// Delete specific operators
-	if err := r.absentOperatorsAndOperands(ctx, requestInstance, &failedDeletedOperands); err != nil {
+	if err := r.absentOperatorsAndOperands(ctx, requestInstance, &remainingOperands); err != nil {
 		return err
 	}
 	klog.V(1).Infof("Finished reconciling Operators for OperandRequest: %s/%s", requestInstance.GetNamespace(), requestInstance.GetName())
@@ -418,7 +388,7 @@ func (r *Reconciler) deleteSubscription(ctx context.Context, operandName string,
 	return nil
 }
 
-func (r *Reconciler) absentOperatorsAndOperands(ctx context.Context, requestInstance *operatorv1alpha1.OperandRequest, failedDeletedOperands *gset.Set) error {
+func (r *Reconciler) absentOperatorsAndOperands(ctx context.Context, requestInstance *operatorv1alpha1.OperandRequest, remainingOperands *gset.Set) error {
 	needDeletedOperands := r.getNeedDeletedOperands(requestInstance)
 
 	var (
@@ -452,8 +422,8 @@ func (r *Reconciler) absentOperatorsAndOperands(ctx context.Context, requestInst
 					r.Mutex.Lock()
 					defer r.Mutex.Unlock()
 					merr.Add(err)
-					(*failedDeletedOperands).Add(o)
 				}
+				(*remainingOperands).Remove(o)
 				remainingOp.Remove(o)
 			}()
 		}

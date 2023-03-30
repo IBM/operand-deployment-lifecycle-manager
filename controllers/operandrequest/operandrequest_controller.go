@@ -208,7 +208,10 @@ func (r *Reconciler) addFinalizer(ctx context.Context, cr *operatorv1alpha1.Oper
 
 func (r *Reconciler) checkFinalizer(ctx context.Context, requestInstance *operatorv1alpha1.OperandRequest) error {
 	klog.V(1).Infof("Deleting OperandRequest %s in the namespace %s", requestInstance.Name, requestInstance.Namespace)
-	failedDeletedOperands := gset.NewSet()
+	remainingOperands := gset.NewSet()
+	for _, m := range requestInstance.Status.Members {
+		remainingOperands.Add(m.Name)
+	}
 	existingSub := &olmv1alpha1.SubscriptionList{}
 
 	opts := []client.ListOption{
@@ -222,7 +225,7 @@ func (r *Reconciler) checkFinalizer(ctx context.Context, requestInstance *operat
 		return nil
 	}
 	// Delete all the subscriptions that created by current request
-	if err := r.absentOperatorsAndOperands(ctx, requestInstance, &failedDeletedOperands); err != nil {
+	if err := r.absentOperatorsAndOperands(ctx, requestInstance, &remainingOperands); err != nil {
 		return err
 	}
 	return nil
