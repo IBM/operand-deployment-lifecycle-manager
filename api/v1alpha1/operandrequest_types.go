@@ -474,10 +474,10 @@ func (r *OperandRequest) setOperandReadyCondition(operandPhase ServicePhase, nam
 }
 
 // FreshMemberStatus cleanup Member status from the Member status list.
-func (r *OperandRequest) FreshMemberStatus(failedDeletedOperands *gset.Set) {
+func (r *OperandRequest) FreshMemberStatus(remainingOp *gset.Set) {
 	newMembers := []MemberStatus{}
 	for index, m := range r.Status.Members {
-		if foundOperand(r.Spec.Requests, m.Name) || (*failedDeletedOperands).Contains(m.Name) {
+		if foundOperand(r.Spec.Requests, m.Name) || (*remainingOp).Contains(m.Name) {
 			newMembers = append(newMembers, r.Status.Members[index])
 		}
 	}
