@@ -153,34 +153,54 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
 	}
 
-	//need to make sure the services section is present, justt checking length may not be enough
-	if len(requestInstance.Status.Services) == 0  {
-		klog.Info("Waiting for status.services to be instantiated ...")
-		return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
-	} else {
-		if requestInstance.OperandRequested("ibm-im-operator") {
-			var imIndex int
-			found := false
-			for i, s := range requestInstance.Status.Services {
-				if "ibm-im-operator" == s.OperatorName {
-					found = true
-					imIndex = i
-					break
-				}
+	//need to make sure the services section is present, just checking length may not be enough
+	//need to make this accept that there may not be commonui, mongo or im requested
+	//Services that can output a status.service to be included in OperandRequest
+	monitoredServices := []string{"ibm-iam-operator", "ibm-commonui-operator", "ibm-mongodb-operator", "ibm-im-operator"}
+	servicesRequested := false
+	for _, serviceName := range MonitoredServices {
+		if requestInstance.OperandRequested(serviceName){
+			servicesRequested = true
+			break
+		}
+	}
+	if servicesRequested {
+		if len(requestInstance.Status.Services) == 0  {
+			klog.Info("Waiting for status.services to be instantiated ...")
+			return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
+		} else {
+			var IMOrIAM string
+			exists := false
+			if requestInstance.OperandRequested("ibm-iam-operator") {
+				IMOrIAM = "ibm-iam-operator"
+				exists = true
+			} else if requestInstance.OperandRequested("ibm-im-operator") {
+				IMOrIAM = "ibm-im-operator"
+				exists = true
 			}
-			if found == true {
-				if requestInstance.Status.Services[imIndex].Status != "Ready" {
-					klog.Info("Waiting for IM service to be Ready ...")
+			if exists {
+				var imIndex int
+				found := false
+				for i, s := range requestInstance.Status.Services {
+					if "ibm-iam-operator" == s.OperatorName { //eventually this should be changed to the variable but the operator name is still listed as iam in practice even when im is requested
+						found = true
+						imIndex = i
+						break
+					}
+				}
+				if found == true {
+					if requestInstance.Status.Services[imIndex].Status != "Ready" {
+						klog.Info("Waiting for IM service to be Ready ...")
+						return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
+					}
+				} else {
+					klog.Info("Waiting for IM service status ...")
 					return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
 				}
-			} else {
-				klog.Info("Waiting for IM service status ...")
-				return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
 			}
 		}
-		
 	}
-
+	
 	klog.V(1).Infof("Finished reconciling OperandRequest: %s", req.NamespacedName)
 	return ctrl.Result{RequeueAfter: constant.DefaultSyncPeriod}, nil
 }
