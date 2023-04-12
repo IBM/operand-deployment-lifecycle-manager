@@ -158,7 +158,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		klog.Info("Waiting for status.services to be instantiated ...")
 		return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
 	} else {
-		if requestInstance.operandRequested("ibm-im-operator") {
+		if requestInstance.OperandRequested("ibm-im-operator") {
 			var imIndex int
 			found := false
 			for i, s := range requestInstance.Status.Services {

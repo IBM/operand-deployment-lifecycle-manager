@@ -495,7 +495,7 @@ func foundOperand(requests []Request, name string) bool {
 	return false
 }
 
-func (r *OperandRequest) operandRequested(name string) bool {
+func (r *OperandRequest) OperandRequested(name string) bool {
 	return foundOperand(r.Spec.Requests, name)
 }
 
