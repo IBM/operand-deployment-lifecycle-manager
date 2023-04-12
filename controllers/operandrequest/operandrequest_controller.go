@@ -158,7 +158,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	//Services that can output a status.service to be included in OperandRequest
 	monitoredServices := []string{"ibm-iam-operator", "ibm-commonui-operator", "ibm-mongodb-operator", "ibm-im-operator"}
 	servicesRequested := false
-	for _, serviceName := range MonitoredServices {
+	for _, serviceName := range monitoredServices {
 		if requestInstance.OperandRequested(serviceName){
 			servicesRequested = true
 			break
@@ -169,15 +169,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 			klog.Info("Waiting for status.services to be instantiated ...")
 			return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
 		} else {
-			var IMOrIAM string
+			// var IMOrIAM string
 			exists := false
 			if requestInstance.OperandRequested("ibm-iam-operator") {
-				IMOrIAM = "ibm-iam-operator"
+				// IMOrIAM = "ibm-iam-operator"
 				exists = true
 			} else if requestInstance.OperandRequested("ibm-im-operator") {
-				IMOrIAM = "ibm-im-operator"
+				// IMOrIAM = "ibm-im-operator"
 				exists = true
 			}
+
 			if exists {
 				var imIndex int
 				found := false
