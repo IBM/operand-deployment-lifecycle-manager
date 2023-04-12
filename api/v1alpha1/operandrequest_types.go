@@ -656,48 +656,47 @@ func (r *OperandRequest) CheckServiceStatus() bool {
 	monitoredServices := []string{"ibm-iam-operator", "ibm-commonui-operator", "ibm-mongodb-operator", "ibm-im-operator"}
 	servicesRequested := false
 	for _, serviceName := range monitoredServices {
-		if foundOperand(r.Spec.Requests, serviceName){
+		if foundOperand(r.Spec.Requests, serviceName) {
 			servicesRequested = true
 			break
 		}
 	}
 	if servicesRequested {
-		if len(r.Status.Services) == 0  {
+		if len(r.Status.Services) == 0 {
 			klog.Info("Waiting for status.services to be instantiated ...")
 			requeue = true
 			return requeue
-		} else {
-			// var IMOrIAM string
-			exists := false
-			if foundOperand(r.Spec.Requests, "ibm-iam-operator") {
-				// IMOrIAM = "ibm-iam-operator"
-				exists = true
-			} else if foundOperand(r.Spec.Requests, "ibm-im-operator") {
-				// IMOrIAM = "ibm-im-operator"
-				exists = true
-			}
+		}
+		// var IMOrIAM string
+		exists := false
+		if foundOperand(r.Spec.Requests, "ibm-iam-operator") {
+			// IMOrIAM = "ibm-iam-operator"
+			exists = true
+		} else if foundOperand(r.Spec.Requests, "ibm-im-operator") {
+			// IMOrIAM = "ibm-im-operator"
+			exists = true
+		}
 
-			if exists {
-				var imIndex int
-				found := false
-				for i, s := range r.Status.Services {
-					if "ibm-iam-operator" == s.OperatorName { //eventually this should be changed to the variable but the operator name is still listed as iam in practice even when im is requested
-						found = true
-						imIndex = i
-						break
-					}
+		if exists {
+			var imIndex int
+			found := false
+			for i, s := range r.Status.Services {
+				if "ibm-iam-operator" == s.OperatorName { //eventually this should be changed to the variable but the operator name is still listed as iam in practice even when im is requested
+					found = true
+					imIndex = i
+					break
 				}
-				if found {
-					if r.Status.Services[imIndex].Status != "Ready" {
-						klog.Info("Waiting for IM service to be Ready ...")
-						requeue = true
-						return requeue
-					}
-				} else {
-					klog.Info("Waiting for IM service status ...")
+			}
+			if found {
+				if r.Status.Services[imIndex].Status != "Ready" {
+					klog.Info("Waiting for IM service to be Ready ...")
 					requeue = true
 					return requeue
 				}
+			} else {
+				klog.Info("Waiting for IM service status ...")
+				requeue = true
+				return requeue
 			}
 		}
 	}

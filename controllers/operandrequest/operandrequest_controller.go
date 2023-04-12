@@ -157,7 +157,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	if requestInstance.CheckServiceStatus() {
 		return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
 	}
-	
+
 	klog.V(1).Infof("Finished reconciling OperandRequest: %s", req.NamespacedName)
 	return ctrl.Result{RequeueAfter: constant.DefaultSyncPeriod}, nil
 }
