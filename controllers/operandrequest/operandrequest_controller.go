@@ -158,24 +158,27 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		klog.Info("Waiting for status.services to be instantiated ...")
 		return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
 	} else {
-		var imIndex int
-		found := false
-		for i, s := range requestInstance.Status.Services {
-			if "ibm-im-operator" == s.OperatorName {
-				found = true
-				imIndex = i
-				break
+		if requestInstance.operandRequested("ibm-im-operator") {
+			var imIndex int
+			found := false
+			for i, s := range requestInstance.Status.Services {
+				if "ibm-im-operator" == s.OperatorName {
+					found = true
+					imIndex = i
+					break
+				}
 			}
-		}
-		if found == true {
-			if requestInstance.Status.Services[imIndex].Status != "Ready" {
-				klog.Info("Waiting for IM service to be Ready ...")
+			if found == true {
+				if requestInstance.Status.Services[imIndex].Status != "Ready" {
+					klog.Info("Waiting for IM service to be Ready ...")
+					return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
+				}
+			} else {
+				klog.Info("Waiting for IM service status ...")
 				return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
 			}
-		} else {
-			klog.Info("Waiting for IM service status ...")
-			return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
 		}
+		
 	}
 
 	klog.V(1).Infof("Finished reconciling OperandRequest: %s", req.NamespacedName)

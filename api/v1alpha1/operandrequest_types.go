@@ -495,6 +495,10 @@ func foundOperand(requests []Request, name string) bool {
 	return false
 }
 
+func (r *OperandRequest) operandRequested(name string) bool {
+	return foundOperand(r.Spec.Requests, name)
+}
+
 func getMemberStatus(status *OperandRequestStatus, name string) (int, *MemberStatus) {
 	for i, m := range status.Members {
 		if name == m.Name {
