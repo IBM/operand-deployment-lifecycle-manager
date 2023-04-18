@@ -653,7 +653,7 @@ func (r *OperandRequest) UpdateLabels() bool {
 
 func (r *OperandRequest) CheckServiceStatus() bool {
 	requeue := false
-	monitoredServices := []string{"ibm-iam-operator", "ibm-commonui-operator", "ibm-mongodb-operator", "ibm-im-operator"}
+	monitoredServices := []string{"ibm-iam-operator", "ibm-idp-config-ui-operator", "ibm-mongodb-operator", "ibm-im-operator"}
 	servicesRequested := false
 	for _, serviceName := range monitoredServices {
 		if foundOperand(r.Spec.Requests, serviceName) {
