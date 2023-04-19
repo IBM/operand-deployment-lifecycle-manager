@@ -183,7 +183,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 						klog.V(2).Infof("There is no service: %s from the OperandConfig instance: %s/%s, Skip reconciling Operands", operand.Name, registryKey.Namespace, req.Registry)
 						continue
 					}
-					err = r.reconcileCRwithConfig(ctx, opdConfig, configInstance.Namespace, csv, requestInstance, sub.Namespace, &r.Mutex)
+					err = r.reconcileCRwithConfig(ctx, opdConfig, configInstance.Namespace, csv, requestInstance, operand.Name, sub.Namespace, &r.Mutex)
 					if err != nil {
 						merr.Add(err)
 						requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceFailed, &r.Mutex)
@@ -215,7 +215,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 }
 
 // reconcileCRwithConfig merge and create custom resource base on OperandConfig and CSV alm-examples
-func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operatorv1alpha1.ConfigService, namespace string, csv *olmv1alpha1.ClusterServiceVersion, requestInstance *operatorv1alpha1.OperandRequest, operatorNamespace string, mu sync.Locker) error {
+func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operatorv1alpha1.ConfigService, namespace string, csv *olmv1alpha1.ClusterServiceVersion, requestInstance *operatorv1alpha1.OperandRequest, operandName string, operatorNamespace string, mu sync.Locker) error {
 	merr := &util.MultiErr{}
 
 	// Create k8s resources required by service
@@ -337,10 +337,6 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 					merr.Add(err)
 					continue
 				}
-				managedBy, err := r.getManagedBy(crFromALM)
-				if err != nil {
-					return err
-				}
 				statusSpec, err := r.getOperandStatus(crFromALM)
 				if err != nil {
 					return err
@@ -349,7 +345,7 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 				if serviceKind != "OperandRequest" && statusSpec.ObjectName != "" {
 					var resources []operatorv1alpha1.OperandStatus
 					resources = append(resources, statusSpec)
-					serviceSpec := newServiceStatus(managedBy, operatorNamespace, resources)
+					serviceSpec := newServiceStatus(operandName, operatorNamespace, resources)
 					seterr := requestInstance.SetServiceStatus(ctx, serviceSpec, r.Client, mu)
 					if seterr != nil {
 						return seterr
@@ -421,10 +417,6 @@ func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance
 			if err := r.updateCustomResource(ctx, crFromRequest, requestKey.Namespace, operand.Kind, operand.Spec.Raw, map[string]interface{}{}); err != nil {
 				return err
 			}
-			managedBy, err := r.getManagedBy(crFromRequest)
-			if err != nil {
-				return err
-			}
 			statusSpec, err := r.getOperandStatus(crFromRequest)
 			if err != nil {
 				return err
@@ -432,7 +424,7 @@ func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance
 			if operand.Kind != "OperandRequest" && statusSpec.ObjectName != "" {
 				var resources []operatorv1alpha1.OperandStatus
 				resources = append(resources, statusSpec)
-				serviceSpec := newServiceStatus(managedBy, operatorNamespace, resources)
+				serviceSpec := newServiceStatus(operand.Name, operatorNamespace, resources)
 				seterr := requestInstance.SetServiceStatus(ctx, serviceSpec, r.Client, mu)
 				if seterr != nil {
 					return seterr
@@ -447,38 +439,6 @@ func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance
 		return merr
 	}
 	return nil
-}
-
-func (r *Reconciler) getManagedBy(existingCR unstructured.Unstructured) (string, error) {
-	byteMetadata, err := json.Marshal(existingCR.Object["metadata"])
-	if err != nil {
-		klog.Error(err)
-		return "", err
-	}
-	var rawMetadata map[string]interface{}
-	err = json.Unmarshal(byteMetadata, &rawMetadata)
-	if err != nil {
-		klog.Error(err)
-		return "", err
-	}
-	byteLabels, err := json.Marshal(rawMetadata["labels"])
-	if err != nil {
-		klog.Error(err)
-		return "", err
-	}
-	var parsedLabels map[string]string
-	err = json.Unmarshal(byteLabels, &parsedLabels)
-	if err != nil {
-		klog.Error(err)
-		return "", err
-	}
-	var managedBy string
-	for key, value := range parsedLabels {
-		if key == "app.kubernetes.io/managed-by" {
-			managedBy = value
-		}
-	}
-	return managedBy, nil
 }
 
 func (r *Reconciler) getOperandStatus(existingCR unstructured.Unstructured) (operatorv1alpha1.OperandStatus, error) {
