@@ -410,6 +410,15 @@ func (r *OperandRequest) RemoveMemberCRStatus(name, CRName, CRKind string, mu sy
 	}
 }
 
+func (r *OperandRequest) RemoveServiceStatus(operatorName string, mu sync.Locker){
+	mu.Lock()
+	defer mu.Unlock()
+	pos, s := getServiceStatus(&r.Status, operatorName)
+	if s != nil {
+		r.Status.Services = append(r.Status.Services[:pos], r.Status.Services[pos+1:]...)
+	}
+}
+
 func (r *OperandRequest) SetServiceStatus(ctx context.Context, service ServiceStatus, updater client.StatusClient, mu sync.Locker) error {
 	mu.Lock()
 	defer mu.Unlock()
