@@ -89,7 +89,7 @@ func (m *ODLMOperator) GetOperandRegistry(ctx context.Context, key types.Namespa
 		if o.SourceName == "" || o.SourceNamespace == "" {
 			catalogSourceName, catalogSourceNs, err := m.GetCatalogSourceFromPackage(ctx, o.PackageName, o.Namespace, o.Channel, key.Namespace, excludedCatalogSources)
 			if err != nil {
-				return reg, err
+				return nil, err
 			}
 
 			if catalogSourceName == "" || catalogSourceNs == "" {

@@ -18,11 +18,13 @@ package operandrequest
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	gset "github.com/deckarep/golang-set"
 	olmv1 "github.com/operator-framework/api/pkg/operators/v1"
@@ -35,6 +37,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -67,8 +70,21 @@ func (r *Reconciler) reconcileOperator(ctx context.Context, requestInstance *ope
 			} else {
 				requestInstance.SetNoSuitableRegistryCondition(registryKey.String(), err.Error(), operatorv1alpha1.ResourceTypeOperandRegistry, corev1.ConditionTrue, &r.Mutex)
 			}
+			t := time.Now()
+			formatted := fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02d",
+				t.Year(), t.Month(), t.Day(),
+				t.Hour(), t.Minute(), t.Second())
+			mergePatch, _ := json.Marshal(map[string]interface{}{
+				"metadata": map[string]interface{}{
+					"annotations": map[string]interface{}{
+						constant.FindOperandRegistry: formatted,
+					},
+				},
+			})
+			if patchErr := r.Patch(ctx, requestInstance, client.RawPatch(types.MergePatchType, mergePatch)); patchErr != nil {
+				return utilerrors.NewAggregate([]error{err, patchErr})
+			}
 			klog.Errorf("Failed to get suitable OperandRegistry %s: %v", registryKey.String(), err)
-			return err
 		}
 		merr := &util.MultiErr{}
 
@@ -119,9 +135,14 @@ func (r *Reconciler) reconcileOperator(ctx context.Context, requestInstance *ope
 
 func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance *operatorv1alpha1.OperandRequest, registryInstance *operatorv1alpha1.OperandRegistry, operand operatorv1alpha1.Operand, registryKey types.NamespacedName, mu sync.Locker) error {
 	// Check the requested Operand if exist in specific OperandRegistry
-	opt := registryInstance.GetOperator(operand.Name)
+	var opt *operatorv1alpha1.Operator
+	if registryInstance != nil {
+		opt = registryInstance.GetOperator(operand.Name)
+	}
 	if opt == nil {
-		klog.V(1).Infof("Operator %s not found in the OperandRegistry %s/%s", operand.Name, registryInstance.Namespace, registryInstance.Name)
+		if registryInstance != nil {
+			klog.V(1).Infof("Operator %s not found in the OperandRegistry %s/%s", operand.Name, registryInstance.Namespace, registryInstance.Name)
+		}
 		requestInstance.SetNotFoundOperatorFromRegistryCondition(operand.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionTrue, mu)
 		requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorNotFound, operatorv1alpha1.ServiceNotFound, mu)
 		return nil
@@ -157,6 +178,7 @@ func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance 
 	// Subscription existing and managed by OperandRequest controller
 	if _, ok := sub.Labels[constant.OpreqLabel]; ok {
 		originalSub := sub.DeepCopy()
+		var isMatchedChannel bool
 
 		// add annotations to existing Subscriptions for upgrade case
 		if sub.Annotations == nil {
@@ -167,12 +189,14 @@ func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance 
 		sub.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/request"] = opt.Channel
 
 		if opt.InstallMode == operatorv1alpha1.InstallModeNoop {
+			isMatchedChannel = true
 			requestInstance.SetNoSuitableRegistryCondition(registryKey.String(), opt.Name+" is in maintenance status", operatorv1alpha1.ResourceTypeOperandRegistry, corev1.ConditionTrue, &r.Mutex)
 			requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorRunning, operatorv1alpha1.ServiceRunning, mu)
 
 			//set operator channel back to previous one if it is tombstone service
 			sub.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/request"] = sub.Spec.Channel
 		} else {
+			requestInstance.SetNotFoundOperatorFromRegistryCondition(operand.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionFalse, mu)
 
 			// check request annotation in subscription, get all available channels
 			var semverlList []string
@@ -193,6 +217,7 @@ func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance 
 
 			// update the spec iff channel in sub matches channel in opreg
 			if sub.Spec.Channel == opt.Channel {
+				isMatchedChannel = true
 				sub.Spec.CatalogSource = opt.SourceName
 				sub.Spec.CatalogSourceNamespace = opt.SourceNamespace
 				sub.Spec.Package = opt.PackageName
@@ -212,6 +237,13 @@ func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance 
 				return err
 			}
 			requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorUpdating, "", mu)
+		}
+
+		if !isMatchedChannel {
+			requestInstance.SetNoConflictOperatorCondition(operand.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionFalse, mu)
+			requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorFailed, "", mu)
+		} else {
+			requestInstance.SetNoConflictOperatorCondition(operand.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionTrue, mu)
 		}
 	} else {
 		// Subscription existing and not managed by OperandRequest controller
@@ -290,7 +322,6 @@ func (r *Reconciler) deleteSubscription(ctx context.Context, operandName string,
 
 	namespace := r.GetOperatorNamespace(op.InstallMode, op.Namespace)
 	sub, err := r.GetSubscription(ctx, operandName, namespace, op.PackageName)
-	originalsub := sub.DeepCopy()
 	if apierrors.IsNotFound(err) {
 		klog.V(3).Infof("There is no Subscription %s or %s in the namespace %s", operandName, op.PackageName, namespace)
 		return nil
@@ -316,28 +347,21 @@ func (r *Reconciler) deleteSubscription(ctx context.Context, operandName string,
 	reqNs := requestInstance.ObjectMeta.Namespace
 	delete(sub.Annotations, reqNs+"."+reqName+"."+op.Name+"/request")
 
-	var semverlList []string
 	var annoSlice []string
 	reg, _ := regexp.Compile(`^(.*)\.(.*)\.(.*)\/request`)
-	for anno, channel := range sub.Annotations {
+	for anno, _ := range sub.Annotations {
 		if reg.MatchString(anno) {
 			annoSlice = append(annoSlice, anno)
-			if semver.IsValid(channel) {
-				semverlList = append(semverlList, channel)
-			}
 		}
 	}
 	if len(annoSlice) != 0 {
-		// update channel to minmial version remaining in annotations
-		if len(semverlList) != 0 && !util.Contains(semverlList, sub.Spec.Channel) {
-			sort.Sort(semver.ByVersion(semverlList))
-			sub.Spec.Channel = semverlList[0]
-		}
 		// remove the associated registry from annotation of subscription
-		if err := r.Patch(ctx, sub, client.MergeFrom(originalsub)); err != nil {
-			requestInstance.SetUpdatingCondition(sub.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionFalse, &r.Mutex)
+		if err = r.updateSubscription(ctx, requestInstance, sub); err != nil {
+			requestInstance.SetMemberStatus(op.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
 			return err
 		}
+		requestInstance.SetMemberStatus(op.Name, operatorv1alpha1.OperatorUpdating, "", &r.Mutex)
+
 		klog.V(1).Infof("Did not delete Subscription %s/%s which is requested by other OperandRequests", sub.Namespace, sub.Name)
 		return nil
 	}
