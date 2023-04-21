@@ -410,7 +410,7 @@ func (r *OperandRequest) RemoveMemberCRStatus(name, CRName, CRKind string, mu sy
 	}
 }
 
-func (r *OperandRequest) RemoveServiceStatus(operatorName string, mu sync.Locker){
+func (r *OperandRequest) RemoveServiceStatus(operatorName string, mu sync.Locker) {
 	mu.Lock()
 	defer mu.Unlock()
 	pos, s := getServiceStatus(&r.Status, operatorName)
