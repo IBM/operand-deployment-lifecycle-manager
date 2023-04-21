@@ -676,13 +676,13 @@ func (r *OperandRequest) CheckServiceStatus() bool {
 			requeue = true
 			return requeue
 		}
-		// var IMOrIAM string
+		var IMOrIAM string
 		exists := false
 		if foundOperand(r.Spec.Requests, "ibm-iam-operator") {
-			// IMOrIAM = "ibm-iam-operator"
+			IMOrIAM = "ibm-iam-operator"
 			exists = true
 		} else if foundOperand(r.Spec.Requests, "ibm-im-operator") {
-			// IMOrIAM = "ibm-im-operator"
+			IMOrIAM = "ibm-im-operator"
 			exists = true
 		}
 
@@ -690,7 +690,7 @@ func (r *OperandRequest) CheckServiceStatus() bool {
 			var imIndex int
 			found := false
 			for i, s := range r.Status.Services {
-				if "ibm-iam-operator" == s.OperatorName { //eventually this should be changed to the variable but the operator name is still listed as iam in practice even when im is requested
+				if IMOrIAM == s.OperatorName { //eventually this should be changed to the variable but the operator name is still listed as iam in practice even when im is requested
 					found = true
 					imIndex = i
 					break

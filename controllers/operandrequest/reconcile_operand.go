@@ -537,7 +537,6 @@ func (r *Reconciler) deleteAllCustomResource(ctx context.Context, csv *olmv1alph
 				return
 			}
 			requestInstance.RemoveMemberCRStatus(operatorName, opdMember.Name, opdMember.Kind, &r.Mutex)
-			requestInstance.RemoveServiceStatus(operatorName, &r.Mutex)
 		}()
 	}
 	wg.Wait()
@@ -886,7 +885,6 @@ func (r *Reconciler) checkCustomResource(ctx context.Context, requestInstance *o
 				return
 			}
 			requestInstance.RemoveMemberCRStatus(operatorName, opdMember.Name, opdMember.Kind, &r.Mutex)
-			requestInstance.RemoveServiceStatus(operatorName, &r.Mutex)
 		}()
 	}
 	wg.Wait()
