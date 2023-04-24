@@ -349,7 +349,7 @@ func (r *Reconciler) deleteSubscription(ctx context.Context, operandName string,
 
 	var annoSlice []string
 	reg, _ := regexp.Compile(`^(.*)\.(.*)\.(.*)\/request`)
-	for anno, _ := range sub.Annotations {
+	for anno := range sub.Annotations {
 		if reg.MatchString(anno) {
 			annoSlice = append(annoSlice, anno)
 		}
