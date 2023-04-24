@@ -98,22 +98,6 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 				klog.Warningf("Subscription %s in the namespace %s isn't created by ODLM", sub.Name, sub.Namespace)
 			}
 
-			// For singleton services, identify latest OperandRegistry/Config version has the priority to reconcile
-			if CheckSingletonServices(operatorName) {
-				// v1IsLarger is true if subscription has larger channel version than the version in OperandRegistry
-				// Skip this operator CR creation because it does not have the latest version in OperandRegistry
-				v1IsLarger, convertErr := util.CompareChannelVersion(sub.Spec.Channel, opdRegistry.Channel)
-				if convertErr != nil {
-					merr.Add(errors.Wrapf(err, "failed to compare channel version for the Subscription %s in the namespace %s", operatorName, namespace))
-					return merr
-				}
-				if v1IsLarger {
-					klog.V(2).Infof("Subscription %s in the namespace %s is managed by other OperandRequest with newer version %s", sub.Name, sub.Namespace, sub.Spec.Channel)
-					requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorRunning, "", &r.Mutex)
-					continue
-				}
-			}
-
 			// It the installplan is not created yet, ODLM will try later
 			if sub.Status.Install == nil || sub.Status.InstallPlanRef.Name == "" {
 				klog.Warningf("The Installplan for Subscription %s is not ready. Will check it again", sub.Name)
@@ -154,9 +138,6 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 				continue
 			}
 
-			klog.V(3).Info("Generating customresource base on ClusterServiceVersion: ", csv.GetName())
-			requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorRunning, "", &r.Mutex)
-
 			// find the OperandRequest which has the same operator's channel version as existing subscription.
 			// ODLM will only reconcile Operand based on OperandConfig for this OperandRequest
 			var requestList []string
@@ -169,9 +150,12 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 
 			if len(requestList) == 0 || !util.Contains(requestList, requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/request") {
 				klog.V(2).Infof("Subscription %s in the namespace %s is NOT managed by %s/%s, Skip reconciling Operands", sub.Name, sub.Namespace, requestInstance.Namespace, requestInstance.Name)
-				requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceRunning, &r.Mutex)
+				requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceFailed, &r.Mutex)
 				continue
 			}
+
+			klog.V(3).Info("Generating customresource base on ClusterServiceVersion: ", csv.GetName())
+			requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorRunning, "", &r.Mutex)
 
 			// Merge and Generate CR
 			if operand.Kind == "" {

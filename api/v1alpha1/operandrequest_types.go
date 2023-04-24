@@ -107,6 +107,7 @@ const (
 	ConditionNotFound   ConditionType = "NotFound"
 	ConditionOutofScope ConditionType = "OutofScope"
 	ConditionReady      ConditionType = "Ready"
+	ConditionNoConflict ConditionType = "NoConflict"
 
 	OperatorReady      OperatorPhase = "Ready for Deployment"
 	OperatorRunning    OperatorPhase = "Running"
@@ -316,6 +317,14 @@ func (r *OperandRequest) SetNotFoundOperandRegistryCondition(name string, rt Res
 	mu.Lock()
 	defer mu.Unlock()
 	c := newCondition(ConditionNotFound, cs, "Not found "+string(rt), "Not found operandRegistry "+string(rt))
+	r.setCondition(*c)
+}
+
+// SetNoConflictOperatorCondition creates a NoConflictCondition when an operator channel does not conflict with others.
+func (r *OperandRequest) SetNoConflictOperatorCondition(name string, rt ResourceType, cs corev1.ConditionStatus, mu sync.Locker) {
+	mu.Lock()
+	defer mu.Unlock()
+	c := newCondition(ConditionNoConflict, cs, "No channel conflict on "+string(rt), "No channel conflict on "+string(rt)+" "+name+" in the scope")
 	r.setCondition(*c)
 }
 
