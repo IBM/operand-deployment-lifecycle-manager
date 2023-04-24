@@ -410,6 +410,15 @@ func (r *OperandRequest) RemoveMemberCRStatus(name, CRName, CRKind string, mu sy
 	}
 }
 
+func (r *OperandRequest) RemoveServiceStatus(operatorName string, mu sync.Locker) {
+	mu.Lock()
+	defer mu.Unlock()
+	pos, s := getServiceStatus(&r.Status, operatorName)
+	if s != nil {
+		r.Status.Services = append(r.Status.Services[:pos], r.Status.Services[pos+1:]...)
+	}
+}
+
 func (r *OperandRequest) SetServiceStatus(ctx context.Context, service ServiceStatus, updater client.StatusClient, mu sync.Locker) error {
 	mu.Lock()
 	defer mu.Unlock()
@@ -667,13 +676,13 @@ func (r *OperandRequest) CheckServiceStatus() bool {
 			requeue = true
 			return requeue
 		}
-		// var IMOrIAM string
+		var IMOrIAM string
 		exists := false
 		if foundOperand(r.Spec.Requests, "ibm-iam-operator") {
-			// IMOrIAM = "ibm-iam-operator"
+			IMOrIAM = "ibm-iam-operator"
 			exists = true
 		} else if foundOperand(r.Spec.Requests, "ibm-im-operator") {
-			// IMOrIAM = "ibm-im-operator"
+			IMOrIAM = "ibm-im-operator"
 			exists = true
 		}
 
@@ -681,7 +690,7 @@ func (r *OperandRequest) CheckServiceStatus() bool {
 			var imIndex int
 			found := false
 			for i, s := range r.Status.Services {
-				if "ibm-iam-operator" == s.OperatorName { //eventually this should be changed to the variable but the operator name is still listed as iam in practice even when im is requested
+				if IMOrIAM == s.OperatorName { //eventually this should be changed to the variable but the operator name is still listed as iam in practice even when im is requested
 					found = true
 					imIndex = i
 					break
