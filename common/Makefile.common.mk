@@ -97,7 +97,7 @@ kustomize: ## Download kustomize locally if necessary.
 
 KIND ?= $(shell pwd)/common/bin/kind
 kind: ## Download kind locally if necessary.
-	$(call go-get-tool,$(KIND),sigs.k8s.io/kind@v0.10.0)
+	$(call go-get-tool,$(KIND),sigs.k8s.io/kind@v0.17.0)
 
 ENVTEST = $(shell pwd)/common/bin/setup-envtest
 setup-envtest: ## Download envtest-setup locally if necessary.
