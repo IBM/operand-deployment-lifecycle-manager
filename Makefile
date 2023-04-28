@@ -225,7 +225,7 @@ kind-start: kind
 	echo "KIND Cluster already exists" && exit 0 || \
 	echo "Creating KIND Cluster" && \
 	${KIND} create cluster --name ${KIND_CLUSTER_NAME} --config=./common/config/kind-config.yaml && \
-	common/scripts/install-olm.sh 0.24.0
+	common/scripts/install-olm.sh v0.24.0
 
 
 kind-delete:
