@@ -32,7 +32,7 @@ VERSION ?= $(shell git describe --exact-match 2> /dev/null || \
                 git describe --match=$(git rev-parse --short=8 HEAD) --always --dirty --abbrev=8)
 RELEASE_VERSION ?= $(shell cat ./version/version.go | grep "Version =" | awk '{ print $$3}' | tr -d '"')
 LATEST_VERSION ?= latest
-OPERATOR_SDK_VERSION=v1.10.0
+OPERATOR_SDK_VERSION=v1.24.0
 YQ_VERSION=v4.3.1
 
 LOCAL_OS := $(shell uname)
@@ -134,21 +134,21 @@ else
 YQ=$(shell which yq)
 endif
 
-# operator-sdk:
-# ifneq ($(shell operator-sdk version | cut -d ',' -f1 | cut -d ':' -f2 | tr -d '"' | xargs | cut -d '.' -f1), v1)
-# 	@{ \
-# 	if [ "$(shell ./bin/operator-sdk version | cut -d ',' -f1 | cut -d ':' -f2 | tr -d '"' | xargs)" != $(OPERATOR_SDK_VERSION) ]; then \
-# 		set -e ; \
-# 		mkdir -p bin ;\
-# 		echo "Downloading operator-sdk..." ;\
-# 		curl -sSLo ./bin/operator-sdk "https://github.com/operator-framework/operator-sdk/releases/download/$(OPERATOR_SDK_VERSION)/operator-sdk_$(LOCAL_OS)_$(LOCAL_ARCH)" ;\
-# 		chmod +x ./bin/operator-sdk ;\
-# 	fi ;\
-# 	}
-# OPERATOR_SDK=$(realpath ./bin/operator-sdk)
-# else
-# OPERATOR_SDK=$(shell which operator-sdk)
-# endif
+operator-sdk:
+ifneq ($(shell operator-sdk version | cut -d ',' -f1 | cut -d ':' -f2 | tr -d '"' | xargs | cut -d '.' -f1), v1)
+	@{ \
+	if [ "$(shell ./bin/operator-sdk version | cut -d ',' -f1 | cut -d ':' -f2 | tr -d '"' | xargs)" != $(OPERATOR_SDK_VERSION) ]; then \
+		set -e ; \
+		mkdir -p bin ;\
+		echo "Downloading operator-sdk..." ;\
+		curl -sSLo ./bin/operator-sdk "https://github.com/operator-framework/operator-sdk/releases/download/$(OPERATOR_SDK_VERSION)/operator-sdk_$(LOCAL_OS)_$(LOCAL_ARCH)" ;\
+		chmod +x ./bin/operator-sdk ;\
+	fi ;\
+	}
+OPERATOR_SDK=$(realpath ./bin/operator-sdk)
+else
+OPERATOR_SDK=$(shell which operator-sdk)
+endif
 
 code-dev: ## Run the default dev commands which are the go tidy, fmt, vet then execute the $ make code-gen
 	@echo Running the common required commands for developments purposes

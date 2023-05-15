@@ -169,11 +169,11 @@ type OperandStatus struct { //Top level CR status ie the CR created by ODLM
 	APIVersion string `json:"apiVersion,omitempty"`
 	Namespace  string `json:"namespace,omitempty"`
 	Kind       string `json:"kind,omitempty"`
-	// Type string `json:"type,omitempty"`
-	Status string `json:"status,omitempty"`
-	// LastTransitionTime string `json:"lastTransitionTime,omitempty"` //might need to change the variable type
+	Status     string `json:"status,omitempty"`
 	// Message string `json:"message,omitempty"`
 	ManagedResources []ResourceStatus `json:"managedResources,omitempty"`
+	// Type string `json:"type,omitempty"`
+	// LastTransitionTime string `json:"lastTransitionTime,omitempty"` //might need to change the variable type
 }
 
 type ServiceStatus struct { //Top level service status

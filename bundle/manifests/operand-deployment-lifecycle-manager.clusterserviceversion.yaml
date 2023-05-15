@@ -18,19 +18,22 @@ metadata:
           "spec": {
             "services": [
               {
-                "name": "etcd",
+                "name": "jaeger",
                 "spec": {
-                  "etcdCluster": {
-                    "size": 1
+                  "jaeger": {
+                    "strategy": "allinone"
                   }
                 }
               },
               {
-                "name": "jenkins",
+                "name": "mongodb-atlas-kubernetes",
                 "spec": {
-                  "jenkins": {
-                    "service": {
-                      "port": 8081
+                  "atlasDeployment": {
+                    "deploymentSpec": {
+                      "name": "test-deployment"
+                    },
+                    "projectRef": {
+                      "name": "my-project"
                     }
                   }
                 }
@@ -52,19 +55,19 @@ metadata:
           "spec": {
             "operators": [
               {
-                "channel": "clusterwide-alpha",
+                "channel": "stable",
                 "installMode": "cluster",
-                "name": "etcd",
-                "namespace": "etcd-cluster-operator",
-                "packageName": "etcd",
+                "name": "jaeger",
+                "namespace": "default",
+                "packageName": "jaeger",
                 "sourceName": "community-operators",
                 "sourceNamespace": "openshift-marketplace"
               },
               {
-                "channel": "alpha",
-                "name": "jenkins",
+                "channel": "stable",
+                "name": "mongodb-atlas-kubernetes",
                 "namespace": "default",
-                "packageName": "jenkins-operator",
+                "packageName": "mongodb-atlas-kubernetes",
                 "sourceName": "community-operators",
                 "sourceNamespace": "openshift-marketplace"
               }
@@ -87,10 +90,10 @@ metadata:
               {
                 "operands": [
                   {
-                    "name": "etcd"
+                    "name": "jaeger"
                   },
                   {
-                    "name": "jenkins"
+                    "name": "mongodb-atlas-kubernetes"
                   }
                 ],
                 "registry": "example-service"
