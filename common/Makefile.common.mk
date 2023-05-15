@@ -21,7 +21,7 @@
 PROJECT ?= oceanic-guard-191815
 ZONE    ?= us-east5-c
 CLUSTER ?= bedrock-prow
-NAMESPACESCOPE_VERSION = 1.1.1
+NAMESPACESCOPE_VERSION = 1.17.3
 OLM_API_VERSION = 0.3.8
 
 activate-serviceaccount:
@@ -71,14 +71,14 @@ fetch-test-crds:
 	rm -rf api-${OLM_API_VERSION} v${OLM_API_VERSION}.tar.gz ;\
 	}
 	@{ \
-	curl -L -O "https://github.com/horis233/jenkins-operator/archive/v0.3.3.tar.gz" ;\
-	tar -zxf v0.3.3.tar.gz jenkins-operator-0.3.3/deploy/crds && mv jenkins-operator-0.3.3/deploy/crds/jenkins_v1alpha2_jenkins_crd.yaml ${ENVCRDS_DIR}/jenkins_v1alpha2_jenkins_crd.yaml ;\
-	rm -rf jenkins-operator-0.3.3 v0.3.3.tar.gz ;\
+	curl -L -O "https://github.com/mongodb/mongodb-atlas-kubernetes/archive/refs/tags/v1.7.3.tar.gz" ;\
+	tar -zxf v1.7.3.tar.gz mongodb-atlas-kubernetes-1.7.3/deploy/crds && mv mongodb-atlas-kubernetes-1.7.3/deploy/crds/* ${ENVCRDS_DIR} ;\
+	rm -rf mongodb-atlas-kubernetes-1.7.3 v1.7.3.tar.gz ;\
 	}
 	@{ \
-	curl -L -O "https://github.com/horis233/etcd-operator/archive/v0.9.4-crd.tar.gz" ;\
-	tar -zxf v0.9.4-crd.tar.gz etcd-operator-0.9.4-crd/deploy/crds && mv etcd-operator-0.9.4-crd/deploy/crds/etcdclusters.etcd.database.coreos.com.crd.yaml ${ENVCRDS_DIR}/etcdclusters.etcd.database.coreos.com.crd.yaml ;\
-	rm -rf etcd-operator-0.9.4-crd v0.9.4-crd.tar.gz ;\
+	curl -L -O "https://github.com/jaegertracing/jaeger-operator/archive/refs/tags/v1.36.0.tar.gz" ;\
+	tar -zxf v1.36.0.tar.gz jaeger-operator-1.36.0/bundle/manifests && mv jaeger-operator-1.36.0/bundle/manifests/jaegertracing.io_jaegers.yaml ${ENVCRDS_DIR}/jaegertracing.io_jaegers.yaml ;\
+	rm -rf jaeger-operator-1.36.0 v1.36.0.tar.gz ;\
 	}
 	@{ \
 	curl -L -O "https://github.com/IBM/ibm-namespace-scope-operator/archive/v${NAMESPACESCOPE_VERSION}.tar.gz" ;\

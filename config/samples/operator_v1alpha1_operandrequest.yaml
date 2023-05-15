@@ -10,5 +10,5 @@ spec:
   requests:
   - registry: example-service
     operands:
-    - name: etcd
-    - name: jenkins
+    - name: jaeger
+    - name: mongodb-atlas-kubernetes
