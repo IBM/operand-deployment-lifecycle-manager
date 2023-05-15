@@ -268,16 +268,19 @@ build-push-image: $(CONFIG_DOCKER_TARGET) build-operator-image  ## Build and pus
 	@docker tag $(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) $(ARTIFACTORYA_REGISTRY)/$(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION)
 	@docker push $(ARTIFACTORYA_REGISTRY)/$(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION)
 
-build-dev-bundle-image: yq
+build-push-bundle-image: yq
 	@cp -f bundle/manifests/operand-deployment-lifecycle-manager.clusterserviceversion.yaml /tmp/operand-deployment-lifecycle-manager.clusterserviceversion.yaml
 	$(YQ) eval -i 'del(.spec.replaces)' bundle/manifests/operand-deployment-lifecycle-manager.clusterserviceversion.yaml
-	docker build -f bundle.Dockerfile -t $(QUAY_REGISTRY)/$(BUNDLE_IMAGE_NAME):dev .
-	docker push $(QUAY_REGISTRY)/$(BUNDLE_IMAGE_NAME):dev
-	@mv /tmp/operand-deployment-lifecycle-manager.clusterserviceversion.yaml bundle/manifests/operand-deployment-lifecycle-manager.clusterserviceversion.yaml
-
-build-push-bundle-image: $(CONFIG_DOCKER_TARGET_QUAY) build-bundle-image ## Build and push the bundle images.
+	@docker build -f bundle.Dockerfile -t $(QUAY_REGISTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) .
 	@echo "Pushing the $(BUNDLE_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
 	@docker push $(QUAY_REGISTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION)
+	@mv /tmp/operand-deployment-lifecycle-manager.clusterserviceversion.yaml bundle/manifests/operand-deployment-lifecycle-manager.clusterserviceversion.yaml
+
+build-catalog-source:
+	@opm -u docker index add --bundles $(QUAY_REGISTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) --tag $(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME)-catalog:$(VERSION)
+	@docker push $(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME)-catalog:$(VERSION)
+
+build-catalog: build-push-bundle-image build-catalog-source
 
 multiarch-image: $(CONFIG_DOCKER_TARGET) ## Generate multiarch images for operator image.
 	@MAX_PULLING_RETRY=20 RETRY_INTERVAL=30 common/scripts/multiarch_image.sh $(ARTIFACTORYA_REGISTRY) $(OPERATOR_IMAGE_NAME) $(VERSION) $(RELEASE_VERSION)
