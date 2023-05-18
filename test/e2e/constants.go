@@ -54,7 +54,7 @@ const (
 	OperandConfigCrName = "common-service"
 
 	// OperandBindInfoCrName specifies the name of the custom resource of the OperandBindInfo
-	OperandBindInfoCrName = "jenkins-public-bindinfo"
+	OperandBindInfoCrName = "mongodb-public-bindinfo"
 
 	// OperandRequestNamespace1 specifies the namespace of the OperandRequest
 	OperandRequestNamespace1 = "ibm-cloudpak-1"

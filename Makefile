@@ -32,7 +32,7 @@ VERSION ?= $(shell git describe --exact-match 2> /dev/null || \
                 git describe --match=$(git rev-parse --short=8 HEAD) --always --dirty --abbrev=8)
 RELEASE_VERSION ?= $(shell cat ./version/version.go | grep "Version =" | awk '{ print $$3}' | tr -d '"')
 LATEST_VERSION ?= latest
-OPERATOR_SDK_VERSION=v1.10.0
+OPERATOR_SDK_VERSION=v1.24.0
 YQ_VERSION=v4.3.1
 
 LOCAL_OS := $(shell uname)
@@ -134,21 +134,21 @@ else
 YQ=$(shell which yq)
 endif
 
-# operator-sdk:
-# ifneq ($(shell operator-sdk version | cut -d ',' -f1 | cut -d ':' -f2 | tr -d '"' | xargs | cut -d '.' -f1), v1)
-# 	@{ \
-# 	if [ "$(shell ./bin/operator-sdk version | cut -d ',' -f1 | cut -d ':' -f2 | tr -d '"' | xargs)" != $(OPERATOR_SDK_VERSION) ]; then \
-# 		set -e ; \
-# 		mkdir -p bin ;\
-# 		echo "Downloading operator-sdk..." ;\
-# 		curl -sSLo ./bin/operator-sdk "https://github.com/operator-framework/operator-sdk/releases/download/$(OPERATOR_SDK_VERSION)/operator-sdk_$(LOCAL_OS)_$(LOCAL_ARCH)" ;\
-# 		chmod +x ./bin/operator-sdk ;\
-# 	fi ;\
-# 	}
-# OPERATOR_SDK=$(realpath ./bin/operator-sdk)
-# else
-# OPERATOR_SDK=$(shell which operator-sdk)
-# endif
+operator-sdk:
+ifneq ($(shell operator-sdk version | cut -d ',' -f1 | cut -d ':' -f2 | tr -d '"' | xargs | cut -d '.' -f1), v1)
+	@{ \
+	if [ "$(shell ./bin/operator-sdk version | cut -d ',' -f1 | cut -d ':' -f2 | tr -d '"' | xargs)" != $(OPERATOR_SDK_VERSION) ]; then \
+		set -e ; \
+		mkdir -p bin ;\
+		echo "Downloading operator-sdk..." ;\
+		curl -sSLo ./bin/operator-sdk "https://github.com/operator-framework/operator-sdk/releases/download/$(OPERATOR_SDK_VERSION)/operator-sdk_$(LOCAL_OS)_$(LOCAL_ARCH)" ;\
+		chmod +x ./bin/operator-sdk ;\
+	fi ;\
+	}
+OPERATOR_SDK=$(realpath ./bin/operator-sdk)
+else
+OPERATOR_SDK=$(shell which operator-sdk)
+endif
 
 code-dev: ## Run the default dev commands which are the go tidy, fmt, vet then execute the $ make code-gen
 	@echo Running the common required commands for developments purposes
@@ -225,7 +225,7 @@ kind-start: kind
 	echo "KIND Cluster already exists" && exit 0 || \
 	echo "Creating KIND Cluster" && \
 	${KIND} create cluster --name ${KIND_CLUSTER_NAME} --config=./common/config/kind-config.yaml && \
-	common/scripts/install-olm.sh 0.16.1
+	common/scripts/install-olm.sh v0.24.0
 
 
 kind-delete:
@@ -268,16 +268,19 @@ build-push-image: $(CONFIG_DOCKER_TARGET) build-operator-image  ## Build and pus
 	@docker tag $(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) $(ARTIFACTORYA_REGISTRY)/$(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION)
 	@docker push $(ARTIFACTORYA_REGISTRY)/$(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION)
 
-build-dev-bundle-image: yq
+build-push-bundle-image: yq
 	@cp -f bundle/manifests/operand-deployment-lifecycle-manager.clusterserviceversion.yaml /tmp/operand-deployment-lifecycle-manager.clusterserviceversion.yaml
 	$(YQ) eval -i 'del(.spec.replaces)' bundle/manifests/operand-deployment-lifecycle-manager.clusterserviceversion.yaml
-	docker build -f bundle.Dockerfile -t $(QUAY_REGISTRY)/$(BUNDLE_IMAGE_NAME):dev .
-	docker push $(QUAY_REGISTRY)/$(BUNDLE_IMAGE_NAME):dev
-	@mv /tmp/operand-deployment-lifecycle-manager.clusterserviceversion.yaml bundle/manifests/operand-deployment-lifecycle-manager.clusterserviceversion.yaml
-
-build-push-bundle-image: $(CONFIG_DOCKER_TARGET_QUAY) build-bundle-image ## Build and push the bundle images.
+	@docker build -f bundle.Dockerfile -t $(QUAY_REGISTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) .
 	@echo "Pushing the $(BUNDLE_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
 	@docker push $(QUAY_REGISTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION)
+	@mv /tmp/operand-deployment-lifecycle-manager.clusterserviceversion.yaml bundle/manifests/operand-deployment-lifecycle-manager.clusterserviceversion.yaml
+
+build-catalog-source:
+	@opm -u docker index add --bundles $(QUAY_REGISTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) --tag $(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME)-catalog:$(VERSION)
+	@docker push $(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME)-catalog:$(VERSION)
+
+build-catalog: build-push-bundle-image build-catalog-source
 
 multiarch-image: $(CONFIG_DOCKER_TARGET) ## Generate multiarch images for operator image.
 	@MAX_PULLING_RETRY=20 RETRY_INTERVAL=30 common/scripts/multiarch_image.sh $(ARTIFACTORYA_REGISTRY) $(OPERATOR_IMAGE_NAME) $(VERSION) $(RELEASE_VERSION)

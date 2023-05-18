@@ -215,7 +215,55 @@ spec:
               phase:
                 description: Phase is the cluster running phase.
                 type: string
+              services:
+                description: Services reflect the status of operands beyond whether
+                  they have been created
+                items:
+                  properties:
+                    namespace:
+                      type: string
+                    operatorName:
+                      type: string
+                    resources:
+                      description: LastUpdateTime string `json:"lastTransitionTime,omitempty"`
+                      items:
+                        properties:
+                          apiVersion:
+                            type: string
+                          kind:
+                            type: string
+                          managedResources:
+                            description: Message string `json:"message,omitempty"`
+                            items:
+                              properties:
+                                apiVersion:
+                                  type: string
+                                kind:
+                                  type: string
+                                namespace:
+                                  type: string
+                                objectName:
+                                  type: string
+                                status:
+                                  description: Type string `json:"type,omitempty"`
+                                  type: string
+                              type: object
+                            type: array
+                          namespace:
+                            type: string
+                          objectName:
+                            type: string
+                          status:
+                            type: string
+                        type: object
+                      type: array
+                    status:
+                      description: Type string `json:"type,omitempty"`
+                      type: string
+                  type: object
+                type: array
             type: object
+            x-kubernetes-preserve-unknown-fields: true
         type: object
     served: true
     storage: true
