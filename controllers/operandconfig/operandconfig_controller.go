@@ -128,9 +128,9 @@ func (r *Reconciler) updateStatus(ctx context.Context, instance *operatorv1alpha
 
 		// Looking for the CSV
 		namespace := r.GetOperatorNamespace(op.InstallMode, op.Namespace)
-		sub, err := r.GetSubscription(ctx, op.Name, namespace, op.PackageName)
+		sub, err := r.GetSubscription(ctx, op.Name, namespace, registryInstance.Namespace, op.PackageName)
 
-		if apierrors.IsNotFound(err) {
+		if sub == nil && err == nil {
 			klog.V(3).Infof("There is no Subscription %s or %s in the namespace %s", op.Name, op.PackageName, namespace)
 			continue
 		}

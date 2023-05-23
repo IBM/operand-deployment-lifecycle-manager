@@ -83,14 +83,14 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 			// Looking for the CSV
 			namespace := r.GetOperatorNamespace(opdRegistry.InstallMode, opdRegistry.Namespace)
 
-			sub, err := r.GetSubscription(ctx, operatorName, namespace, opdRegistry.PackageName)
+			sub, err := r.GetSubscription(ctx, operatorName, namespace, registryInstance.Namespace, opdRegistry.PackageName)
 
-			if err != nil {
-				if apierrors.IsNotFound(err) || sub == nil {
-					klog.Warningf("There is no Subscription %s or %s in the namespace %s", operatorName, opdRegistry.PackageName, namespace)
-					continue
-				}
-				merr.Add(errors.Wrapf(err, "failed to get the Subscription %s in the namespace %s", operatorName, namespace))
+			if sub == nil && err == nil {
+				klog.Warningf("There is no Subscription %s or %s in the namespace %s and %s", operatorName, opdRegistry.PackageName, namespace, registryInstance.Namespace)
+				continue
+
+			} else if err != nil {
+				merr.Add(errors.Wrapf(err, "failed to get the Subscription %s in the namespace %s and %s", operatorName, namespace, registryInstance.Namespace))
 				return merr
 			}
 
@@ -150,7 +150,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 			}
 
 			if len(requestList) == 0 || !util.Contains(requestList, requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/request") {
-				klog.V(2).Infof("Subscription %s in the namespace %s is NOT managed by %s/%s, Skip reconciling Operands", sub.Name, sub.Namespace, requestInstance.Namespace, requestInstance.Name)
+				klog.Infof("Subscription %s in the namespace %s is NOT managed by %s/%s, Skip reconciling Operands", sub.Name, sub.Namespace, requestInstance.Namespace, requestInstance.Name)
 				requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceFailed, &r.Mutex)
 				continue
 			}
