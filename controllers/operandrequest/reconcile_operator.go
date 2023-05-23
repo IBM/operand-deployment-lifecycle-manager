@@ -387,10 +387,10 @@ func (r *Reconciler) uninstallOperatorsAndOperands(ctx context.Context, operandN
 	namespace := r.GetOperatorNamespace(op.InstallMode, op.Namespace)
 	sub, err := r.GetSubscription(ctx, operandName, namespace, registryInstance.Namespace, op.PackageName)
 	if sub == nil && err == nil {
-		klog.V(3).Infof("There is no Subscription %s or %s in the namespace %s and %s", operandName, op.PackageName, namespace, registryInstance)
+		klog.V(3).Infof("There is no Subscription %s or %s in the namespace %s and %s", operandName, op.PackageName, namespace, registryInstance.Namespace)
 		return nil
 	} else if err != nil {
-		klog.Errorf("Failed to get Subscription %s or %s in the namespace %s and %s", operandName, op.PackageName, namespace, registryInstance)
+		klog.Errorf("Failed to get Subscription %s or %s in the namespace %s and %s", operandName, op.PackageName, namespace, registryInstance.Namespace)
 		return err
 	}
 
