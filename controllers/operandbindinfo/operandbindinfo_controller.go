@@ -290,11 +290,13 @@ func (r *Reconciler) copySecret(ctx context.Context, sourceName, targetName, sou
 		}
 	}
 
-	lables := secret.GetLabels()
-	oldNumber, numberOK := lables[constant.OpbiNumberLabel]
+	labels := secret.GetLabels()
+
+	oldNumber, numberOK := labels[constant.OpbiNumberLabel]
 	var number string
+	var intVar int
 	if numberOK {
-		intVar, err := strconv.Atoi(oldNumber)
+		intVar, err = strconv.Atoi(oldNumber)
 		if err != nil {
 			klog.Errorf("failed to convert the string in secret %s in the namespace %s: %v", secret.Name, secret.Namespace, err)
 			return false, err
@@ -304,6 +306,12 @@ func (r *Reconciler) copySecret(ctx context.Context, sourceName, targetName, sou
 	} else {
 		oldNumber = "0"
 		number = "1"
+	}
+
+	for i := 0; i <= intVar; i++ {
+		if secret.GetLabels()[constant.OpbiNsLabel+strconv.Itoa(i)] == bindInfoInstance.Namespace && secret.GetLabels()[constant.OpbiNameLabel+strconv.Itoa(i)] == bindInfoInstance.Name {
+			return false, nil
+		}
 	}
 
 	ensureLabelsForSecret(secret, map[string]string{
@@ -400,6 +408,7 @@ func (r *Reconciler) copyConfigmap(ctx context.Context, sourceName, targetName, 
 		}
 	}
 
+	var intVar int
 	lables := cm.GetLabels()
 	oldNumber, numberOK := lables[constant.OpbiNumberLabel]
 	var number string
@@ -414,6 +423,12 @@ func (r *Reconciler) copyConfigmap(ctx context.Context, sourceName, targetName, 
 	} else {
 		oldNumber = "0"
 		number = "1"
+	}
+
+	for i := 0; i <= intVar; i++ {
+		if cm.GetLabels()[constant.OpbiNsLabel+strconv.Itoa(i)] == bindInfoInstance.Namespace && cm.GetLabels()[constant.OpbiNameLabel+strconv.Itoa(i)] == bindInfoInstance.Name {
+			return false, nil
+		}
 	}
 
 	ensureLabelsForConfigMap(cm, map[string]string{
