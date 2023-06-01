@@ -301,7 +301,7 @@ func (r *Reconciler) copySecret(ctx context.Context, sourceName, targetName, sou
 			klog.Errorf("failed to convert the string in secret %s in the namespace %s: %v", secret.Name, secret.Namespace, err)
 			return false, err
 		}
-		intVar += 1
+		intVar++
 		number = strconv.Itoa(intVar)
 	} else {
 		oldNumber = "0"
@@ -418,7 +418,7 @@ func (r *Reconciler) copyConfigmap(ctx context.Context, sourceName, targetName, 
 			klog.Errorf("failed to convert the string in configmap: %s in the namespace %s: %v", cm.Name, cm.Namespace, err)
 			return false, err
 		}
-		intVar += 1
+		intVar++
 		number = strconv.Itoa(intVar)
 	} else {
 		oldNumber = "0"
