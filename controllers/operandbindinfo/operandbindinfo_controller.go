@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -289,10 +290,27 @@ func (r *Reconciler) copySecret(ctx context.Context, sourceName, targetName, sou
 		}
 	}
 
+	lables := secret.GetLabels()
+	oldNumber, numberOK := lables[constant.OpbiNumberLabel]
+	var number string
+	if numberOK {
+		intVar, err := strconv.Atoi(oldNumber)
+		if err != nil {
+			klog.Errorf("failed to convert the string in secret %s in the namespace %s: %v", secret.Name, secret.Namespace, err)
+			return false, err
+		}
+		intVar += 1
+		number = strconv.Itoa(intVar)
+	} else {
+		oldNumber = "0"
+		number = "1"
+	}
+
 	ensureLabelsForSecret(secret, map[string]string{
-		constant.OpbiNsLabel:   bindInfoInstance.Namespace,
-		constant.OpbiNameLabel: bindInfoInstance.Name,
-		constant.OpbiTypeLabel: "original",
+		constant.OpbiNsLabel + oldNumber:   bindInfoInstance.Namespace,
+		constant.OpbiNameLabel + oldNumber: bindInfoInstance.Name,
+		constant.OpbiNumberLabel:           number,
+		constant.OpbiTypeLabel:             "original",
 	})
 
 	// Update the operand Secret
@@ -382,11 +400,27 @@ func (r *Reconciler) copyConfigmap(ctx context.Context, sourceName, targetName, 
 		}
 	}
 
-	// Set the OperandBindInfo label for the ConfigMap
+	lables := cm.GetLabels()
+	oldNumber, numberOK := lables[constant.OpbiNumberLabel]
+	var number string
+	if numberOK {
+		intVar, err := strconv.Atoi(oldNumber)
+		if err != nil {
+			klog.Errorf("failed to convert the string in configmap: %s in the namespace %s: %v", cm.Name, cm.Namespace, err)
+			return false, err
+		}
+		intVar += 1
+		number = strconv.Itoa(intVar)
+	} else {
+		oldNumber = "0"
+		number = "1"
+	}
+
 	ensureLabelsForConfigMap(cm, map[string]string{
-		constant.OpbiNsLabel:   bindInfoInstance.Namespace,
-		constant.OpbiNameLabel: bindInfoInstance.Name,
-		constant.OpbiTypeLabel: "original",
+		constant.OpbiNsLabel + oldNumber:   bindInfoInstance.Namespace,
+		constant.OpbiNameLabel + oldNumber: bindInfoInstance.Name,
+		constant.OpbiNumberLabel:           number,
+		constant.OpbiTypeLabel:             "original",
 	})
 
 	// Update the operand Configmap
@@ -538,10 +572,22 @@ func toOpbiRequest() handler.MapFunc {
 	return func(object client.Object) []reconcile.Request {
 		opbiInstance := []reconcile.Request{}
 		lables := object.GetLabels()
-		name, nameOk := lables[constant.OpbiNameLabel]
-		ns, namespaceOK := lables[constant.OpbiNsLabel]
-		if nameOk && namespaceOK {
-			opbiInstance = append(opbiInstance, reconcile.Request{NamespacedName: types.NamespacedName{Name: name, Namespace: ns}})
+		number, numberOk := lables[constant.OpbiNumberLabel]
+		if !numberOk {
+			return opbiInstance
+		}
+
+		intVar, err := strconv.Atoi(number)
+		if err != nil {
+			return opbiInstance
+		}
+
+		for i := 0; i < intVar; i++ {
+			name, nameOk := lables[constant.OpbiNameLabel+strconv.Itoa(i)]
+			ns, namespaceOK := lables[constant.OpbiNsLabel+strconv.Itoa(i)]
+			if nameOk && namespaceOK {
+				opbiInstance = append(opbiInstance, reconcile.Request{NamespacedName: types.NamespacedName{Name: name, Namespace: ns}})
+			}
 		}
 		return opbiInstance
 	}

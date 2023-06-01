@@ -37,6 +37,9 @@ const (
 	//OpbiNameLabel is the label used to add OperandBindInfo name to the secrets/configmaps watched by ODLM
 	OpbiNameLabel string = "operator.ibm.com/watched-by-opbi-with-name"
 
+	//OpbiShareToNsNumber is the label used to add number of OperandBindInfo to the secrets/configmaps watched by ODLM
+	OpbiNumberLabel string = "operator.ibm.com/watched-by-opbi-with-number"
+
 	//OpbiTypeLabel is the label used to label if secrets/configmaps are "original" or "copy"
 	OpbiTypeLabel string = "operator.ibm.com/managedBy-opbi"
 
