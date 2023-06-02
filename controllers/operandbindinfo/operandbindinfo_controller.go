@@ -292,6 +292,10 @@ func (r *Reconciler) copySecret(ctx context.Context, sourceName, targetName, sou
 
 	labels := secret.GetLabels()
 
+	if secret.GetLabels()[constant.OpbiNsLabel] == bindInfoInstance.Namespace && secret.GetLabels()[constant.OpbiNameLabel] == bindInfoInstance.Name {
+		return false, nil
+	}
+
 	oldNumber, numberOK := labels[constant.OpbiNumberLabel]
 	var number string
 	var intVar int
@@ -406,6 +410,10 @@ func (r *Reconciler) copyConfigmap(ctx context.Context, sourceName, targetName, 
 		if err := r.refreshPods(targetNs, targetName, "configmap"); err != nil {
 			return false, errors.Wrapf(err, "failed to refresh pods mounting ConfigMap %s/%s", targetNs, targetName)
 		}
+	}
+
+	if cm.GetLabels()[constant.OpbiNsLabel] == bindInfoInstance.Namespace && cm.GetLabels()[constant.OpbiNameLabel] == bindInfoInstance.Name {
+		return false, nil
 	}
 
 	var intVar int
