@@ -109,6 +109,7 @@ metadata:
     olm.skipRange: '>=1.2.0 <1.21.5'
     operators.operatorframework.io/builder: operator-sdk-v1.11.0+git
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
+    operators.openshift.io/infrastructure-features: '["disconnected"]'
     repository: https://github.com/IBM/operand-deployment-lifecycle-manager
     support: IBM
   labels:
