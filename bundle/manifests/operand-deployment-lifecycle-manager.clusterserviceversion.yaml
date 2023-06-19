@@ -590,7 +590,7 @@ spec:
                     fieldRef:
                       fieldPath: metadata.annotations['olm.targetNamespaces']
                 image: icr.io/cpopen/odlm:latest
-                imagePullPolicy: Always
+                imagePullPolicy: IfNotPresent
                 livenessProbe:
                   failureThreshold: 10
                   httpGet:
