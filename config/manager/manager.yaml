@@ -59,7 +59,7 @@ spec:
               name: odlm-scope
               key: namespaces
         image: icr.io/cpopen/odlm:latest
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         name: manager
         livenessProbe:
           httpGet:
