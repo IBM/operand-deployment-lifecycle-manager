@@ -58,7 +58,7 @@ spec:
             fieldRef:
               fieldPath: metadata.annotations['olm.targetNamespaces']
         image: icr.io/cpopen/odlm:latest
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         name: manager
         livenessProbe:
           httpGet:
