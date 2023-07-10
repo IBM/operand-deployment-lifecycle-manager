@@ -290,8 +290,7 @@ func (r *Reconciler) copySecret(ctx context.Context, sourceName, targetName, sou
 	}
 
 	ensureLabelsForSecret(secret, map[string]string{
-		constant.OpbiNsLabel:   bindInfoInstance.Namespace,
-		constant.OpbiNameLabel: bindInfoInstance.Name,
+		bindInfoInstance.Namespace + "." + bindInfoInstance.Name + "/bindinfo": "true",
 		constant.OpbiTypeLabel: "original",
 	})
 
@@ -384,8 +383,7 @@ func (r *Reconciler) copyConfigmap(ctx context.Context, sourceName, targetName, 
 
 	// Set the OperandBindInfo label for the ConfigMap
 	ensureLabelsForConfigMap(cm, map[string]string{
-		constant.OpbiNsLabel:   bindInfoInstance.Namespace,
-		constant.OpbiNameLabel: bindInfoInstance.Name,
+		bindInfoInstance.Namespace + "." + bindInfoInstance.Name + "/bindinfo": "true",
 		constant.OpbiTypeLabel: "original",
 	})
 
@@ -537,11 +535,15 @@ func unique(stringSlice []string) []string {
 func toOpbiRequest() handler.MapFunc {
 	return func(object client.Object) []reconcile.Request {
 		opbiInstance := []reconcile.Request{}
-		lables := object.GetLabels()
-		name, nameOk := lables[constant.OpbiNameLabel]
-		ns, namespaceOK := lables[constant.OpbiNsLabel]
-		if nameOk && namespaceOK {
-			opbiInstance = append(opbiInstance, reconcile.Request{NamespacedName: types.NamespacedName{Name: name, Namespace: ns}})
+		labels := object.GetLabels()
+		reg, _ := regexp.Compile(`^(.*)\.(.*)\/bindinfo`)
+		for annotation := range labels {
+			if reg.MatchString(annotation) {
+				annotationSlices := strings.Split(annotation, ".")
+				bindinfoNamespace := annotationSlices[0]
+				bindinfoName := strings.Split(annotationSlices[1], "/")[0]
+				opbiInstance = append(opbiInstance, reconcile.Request{NamespacedName: types.NamespacedName{Name: bindinfoName, Namespace: bindinfoNamespace}})
+			}
 		}
 		return opbiInstance
 	}
