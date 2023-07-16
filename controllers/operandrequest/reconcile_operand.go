@@ -40,6 +40,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"
 	"k8s.io/klog"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
 	constant "github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
@@ -384,6 +385,10 @@ func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance
 	crFromRequest.SetNamespace(requestKey.Namespace)
 	crFromRequest.SetAPIVersion(operand.APIVersion)
 	crFromRequest.SetKind(operand.Kind)
+	// Set the OperandRequest as the controller of the CR from request
+	if err := controllerutil.SetControllerReference(requestInstance, &crFromRequest, r.Scheme); err != nil {
+		merr.Add(errors.Wrapf(err, "failed to set ownerReference for custom resource %s/%s", requestKey.Namespace, name))
+	}
 
 	err := r.Client.Get(ctx, types.NamespacedName{
 		Name:      name,

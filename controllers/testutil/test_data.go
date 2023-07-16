@@ -25,31 +25,38 @@ const (
 	Interval = time.Second * 5
 )
 
-const EtcdExample string = `
+const JaegerExample string = `
 [
 	{
-	  "apiVersion": "etcd.database.coreos.com/v1beta2",
-	  "kind": "EtcdCluster",
+	  "apiVersion": "jaegertracing.io/v1",
+	  "kind": "Jaeger",
 	  "metadata": {
-		"name": "example"
+		"name": "my-jaeger"
 	  },
 	  "spec": {
-		"size": 3,
-		"version": "3.2.13"
+		"strategy": "allinone"
 	  }
 	}
 ]
 `
-const JenkinsExample string = `
+const MongodbExample string = `
 [
 	{
-	  "apiVersion": "jenkins.io/v1alpha2",
-	  "kind": "Jenkins",
+	  "apiVersion": "atlas.mongodb.com/v1",
+	  "kind": "AtlasDeployment",
 	  "metadata": {
-		"name": "example"
+		"name": "my-atlas-deployment"
 	  },
 	  "spec": {
-		"service": {"port": 8081}
+		"deploymentSpec": {
+			"name": "test-deployment",
+			"providerSettings": {
+			  "instanceSizeName": "M10",
+			  "providerName": "AWS",
+			  "regionName": "US_EAST_1"
+			}
+		},
+		"projectRef": {"name": "my-project"}
 	  }
 	}
 ]
