@@ -309,14 +309,14 @@ var _ = Describe("OperandRequest controller", func() {
 			By("Checking of the CR of the jaeger operator")
 			Eventually(func() error {
 				jaegerCR := &jaegerv1.Jaeger{}
-				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "my-jaeger", Namespace: registryNamespaceName}, jaegerCR)
+				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "my-jaeger", Namespace: operatorNamespaceName}, jaegerCR)
 				return err
 			}, testutil.Timeout, testutil.Interval).Should(Succeed())
 
 			By("Checking of the k8s resource of the jaeger operator")
 			Eventually(func() error {
 				jaegerConfigMap := &corev1.ConfigMap{}
-				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "jaeger-configmap", Namespace: registryNamespaceName}, jaegerConfigMap)
+				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "jaeger-configmap", Namespace: operatorNamespaceName}, jaegerConfigMap)
 				return err
 			}, testutil.Timeout, testutil.Interval).Should(Succeed())
 
@@ -329,7 +329,7 @@ var _ = Describe("OperandRequest controller", func() {
 			}, testutil.Timeout, testutil.Interval).Should(Succeed())
 			Eventually(func() error {
 				jaegerCR := &jaegerv1.Jaeger{}
-				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "my-jaeger", Namespace: registryNamespaceName}, jaegerCR)
+				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "my-jaeger", Namespace: operatorNamespaceName}, jaegerCR)
 				return err
 			}, testutil.Timeout, testutil.Interval).Should(Succeed())
 
@@ -342,7 +342,7 @@ var _ = Describe("OperandRequest controller", func() {
 			}, testutil.Timeout, testutil.Interval).Should(Succeed())
 			Eventually(func() bool {
 				jaegerCR := &jaegerv1.Jaeger{}
-				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "my-jaeger", Namespace: registryNamespaceName}, jaegerCR)
+				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "my-jaeger", Namespace: operatorNamespaceName}, jaegerCR)
 				return err != nil && errors.IsNotFound(err)
 			}, testutil.Timeout, testutil.Interval).Should(BeTrue())
 
@@ -362,7 +362,7 @@ var _ = Describe("OperandRequest controller", func() {
 			By("Checking the k8s resource has been deleted")
 			Eventually(func() bool {
 				jaegerConfigMap := &corev1.ConfigMap{}
-				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "jaeger-configmap", Namespace: registryNamespaceName}, jaegerConfigMap)
+				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "jaeger-configmap", Namespace: operatorNamespaceName}, jaegerConfigMap)
 				return err != nil && errors.IsNotFound(err)
 			}, testutil.Timeout, testutil.Interval).Should(BeTrue())
 
