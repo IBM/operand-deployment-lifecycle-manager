@@ -73,7 +73,7 @@ var _ = Describe("Testing ODLM", func() {
 
 			// Check if the custom resource is created
 			By("Check if the custom resource is created")
-			JaegerCR, err := retrieveJaeger("my-jaeger", OperandRegistryNamespace)
+			JaegerCR, err := retrieveJaeger("my-jaeger", OperatorNamespace)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(JaegerCR).ToNot(BeNil())
 
@@ -103,13 +103,13 @@ var _ = Describe("Testing ODLM", func() {
 
 			// Check if the custom resource is created
 			By("Check if the custom resource is created")
-			mongodb, err := retrieveMongodb("my-atlas-deployment", OperandRegistryNamespace)
+			mongodb, err := retrieveMongodb("my-atlas-deployment", OperatorNamespace)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mongodb).ToNot(BeNil())
 
 			// Check if the k8s resource is created
 			By("Check if the k8s resource is created")
-			mongodbConfigmap, err := retrieveConfigmap("mongodb-configmap", OperandRegistryNamespace)
+			mongodbConfigmap, err := retrieveConfigmap("mongodb-configmap", OperatorNamespace)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mongodbConfigmap).ToNot(BeNil())
 
@@ -120,7 +120,7 @@ var _ = Describe("Testing ODLM", func() {
 				if err != nil {
 					return false
 				}
-				jaegerCR, err := retrieveJaeger("my-jaeger", OperandRegistryNamespace)
+				jaegerCR, err := retrieveJaeger("my-jaeger", OperatorNamespace)
 				if err != nil {
 					return false
 				}
@@ -236,7 +236,7 @@ var _ = Describe("Testing ODLM", func() {
 
 			// Check if the k8s resource is deleted
 			By("Check if the k8s resource is deleted")
-			err = waitConfigmapDeletion("mongodb-configmap", OperandRegistryNamespace)
+			err = waitConfigmapDeletion("mongodb-configmap", OperatorNamespace)
 			Expect(err).ToNot(HaveOccurred())
 
 			// Update the channel of the jaeger operator
