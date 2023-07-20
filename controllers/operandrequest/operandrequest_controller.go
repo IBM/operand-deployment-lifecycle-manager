@@ -77,10 +77,17 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 
 	// Always attempt to patch the status after each reconciliation.
 	defer func() {
-		if reflect.DeepEqual(originalInstance.Status, requestInstance.Status) {
+		// get the latest instance from the server and check if the status has changed
+		existingInstance := &operatorv1alpha1.OperandRequest{}
+		if err := r.Client.Get(ctx, req.NamespacedName, existingInstance); err != nil {
+			// Error reading the latest object - requeue the request.
+			reconcileErr = utilerrors.NewAggregate([]error{reconcileErr, fmt.Errorf("error while get latest OperandRequest.Status from server: %v", err)})
+		}
+
+		if reflect.DeepEqual(existingInstance.Status, requestInstance.Status) {
 			return
 		}
-		if err := r.Client.Status().Patch(ctx, requestInstance, client.MergeFrom(originalInstance)); err != nil && !apierrors.IsNotFound(err) {
+		if err := r.Client.Status().Patch(ctx, requestInstance, client.MergeFrom(existingInstance)); err != nil && !apierrors.IsNotFound(err) {
 			reconcileErr = utilerrors.NewAggregate([]error{reconcileErr, fmt.Errorf("error while patching OperandRequest.Status: %v", err)})
 		}
 	}()
