@@ -8,16 +8,16 @@ metadata:
   name: example-service
 spec:
   operators:
-  - name: etcd
-    namespace: etcd-cluster-operator
-    channel: clusterwide-alpha
+  - name: jaeger
+    namespace: default
+    channel: stable
     installMode: cluster
-    packageName: etcd
+    packageName: jaeger
     sourceName: community-operators
     sourceNamespace: openshift-marketplace
-  - name: jenkins
+  - name: mongodb-atlas-kubernetes
     namespace: default
-    channel: alpha
-    packageName: jenkins-operator
+    channel: stable
+    packageName: mongodb-atlas-kubernetes
     sourceName: community-operators
     sourceNamespace: openshift-marketplace

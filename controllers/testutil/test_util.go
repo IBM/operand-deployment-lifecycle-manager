@@ -74,21 +74,21 @@ func OperandRegistryObj(name, namespace, subNamespace string) *apiv1alpha1.Opera
 		Spec: apiv1alpha1.OperandRegistrySpec{
 			Operators: []apiv1alpha1.Operator{
 				{
-					Name:            "etcd",
+					Name:            "jaeger",
 					Namespace:       subNamespace,
 					SourceName:      "community-operators",
 					SourceNamespace: "openshift-marketplace",
-					PackageName:     "etcd",
-					Channel:         "singlenamespace-alpha",
+					PackageName:     "jaeger",
+					Channel:         "stable",
 					Scope:           "public",
 				},
 				{
-					Name:            "jenkins",
+					Name:            "mongodb-atlas-kubernetes",
 					Namespace:       subNamespace,
 					SourceName:      "community-operators",
 					SourceNamespace: "openshift-marketplace",
-					PackageName:     "jenkins-operator",
-					Channel:         "alpha",
+					PackageName:     "mongodb-atlas-kubernetes",
+					Channel:         "stable",
 					Scope:           "public",
 				},
 			},
@@ -106,22 +106,22 @@ func OperandRegistryObjwithCfg(name, namespace, subNamespace string) *apiv1alpha
 		Spec: apiv1alpha1.OperandRegistrySpec{
 			Operators: []apiv1alpha1.Operator{
 				{
-					Name:               "etcd",
+					Name:               "jaeger",
 					Namespace:          subNamespace,
 					SourceName:         "community-operators",
 					SourceNamespace:    "openshift-marketplace",
-					PackageName:        "etcd",
-					Channel:            "singlenamespace-alpha",
+					PackageName:        "jaeger",
+					Channel:            "stable",
 					Scope:              "public",
 					SubscriptionConfig: SubConfig,
 				},
 				{
-					Name:            "jenkins",
+					Name:            "mongodb-atlas-kubernetes",
 					Namespace:       subNamespace,
 					SourceName:      "community-operators",
 					SourceNamespace: "openshift-marketplace",
-					PackageName:     "jenkins-operator",
-					Channel:         "alpha",
+					PackageName:     "mongodb-atlas-kubernetes",
+					Channel:         "stable",
 					Scope:           "public",
 				},
 			},
@@ -139,32 +139,32 @@ func OperandConfigObj(name, namespace string) *apiv1alpha1.OperandConfig {
 		Spec: apiv1alpha1.OperandConfigSpec{
 			Services: []apiv1alpha1.ConfigService{
 				{
-					Name: "etcd",
+					Name: "jaeger",
 					Spec: map[string]runtime.RawExtension{
-						"etcdCluster": {Raw: []byte(`{"size": 3}`)},
+						"jaeger": {Raw: []byte(`{"strategy": "streaming"}`)},
 					},
 					Resources: []apiv1alpha1.ConfigResource{
 						{
-							Name:       "fake-configmap",
+							Name:       "jaeger-configmap",
 							APIVersion: "v1",
 							Kind:       "ConfigMap",
 							Labels: map[string]string{
-								"etcd": "etcd-configmap",
+								"jaeger": "jaeger-configmap",
 							},
 							Annotations: map[string]string{
-								"etcd": "etcd-configmap",
+								"jaeger": "jaeger-configmap",
 							},
 							Data: &runtime.RawExtension{
-								Raw: []byte(`{"data": {"size": "3"}}`),
+								Raw: []byte(`{"data": {"strategy": "allinone"}}`),
 							},
 							Force: false,
 						},
 					},
 				},
 				{
-					Name: "jenkins",
+					Name: "mongodb-atlas-kubernetes",
 					Spec: map[string]runtime.RawExtension{
-						"jenkins": {Raw: []byte(`{"service":{"port": 8081}}`)},
+						"atlasDeployment": {Raw: []byte(`{"deploymentSpec":{"name": "test-deployment"}, "projectRef": {"name": "my-updated-project"}}`)},
 					},
 				},
 			},
@@ -189,10 +189,10 @@ func OperandRequestObj(registryName, registryNamespace, requestName, requestName
 					RegistryNamespace: registryNamespace,
 					Operands: []apiv1alpha1.Operand{
 						{
-							Name: "etcd",
+							Name: "jaeger",
 						},
 						{
-							Name: "jenkins",
+							Name: "mongodb-atlas-kubernetes",
 							Bindings: map[string]apiv1alpha1.SecretConfigmap{
 								"public": {
 									Secret:    "secret4",
@@ -224,29 +224,38 @@ func OperandRequestObjWithCR(registryName, registryNamespace, requestName, reque
 					RegistryNamespace: registryNamespace,
 					Operands: []apiv1alpha1.Operand{
 						{
-							Name:         "etcd",
-							Kind:         "EtcdCluster",
-							APIVersion:   "etcd.database.coreos.com/v1beta2",
-							InstanceName: "example",
+							Name:         "jaeger",
+							Kind:         "Jaeger",
+							APIVersion:   "jaegertracing.io/v1",
+							InstanceName: "my-jaeger",
 							Spec: &runtime.RawExtension{
-								Raw: []byte(`{"size": 3,"version": "3.2.13"}`),
+								Raw: []byte(`{"strategy": "allinone"}`),
 							},
 						},
 						{
-							Name:       "etcd",
-							Kind:       "EtcdCluster",
-							APIVersion: "etcd.database.coreos.com/v1beta2",
+							Name:       "jaeger",
+							Kind:       "Jaeger",
+							APIVersion: "jaegertracing.io/v1",
 							Spec: &runtime.RawExtension{
-								Raw: []byte(`{"size": 3,"version": "3.2.15"}`),
+								Raw: []byte(`{"strategy": "streaming"}`),
 							},
 						},
 						{
-							Name:         "jenkins",
-							Kind:         "Jenkins",
-							APIVersion:   "jenkins.io/v1alpha2",
-							InstanceName: "example",
+							Name:         "mongodb-atlas-kubernetes",
+							Kind:         "AtlasDeployment",
+							APIVersion:   "atlas.mongodb.com/v1",
+							InstanceName: "my-atlas-deployment",
 							Spec: &runtime.RawExtension{
-								Raw: []byte(`{"service": {"port": 8081}}`),
+								Raw: []byte(`{
+								"deploymentSpec": {
+									"name": "test-deployment",
+									"providerSettings": {
+									  "instanceSizeName": "M10",
+									  "providerName": "AWS",
+									  "regionName": "US_EAST_1"
+									}
+								},
+								"projectRef": {"name": "my-project"}}`),
 							},
 						},
 					},
@@ -273,10 +282,10 @@ func OperandRequestObjWithProtected(registryName, registryNamespace, requestName
 					RegistryNamespace: registryNamespace,
 					Operands: []apiv1alpha1.Operand{
 						{
-							Name: "etcd",
+							Name: "jaeger",
 						},
 						{
-							Name: "jenkins",
+							Name: "mongodb-atlas-kubernetes",
 							Bindings: map[string]apiv1alpha1.SecretConfigmap{
 								"protected": {
 									Secret:    "secret5",
@@ -299,7 +308,7 @@ func OperandBindInfoObj(name, namespace, registryName, registryNamespace string)
 			Namespace: namespace,
 		},
 		Spec: apiv1alpha1.OperandBindInfoSpec{
-			Operand:           "jenkins",
+			Operand:           "mongodb-atlas-kubernetes",
 			Registry:          registryName,
 			RegistryNamespace: registryNamespace,
 			Bindings: map[string]apiv1alpha1.SecretConfigmap{

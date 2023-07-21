@@ -49,7 +49,6 @@ spec:
           metadata:
             type: object
           spec:
-            x-kubernetes-preserve-unknown-fields: true
             description: The OperandRequestSpec identifies one or more specific operands
               (from a specific Registry) that should actually be installed.
             properties:
@@ -133,6 +132,7 @@ spec:
             required:
             - requests
             type: object
+            x-kubernetes-preserve-unknown-fields: true
           status:
             description: OperandRequestStatus defines the observed state of OperandRequest.
             properties:
@@ -229,4 +229,4 @@ status:
     kind: ""
     plural: ""
   conditions: []
-  storedVersions: []
+  
