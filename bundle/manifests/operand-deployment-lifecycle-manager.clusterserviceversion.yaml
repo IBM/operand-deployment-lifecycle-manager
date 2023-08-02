@@ -111,9 +111,9 @@ metadata:
       API to manage the lifecycle of operands.
     nss.operator.ibm.com/managed-operators: ibm-odlm
     olm.skipRange: '>=1.2.0 <4.1.0'
+    operators.openshift.io/infrastructure-features: '["disconnected"]'
     operators.operatorframework.io/builder: operator-sdk-v1.24.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
-    operators.openshift.io/infrastructure-features: '["disconnected"]'
     repository: https://github.com/IBM/operand-deployment-lifecycle-manager
     support: IBM
   labels:
@@ -539,6 +539,15 @@ spec:
     mediatype: image/png
   install:
     spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - operators.coreos.com
+          resources:
+          - catalogsources
+          verbs:
+          - get
+        serviceAccountName: operand-deployment-lifecycle-manager
       deployments:
       - label:
           app.kubernetes.io/instance: operand-deployment-lifecycle-manager
