@@ -27,6 +27,7 @@ import (
 	"github.com/mohae/deepcopy"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -128,9 +129,9 @@ func (r *Reconciler) updateStatus(ctx context.Context, instance *operatorv1alpha
 
 		// Looking for the CSV
 		namespace := r.GetOperatorNamespace(op.InstallMode, op.Namespace)
-		sub, err := r.GetSubscription(ctx, op.Name, namespace, op.PackageName)
+		sub, err := r.GetSubscription(ctx, op.Name, namespace, registryInstance.Namespace, op.PackageName)
 
-		if apierrors.IsNotFound(err) {
+		if sub == nil && err == nil {
 			klog.V(3).Infof("There is no Subscription %s or %s in the namespace %s", op.Name, op.PackageName, namespace)
 			continue
 		}
@@ -331,7 +332,7 @@ func (r *Reconciler) deleteK8sReousce(ctx context.Context, k8sAPIVersion, k8sKin
 	} else {
 		if r.CheckLabel(k8sUnstruct, map[string]string{constant.OpreqLabel: "true"}) {
 			klog.V(3).Infof("Deleting k8s resource -- Kind: %s, NamespacedName: %s/%s", k8sKind, k8sNamespace, k8sName)
-			k8sDeleteError := r.Delete(ctx, &k8sUnstruct)
+			k8sDeleteError := r.Delete(ctx, &k8sUnstruct, client.PropagationPolicy(metav1.DeletePropagationBackground))
 			if k8sDeleteError != nil && !apierrors.IsNotFound(k8sDeleteError) {
 				return errors.Wrapf(k8sDeleteError, "failed to delete k8s resource -- Kind: %s, NamespacedName: %s/%s", k8sKind, k8sNamespace, k8sName)
 			}

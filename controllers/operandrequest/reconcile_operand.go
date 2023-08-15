@@ -33,6 +33,7 @@ import (
 	authorizationv1 "k8s.io/api/authorization/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -40,6 +41,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"
 	"k8s.io/klog"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
 	constant "github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
@@ -82,36 +85,20 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 			// Looking for the CSV
 			namespace := r.GetOperatorNamespace(opdRegistry.InstallMode, opdRegistry.Namespace)
 
-			sub, err := r.GetSubscription(ctx, operatorName, namespace, opdRegistry.PackageName)
+			sub, err := r.GetSubscription(ctx, operatorName, namespace, registryInstance.Namespace, opdRegistry.PackageName)
 
-			if err != nil {
-				if apierrors.IsNotFound(err) || sub == nil {
-					klog.Warningf("There is no Subscription %s or %s in the namespace %s", operatorName, opdRegistry.PackageName, namespace)
-					continue
-				}
-				merr.Add(errors.Wrapf(err, "failed to get the Subscription %s in the namespace %s", operatorName, namespace))
+			if sub == nil && err == nil {
+				klog.Warningf("There is no Subscription %s or %s in the namespace %s and %s", operatorName, opdRegistry.PackageName, namespace, registryInstance.Namespace)
+				continue
+
+			} else if err != nil {
+				merr.Add(errors.Wrapf(err, "failed to get the Subscription %s in the namespace %s and %s", operatorName, namespace, registryInstance.Namespace))
 				return merr
 			}
 
 			if _, ok := sub.Labels[constant.OpreqLabel]; !ok {
 				// Subscription existing and not managed by OperandRequest controller
 				klog.Warningf("Subscription %s in the namespace %s isn't created by ODLM", sub.Name, sub.Namespace)
-			}
-
-			// For singleton services, identify latest OperandRegistry/Config version has the priority to reconcile
-			if CheckSingletonServices(operatorName) {
-				// v1IsLarger is true if subscription has larger channel version than the version in OperandRegistry
-				// Skip this operator CR creation because it does not have the latest version in OperandRegistry
-				v1IsLarger, convertErr := util.CompareChannelVersion(sub.Spec.Channel, opdRegistry.Channel)
-				if convertErr != nil {
-					merr.Add(errors.Wrapf(err, "failed to compare channel version for the Subscription %s in the namespace %s", operatorName, namespace))
-					return merr
-				}
-				if v1IsLarger {
-					klog.V(2).Infof("Subscription %s in the namespace %s is managed by other OperandRequest with newer version %s", sub.Name, sub.Namespace, sub.Spec.Channel)
-					requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorRunning, "", &r.Mutex)
-					continue
-				}
 			}
 
 			// It the installplan is not created yet, ODLM will try later
@@ -154,9 +141,6 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 				continue
 			}
 
-			klog.V(3).Info("Generating customresource base on ClusterServiceVersion: ", csv.GetName())
-			requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorRunning, "", &r.Mutex)
-
 			// find the OperandRequest which has the same operator's channel version as existing subscription.
 			// ODLM will only reconcile Operand based on OperandConfig for this OperandRequest
 			var requestList []string
@@ -168,10 +152,13 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 			}
 
 			if len(requestList) == 0 || !util.Contains(requestList, requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/request") {
-				klog.V(2).Infof("Subscription %s in the namespace %s is NOT managed by %s/%s, Skip reconciling Operands", sub.Name, sub.Namespace, requestInstance.Namespace, requestInstance.Name)
-				requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceRunning, &r.Mutex)
+				klog.Infof("Subscription %s in the namespace %s is NOT managed by %s/%s, Skip reconciling Operands", sub.Name, sub.Namespace, requestInstance.Namespace, requestInstance.Name)
+				requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceFailed, &r.Mutex)
 				continue
 			}
+
+			klog.V(3).Info("Generating customresource base on ClusterServiceVersion: ", csv.GetName())
+			requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorRunning, "", &r.Mutex)
 
 			// Merge and Generate CR
 			if operand.Kind == "" {
@@ -183,7 +170,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 						klog.V(2).Infof("There is no service: %s from the OperandConfig instance: %s/%s, Skip reconciling Operands", operand.Name, registryKey.Namespace, req.Registry)
 						continue
 					}
-					err = r.reconcileCRwithConfig(ctx, opdConfig, configInstance.Namespace, csv, requestInstance, sub.Namespace, &r.Mutex)
+					err = r.reconcileCRwithConfig(ctx, opdConfig, configInstance.Namespace, csv, requestInstance, operand.Name, sub.Namespace, &r.Mutex)
 					if err != nil {
 						merr.Add(err)
 						requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceFailed, &r.Mutex)
@@ -215,7 +202,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 }
 
 // reconcileCRwithConfig merge and create custom resource base on OperandConfig and CSV alm-examples
-func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operatorv1alpha1.ConfigService, namespace string, csv *olmv1alpha1.ClusterServiceVersion, requestInstance *operatorv1alpha1.OperandRequest, operatorNamespace string, mu sync.Locker) error {
+func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operatorv1alpha1.ConfigService, namespace string, csv *olmv1alpha1.ClusterServiceVersion, requestInstance *operatorv1alpha1.OperandRequest, operandName string, operatorNamespace string, mu sync.Locker) error {
 	merr := &util.MultiErr{}
 
 	// Create k8s resources required by service
@@ -337,10 +324,6 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 					merr.Add(err)
 					continue
 				}
-				managedBy, err := r.getManagedBy(crFromALM)
-				if err != nil {
-					return err
-				}
 				statusSpec, err := r.getOperandStatus(crFromALM)
 				if err != nil {
 					return err
@@ -349,7 +332,7 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 				if serviceKind != "OperandRequest" && statusSpec.ObjectName != "" {
 					var resources []operatorv1alpha1.OperandStatus
 					resources = append(resources, statusSpec)
-					serviceSpec := newServiceStatus(managedBy, operatorNamespace, resources)
+					serviceSpec := newServiceStatus(operandName, operatorNamespace, resources)
 					seterr := requestInstance.SetServiceStatus(ctx, serviceSpec, r.Client, mu)
 					if seterr != nil {
 						return seterr
@@ -400,6 +383,10 @@ func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance
 	crFromRequest.SetNamespace(requestKey.Namespace)
 	crFromRequest.SetAPIVersion(operand.APIVersion)
 	crFromRequest.SetKind(operand.Kind)
+	// Set the OperandRequest as the controller of the CR from request
+	if err := controllerutil.SetControllerReference(requestInstance, &crFromRequest, r.Scheme); err != nil {
+		merr.Add(errors.Wrapf(err, "failed to set ownerReference for custom resource %s/%s", requestKey.Namespace, name))
+	}
 
 	err := r.Client.Get(ctx, types.NamespacedName{
 		Name:      name,
@@ -421,10 +408,6 @@ func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance
 			if err := r.updateCustomResource(ctx, crFromRequest, requestKey.Namespace, operand.Kind, operand.Spec.Raw, map[string]interface{}{}); err != nil {
 				return err
 			}
-			managedBy, err := r.getManagedBy(crFromRequest)
-			if err != nil {
-				return err
-			}
 			statusSpec, err := r.getOperandStatus(crFromRequest)
 			if err != nil {
 				return err
@@ -432,7 +415,7 @@ func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance
 			if operand.Kind != "OperandRequest" && statusSpec.ObjectName != "" {
 				var resources []operatorv1alpha1.OperandStatus
 				resources = append(resources, statusSpec)
-				serviceSpec := newServiceStatus(managedBy, operatorNamespace, resources)
+				serviceSpec := newServiceStatus(operand.Name, operatorNamespace, resources)
 				seterr := requestInstance.SetServiceStatus(ctx, serviceSpec, r.Client, mu)
 				if seterr != nil {
 					return seterr
@@ -447,38 +430,6 @@ func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance
 		return merr
 	}
 	return nil
-}
-
-func (r *Reconciler) getManagedBy(existingCR unstructured.Unstructured) (string, error) {
-	byteMetadata, err := json.Marshal(existingCR.Object["metadata"])
-	if err != nil {
-		klog.Error(err)
-		return "", err
-	}
-	var rawMetadata map[string]interface{}
-	err = json.Unmarshal(byteMetadata, &rawMetadata)
-	if err != nil {
-		klog.Error(err)
-		return "", err
-	}
-	byteLabels, err := json.Marshal(rawMetadata["labels"])
-	if err != nil {
-		klog.Error(err)
-		return "", err
-	}
-	var parsedLabels map[string]string
-	err = json.Unmarshal(byteLabels, &parsedLabels)
-	if err != nil {
-		klog.Error(err)
-		return "", err
-	}
-	var managedBy string
-	for key, value := range parsedLabels {
-		if key == "app.kubernetes.io/managed-by" {
-			managedBy = value
-		}
-	}
-	return managedBy, nil
 }
 
 func (r *Reconciler) getOperandStatus(existingCR unstructured.Unstructured) (operatorv1alpha1.OperandStatus, error) {
@@ -1137,7 +1088,7 @@ func (r *Reconciler) deleteK8sResource(ctx context.Context, existingK8sRes unstr
 	} else {
 		if r.CheckLabel(k8sResShouldBeDeleted, map[string]string{constant.OpreqLabel: "true"}) && !r.CheckLabel(k8sResShouldBeDeleted, map[string]string{constant.NotUninstallLabel: "true"}) {
 			klog.V(3).Infof("Deleting k8s resource: %s from kind: %s", name, kind)
-			err := r.Delete(ctx, &k8sResShouldBeDeleted)
+			err := r.Delete(ctx, &k8sResShouldBeDeleted, client.PropagationPolicy(metav1.DeletePropagationBackground))
 			if err != nil && !apierrors.IsNotFound(err) {
 				return errors.Wrapf(err, "failed to delete k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 			}

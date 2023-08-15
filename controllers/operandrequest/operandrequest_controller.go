@@ -31,6 +31,7 @@ import (
 	"github.com/pkg/errors"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog"
@@ -76,10 +77,17 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 
 	// Always attempt to patch the status after each reconciliation.
 	defer func() {
-		if reflect.DeepEqual(originalInstance.Status, requestInstance.Status) {
+		// get the latest instance from the server and check if the status has changed
+		existingInstance := &operatorv1alpha1.OperandRequest{}
+		if err := r.Client.Get(ctx, req.NamespacedName, existingInstance); err != nil {
+			// Error reading the latest object - requeue the request.
+			reconcileErr = utilerrors.NewAggregate([]error{reconcileErr, fmt.Errorf("error while get latest OperandRequest.Status from server: %v", err)})
+		}
+
+		if reflect.DeepEqual(existingInstance.Status, requestInstance.Status) {
 			return
 		}
-		if err := r.Client.Status().Patch(ctx, requestInstance, client.MergeFrom(originalInstance)); err != nil {
+		if err := r.Client.Status().Patch(ctx, requestInstance, client.MergeFrom(existingInstance)); err != nil && !apierrors.IsNotFound(err) {
 			reconcileErr = utilerrors.NewAggregate([]error{reconcileErr, fmt.Errorf("error while patching OperandRequest.Status: %v", err)})
 		}
 	}()
@@ -153,6 +161,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
 	}
 
+	//check if status.services is present (if a relevant service was requested), requeue again is im/iam is not ready yet
+	if requestInstance.CheckServiceStatus() {
+		return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
+	}
+
 	klog.V(1).Infof("Finished reconciling OperandRequest: %s", req.NamespacedName)
 	return ctrl.Result{RequeueAfter: constant.DefaultSyncPeriod}, nil
 }
@@ -208,7 +221,10 @@ func (r *Reconciler) addFinalizer(ctx context.Context, cr *operatorv1alpha1.Oper
 
 func (r *Reconciler) checkFinalizer(ctx context.Context, requestInstance *operatorv1alpha1.OperandRequest) error {
 	klog.V(1).Infof("Deleting OperandRequest %s in the namespace %s", requestInstance.Name, requestInstance.Namespace)
-	failedDeletedOperands := gset.NewSet()
+	remainingOperands := gset.NewSet()
+	for _, m := range requestInstance.Status.Members {
+		remainingOperands.Add(m.Name)
+	}
 	existingSub := &olmv1alpha1.SubscriptionList{}
 
 	opts := []client.ListOption{
@@ -222,7 +238,7 @@ func (r *Reconciler) checkFinalizer(ctx context.Context, requestInstance *operat
 		return nil
 	}
 	// Delete all the subscriptions that created by current request
-	if err := r.absentOperatorsAndOperands(ctx, requestInstance, &failedDeletedOperands); err != nil {
+	if err := r.absentOperatorsAndOperands(ctx, requestInstance, &remainingOperands); err != nil {
 		return err
 	}
 	return nil

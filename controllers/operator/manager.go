@@ -86,13 +86,10 @@ func (m *ODLMOperator) GetOperandRegistry(ctx context.Context, key types.Namespa
 		if o.Namespace == "" {
 			reg.Spec.Operators[i].Namespace = key.Namespace
 		}
-		if o.SupportStatus == "" {
-			reg.Spec.Operators[i].SupportStatus = apiv1alpha1.ContinuousSupportStatus
-		}
 		if o.SourceName == "" || o.SourceNamespace == "" {
 			catalogSourceName, catalogSourceNs, err := m.GetCatalogSourceFromPackage(ctx, o.PackageName, o.Namespace, o.Channel, key.Namespace, excludedCatalogSources)
 			if err != nil {
-				return reg, err
+				return nil, err
 			}
 
 			if catalogSourceName == "" || catalogSourceNs == "" {
@@ -308,36 +305,33 @@ func (m *ODLMOperator) ListOperandRequestsByConfig(ctx context.Context, key type
 }
 
 // GetSubscription gets Subscription by name and package name
-func (m *ODLMOperator) GetSubscription(ctx context.Context, name, namespace, packageName string) (*olmv1alpha1.Subscription, error) {
-	klog.V(3).Infof("Fetch Subscription: %s/%s", namespace, name)
-	sub := &olmv1alpha1.Subscription{}
-	subKey := types.NamespacedName{
-		Name:      name,
-		Namespace: namespace,
-	}
-	err := m.Client.Get(ctx, subKey, sub)
-	if err == nil {
-		return sub, nil
-	} else if !apierrors.IsNotFound(err) {
-		return nil, err
-	}
+func (m *ODLMOperator) GetSubscription(ctx context.Context, name, operatorNs, servicesNs, packageName string) (*olmv1alpha1.Subscription, error) {
+	klog.V(3).Infof("Fetch Subscription %s in operatorNamespace %s and servicesNamespace %s", name, operatorNs, servicesNs)
 
-	subList := &olmv1alpha1.SubscriptionList{}
-	if err := m.Client.List(ctx, subList, &client.ListOptions{
-		Namespace: namespace,
-	}); err != nil {
-		return nil, err
+	tenantScope := make(map[string]struct{})
+	for _, ns := range []string{operatorNs, servicesNs} {
+		tenantScope[ns] = struct{}{}
 	}
 
 	var subCandidates []olmv1alpha1.Subscription
-	for _, sub := range subList.Items {
-		if sub.Spec.Package == packageName {
-			subCandidates = append(subCandidates, sub)
+	for ns := range tenantScope {
+		subList := &olmv1alpha1.SubscriptionList{}
+		if err := m.Client.List(ctx, subList, &client.ListOptions{
+			Namespace: ns,
+		}); err != nil {
+			return nil, err
 		}
+
+		for _, sub := range subList.Items {
+			if sub.Name == name || sub.Spec.Package == packageName {
+				subCandidates = append(subCandidates, sub)
+			}
+		}
+
 	}
 
 	if len(subCandidates) == 0 {
-		return nil, err
+		return nil, nil
 	}
 
 	if len(subCandidates) > 1 {

@@ -8,12 +8,15 @@ metadata:
   name: example-service
 spec:
   services:
-  - name: etcd
+  - name: jaeger
     spec:
-      etcdCluster:
-        size: 1
-  - name: jenkins
+      jaeger:
+        strategy: allinone
+  - name: mongodb-atlas-kubernetes
     spec:
-      jenkins:
-        service:
-          port: 8081
+      atlasDeployment:
+          deploymentSpec:
+            name: test-deployment
+          projectRef:
+            name: my-project
+

@@ -29,6 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -106,6 +107,7 @@ const (
 	ConditionNotFound   ConditionType = "NotFound"
 	ConditionOutofScope ConditionType = "OutofScope"
 	ConditionReady      ConditionType = "Ready"
+	ConditionNoConflict ConditionType = "NoConflict"
 
 	OperatorReady      OperatorPhase = "Ready for Deployment"
 	OperatorRunning    OperatorPhase = "Running"
@@ -167,11 +169,11 @@ type OperandStatus struct { //Top level CR status ie the CR created by ODLM
 	APIVersion string `json:"apiVersion,omitempty"`
 	Namespace  string `json:"namespace,omitempty"`
 	Kind       string `json:"kind,omitempty"`
-	// Type string `json:"type,omitempty"`
-	Status string `json:"status,omitempty"`
-	// LastTransitionTime string `json:"lastTransitionTime,omitempty"` //might need to change the variable type
+	Status     string `json:"status,omitempty"`
 	// Message string `json:"message,omitempty"`
 	ManagedResources []ResourceStatus `json:"managedResources,omitempty"`
+	// Type string `json:"type,omitempty"`
+	// LastTransitionTime string `json:"lastTransitionTime,omitempty"` //might need to change the variable type
 }
 
 type ServiceStatus struct { //Top level service status
@@ -318,6 +320,14 @@ func (r *OperandRequest) SetNotFoundOperandRegistryCondition(name string, rt Res
 	r.setCondition(*c)
 }
 
+// SetNoConflictOperatorCondition creates a NoConflictCondition when an operator channel does not conflict with others.
+func (r *OperandRequest) SetNoConflictOperatorCondition(name string, rt ResourceType, cs corev1.ConditionStatus, mu sync.Locker) {
+	mu.Lock()
+	defer mu.Unlock()
+	c := newCondition(ConditionNoConflict, cs, "No channel conflict on "+string(rt), "No channel conflict on "+string(rt)+" "+name+" in the scope")
+	r.setCondition(*c)
+}
+
 // setReadyCondition creates a Condition to claim Ready.
 func (r *OperandRequest) setReadyCondition(name string, rt ResourceType, cs corev1.ConditionStatus) {
 	c := &Condition{}
@@ -409,6 +419,15 @@ func (r *OperandRequest) RemoveMemberCRStatus(name, CRName, CRKind string, mu sy
 	}
 }
 
+func (r *OperandRequest) RemoveServiceStatus(operatorName string, mu sync.Locker) {
+	mu.Lock()
+	defer mu.Unlock()
+	pos, s := getServiceStatus(&r.Status, operatorName)
+	if s != nil {
+		r.Status.Services = append(r.Status.Services[:pos], r.Status.Services[pos+1:]...)
+	}
+}
+
 func (r *OperandRequest) SetServiceStatus(ctx context.Context, service ServiceStatus, updater client.StatusClient, mu sync.Locker) error {
 	mu.Lock()
 	defer mu.Unlock()
@@ -474,10 +493,10 @@ func (r *OperandRequest) setOperandReadyCondition(operandPhase ServicePhase, nam
 }
 
 // FreshMemberStatus cleanup Member status from the Member status list.
-func (r *OperandRequest) FreshMemberStatus(failedDeletedOperands *gset.Set) {
+func (r *OperandRequest) FreshMemberStatus(remainingOp *gset.Set) {
 	newMembers := []MemberStatus{}
 	for index, m := range r.Status.Members {
-		if foundOperand(r.Spec.Requests, m.Name) || (*failedDeletedOperands).Contains(m.Name) {
+		if foundOperand(r.Spec.Requests, m.Name) || (*remainingOp).Contains(m.Name) {
 			newMembers = append(newMembers, r.Status.Members[index])
 		}
 	}
@@ -648,6 +667,58 @@ func (r *OperandRequest) UpdateLabels() bool {
 		}
 	}
 	return isUpdated
+}
+
+func (r *OperandRequest) CheckServiceStatus() bool {
+	requeue := false
+	monitoredServices := []string{"ibm-iam-operator", "ibm-idp-config-ui-operator", "ibm-mongodb-operator", "ibm-im-operator"}
+	servicesRequested := false
+	for _, serviceName := range monitoredServices {
+		if foundOperand(r.Spec.Requests, serviceName) {
+			servicesRequested = true
+			break
+		}
+	}
+	if servicesRequested {
+		if len(r.Status.Services) == 0 {
+			klog.Info("Waiting for status.services to be instantiated ...")
+			requeue = true
+			return requeue
+		}
+		var IMOrIAM string
+		exists := false
+		if foundOperand(r.Spec.Requests, "ibm-iam-operator") {
+			IMOrIAM = "ibm-iam-operator"
+			exists = true
+		} else if foundOperand(r.Spec.Requests, "ibm-im-operator") {
+			IMOrIAM = "ibm-im-operator"
+			exists = true
+		}
+
+		if exists {
+			var imIndex int
+			found := false
+			for i, s := range r.Status.Services {
+				if IMOrIAM == s.OperatorName { //eventually this should be changed to the variable but the operator name is still listed as iam in practice even when im is requested
+					found = true
+					imIndex = i
+					break
+				}
+			}
+			if found {
+				if r.Status.Services[imIndex].Status != "Ready" {
+					klog.Info("Waiting for IM service to be Ready ...")
+					requeue = true
+					return requeue
+				}
+			} else {
+				klog.Info("Waiting for IM service status ...")
+				requeue = true
+				return requeue
+			}
+		}
+	}
+	return requeue
 }
 
 // GetAllRegistryReconcileRequest gets all the Registry ReconcileRequest.
