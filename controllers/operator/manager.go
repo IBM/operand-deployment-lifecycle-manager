@@ -126,7 +126,7 @@ func (s sortableCatalogSource) Less(i, j int) bool {
 	}
 	// Compare catalogsource priorities first, higher priority comes first
 	iPriority, jPriority := s[i].Priority, s[j].Priority
-	klog.Infof("iPriority: %v, jPriority: %v", iPriority, jPriority)
+	klog.V(2).Infof("iPriority: %v, jPriority: %v", iPriority, jPriority)
 	if iPriority != jPriority {
 		return iPriority > jPriority
 	}
@@ -167,6 +167,7 @@ func (m *ODLMOperator) GetCatalogSourceFromPackage(ctx context.Context, packageN
 			catalogsource := &olmv1alpha1.CatalogSource{}
 			if err := m.Reader.Get(ctx, types.NamespacedName{Name: pm.Status.CatalogSource, Namespace: pm.Status.CatalogSourceNamespace}, catalogsource); err != nil {
 				klog.Warning(err)
+				continue
 			}
 			catalogSourceCandidate = append(catalogSourceCandidate, CatalogSource{Name: pm.Status.CatalogSource, Namespace: pm.Status.CatalogSourceNamespace, OpNamespace: namespace, RegistryNamespace: registryNs, Priority: catalogsource.Spec.Priority})
 		}
