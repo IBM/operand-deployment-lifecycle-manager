@@ -107,6 +107,7 @@ type CatalogSource struct {
 	Namespace         string
 	OpNamespace       string
 	RegistryNamespace string
+	Priority          int
 }
 
 type sortableCatalogSource []CatalogSource
@@ -114,14 +115,7 @@ type sortableCatalogSource []CatalogSource
 func (s sortableCatalogSource) Len() int      { return len(s) }
 func (s sortableCatalogSource) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 func (s sortableCatalogSource) Less(i, j int) bool {
-	// Check if the catalogsource is in the same namespace as OperandRegistry
-	inRegistryNsI, inRegistryNsJ := s[i].Namespace == s[i].RegistryNamespace, s[j].Namespace == s[j].RegistryNamespace
-	if inRegistryNsI && !inRegistryNsJ {
-		return true
-	}
-	if !inRegistryNsI && inRegistryNsJ {
-		return false
-	}
+
 	// Check if the catalogsource is in the same namespace as operator
 	inOpNsI, inOpNsJ := s[i].Namespace == s[i].OpNamespace, s[j].Namespace == s[j].OpNamespace
 	if inOpNsI && !inOpNsJ {
@@ -129,6 +123,12 @@ func (s sortableCatalogSource) Less(i, j int) bool {
 	}
 	if !inOpNsI && inOpNsJ {
 		return false
+	}
+	// Compare catalogsource priorities first, higher priority comes first
+	iPriority, jPriority := s[i].Priority, s[j].Priority
+	klog.V(2).Infof("iPriority: %v, jPriority: %v", iPriority, jPriority)
+	if iPriority != jPriority {
+		return iPriority > jPriority
 	}
 	// If their namespaces are the same, then compare the name of the catalogsource
 	if s[i].Namespace == s[j].Namespace {
@@ -164,7 +164,12 @@ func (m *ODLMOperator) GetCatalogSourceFromPackage(ctx context.Context, packageN
 			if !channelCheck(channel, pm.Status.Channels) || (excludedCatalogSources != nil && util.Contains(excludedCatalogSources, pm.Status.CatalogSource)) {
 				continue
 			}
-			catalogSourceCandidate = append(catalogSourceCandidate, CatalogSource{Name: pm.Status.CatalogSource, Namespace: pm.Status.CatalogSourceNamespace, OpNamespace: namespace, RegistryNamespace: registryNs})
+			catalogsource := &olmv1alpha1.CatalogSource{}
+			if err := m.Reader.Get(ctx, types.NamespacedName{Name: pm.Status.CatalogSource, Namespace: pm.Status.CatalogSourceNamespace}, catalogsource); err != nil {
+				klog.Warning(err)
+				continue
+			}
+			catalogSourceCandidate = append(catalogSourceCandidate, CatalogSource{Name: pm.Status.CatalogSource, Namespace: pm.Status.CatalogSourceNamespace, OpNamespace: namespace, RegistryNamespace: registryNs, Priority: catalogsource.Spec.Priority})
 		}
 		if len(catalogSourceCandidate) == 0 {
 			klog.Errorf("Not found PackageManifest %s in the namespace %s has channel %s", packageName, namespace, channel)
