@@ -45,18 +45,20 @@ type ODLMOperator struct {
 	client.Client
 	client.Reader
 	*rest.Config
-	Recorder record.EventRecorder
-	Scheme   *runtime.Scheme
+	Recorder                record.EventRecorder
+	Scheme                  *runtime.Scheme
+	MaxConcurrentReconciles int
 }
 
 // NewODLMOperator is the method to initialize an Operator struct
 func NewODLMOperator(mgr manager.Manager, name string) *ODLMOperator {
 	return &ODLMOperator{
-		Client:   mgr.GetClient(),
-		Reader:   mgr.GetAPIReader(),
-		Config:   mgr.GetConfig(),
-		Recorder: mgr.GetEventRecorderFor(name),
-		Scheme:   mgr.GetScheme(),
+		Client:                  mgr.GetClient(),
+		Reader:                  mgr.GetAPIReader(),
+		Config:                  mgr.GetConfig(),
+		Recorder:                mgr.GetEventRecorderFor(name),
+		Scheme:                  mgr.GetScheme(),
+		MaxConcurrentReconciles: 5,
 	}
 }
 
@@ -87,7 +89,7 @@ func (m *ODLMOperator) GetOperandRegistry(ctx context.Context, key types.Namespa
 			reg.Spec.Operators[i].Namespace = key.Namespace
 		}
 		if o.SourceName == "" || o.SourceNamespace == "" {
-			catalogSourceName, catalogSourceNs, err := m.GetCatalogSourceFromPackage(ctx, o.PackageName, o.Namespace, o.Channel, key.Namespace, excludedCatalogSources)
+			catalogSourceName, catalogSourceNs, err := m.GetCatalogSourceFromPackage(ctx, o.PackageName, reg.Spec.Operators[i].Namespace, o.Channel, key.Namespace, excludedCatalogSources)
 			if err != nil {
 				return nil, err
 			}

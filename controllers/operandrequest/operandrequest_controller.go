@@ -38,6 +38,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -337,5 +338,6 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 				newObject := e.ObjectNew.(*operatorv1alpha1.OperandConfig)
 				return !reflect.DeepEqual(oldObject.Spec, newObject.Spec)
 			},
-		})).Complete(r)
+		})).
+		WithOptions(controller.Options{MaxConcurrentReconciles: r.MaxConcurrentReconciles}).Complete(r)
 }
