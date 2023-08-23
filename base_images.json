@@ -55,6 +55,6 @@
     "sourceImage": "node-v18-ubi8-minimal",
     "sourceTag": "18.17.1_8.8-1037",
     "destImage": "liberty11-ubi8-minimal",
-    "libertyVersion": "23.0.0.7"
+    "libertyVersion": "23.0.0.8"
   }
 ]
