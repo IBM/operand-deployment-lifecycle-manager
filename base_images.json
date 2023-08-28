@@ -7,7 +7,7 @@
     "destStage": "edge",
     "destNamespace": "build-images",
     "destImage": "ubi8",
-    "tag": "8.8-1032",
+    "tag": "8.8-1032.1692772289",
     "updatePackages": []
   },
   {
