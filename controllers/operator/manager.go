@@ -45,18 +45,20 @@ type ODLMOperator struct {
 	client.Client
 	client.Reader
 	*rest.Config
-	Recorder record.EventRecorder
-	Scheme   *runtime.Scheme
+	Recorder                record.EventRecorder
+	Scheme                  *runtime.Scheme
+	MaxConcurrentReconciles int
 }
 
 // NewODLMOperator is the method to initialize an Operator struct
 func NewODLMOperator(mgr manager.Manager, name string) *ODLMOperator {
 	return &ODLMOperator{
-		Client:   mgr.GetClient(),
-		Reader:   mgr.GetAPIReader(),
-		Config:   mgr.GetConfig(),
-		Recorder: mgr.GetEventRecorderFor(name),
-		Scheme:   mgr.GetScheme(),
+		Client:                  mgr.GetClient(),
+		Reader:                  mgr.GetAPIReader(),
+		Config:                  mgr.GetConfig(),
+		Recorder:                mgr.GetEventRecorderFor(name),
+		Scheme:                  mgr.GetScheme(),
+		MaxConcurrentReconciles: 5,
 	}
 }
 
