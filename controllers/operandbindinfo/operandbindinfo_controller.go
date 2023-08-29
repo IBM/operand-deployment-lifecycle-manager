@@ -36,6 +36,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -740,7 +741,12 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 		},
 	}
 
+	options := controller.Options{
+		MaxConcurrentReconciles: r.MaxConcurrentReconciles, // Set the desired value for max concurrent reconciles.
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
+		WithOptions(options).
 		For(&operatorv1alpha1.OperandBindInfo{}).
 		Watches(
 			&source.Kind{Type: &corev1.ConfigMap{}},

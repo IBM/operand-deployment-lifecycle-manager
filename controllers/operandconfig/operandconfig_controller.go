@@ -36,6 +36,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -398,7 +399,11 @@ func (r *Reconciler) getRequestToConfigMapper(ctx context.Context) handler.MapFu
 // SetupWithManager adds OperandConfig controller to the manager.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	ctx := context.Background()
+	options := controller.Options{
+		MaxConcurrentReconciles: r.MaxConcurrentReconciles, // Set the desired value for max concurrent reconciles.
+	}
 	return ctrl.NewControllerManagedBy(mgr).
+		WithOptions(options).
 		For(&operatorv1alpha1.OperandConfig{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Watches(&source.Kind{Type: &operatorv1alpha1.OperandRequest{}}, handler.EnqueueRequestsFromMapFunc(r.getRequestToConfigMapper(ctx)), builder.WithPredicates(predicate.Funcs{
 			CreateFunc: func(e event.CreateEvent) bool {
