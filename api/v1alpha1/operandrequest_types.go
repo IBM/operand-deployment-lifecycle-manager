@@ -251,7 +251,8 @@ type OperandRequest struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// +kubebuilder:pruning:PreserveUnknownFields
-	Spec   OperandRequestSpec   `json:"spec,omitempty"`
+	Spec OperandRequestSpec `json:"spec,omitempty"`
+	// +kubebuilder:pruning:PreserveUnknownFields
 	Status OperandRequestStatus `json:"status,omitempty"`
 }
 

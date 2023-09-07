@@ -143,6 +143,7 @@ spec:
                 description: ServiceStatus defines all the status of a operator.
                 type: object
             type: object
+            x-kubernetes-preserve-unknown-fields: true
         type: object
     served: true
     storage: true

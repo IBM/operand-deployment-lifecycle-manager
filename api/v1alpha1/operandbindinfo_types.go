@@ -95,7 +95,8 @@ type OperandBindInfo struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// +kubebuilder:pruning:PreserveUnknownFields
-	Spec   OperandBindInfoSpec   `json:"spec,omitempty"`
+	Spec OperandBindInfoSpec `json:"spec,omitempty"`
+	// +kubebuilder:pruning:PreserveUnknownFields
 	Status OperandBindInfoStatus `json:"status,omitempty"`
 }
 
