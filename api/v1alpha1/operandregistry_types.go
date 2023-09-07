@@ -151,7 +151,8 @@ type OperandRegistry struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// +kubebuilder:pruning:PreserveUnknownFields
-	Spec   OperandRegistrySpec   `json:"spec,omitempty"`
+	Spec OperandRegistrySpec `json:"spec,omitempty"`
+	// +kubebuilder:pruning:PreserveUnknownFields
 	Status OperandRegistryStatus `json:"status,omitempty"`
 }
 

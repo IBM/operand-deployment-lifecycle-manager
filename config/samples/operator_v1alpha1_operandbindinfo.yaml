@@ -1,0 +1,16 @@
+apiVersion: operator.ibm.com/v1alpha1
+kind: OperandBindInfo
+metadata:
+  labels:
+    app.kubernetes.io/instance: "operand-deployment-lifecycle-manager"
+    app.kubernetes.io/managed-by: "operand-deployment-lifecycle-manager"
+    app.kubernetes.io/name: "operand-deployment-lifecycle-manager"
+  name: example-service
+spec:
+  bindings:
+    public:
+      secret: mongodb-secret
+      configmap: mongodb-configmap
+  description: Binding information that should be accessible to MongoDB adopters
+  operand: mongodb-atlas-kubernetes
+  registry: example-service

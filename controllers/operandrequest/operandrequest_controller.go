@@ -82,7 +82,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		existingInstance := &operatorv1alpha1.OperandRequest{}
 		if err := r.Client.Get(ctx, req.NamespacedName, existingInstance); err != nil && !apierrors.IsNotFound(err) {
 			// Error reading the latest object - requeue the request.
-			reconcileErr = utilerrors.NewAggregate([]error{reconcileErr, fmt.Errorf("c from server: %v", err)})
+			reconcileErr = utilerrors.NewAggregate([]error{reconcileErr, fmt.Errorf("error while get latest OperandRequest.Status from server: %v", err)})
 		}
 
 		if reflect.DeepEqual(existingInstance.Status, requestInstance.Status) {
