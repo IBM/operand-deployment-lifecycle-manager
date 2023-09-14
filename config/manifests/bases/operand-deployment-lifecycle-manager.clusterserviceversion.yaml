@@ -10,7 +10,7 @@ metadata:
     createdAt: "2020-11-12T17:05:48Z"
     description: The Operand Deployment Lifecycle Manager provides a Kubernetes CRD-based
       API to manage the lifecycle of operands.
-    olm.skipRange: '>=1.2.0 <1.21.7'
+    olm.skipRange: '>=1.2.0 <1.21.8'
     operators.operatorframework.io/builder: operator-sdk-v1.2.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v2
     operators.openshift.io/infrastructure-features: '["disconnected"]'
