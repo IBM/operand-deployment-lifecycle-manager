@@ -576,6 +576,7 @@ spec:
           app.kubernetes.io/instance: operand-deployment-lifecycle-manager
           app.kubernetes.io/managed-by: operand-deployment-lifecycle-manager
           app.kubernetes.io/name: operand-deployment-lifecycle-manager
+          productName: IBM_Cloud_Platform_Common_Services
         name: operand-deployment-lifecycle-manager
         spec:
           replicas: 1
@@ -593,6 +594,7 @@ spec:
                 app.kubernetes.io/instance: operand-deployment-lifecycle-manager
                 app.kubernetes.io/managed-by: operand-deployment-lifecycle-manager
                 app.kubernetes.io/name: operand-deployment-lifecycle-manager
+                productName: IBM_Cloud_Platform_Common_Services
                 intent: projected-odlm
                 name: operand-deployment-lifecycle-manager
             spec:
