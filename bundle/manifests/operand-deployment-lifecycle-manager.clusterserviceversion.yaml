@@ -6,6 +6,29 @@ metadata:
       [
         {
           "apiVersion": "operator.ibm.com/v1alpha1",
+          "kind": "OperandBindInfo",
+          "metadata": {
+            "labels": {
+              "app.kubernetes.io/instance": "operand-deployment-lifecycle-manager",
+              "app.kubernetes.io/managed-by": "operand-deployment-lifecycle-manager",
+              "app.kubernetes.io/name": "operand-deployment-lifecycle-manager"
+            },
+            "name": "example-service"
+          },
+          "spec": {
+            "bindings": {
+              "public": {
+                "configmap": "mongodb-configmap",
+                "secret": "mongodb-secret"
+              }
+            },
+            "description": "Binding information that should be accessible to MongoDB adopters",
+            "operand": "mongodb-atlas-kubernetes",
+            "registry": "example-service"
+          }
+        },
+        {
+          "apiVersion": "operator.ibm.com/v1alpha1",
           "kind": "OperandConfig",
           "metadata": {
             "labels": {
@@ -59,7 +82,7 @@ metadata:
                 "installMode": "cluster",
                 "name": "jaeger",
                 "namespace": "default",
-                "packageName": "jaeger"
+                "packageName": "jaeger",
                 "sourceName": "community-operators",
                 "sourceNamespace": "openshift-marketplace"
               },
@@ -110,9 +133,9 @@ metadata:
     description: The Operand Deployment Lifecycle Manager provides a Kubernetes CRD-based
       API to manage the lifecycle of operands.
     olm.skipRange: '>=1.2.0 <1.21.8'
-    operators.operatorframework.io/builder: operator-sdk-v1.11.0+git
-    operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     operators.openshift.io/infrastructure-features: '["disconnected"]'
+    operators.operatorframework.io/builder: operator-sdk-v1.24.0
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/IBM/operand-deployment-lifecycle-manager
     support: IBM
   labels:

@@ -49,7 +49,6 @@ spec:
           metadata:
             type: object
           spec:
-            x-kubernetes-preserve-unknown-fields: true
             description: OperandBindInfoSpec defines the desired state of OperandBindInfo.
             properties:
               bindings:
@@ -88,6 +87,7 @@ spec:
             - operand
             - registry
             type: object
+            x-kubernetes-preserve-unknown-fields: true
           status:
             description: OperandBindInfoStatus defines the observed state of OperandBindInfo.
             properties:
@@ -100,6 +100,7 @@ spec:
                   type: string
                 type: array
             type: object
+            x-kubernetes-preserve-unknown-fields: true
         type: object
     served: true
     storage: true
