@@ -28,3 +28,44 @@ rules:
   - patch
   - update
   - watch
+- verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+  apiGroups:
+  - operator.ibm.com
+  resources:
+  - operandconfigs
+  - operandregistries
+  - operandrequests
+  - operandbindinfos
+- verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+  apiGroups:
+  - ''
+  resources:
+  - configmaps
+  - secrets
+  - services
+- verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+  apiGroups:
+  - route.openshift.io
+  resources:
+  - routes

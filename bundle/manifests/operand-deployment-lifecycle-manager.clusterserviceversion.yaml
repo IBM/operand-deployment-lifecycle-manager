@@ -134,9 +134,9 @@ metadata:
       API to manage the lifecycle of operands.
     nss.operator.ibm.com/managed-operators: ibm-odlm
     olm.skipRange: '>=1.2.0 <4.2.1'
+    operators.openshift.io/infrastructure-features: '["disconnected"]'
     operators.operatorframework.io/builder: operator-sdk-v1.24.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
-    operators.openshift.io/infrastructure-features: '["disconnected"]'
     repository: https://github.com/IBM/operand-deployment-lifecycle-manager
     support: IBM
   labels:
@@ -649,8 +649,8 @@ spec:
                     memory: 512Mi
                   requests:
                     cpu: 200m
-                    memory: 200Mi
                     ephemeral-storage: 256Mi
+                    memory: 200Mi
                 securityContext:
                   allowPrivilegeEscalation: false
                   capabilities:
@@ -668,6 +668,47 @@ spec:
           - '*'
           resources:
           - '*'
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - operator.ibm.com
+          resources:
+          - operandconfigs
+          - operandregistries
+          - operandrequests
+          - operandbindinfos
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          - secrets
+          - services
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - route.openshift.io
+          resources:
+          - routes
           verbs:
           - create
           - delete
