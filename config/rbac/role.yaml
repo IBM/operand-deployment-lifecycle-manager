@@ -40,9 +40,13 @@ rules:
   - operator.ibm.com
   resources:
   - operandconfigs
+  - operandconfigs/status
   - operandregistries
+  - operandregistries/status
   - operandrequests
+  - operandrequests/status
   - operandbindinfos
+  - operandbindinfos/status
 - verbs:
   - create
   - delete
@@ -57,6 +61,7 @@ rules:
   - configmaps
   - secrets
   - services
+  - namespaces
 - verbs:
   - create
   - delete
@@ -69,3 +74,28 @@ rules:
   - route.openshift.io
   resources:
   - routes
+- verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+  apiGroups:
+  - operators.coreos.com
+  resources:
+  - operatorgroups
+  - installplans
+- verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+  apiGroups:
+  - k8s.keycloak.org
+  resources:
+  - keycloaks

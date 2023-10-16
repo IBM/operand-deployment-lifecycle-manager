@@ -594,9 +594,9 @@ spec:
                 app.kubernetes.io/instance: operand-deployment-lifecycle-manager
                 app.kubernetes.io/managed-by: operand-deployment-lifecycle-manager
                 app.kubernetes.io/name: operand-deployment-lifecycle-manager
-                productName: IBM_Cloud_Platform_Common_Services
                 intent: projected-odlm
                 name: operand-deployment-lifecycle-manager
+                productName: IBM_Cloud_Platform_Common_Services
             spec:
               affinity:
                 nodeAffinity:
@@ -680,9 +680,13 @@ spec:
           - operator.ibm.com
           resources:
           - operandconfigs
+          - operandconfigs/status
           - operandregistries
+          - operandregistries/status
           - operandrequests
+          - operandrequests/status
           - operandbindinfos
+          - operandbindinfos/status
           verbs:
           - create
           - delete
@@ -697,6 +701,7 @@ spec:
           - configmaps
           - secrets
           - services
+          - namespaces
           verbs:
           - create
           - delete
@@ -709,6 +714,31 @@ spec:
           - route.openshift.io
           resources:
           - routes
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - operators.coreos.com
+          resources:
+          - operatorgroups
+          - installplans
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - k8s.keycloak.org
+          resources:
+          - keycloaks
           verbs:
           - create
           - delete
