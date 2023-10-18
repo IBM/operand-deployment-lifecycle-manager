@@ -48,13 +48,13 @@
     "sourceImage": "ubi8-minimal",
     "sourceTag": "8.8-1072.1696517598",
     "destImage": "node-v18-ubi8-minimal",
-    "nodeVersion": "18.18.1"
+    "nodeVersion": "18.18.2"
   },
   {
     "imageType": "liberty",
     "sourceImage": "node-v18-ubi8-minimal",
-    "sourceTag": "18.18.1_8.8-1072.1696517598",
+    "sourceTag": "18.18.2_8.8-1072.1696517598",
     "destImage": "liberty11-ubi8-minimal",
-    "libertyVersion": "23.0.0.9"
+    "libertyVersion": "23.0.0.10"
   }
 ]
