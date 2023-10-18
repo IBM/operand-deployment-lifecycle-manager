@@ -691,16 +691,16 @@ func (r *Reconciler) updateCustomResource(ctx context.Context, existingCR unstru
 			return false, errors.Wrapf(err, "failed to get custom resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 		}
 
-		forceUpdate := false
 		if !r.CheckLabel(existingCR, map[string]string{constant.OpreqLabel: "true"}) {
 			return true, nil
-		} else {
-			for _, owner := range owners {
-				if err := controllerutil.SetOwnerReference(owner, &existingCR, r.Scheme); err != nil {
-					return false, errors.Wrapf(err, "failed to set ownerReference for custom resource %s/%s", existingCR.GetNamespace(), existingCR.GetName())
-				}
-				forceUpdate = true
+		}
+
+		forceUpdate := false
+		for _, owner := range owners {
+			if err := controllerutil.SetOwnerReference(owner, &existingCR, r.Scheme); err != nil {
+				return false, errors.Wrapf(err, "failed to set ownerReference for custom resource %s/%s", existingCR.GetNamespace(), existingCR.GetName())
 			}
+			forceUpdate = true
 		}
 
 		configFromALMRaw, err := json.Marshal(configFromALM)
