@@ -681,12 +681,16 @@ spec:
           resources:
           - operandconfigs
           - operandconfigs/status
+          - operandconfigs/finalizers
           - operandregistries
           - operandregistries/status
+          - operandregistries/finalizers
           - operandrequests
           - operandrequests/status
+          - operandrequests/finalizers
           - operandbindinfos
           - operandbindinfos/status
+          - operandbindinfos/finalizers
           verbs:
           - create
           - delete
