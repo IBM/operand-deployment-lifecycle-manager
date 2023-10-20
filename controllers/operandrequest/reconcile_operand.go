@@ -33,6 +33,7 @@ import (
 	authorizationv1 "k8s.io/api/authorization/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -386,7 +387,7 @@ func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance
 	crFromRequest.SetAPIVersion(operand.APIVersion)
 	crFromRequest.SetKind(operand.Kind)
 	// Set the OperandRequest as the controller of the CR from request
-	if err := controllerutil.SetControllerReference(requestInstance, &crFromRequest, r.Scheme); err != nil {
+	if err := controllerutil.SetOwnerReference(requestInstance, &crFromRequest, r.Scheme); err != nil {
 		merr.Add(errors.Wrapf(err, "failed to set ownerReference for custom resource %s/%s", requestKey.Namespace, name))
 	}
 
@@ -407,7 +408,7 @@ func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance
 		if r.CheckLabel(crFromRequest, map[string]string{constant.OpreqLabel: "true"}) {
 			// Update or Delete Custom resource
 			klog.V(3).Info("Found existing custom resource: " + operand.Kind)
-			if err := r.updateCustomResource(ctx, crFromRequest, requestKey.Namespace, operand.Kind, operand.Spec.Raw, map[string]interface{}{}); err != nil {
+			if err := r.updateCustomResource(ctx, crFromRequest, requestKey.Namespace, operand.Kind, operand.Spec.Raw, map[string]interface{}{}, requestInstance); err != nil {
 				return err
 			}
 		} else {
@@ -569,7 +570,7 @@ func (r *Reconciler) createCustomResource(ctx context.Context, crTemplate unstru
 
 	r.EnsureLabel(crTemplate, map[string]string{constant.OpreqLabel: "true"})
 
-	// Creat the CR
+	// Create the CR
 	crerr := r.Create(ctx, &crTemplate)
 	if crerr != nil && !apierrors.IsAlreadyExists(crerr) {
 		return errors.Wrap(crerr, "failed to create custom resource")
@@ -604,7 +605,7 @@ func (r *Reconciler) existingCustomResource(ctx context.Context, existingCR unst
 	return nil
 }
 
-func (r *Reconciler) updateCustomResource(ctx context.Context, existingCR unstructured.Unstructured, namespace, crName string, crConfig []byte, configFromALM map[string]interface{}) error {
+func (r *Reconciler) updateCustomResource(ctx context.Context, existingCR unstructured.Unstructured, namespace, crName string, crConfig []byte, configFromALM map[string]interface{}, owners ...metav1.Object) error {
 
 	kind := existingCR.GetKind()
 	apiversion := existingCR.GetAPIVersion()
@@ -633,6 +634,14 @@ func (r *Reconciler) updateCustomResource(ctx context.Context, existingCR unstru
 			return true, nil
 		}
 
+		forceUpdate := false
+		for _, owner := range owners {
+			if err := controllerutil.SetOwnerReference(owner, &existingCR, r.Scheme); err != nil {
+				return false, errors.Wrapf(err, "failed to set ownerReference for custom resource %s/%s", existingCR.GetNamespace(), existingCR.GetName())
+			}
+			forceUpdate = true
+		}
+
 		configFromALMRaw, err := json.Marshal(configFromALM)
 		if err != nil {
 			klog.Error(err)
@@ -659,7 +668,7 @@ func (r *Reconciler) updateCustomResource(ctx context.Context, existingCR unstru
 
 		CRgeneration := existingCR.GetGeneration()
 
-		if reflect.DeepEqual(existingCR.Object["spec"], updatedCRSpec) {
+		if reflect.DeepEqual(existingCR.Object["spec"], updatedCRSpec) && !forceUpdate {
 			return true, nil
 		}
 
