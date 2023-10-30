@@ -467,6 +467,6 @@ spec:
   provider:
     name: IBM
   relatedImages:
-  - image: icr.io/cpopen/odlm
+  - image: icr.io/cpopen/odlm:4.2.1
     name: ODLM_IMAGE
   version: 0.0.0
