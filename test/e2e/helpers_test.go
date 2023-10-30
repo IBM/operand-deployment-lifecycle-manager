@@ -304,8 +304,10 @@ func updateJaegerStrategy(ns string) error {
 		if err != nil {
 			return false, client.IgnoreNotFound(err)
 		}
-		con.Spec.Services[0].Spec = map[string]runtime.RawExtension{
-			"jaeger": {Raw: []byte(`{"strategy": "allinone"}`)},
+		con.Spec.Services[0].Spec = map[string]v1alpha1.ExtensionWithMarker{
+			"jaeger": {
+				RawExtension: runtime.RawExtension{Raw: []byte(`{"strategy": "allinone"}`)},
+			},
 		}
 		if err := k8sClient.Update(context.TODO(), con); err != nil {
 			fmt.Println("    --- Waiting for OperandConfig instance stable ...")
@@ -621,14 +623,17 @@ func newOperandConfigCR(name, namespace string) *v1alpha1.OperandConfig {
 			Services: []v1alpha1.ConfigService{
 				{
 					Name: "jaeger",
-					Spec: map[string]runtime.RawExtension{
-						"jaeger": {Raw: []byte(`{"strategy": "streaming"}`)},
+					Spec: map[string]v1alpha1.ExtensionWithMarker{
+						"jaeger": {
+							RawExtension: runtime.RawExtension{Raw: []byte(`{"strategy": "streaming"}`)}},
 					},
 				},
 				{
 					Name: "mongodb-atlas-kubernetes",
-					Spec: map[string]runtime.RawExtension{
-						"atlasDeployment": {Raw: []byte(`{"deploymentSpec":{"name": "test-deployment"}}`)},
+					Spec: map[string]v1alpha1.ExtensionWithMarker{
+						"atlasDeployment": {
+							RawExtension: runtime.RawExtension{Raw: []byte(`{"deploymentSpec":{"name": "test-deployment"}}`)},
+						},
 					},
 					Resources: []v1alpha1.ConfigResource{
 						{
