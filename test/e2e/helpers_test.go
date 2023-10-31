@@ -791,7 +791,7 @@ func newOperandRequestWithBindinfo(name, namespace, RegistryNamespace string) *v
 					Operands: []v1alpha1.Operand{
 						{
 							Name: "mongodb-atlas-kubernetes",
-							Bindings: map[string]v1alpha1.SecretConfigmap{
+							Bindings: map[string]v1alpha1.Bindable{
 								"public": {
 									Secret:    "mongodb-secret",
 									Configmap: "mongodb-configmap",
@@ -817,7 +817,7 @@ func newOperandBindInfoCR(name, namespace, RegistryNamespace string) *v1alpha1.O
 			Registry:          OperandRegistryCrName,
 			RegistryNamespace: RegistryNamespace,
 
-			Bindings: map[string]v1alpha1.SecretConfigmap{
+			Bindings: map[string]v1alpha1.Bindable{
 				"public": {
 					Secret:    "mongodb-secret",
 					Configmap: "mongodb-configmap",

@@ -56,7 +56,7 @@ spec:
             properties:
               bindings:
                 additionalProperties:
-                  description: SecretConfigmap is a pair of Secret and/or Configmap.
+                  description: Bindable is a pair of Secret and/or Configmap.
                   properties:
                     configmap:
                       description: The configmap identifies an existing configmap

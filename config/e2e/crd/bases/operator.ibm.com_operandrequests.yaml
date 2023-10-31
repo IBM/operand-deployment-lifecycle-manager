@@ -77,7 +77,7 @@ spec:
                             type: string
                           bindings:
                             additionalProperties:
-                              description: SecretConfigmap is a pair of Secret and/or
+                              description: Bindable is a pair of Secret and/or
                                 Configmap.
                               properties:
                                 configmap:

@@ -209,7 +209,7 @@ bundle-manifests:
 	-q --overwrite --version $(OPERATOR_VERSION) $(BUNDLE_METADATA_OPTS)
 	$(OPERATOR_SDK) bundle validate ./bundle
 	$(YQ) eval-all -i '.spec.relatedImages = load("config/manifests/bases/operand-deployment-lifecycle-manager.clusterserviceversion.yaml").spec.relatedImages' bundle/manifests/operand-deployment-lifecycle-manager.clusterserviceversion.yaml
-	# Need to replace fields this way to avoid changing PROJECT name and CSV file name, which may or may not impact CICD automation
+	@# Need to replace fields this way to avoid changing PROJECT name and CSV file name, which may or may not impact CICD automation
 	$(YQ) e -i '.annotations["operators.operatorframework.io.bundle.package.v1"] = "ibm-odlm"' bundle/metadata/annotations.yaml
 	sed -i'' s/operand-deployment-lifecycle-manager/ibm-odlm/ bundle.Dockerfile
 

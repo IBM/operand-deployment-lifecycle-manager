@@ -53,7 +53,12 @@ spec:
             properties:
               bindings:
                 additionalProperties:
-                  description: SecretConfigmap is a pair of Secret and/or Configmap.
+                  description: Bindable is a Kubernetes resources to be shared from
+                    one namespace to another. List of supported resources are Secrets,
+                    Configmaps, Services, and Routes. Secrets and Configmaps will
+                    be copied such that a new Secret/Configmap with exactly the same
+                    data will be created in the target namespace. Services and Routes
+                    data will be copied into a configmap in the target namespace.
                   properties:
                     configmap:
                       description: The configmap identifies an existing configmap

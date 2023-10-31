@@ -56,11 +56,16 @@ type OperandBindInfoSpec struct {
 	Description string `json:"description,omitempty"`
 	// The bindings section is used to specify information about the access/configuration data that is to be shared.
 	// +optional
-	Bindings map[string]SecretConfigmap `json:"bindings,omitempty"`
+	Bindings map[string]Bindable `json:"bindings,omitempty"`
 }
 
-// SecretConfigmap is a pair of Secret and/or Configmap.
-type SecretConfigmap struct {
+// Bindable is a Kubernetes resources to be shared from one namespace to another.
+// List of supported resources are Secrets, Configmaps, Services, and Routes.
+// Secrets and Configmaps will be copied such that a new Secret/Configmap with
+// exactly the same data will be created in the target namespace.
+// Services and Routes data will be copied into a configmap in the target
+// namespace.
+type Bindable struct {
 	// The secret identifies an existing secret. if it exists, the ODLM will share to the namespace of the OperandRequest.
 	// +optional
 	Secret string `json:"secret,omitempty"`
