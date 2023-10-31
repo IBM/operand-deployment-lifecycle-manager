@@ -140,8 +140,10 @@ func OperandConfigObj(name, namespace string) *apiv1alpha1.OperandConfig {
 			Services: []apiv1alpha1.ConfigService{
 				{
 					Name: "jaeger",
-					Spec: map[string]runtime.RawExtension{
-						"jaeger": {Raw: []byte(`{"strategy": "streaming"}`)},
+					Spec: map[string]apiv1alpha1.ExtensionWithMarker{
+						"jaeger": {
+							RawExtension: runtime.RawExtension{Raw: []byte(`{"strategy": "streaming"}`)},
+						},
 					},
 					Resources: []apiv1alpha1.ConfigResource{
 						{
@@ -163,8 +165,10 @@ func OperandConfigObj(name, namespace string) *apiv1alpha1.OperandConfig {
 				},
 				{
 					Name: "mongodb-atlas-kubernetes",
-					Spec: map[string]runtime.RawExtension{
-						"atlasDeployment": {Raw: []byte(`{"deploymentSpec":{"name": "test-deployment"}, "projectRef": {"name": "my-updated-project"}}`)},
+					Spec: map[string]apiv1alpha1.ExtensionWithMarker{
+						"atlasDeployment": {
+							RawExtension: runtime.RawExtension{Raw: []byte(`{"deploymentSpec":{"name": "test-deployment"}, "projectRef": {"name": "my-updated-project"}}`)},
+						},
 					},
 				},
 			},

@@ -31,12 +31,17 @@ type OperandConfigSpec struct {
 	Services []ConfigService `json:"services,omitempty"`
 }
 
+// +kubebuilder:pruning:PreserveUnknownFields
+type ExtensionWithMarker struct {
+	runtime.RawExtension `json:",inline"`
+}
+
 // ConfigService defines the configuration of the service.
 type ConfigService struct {
 	// Name is the subscription name.
 	Name string `json:"name"`
 	// Spec is the configuration map of custom resource.
-	Spec map[string]runtime.RawExtension `json:"spec,omitempty"`
+	Spec map[string]ExtensionWithMarker `json:"spec,omitempty"`
 	// State is a flag to enable or disable service.
 	State string `json:"state,omitempty"`
 	// Resources is used to specify the kubernetes resources that are needed for the service.
