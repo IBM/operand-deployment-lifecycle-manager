@@ -7,7 +7,7 @@
     "destStage": "edge",
     "destNamespace": "build-images",
     "destImage": "ubi8",
-    "tag": "8.8-1067.1696517599",
+    "tag": "8.8-1067.1698056881",
     "updatePackages": []
   },
   {
@@ -18,7 +18,7 @@
     "destStage": "edge",
     "destNamespace": "build-images",
     "destImage": "ubi8-minimal",
-    "tag": "8.8-1072.1696517598",
+    "tag": "8.8-1072.1697626218",
     "updatePackages": []
   },
   {
@@ -46,14 +46,14 @@
   {
     "imageType": "node",
     "sourceImage": "ubi8-minimal",
-    "sourceTag": "8.8-1072.1696517598",
+    "sourceTag": "8.8-1072.1697626218",
     "destImage": "node-v18-ubi8-minimal",
     "nodeVersion": "18.18.2"
   },
   {
     "imageType": "liberty",
     "sourceImage": "node-v18-ubi8-minimal",
-    "sourceTag": "18.18.2_8.8-1072.1696517598",
+    "sourceTag": "18.18.2_8.8-1072.1697626218",
     "destImage": "liberty11-ubi8-minimal",
     "libertyVersion": "23.0.0.10"
   }
