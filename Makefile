@@ -34,7 +34,7 @@ VERSION ?= $(shell git describe --exact-match 2> /dev/null || \
                 git describe --match=$(git rev-parse --short=8 HEAD) --always --dirty --abbrev=8)
 RELEASE_VERSION ?= $(shell cat ./version/version.go | grep "Version =" | awk '{ print $$3}' | tr -d '"')
 LATEST_VERSION ?= latest
-OPERATOR_SDK_VERSION=v1.24.0
+OPERATOR_SDK_VERSION=v1.32.0
 YQ_VERSION=v4.17.2
 DEFAULT_CHANNEL ?= v$(shell cat ./version/version.go | grep "Version =" | awk '{ print $$3}' | tr -d '"' | cut -d '.' -f1,2)
 CHANNELS ?= $(DEFAULT_CHANNEL)

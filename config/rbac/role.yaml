@@ -103,3 +103,13 @@ rules:
   - k8s.keycloak.org
   resources:
   - keycloaks
+- apiGroups:
+  - packages.operators.coreos.com
+  resources:
+  - packagemanifests
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
