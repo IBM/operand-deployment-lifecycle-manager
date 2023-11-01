@@ -430,7 +430,7 @@ func (m *ODLMOperator) EnsureAnnotation(cr unstructured.Unstructured, annotation
 	cr.SetAnnotations(existingAnnotations)
 }
 
-func (m *ODLMOperator) ParseValueReferenceInObject(ctx context.Context, key string, object interface{}, finalObject map[string]interface{}, instanceType, instanceName, instanceNs string, ignoreRef bool) error {
+func (m *ODLMOperator) ParseValueReferenceInObject(ctx context.Context, key string, object interface{}, finalObject map[string]interface{}, instanceType, instanceName, instanceNs string) error {
 	switch object.(type) {
 	case map[string]interface{}:
 		for subKey, value := range object.(map[string]interface{}) {
@@ -450,7 +450,7 @@ func (m *ODLMOperator) ParseValueReferenceInObject(ctx context.Context, key stri
 					}
 
 					// get the defaultValue from template
-					valueRef, err = m.GetDefaultValueFromTemplate(ctx, templateRefObj, instanceType, instanceName, instanceNs, ignoreRef)
+					valueRef, err = m.GetDefaultValueFromTemplate(ctx, templateRefObj, instanceType, instanceName, instanceNs)
 					if err != nil {
 						klog.Errorf("Failed to get default value from template for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
 					}
@@ -479,14 +479,14 @@ func (m *ODLMOperator) ParseValueReferenceInObject(ctx context.Context, key stri
 						valueRef = ref
 					}
 
-					if valueRef == "" && templateRefObj.Required && !ignoreRef {
+					if valueRef == "" && templateRefObj.Required {
 						return errors.Errorf("Found empty value reference from template for %s %s/%s on field %s, retry in few second", instanceType, instanceNs, instanceName, key)
 					}
 				}
 				// overwrite the value with the value from the reference
 				finalObject[key] = valueRef
 			} else {
-				if err := m.ParseValueReferenceInObject(ctx, subKey, object.(map[string]interface{})[subKey], finalObject[key].(map[string]interface{}), instanceType, instanceName, instanceNs, ignoreRef); err != nil {
+				if err := m.ParseValueReferenceInObject(ctx, subKey, object.(map[string]interface{})[subKey], finalObject[key].(map[string]interface{}), instanceType, instanceName, instanceNs); err != nil {
 					return err
 				}
 			}
@@ -495,7 +495,7 @@ func (m *ODLMOperator) ParseValueReferenceInObject(ctx context.Context, key stri
 		for i := range finalObject[key].([]interface{}) {
 			if _, ok := finalObject[key].([]interface{})[i].(map[string]interface{}); ok {
 				for subKey, value := range finalObject[key].([]interface{})[i].(map[string]interface{}) {
-					if err := m.ParseValueReferenceInObject(ctx, subKey, value, finalObject[key].([]interface{})[i].(map[string]interface{}), instanceType, instanceName, instanceNs, ignoreRef); err != nil {
+					if err := m.ParseValueReferenceInObject(ctx, subKey, value, finalObject[key].([]interface{})[i].(map[string]interface{}), instanceType, instanceName, instanceNs); err != nil {
 						return err
 					}
 				}
@@ -505,7 +505,7 @@ func (m *ODLMOperator) ParseValueReferenceInObject(ctx context.Context, key stri
 	return nil
 }
 
-func (m *ODLMOperator) GetDefaultValueFromTemplate(ctx context.Context, template *util.TemplateValueRef, instanceType, instanceName, instanceNs string, ignoreRef bool) (string, error) {
+func (m *ODLMOperator) GetDefaultValueFromTemplate(ctx context.Context, template *util.TemplateValueRef, instanceType, instanceName, instanceNs string) (string, error) {
 	if template == nil {
 		return "", nil
 	}
@@ -521,7 +521,13 @@ func (m *ODLMOperator) GetDefaultValueFromTemplate(ctx context.Context, template
 		} else if ref != "" {
 			defaultValue = ref
 		}
-		if defaultValue == "" && template.Default.Required && !ignoreRef {
+		if ref, err := m.ParseObjectRef(ctx, template.Default.ObjectRef, instanceType, instanceName, instanceNs); err != nil {
+			return "", err
+		} else if ref != "" {
+			defaultValue = ref
+		}
+
+		if defaultValue == "" && template.Default.Required {
 			return "", errors.Errorf("Failed to get default value from template, retry in few second")
 		}
 		return defaultValue, nil
@@ -581,24 +587,6 @@ func (m *ODLMOperator) ParseObjectRef(ctx context.Context, obj *util.ObjectRef, 
 	return objData, nil
 }
 
-// func (m *ODLMOperator) ParseRouteRef(ctx context.Context, route *util.RouteRef, instanceType, instanceName, instanceNs string) (string, error) {
-// 	// check if template is nil
-// 	if route == nil {
-// 		return "", nil
-// 	}
-// 	// check if namespace is empty
-// 	if route.Namespace == "" {
-// 		route.Namespace = instanceNs
-// 	}
-// 	// get the value from the route
-// 	routeData, err := m.GetValueRefFromRoute(ctx, instanceType, instanceName, instanceNs, route.Name, route.Namespace, route.Path)
-// 	if err != nil {
-// 		klog.Errorf("Failed to get value reference from Route %s/%s with path %s: %v", route.Namespace, route.Name, route.Path, err)
-// 		return "", err
-// 	}
-// 	return routeData, nil
-// }
-
 func (m *ODLMOperator) GetValueRefFromConfigMap(ctx context.Context, instanceType, instanceName, instanceNs, cmName, cmNs, configMapKey string) (string, error) {
 	cm := &corev1.ConfigMap{}
 	if err := m.Client.Get(ctx, types.NamespacedName{Name: cmName, Namespace: cmNs}, cm); err != nil {
@@ -656,52 +644,6 @@ func (m *ODLMOperator) GetValueRefFromSecret(ctx context.Context, instanceType, 
 	}
 	return "", nil
 }
-
-// func (m *ODLMOperator) GetValueRefFromRoute(ctx context.Context, instanceType, instanceName, instanceNs, routeName, routeNs, path string) (string, error) {
-// 	route := &routev1.Route{}
-// 	if err := m.Client.Get(ctx, types.NamespacedName{Name: routeName, Namespace: routeNs}, route); err != nil {
-// 		if apierrors.IsNotFound(err) {
-// 			klog.V(3).Infof("Route %s/%s is not found", routeNs, routeName)
-// 			return "", nil
-// 		}
-// 		return "", errors.Wrapf(err, "failed to get Route %s/%s", routeNs, routeName)
-// 	}
-
-// 	// Set the Value Reference label for the Route
-// 	util.EnsureLabelsForRoute(route, map[string]string{
-// 		constant.ODLMReferenceLabel: instanceType + "." + instanceNs + "." + instanceName,
-// 		constant.ODLMWatchedLabel:   "true",
-// 	})
-// 	// Update the Route with the Value Reference label
-// 	if err := m.Update(ctx, route); err != nil {
-// 		return "", errors.Wrapf(err, "failed to update Route %s/%s", route.Namespace, route.Name)
-// 	}
-// 	klog.V(2).Infof("Set the Value Reference label for Route %s/%s", route.Namespace, route.Name)
-
-// 	value, err := m.GetRouteValueByPath(route, path)
-// 	if err != nil {
-// 		return "", errors.Wrapf(err, "failed to get value from Route %s/%s", route.Namespace, route.Name)
-// 	}
-// 	klog.Infof("Get value %s from Route %s/%s", value, route.Namespace, route.Name)
-// 	return value, nil
-// }
-
-// func (m *ODLMOperator) GetRouteValueByPath(route *routev1.Route, path string) (string, error) {
-// 	if path == "" {
-// 		return "", nil
-// 	}
-// 	routeObject, err := util.ObjectToNewUnstructured(route)
-// 	if err != nil {
-// 		return "", errors.Wrapf(err, "failed to convert Route %s/%s to unstructured.Unstructured object", route.Namespace, route.Name)
-// 	}
-// 	if value, ok, err := unstructured.NestedString(routeObject.Object, strings.Split(path, ".")...); err != nil {
-// 		return "", errors.Wrapf(err, "failed to parse path %v from Route %s/%s", path, route.Namespace, route.Name)
-// 	} else if !ok {
-// 		return "", errors.Errorf("failed to get path %v from Route %s/%s, the value is not found", path, route.Namespace, route.Name)
-// 	} else {
-// 		return value, nil
-// 	}
-// }
 
 func (m *ODLMOperator) GetValueRefFromObject(ctx context.Context, instanceType, instanceName, instanceNs, objAPIVersion, objKind, objName, objNs, path string) (string, error) {
 	var obj unstructured.Unstructured

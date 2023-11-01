@@ -62,12 +62,6 @@ type SecretRef struct {
 	Key       string `json:"key"`
 }
 
-// type RouteRef struct {
-// 	Name      string `json:"name"`
-// 	Namespace string `json:"namespace"`
-// 	Path      string `json:"path"`
-// }
-
 type ObjectRef struct {
 	Name       string `json:"name"`
 	Namespace  string `json:"namespace"`
@@ -265,15 +259,6 @@ func EnsureLabelsForConfigMap(cm *corev1.ConfigMap, labels map[string]string) {
 		cm.Labels[k] = v
 	}
 }
-
-// func EnsureLabelsForRoute(route *routev1.Route, labels map[string]string) {
-// 	if route.Labels == nil {
-// 		route.Labels = make(map[string]string)
-// 	}
-// 	for k, v := range labels {
-// 		route.Labels[k] = v
-// 	}
-// }
 
 func CompareSecret(secret *corev1.Secret, existingSecret *corev1.Secret) (needUpdate bool) {
 	return !equality.Semantic.DeepEqual(secret.GetLabels(), existingSecret.GetLabels()) || !equality.Semantic.DeepEqual(secret.Type, existingSecret.Type) || !equality.Semantic.DeepEqual(secret.Data, existingSecret.Data) || !equality.Semantic.DeepEqual(secret.StringData, existingSecret.StringData)

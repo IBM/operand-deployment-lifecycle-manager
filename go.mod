@@ -11,7 +11,6 @@ require (
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.19.0
-	github.com/openshift/api v0.0.0-20220124143425-d74727069f6f
 	github.com/operator-framework/api v0.6.2
 	github.com/operator-framework/operator-lifecycle-manager v0.17.0
 	github.com/pkg/errors v0.9.1

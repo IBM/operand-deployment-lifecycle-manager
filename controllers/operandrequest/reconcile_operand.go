@@ -232,7 +232,7 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 				return err
 			}
 
-			if err := r.ParseValueReferenceInObject(ctx, "data", resObject.Object["data"], resObject.Object, "OperandConfig", opConfigName, opConfigNs, false); err != nil {
+			if err := r.ParseValueReferenceInObject(ctx, "data", resObject.Object["data"], resObject.Object, "OperandConfig", opConfigName, opConfigNs); err != nil {
 				klog.Errorf("Failed to parse value reference in resource %s/%s: %v", k8sResNs, res.Name, err)
 				return err
 			}
@@ -302,7 +302,7 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 		return err
 	}
 
-	if err := r.ParseValueReferenceInObject(ctx, "spec", serviceObject.Object["spec"], serviceObject.Object, "OperandConfig", opConfigName, opConfigNs, false); err != nil {
+	if err := r.ParseValueReferenceInObject(ctx, "spec", serviceObject.Object["spec"], serviceObject.Object, "OperandConfig", opConfigName, opConfigNs); err != nil {
 		klog.Errorf("Failed to parse value reference for service %s: %v", service.Name, err)
 		return err
 	}
