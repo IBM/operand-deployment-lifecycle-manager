@@ -27,7 +27,6 @@ import (
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -250,6 +249,7 @@ func (r *Reconciler) copySecret(ctx context.Context, sourceName, targetName, sou
 	}
 	secretLabel[bindInfoInstance.Namespace+"."+bindInfoInstance.Name+"/bindinfo"] = "true"
 	secretLabel[constant.OpbiTypeLabel] = "copy"
+	secretLabel[constant.ODLMWatchedLabel] = "true"
 	secretCopy := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      targetName,
@@ -274,7 +274,7 @@ func (r *Reconciler) copySecret(ctx context.Context, sourceName, targetName, sou
 			if err := r.Client.Get(ctx, types.NamespacedName{Namespace: targetNs, Name: targetName}, existingSecret); err != nil {
 				return false, errors.Wrapf(err, "failed to get secret %s/%s", targetNs, targetName)
 			}
-			if needUpdate := compareSecret(secretCopy, existingSecret); needUpdate {
+			if needUpdate := util.CompareSecret(secretCopy, existingSecret); needUpdate {
 				podRefreshment = true
 				if err := r.Update(ctx, secretCopy); err != nil {
 					return false, errors.Wrapf(err, "failed to update secret %s/%s", targetNs, targetName)
@@ -290,9 +290,10 @@ func (r *Reconciler) copySecret(ctx context.Context, sourceName, targetName, sou
 		}
 	}
 
-	ensureLabelsForSecret(secret, map[string]string{
+	util.EnsureLabelsForSecret(secret, map[string]string{
 		bindInfoInstance.Namespace + "." + bindInfoInstance.Name + "/bindinfo": "true",
-		constant.OpbiTypeLabel: "original",
+		constant.OpbiTypeLabel:    "original",
+		constant.ODLMWatchedLabel: "true",
 	})
 
 	// Update the operand Secret
@@ -342,6 +343,7 @@ func (r *Reconciler) copyConfigmap(ctx context.Context, sourceName, targetName, 
 	}
 	cmLabel[bindInfoInstance.Namespace+"."+bindInfoInstance.Name+"/bindinfo"] = "true"
 	cmLabel[constant.OpbiTypeLabel] = "copy"
+	cmLabel[constant.ODLMWatchedLabel] = "true"
 	cmCopy := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      targetName,
@@ -365,7 +367,7 @@ func (r *Reconciler) copyConfigmap(ctx context.Context, sourceName, targetName, 
 			if err := r.Client.Get(ctx, types.NamespacedName{Namespace: targetNs, Name: targetName}, existingCm); err != nil {
 				return false, errors.Wrapf(err, "failed to get ConfigMap %s/%s", targetNs, targetName)
 			}
-			if needUpdate := compareConfigMap(cmCopy, existingCm); needUpdate {
+			if needUpdate := util.CompareConfigMap(cmCopy, existingCm); needUpdate {
 				podRefreshment = true
 				if err := r.Update(ctx, cmCopy); err != nil {
 					return false, errors.Wrapf(err, "failed to update ConfigMap %s/%s", targetNs, sourceName)
@@ -383,9 +385,10 @@ func (r *Reconciler) copyConfigmap(ctx context.Context, sourceName, targetName, 
 	}
 
 	// Set the OperandBindInfo label for the ConfigMap
-	ensureLabelsForConfigMap(cm, map[string]string{
+	util.EnsureLabelsForConfigMap(cm, map[string]string{
 		bindInfoInstance.Namespace + "." + bindInfoInstance.Name + "/bindinfo": "true",
-		constant.OpbiTypeLabel: "original",
+		constant.OpbiTypeLabel:    "original",
+		constant.ODLMWatchedLabel: "true",
 	})
 
 	// Update the operand Configmap
@@ -768,30 +771,4 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 			handler.EnqueueRequestsFromMapFunc(r.getOperandRegistryToRequestMapper(mgr)),
 			builder.WithPredicates(opregPredicates),
 		).Complete(r)
-}
-
-func ensureLabelsForSecret(secret *corev1.Secret, labels map[string]string) {
-	if secret.Labels == nil {
-		secret.Labels = make(map[string]string)
-	}
-	for k, v := range labels {
-		secret.Labels[k] = v
-	}
-}
-
-func ensureLabelsForConfigMap(cm *corev1.ConfigMap, labels map[string]string) {
-	if cm.Labels == nil {
-		cm.Labels = make(map[string]string)
-	}
-	for k, v := range labels {
-		cm.Labels[k] = v
-	}
-}
-
-func compareSecret(secret *corev1.Secret, existingSecret *corev1.Secret) (needUpdate bool) {
-	return !equality.Semantic.DeepEqual(secret.GetLabels(), existingSecret.GetLabels()) || !equality.Semantic.DeepEqual(secret.Type, existingSecret.Type) || !equality.Semantic.DeepEqual(secret.Data, existingSecret.Data) || !equality.Semantic.DeepEqual(secret.StringData, existingSecret.StringData)
-}
-
-func compareConfigMap(configMap *corev1.ConfigMap, existingConfigMap *corev1.ConfigMap) (needUpdate bool) {
-	return !equality.Semantic.DeepEqual(configMap.GetLabels(), existingConfigMap.GetLabels()) || !equality.Semantic.DeepEqual(configMap.Data, existingConfigMap.Data) || !equality.Semantic.DeepEqual(configMap.BinaryData, existingConfigMap.BinaryData)
 }

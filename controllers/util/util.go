@@ -17,6 +17,7 @@
 package util
 
 import (
+	"fmt"
 	"os"
 	"sort"
 	"strconv"
@@ -24,8 +25,47 @@ import (
 	"sync"
 	"time"
 
+	routev1 "github.com/openshift/api/route/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/discovery"
 )
+
+type TemplateValueRef struct {
+	Required        bool              `json:"required,omitempty"`
+	Default         *DefaultObjectRef `json:"default,omitempty"`
+	ConfigMapKeyRef *ConfigMapRef     `json:"configMapKeyRef,omitempty"`
+	SecretRef       *SecretRef        `json:"secretKeyRef,omitempty"`
+	RouteRef        *RouteRef         `json:"routePathRef,omitempty"`
+}
+
+type DefaultObjectRef struct {
+	Required        bool          `json:"required,omitempty"`
+	ConfigMapKeyRef *ConfigMapRef `json:"configMapKeyRef,omitempty"`
+	SecretRef       *SecretRef    `json:"secretKeyRef,omitempty"`
+	RouteRef        *RouteRef     `json:"routePathRef,omitempty"`
+	DefaultValue    string        `json:"defaultValue,omitempty"`
+}
+
+type ConfigMapRef struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Key       string `json:"key"`
+}
+
+type SecretRef struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Key       string `json:"key"`
+}
+
+type RouteRef struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Path      string `json:"path"`
+}
 
 // GetOperatorNamespace returns the Namespace of the operator
 func GetOperatorNamespace() string {
@@ -187,4 +227,49 @@ func Contains(list []string, s string) bool {
 		}
 	}
 	return false
+}
+
+func ObjectToNewUnstructured(obj interface{}) (*unstructured.Unstructured, error) {
+	content, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
+	if err != nil {
+		return nil, fmt.Errorf("could not convert Object to Unstructured resource: %v", err)
+	}
+	newUnstr := &unstructured.Unstructured{}
+	newUnstr.SetUnstructuredContent(content)
+	return newUnstr, nil
+}
+
+func EnsureLabelsForSecret(secret *corev1.Secret, labels map[string]string) {
+	if secret.Labels == nil {
+		secret.Labels = make(map[string]string)
+	}
+	for k, v := range labels {
+		secret.Labels[k] = v
+	}
+}
+
+func EnsureLabelsForConfigMap(cm *corev1.ConfigMap, labels map[string]string) {
+	if cm.Labels == nil {
+		cm.Labels = make(map[string]string)
+	}
+	for k, v := range labels {
+		cm.Labels[k] = v
+	}
+}
+
+func EnsureLabelsForRoute(route *routev1.Route, labels map[string]string) {
+	if route.Labels == nil {
+		route.Labels = make(map[string]string)
+	}
+	for k, v := range labels {
+		route.Labels[k] = v
+	}
+}
+
+func CompareSecret(secret *corev1.Secret, existingSecret *corev1.Secret) (needUpdate bool) {
+	return !equality.Semantic.DeepEqual(secret.GetLabels(), existingSecret.GetLabels()) || !equality.Semantic.DeepEqual(secret.Type, existingSecret.Type) || !equality.Semantic.DeepEqual(secret.Data, existingSecret.Data) || !equality.Semantic.DeepEqual(secret.StringData, existingSecret.StringData)
+}
+
+func CompareConfigMap(configMap *corev1.ConfigMap, existingConfigMap *corev1.ConfigMap) (needUpdate bool) {
+	return !equality.Semantic.DeepEqual(configMap.GetLabels(), existingConfigMap.GetLabels()) || !equality.Semantic.DeepEqual(configMap.Data, existingConfigMap.Data) || !equality.Semantic.DeepEqual(configMap.BinaryData, existingConfigMap.BinaryData)
 }

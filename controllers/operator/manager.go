@@ -18,13 +18,16 @@ package operator
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
 
+	routev1 "github.com/openshift/api/route/v1"
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	operatorsv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -426,4 +429,261 @@ func (m *ODLMOperator) EnsureAnnotation(cr unstructured.Unstructured, annotation
 		existingAnnotations[k] = v
 	}
 	cr.SetAnnotations(existingAnnotations)
+}
+
+func (m *ODLMOperator) ParseValueReferenceInObject(ctx context.Context, key string, object interface{}, finalObject map[string]interface{}, instanceType, instanceName, instanceNs string, ignoreRef bool) error {
+	switch object.(type) {
+	case map[string]interface{}:
+		for subKey, value := range object.(map[string]interface{}) {
+			if subKey == "templatingValueFrom" {
+				valueRef := ""
+				if templateRef, ok := value.(map[string]interface{}); ok {
+					// convert templateRef to templatingValueRef struct
+					templateRefByte, err := json.Marshal(templateRef)
+					if err != nil {
+						klog.Errorf("Failed to convert templateRef to templatingValueRef struct for %s %s/%s: %v", instanceType, instanceNs, instanceName, err)
+						return err
+					}
+					templateRefObj := &util.TemplateValueRef{}
+					if err := json.Unmarshal(templateRefByte, templateRefObj); err != nil {
+						klog.Errorf("Failed to convert templateRef to templatingValueRef struct for %s %s/%s: %v", instanceType, instanceNs, instanceName, err)
+						return err
+					}
+
+					// get the defaultValue from template
+					valueRef, err = m.GetDefaultValueFromTemplate(ctx, templateRefObj, instanceType, instanceName, instanceNs, ignoreRef)
+					if err != nil {
+						klog.Errorf("Failed to get default value from template for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
+					}
+
+					// get the value from the ConfigMap reference
+					if ref, err := m.ParseConfigMapRef(ctx, templateRefObj.ConfigMapKeyRef, instanceType, instanceName, instanceNs); err != nil {
+						klog.Errorf("Failed to get value reference from ConfigMap for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
+						return err
+					} else if ref != "" {
+						valueRef = ref
+					}
+
+					// get the value from the secret
+					if ref, err := m.ParseSecretKeyRef(ctx, templateRefObj.SecretRef, instanceType, instanceName, instanceNs); err != nil {
+						klog.Errorf("Failed to get value reference from Secret for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
+						return err
+					} else if ref != "" {
+						valueRef = ref
+					}
+
+					// get the value from the route
+					if ref, err := m.ParseRouteRef(ctx, templateRefObj.RouteRef, instanceType, instanceName, instanceNs); err != nil {
+						klog.Errorf("Failed to get value reference from Route for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
+						return err
+					} else if ref != "" {
+						valueRef = ref
+					}
+
+					if valueRef == "" && templateRefObj.Required && !ignoreRef {
+						return errors.Errorf("Found empty value reference from template for %s %s/%s on field %s, retry in few second", instanceType, instanceNs, instanceName, key)
+					}
+				}
+				// overwrite the value with the value from the reference
+				finalObject[key] = valueRef
+			} else {
+				if err := m.ParseValueReferenceInObject(ctx, subKey, object.(map[string]interface{})[subKey], finalObject[key].(map[string]interface{}), instanceType, instanceName, instanceNs, ignoreRef); err != nil {
+					return err
+				}
+			}
+		}
+	case []interface{}:
+		for i := range finalObject[key].([]interface{}) {
+			if _, ok := finalObject[key].([]interface{})[i].(map[string]interface{}); ok {
+				for subKey, value := range finalObject[key].([]interface{})[i].(map[string]interface{}) {
+					if err := m.ParseValueReferenceInObject(ctx, subKey, value, finalObject[key].([]interface{})[i].(map[string]interface{}), instanceType, instanceName, instanceNs, ignoreRef); err != nil {
+						return err
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (m *ODLMOperator) GetDefaultValueFromTemplate(ctx context.Context, template *util.TemplateValueRef, instanceType, instanceName, instanceNs string, ignoreRef bool) (string, error) {
+	if template == nil {
+		return "", nil
+	}
+	if template.Default != nil {
+		defaultValue := template.Default.DefaultValue
+		if ref, err := m.ParseConfigMapRef(ctx, template.Default.ConfigMapKeyRef, instanceType, instanceName, instanceNs); err != nil {
+			return "", err
+		} else if ref != "" {
+			defaultValue = ref
+		}
+		if ref, err := m.ParseSecretKeyRef(ctx, template.Default.SecretRef, instanceType, instanceName, instanceNs); err != nil {
+			return "", err
+		} else if ref != "" {
+			defaultValue = ref
+		}
+		if defaultValue == "" && template.Default.Required && !ignoreRef {
+			return "", errors.Errorf("Failed to get default value from template, retry in few second")
+		}
+		return defaultValue, nil
+	}
+	return "", nil
+}
+
+func (m *ODLMOperator) ParseConfigMapRef(ctx context.Context, cm *util.ConfigMapRef, instanceType, instanceName, instanceNs string) (string, error) {
+	// check if template is nil
+	if cm == nil {
+		return "", nil
+	}
+	// check if namespace is empty
+	if cm.Namespace == "" {
+		cm.Namespace = instanceNs
+	}
+	// get the value from the ConfigMap reference
+	cmData, err := m.GetValueRefFromConfigMap(ctx, instanceType, instanceName, instanceNs, cm.Name, cm.Namespace, cm.Key)
+	if err != nil {
+		klog.Errorf("Failed to get value reference from ConfigMap %s/%s with key %s: %v", cm.Namespace, cm.Name, cm.Key, err)
+		return "", err
+	}
+	return cmData, nil
+}
+
+func (m *ODLMOperator) ParseSecretKeyRef(ctx context.Context, secret *util.SecretRef, instanceType, instanceName, instanceNs string) (string, error) {
+	// check if template is nil
+	if secret == nil {
+		return "", nil
+	}
+	// check if namespace is empty
+	if secret.Namespace == "" {
+		secret.Namespace = instanceNs
+	}
+	// get the value from the secret
+	secretData, err := m.GetValueRefFromSecret(ctx, instanceType, instanceName, instanceNs, secret.Name, secret.Namespace, secret.Key)
+	if err != nil {
+		klog.Errorf("Failed to get value reference from Secret %s/%s with key %s: %v", secret.Namespace, secret.Name, secret.Key, err)
+		return "", err
+	}
+	return secretData, nil
+}
+
+func (m *ODLMOperator) ParseRouteRef(ctx context.Context, route *util.RouteRef, instanceType, instanceName, instanceNs string) (string, error) {
+	// check if template is nil
+	if route == nil {
+		return "", nil
+	}
+	// check if namespace is empty
+	if route.Namespace == "" {
+		route.Namespace = instanceNs
+	}
+	// get the value from the route
+	routeData, err := m.GetValueRefFromRoute(ctx, instanceType, instanceName, instanceNs, route.Name, route.Namespace, route.Path)
+	if err != nil {
+		klog.Errorf("Failed to get value reference from Route %s/%s with path %s: %v", route.Namespace, route.Name, route.Path, err)
+		return "", err
+	}
+	return routeData, nil
+}
+
+func (m *ODLMOperator) GetValueRefFromConfigMap(ctx context.Context, instanceType, instanceName, instanceNs, cmName, cmNs, configMapKey string) (string, error) {
+	cm := &corev1.ConfigMap{}
+	if err := m.Reader.Get(ctx, types.NamespacedName{Name: cmName, Namespace: cmNs}, cm); err != nil {
+		if apierrors.IsNotFound(err) {
+			klog.V(2).Infof("Configmap %s/%s is not found", cmNs, cmName)
+			return "", nil
+		}
+		return "", errors.Wrapf(err, "failed to get Configmap %s/%s", cmNs, cmName)
+	}
+
+	// Set the Value Reference label for the ConfigMap
+	util.EnsureLabelsForConfigMap(cm, map[string]string{
+		constant.ODLMReferenceLabel: instanceType + "." + instanceNs + "." + instanceName,
+		constant.ODLMWatchedLabel:   "true",
+	})
+	// Update the ConfigMap with the Value Reference label
+	if err := m.Update(ctx, cm); err != nil {
+		return "", errors.Wrapf(err, "failed to update ConfigMap %s/%s", cm.Namespace, cm.Name)
+	}
+	klog.V(2).Infof("Set the Value Reference label for ConfigMap %s/%s", cm.Namespace, cm.Name)
+
+	if cm.Data != nil {
+		if data, ok := cm.Data[configMapKey]; ok {
+			return data, nil
+		}
+	}
+	return "", nil
+}
+
+func (m *ODLMOperator) GetValueRefFromSecret(ctx context.Context, instanceType, instanceName, instanceNs, secretName, secretNs, secretKey string) (string, error) {
+	secret := &corev1.Secret{}
+	if err := m.Reader.Get(ctx, types.NamespacedName{Name: secretName, Namespace: secretNs}, secret); err != nil {
+		if apierrors.IsNotFound(err) {
+			klog.V(3).Infof("Secret %s/%s is not found", secretNs, secretName)
+			return "", nil
+		}
+		return "", errors.Wrapf(err, "failed to get Secret %s/%s", secretNs, secretName)
+	}
+
+	// Set the Value Reference label for the Secret
+	util.EnsureLabelsForSecret(secret, map[string]string{
+		constant.ODLMReferenceLabel: instanceType + "." + instanceNs + "." + instanceName,
+		constant.ODLMWatchedLabel:   "true",
+	})
+	// Update the Secret with the Value Reference label
+	if err := m.Update(ctx, secret); err != nil {
+		return "", errors.Wrapf(err, "failed to update Secret %s/%s", secret.Namespace, secret.Name)
+	}
+	klog.V(2).Infof("Set the Value Reference label for Secret %s/%s", secret.Namespace, secret.Name)
+
+	if secret.Data != nil {
+		if data, ok := secret.Data[secretKey]; ok {
+			return string(data), nil
+		}
+	}
+	return "", nil
+}
+
+func (m *ODLMOperator) GetValueRefFromRoute(ctx context.Context, instanceType, instanceName, instanceNs, routeName, routeNs, path string) (string, error) {
+	route := &routev1.Route{}
+	if err := m.Reader.Get(ctx, types.NamespacedName{Name: routeName, Namespace: routeNs}, route); err != nil {
+		if apierrors.IsNotFound(err) {
+			klog.V(3).Infof("Route %s/%s is not found", routeNs, routeName)
+			return "", nil
+		}
+		return "", errors.Wrapf(err, "failed to get Route %s/%s", routeNs, routeName)
+	}
+
+	// Set the Value Reference label for the Route
+	util.EnsureLabelsForRoute(route, map[string]string{
+		constant.ODLMReferenceLabel: instanceType + "." + instanceNs + "." + instanceName,
+		constant.ODLMWatchedLabel:   "true",
+	})
+	// Update the Route with the Value Reference label
+	if err := m.Update(ctx, route); err != nil {
+		return "", errors.Wrapf(err, "failed to update Route %s/%s", route.Namespace, route.Name)
+	}
+	klog.V(2).Infof("Set the Value Reference label for Route %s/%s", route.Namespace, route.Name)
+
+	value, err := m.GetRouteValueByPath(route, path)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to get value from Route %s/%s", route.Namespace, route.Name)
+	}
+	klog.Infof("Get value %s from Route %s/%s", value, route.Namespace, route.Name)
+	return value, nil
+}
+
+func (m *ODLMOperator) GetRouteValueByPath(route *routev1.Route, path string) (string, error) {
+	if path == "" {
+		return "", nil
+	}
+	routeObject, err := util.ObjectToNewUnstructured(route)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to convert Route %s/%s to unstructured.Unstructured object", route.Namespace, route.Name)
+	}
+	if value, ok, err := unstructured.NestedString(routeObject.Object, strings.Split(path, ".")...); err != nil {
+		return "", errors.Wrapf(err, "failed to parse path %v from Route %s/%s", path, route.Namespace, route.Name)
+	} else if !ok {
+		return "", errors.Errorf("failed to get path %v from Route %s/%s, the value is not found", path, route.Namespace, route.Name)
+	} else {
+		return value, nil
+	}
 }

@@ -26,6 +26,7 @@ import (
 	"time"
 
 	gset "github.com/deckarep/golang-set"
+	routev1 "github.com/openshift/api/route/v1"
 	olmv1 "github.com/operator-framework/api/pkg/operators/v1"
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/pkg/errors"
@@ -299,10 +300,68 @@ func (r *Reconciler) getConfigToRequestMapper() handler.MapFunc {
 	}
 }
 
+func (r *Reconciler) getReferenceToRequestMapper() handler.MapFunc {
+	ctx := context.Background()
+	return func(object client.Object) []ctrl.Request {
+		labels := object.GetLabels()
+		if labels == nil {
+			return []ctrl.Request{}
+		}
+		odlmReference, ok := labels[constant.ODLMReferenceLabel]
+		if !ok {
+			return []ctrl.Request{}
+		}
+		odlmReferenceSlices := strings.Split(odlmReference, ".")
+		if len(odlmReferenceSlices) != 3 {
+			return []ctrl.Request{}
+		}
+
+		var requestList []operatorv1alpha1.OperandRequest
+		if odlmReferenceSlices[0] == "OperandConfig" {
+			requestList, _ = r.ListOperandRequestsByConfig(ctx, types.NamespacedName{Namespace: odlmReferenceSlices[1], Name: odlmReferenceSlices[2]})
+		} else if odlmReferenceSlices[0] == "OperandRegistry" {
+			requestList, _ = r.ListOperandRequestsByRegistry(ctx, types.NamespacedName{Namespace: odlmReferenceSlices[1], Name: odlmReferenceSlices[2]})
+		} else {
+			return []ctrl.Request{}
+		}
+
+		requests := []ctrl.Request{}
+		for _, request := range requestList {
+			namespaceName := types.NamespacedName{Name: request.Name, Namespace: request.Namespace}
+			req := ctrl.Request{NamespacedName: namespaceName}
+			requests = append(requests, req)
+		}
+		return requests
+	}
+}
+
 // SetupWithManager adds OperandRequest controller to the manager.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	options := controller.Options{
 		MaxConcurrentReconciles: r.MaxConcurrentReconciles, // Set the desired value for max concurrent reconciles.
+	}
+	ReferencePredicates := predicate.Funcs{
+		CreateFunc: func(e event.CreateEvent) bool {
+			labels := e.Object.GetLabels()
+			for labelKey, labelValue := range labels {
+				if labelKey == constant.ODLMWatchedLabel {
+					return labelValue == "true"
+				}
+			}
+			return false
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			labels := e.ObjectNew.GetLabels()
+			for labelKey, labelValue := range labels {
+				if labelKey == constant.ODLMWatchedLabel {
+					return labelValue == "true"
+				}
+			}
+			return false
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return true
+		},
 	}
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(options).
@@ -342,5 +401,9 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 				newObject := e.ObjectNew.(*operatorv1alpha1.OperandConfig)
 				return !reflect.DeepEqual(oldObject.Spec, newObject.Spec)
 			},
-		})).Complete(r)
+		})).
+		Watches(&source.Kind{Type: &corev1.ConfigMap{}}, handler.EnqueueRequestsFromMapFunc(r.getReferenceToRequestMapper()), builder.WithPredicates(ReferencePredicates)).
+		Watches(&source.Kind{Type: &corev1.Secret{}}, handler.EnqueueRequestsFromMapFunc(r.getReferenceToRequestMapper()), builder.WithPredicates(ReferencePredicates)).
+		Watches(&source.Kind{Type: &routev1.Route{}}, handler.EnqueueRequestsFromMapFunc(r.getReferenceToRequestMapper()), builder.WithPredicates(ReferencePredicates)).
+		Complete(r)
 }
