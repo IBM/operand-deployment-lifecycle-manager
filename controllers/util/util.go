@@ -25,7 +25,6 @@ import (
 	"sync"
 	"time"
 
-	routev1 "github.com/openshift/api/route/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -38,15 +37,17 @@ type TemplateValueRef struct {
 	Default         *DefaultObjectRef `json:"default,omitempty"`
 	ConfigMapKeyRef *ConfigMapRef     `json:"configMapKeyRef,omitempty"`
 	SecretRef       *SecretRef        `json:"secretKeyRef,omitempty"`
-	RouteRef        *RouteRef         `json:"routePathRef,omitempty"`
+	// RouteRef        *RouteRef         `json:"routePathRef,omitempty"`
+	ObjectRef *ObjectRef `json:"objectRef,omitempty"`
 }
 
 type DefaultObjectRef struct {
 	Required        bool          `json:"required,omitempty"`
 	ConfigMapKeyRef *ConfigMapRef `json:"configMapKeyRef,omitempty"`
 	SecretRef       *SecretRef    `json:"secretKeyRef,omitempty"`
-	RouteRef        *RouteRef     `json:"routePathRef,omitempty"`
-	DefaultValue    string        `json:"defaultValue,omitempty"`
+	// RouteRef        *RouteRef     `json:"routePathRef,omitempty"`
+	ObjectRef    *ObjectRef `json:"objectRef,omitempty"`
+	DefaultValue string     `json:"defaultValue,omitempty"`
 }
 
 type ConfigMapRef struct {
@@ -61,10 +62,18 @@ type SecretRef struct {
 	Key       string `json:"key"`
 }
 
-type RouteRef struct {
-	Name      string `json:"name"`
-	Namespace string `json:"namespace"`
-	Path      string `json:"path"`
+// type RouteRef struct {
+// 	Name      string `json:"name"`
+// 	Namespace string `json:"namespace"`
+// 	Path      string `json:"path"`
+// }
+
+type ObjectRef struct {
+	Name       string `json:"name"`
+	Namespace  string `json:"namespace"`
+	Path       string `json:"path"`
+	APIVersion string `json:"apiVersion"`
+	Kind       string `json:"kind"`
 }
 
 // GetOperatorNamespace returns the Namespace of the operator
@@ -257,14 +266,14 @@ func EnsureLabelsForConfigMap(cm *corev1.ConfigMap, labels map[string]string) {
 	}
 }
 
-func EnsureLabelsForRoute(route *routev1.Route, labels map[string]string) {
-	if route.Labels == nil {
-		route.Labels = make(map[string]string)
-	}
-	for k, v := range labels {
-		route.Labels[k] = v
-	}
-}
+// func EnsureLabelsForRoute(route *routev1.Route, labels map[string]string) {
+// 	if route.Labels == nil {
+// 		route.Labels = make(map[string]string)
+// 	}
+// 	for k, v := range labels {
+// 		route.Labels[k] = v
+// 	}
+// }
 
 func CompareSecret(secret *corev1.Secret, existingSecret *corev1.Secret) (needUpdate bool) {
 	return !equality.Semantic.DeepEqual(secret.GetLabels(), existingSecret.GetLabels()) || !equality.Semantic.DeepEqual(secret.Type, existingSecret.Type) || !equality.Semantic.DeepEqual(secret.Data, existingSecret.Data) || !equality.Semantic.DeepEqual(secret.StringData, existingSecret.StringData)

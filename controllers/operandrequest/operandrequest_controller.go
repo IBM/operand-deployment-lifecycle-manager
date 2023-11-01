@@ -26,7 +26,6 @@ import (
 	"time"
 
 	gset "github.com/deckarep/golang-set"
-	routev1 "github.com/openshift/api/route/v1"
 	olmv1 "github.com/operator-framework/api/pkg/operators/v1"
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/pkg/errors"
@@ -404,6 +403,5 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 		})).
 		Watches(&source.Kind{Type: &corev1.ConfigMap{}}, handler.EnqueueRequestsFromMapFunc(r.getReferenceToRequestMapper()), builder.WithPredicates(ReferencePredicates)).
 		Watches(&source.Kind{Type: &corev1.Secret{}}, handler.EnqueueRequestsFromMapFunc(r.getReferenceToRequestMapper()), builder.WithPredicates(ReferencePredicates)).
-		Watches(&source.Kind{Type: &routev1.Route{}}, handler.EnqueueRequestsFromMapFunc(r.getReferenceToRequestMapper()), builder.WithPredicates(ReferencePredicates)).
 		Complete(r)
 }

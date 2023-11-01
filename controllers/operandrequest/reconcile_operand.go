@@ -207,7 +207,8 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 
 	// Create k8s resources required by service
 	if service.Resources != nil {
-		for _, res := range service.Resources {
+		for i := range service.Resources {
+			res := service.Resources[i]
 			if res.APIVersion == "" {
 				return fmt.Errorf("The APIVersion of k8s resource is empty for operator " + service.Name)
 			}
