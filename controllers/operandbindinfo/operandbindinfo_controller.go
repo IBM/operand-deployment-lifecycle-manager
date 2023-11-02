@@ -35,6 +35,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -58,6 +59,7 @@ import (
 // Reconciler reconciles a OperandBindInfo object
 type Reconciler struct {
 	*deploy.ODLMOperator
+	Config *rest.Config
 }
 
 var (
@@ -938,12 +940,15 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 		MaxConcurrentReconciles: r.MaxConcurrentReconciles, // Set the desired value for max concurrent reconciles.
 	}
 
-	cfg, err := config.GetConfig()
-	if err != nil {
-		klog.Errorf("Failed to get config: %v", err)
-		return err
+	var err error
+	if r.Config == nil {
+		r.Config, err = config.GetConfig()
+		if err != nil {
+			klog.Errorf("Failed to get config: %v", err)
+			return err
+		}
 	}
-	dc := discovery.NewDiscoveryClientForConfigOrDie(cfg)
+	dc := discovery.NewDiscoveryClientForConfigOrDie(r.Config)
 	_, apiLists, err := dc.ServerGroupsAndResources()
 	if err != nil {
 		return err
