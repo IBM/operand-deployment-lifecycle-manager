@@ -170,7 +170,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 						klog.V(2).Infof("There is no service: %s from the OperandConfig instance: %s/%s, Skip reconciling Operands", operand.Name, registryKey.Namespace, req.Registry)
 						continue
 					}
-					err = r.reconcileCRwithConfig(ctx, opdConfig, configInstance.Namespace, csv, requestInstance, operand.Name, sub.Namespace, &r.Mutex)
+					err = r.reconcileCRwithConfig(ctx, opdConfig, configInstance.Name, configInstance.Namespace, csv, requestInstance, operand.Name, sub.Namespace, &r.Mutex)
 					if err != nil {
 						merr.Add(err)
 						requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceFailed, &r.Mutex)
@@ -202,12 +202,13 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 }
 
 // reconcileCRwithConfig merge and create custom resource base on OperandConfig and CSV alm-examples
-func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operatorv1alpha1.ConfigService, namespace string, csv *olmv1alpha1.ClusterServiceVersion, requestInstance *operatorv1alpha1.OperandRequest, operandName string, operatorNamespace string, mu sync.Locker) error {
+func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operatorv1alpha1.ConfigService, opConfigName, opConfigNs string, csv *olmv1alpha1.ClusterServiceVersion, requestInstance *operatorv1alpha1.OperandRequest, operandName string, operatorNamespace string, mu sync.Locker) error {
 	merr := &util.MultiErr{}
 
 	// Create k8s resources required by service
 	if service.Resources != nil {
-		for _, res := range service.Resources {
+		for i := range service.Resources {
+			res := service.Resources[i]
 			if res.APIVersion == "" {
 				return fmt.Errorf("The APIVersion of k8s resource is empty for operator " + service.Name)
 			}
@@ -220,9 +221,25 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 			}
 			var k8sResNs string
 			if res.Namespace == "" {
-				k8sResNs = namespace
+				k8sResNs = opConfigNs
 			} else {
 				k8sResNs = res.Namespace
+			}
+
+			resObject, err := util.ObjectToNewUnstructured(&res)
+			if err != nil {
+				klog.Errorf("Failed to convert %s %s/%s object to unstructured.Unstructured object", res.Kind, k8sResNs, res.Name)
+				return err
+			}
+
+			if err := r.ParseValueReferenceInObject(ctx, "data", resObject.Object["data"], resObject.Object, "OperandConfig", opConfigName, opConfigNs); err != nil {
+				klog.Errorf("Failed to parse value reference in resource %s/%s: %v", k8sResNs, res.Name, err)
+				return err
+			}
+			// cover unstructured.Unstructured object to original OperandConfig object
+			if err := runtime.DefaultUnstructuredConverter.FromUnstructured(resObject.Object, &res); err != nil {
+				klog.Errorf("Failed to convert unstructured.Unstructured object to %s %s/%s object", res.Kind, k8sResNs, res.Name)
+				return err
 			}
 
 			var k8sRes unstructured.Unstructured
@@ -271,12 +288,28 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 	var almExampleList []interface{}
 	err := json.Unmarshal([]byte(almExamples), &almExampleList)
 	if err != nil {
-		return errors.Wrapf(err, "failed to convert alm-examples in the Subscription %s/%s to slice", namespace, service.Name)
+		return errors.Wrapf(err, "failed to convert alm-examples in the Subscription %s/%s to slice", opConfigNs, service.Name)
 	}
 
 	foundMap := make(map[string]bool)
 	for cr := range service.Spec {
 		foundMap[cr] = false
+	}
+
+	serviceObject, err := util.ObjectToNewUnstructured(service)
+	if err != nil {
+		klog.Errorf("Failed to convert OperandConfig service object %s to unstructured.Unstructured object", service.Name)
+		return err
+	}
+
+	if err := r.ParseValueReferenceInObject(ctx, "spec", serviceObject.Object["spec"], serviceObject.Object, "OperandConfig", opConfigName, opConfigNs); err != nil {
+		klog.Errorf("Failed to parse value reference for service %s: %v", service.Name, err)
+		return err
+	}
+	// cover unstructured.Unstructured object to original OperandConfig object
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(serviceObject.Object, service); err != nil {
+		klog.Errorf("Failed to convert unstructured.Unstructured object to service object %s", service.Name)
+		return err
 	}
 
 	// Merge OperandConfig and ClusterServiceVersion alm-examples
@@ -293,7 +326,7 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 
 		err := r.Client.Get(ctx, types.NamespacedName{
 			Name:      name,
-			Namespace: namespace,
+			Namespace: opConfigNs,
 		}, &crFromALM)
 
 		foundInConfig := false
@@ -308,19 +341,20 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 			klog.Warningf("%v in the alm-example doesn't exist in the OperandConfig for %v", crFromALM.GetKind(), csv.GetName())
 			continue
 		}
+
 		if err != nil && !apierrors.IsNotFound(err) {
-			merr.Add(errors.Wrapf(err, "failed to get the custom resource %s/%s", namespace, name))
+			merr.Add(errors.Wrapf(err, "failed to get the custom resource %s/%s", opConfigNs, name))
 			continue
 		} else if apierrors.IsNotFound(err) {
 			// Create Custom Resource
-			if err := r.compareConfigandExample(ctx, crFromALM, service, namespace); err != nil {
+			if err := r.compareConfigandExample(ctx, crFromALM, service, opConfigNs); err != nil {
 				merr.Add(err)
 				continue
 			}
 		} else {
 			if r.CheckLabel(crFromALM, map[string]string{constant.OpreqLabel: "true"}) {
 				// Update or Delete Custom Resource
-				if err := r.existingCustomResource(ctx, crFromALM, spec.(map[string]interface{}), service, namespace); err != nil {
+				if err := r.existingCustomResource(ctx, crFromALM, spec.(map[string]interface{}), service, opConfigNs); err != nil {
 					merr.Add(err)
 					continue
 				}

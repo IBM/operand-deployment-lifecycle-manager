@@ -31,6 +31,12 @@ const (
 	//OpreqLabel is the label used to label the subscription/CR managed by ODLM
 	OpreqLabel string = "operator.ibm.com/opreq-control"
 
+	//ODLMReferenceLabel is the label used to label the resources used for ODLM operand value reference
+	ODLMReferenceLabel string = "operator.ibm.com/referenced-by-odlm-resource"
+
+	//ODLMWatchedLabel is the label used to label the resources watched by ODLM for value reference
+	ODLMWatchedLabel string = "operator.ibm.com/watched-by-odlm"
+
 	//OpbiNsLabel is the label used to add OperandBindInfo namespace to the secrets/configmaps watched by ODLM
 	OpbiNsLabel string = "operator.ibm.com/watched-by-opbi-with-namespace"
 

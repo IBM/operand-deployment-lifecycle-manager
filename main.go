@@ -84,10 +84,10 @@ func main() {
 
 	gvkLabelMap := map[schema.GroupVersionKind]cache.Selector{
 		corev1.SchemeGroupVersion.WithKind("Secret"): {
-			LabelSelector: constant.OpbiTypeLabel,
+			LabelSelector: constant.ODLMWatchedLabel,
 		},
 		corev1.SchemeGroupVersion.WithKind("ConfigMap"): {
-			LabelSelector: constant.OpbiTypeLabel,
+			LabelSelector: constant.ODLMWatchedLabel,
 		},
 		appsv1.SchemeGroupVersion.WithKind("Deployment"): {
 			LabelSelector: constant.BindInfoRefreshLabel,
