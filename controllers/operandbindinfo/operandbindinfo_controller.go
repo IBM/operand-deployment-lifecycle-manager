@@ -65,7 +65,6 @@ var (
 	privatePrefix, _   = regexp.Compile(`^private(.*)$`)
 	protectedPrefix, _ = regexp.Compile(`^protected(.*)$`)
 	routeGroupVersion  = "route.openshift.io/v1"
-	routeKind          = "Route"
 	isRouteAPI         = false
 )
 
