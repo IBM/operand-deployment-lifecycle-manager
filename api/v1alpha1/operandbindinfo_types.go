@@ -38,7 +38,7 @@ const (
 	BindInfoFailed    BindInfoPhase = "Failed"
 	BindInfoInit      BindInfoPhase = "Initialized"
 	BindInfoUpdating  BindInfoPhase = "Updating"
-	BindInfoWaiting   BindInfoPhase = "Waiting for Secret and/or Configmap from provider"
+	BindInfoWaiting   BindInfoPhase = "Waiting for Bindable resource from provider. One of: Secret, ConfigMap, Route, or Service"
 )
 
 // OperandBindInfoSpec defines the desired state of OperandBindInfo.
@@ -75,7 +75,7 @@ type Bindable struct {
 	// Route data will shared by copying it into a configmap which is then
 	// created in the target namespace
 	// +optional
-	Route Route `json:"route,omitempty"`
+	Route *Route `json:"route,omitempty"`
 }
 
 // Route represents the name and data inside an OpenShift route.

@@ -212,12 +212,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 
 			if isRouteAPI {
 				// Copy Route data into configmap and share configmap
-				requeueRoute, err := r.copyRoute(ctx, binding.Route, "", operandNamespace, bindRequest.Namespace, key, bindInfoInstance, requestInstance)
-				if err != nil {
-					merr.Add(err)
-					continue
+				if binding.Route != nil {
+					requeueRoute, err := r.copyRoute(ctx, *binding.Route, "", operandNamespace, bindRequest.Namespace, key, bindInfoInstance, requestInstance)
+					if err != nil {
+						merr.Add(err)
+						continue
+					}
+					requeue = requeue || requeueRoute
 				}
-				requeue = requeue || requeueRoute
 			}
 		}
 	}
