@@ -43,7 +43,7 @@ var _ = Describe("OperandRequest controller", func() {
 		namespace         = "ibm-cloudpak"
 		registryName1     = "common-service"
 		registryName2     = "common-service-2"
-		registryNamespace = "ibm-common-services"
+		registryNamespace = "data-ns"
 		operatorNamespace = "ibm-operators"
 	)
 
@@ -319,6 +319,12 @@ var _ = Describe("OperandRequest controller", func() {
 				return err
 			}, testutil.Timeout, testutil.Interval).Should(Succeed())
 
+			Eventually(func() error {
+				jaegerConfigMap := &corev1.ConfigMap{}
+				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "jaeger-configmap-reference", Namespace: registryNamespaceName}, jaegerConfigMap)
+				return err
+			}, testutil.Timeout, testutil.Interval).Should(Succeed())
+
 			By("Disabling the jaeger operator from first OperandRequest")
 			requestInstance1 := &operatorv1alpha1.OperandRequest{}
 			Expect(k8sClient.Get(ctx, requestKey1, requestInstance1)).Should(Succeed())
@@ -362,6 +368,11 @@ var _ = Describe("OperandRequest controller", func() {
 			Eventually(func() bool {
 				jaegerConfigMap := &corev1.ConfigMap{}
 				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "jaeger-configmap", Namespace: registryNamespaceName}, jaegerConfigMap)
+				return err != nil && errors.IsNotFound(err)
+			}, testutil.Timeout, testutil.Interval).Should(BeTrue())
+			Eventually(func() bool {
+				jaegerConfigMap := &corev1.ConfigMap{}
+				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "jaeger-configmap-reference", Namespace: registryNamespaceName}, jaegerConfigMap)
 				return err != nil && errors.IsNotFound(err)
 			}, testutil.Timeout, testutil.Interval).Should(BeTrue())
 

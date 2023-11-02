@@ -679,6 +679,6 @@ func (m *ODLMOperator) GetValueRefFromObject(ctx context.Context, instanceType, 
 		return "", errors.Errorf("failed to get path %v from %s %s/%s, the value is not found", path, obj.GetKind(), obj.GetNamespace(), obj.GetName())
 	}
 
-	klog.Infof("Get value %s from %s %s/%s", value, objKind, obj.GetNamespace(), obj.GetName())
+	klog.V(2).Infof("Get value %s from %s %s/%s", value, objKind, obj.GetNamespace(), obj.GetName())
 	return value, nil
 }

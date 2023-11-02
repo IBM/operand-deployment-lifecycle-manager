@@ -56,7 +56,7 @@ var SubConfig = &olmv1alpha1.SubscriptionConfig{
 
 // CreateNSName generates random namespace names. Namespaces are never deleted in test environment
 func CreateNSName(prefix string) string {
-	suffix := make([]byte, 10)
+	suffix := make([]byte, 4)
 	_, err := rand.Read(suffix)
 	if err != nil {
 		panic(err)
@@ -142,7 +142,18 @@ func OperandConfigObj(name, namespace string) *apiv1alpha1.OperandConfig {
 					Name: "jaeger",
 					Spec: map[string]apiv1alpha1.ExtensionWithMarker{
 						"jaeger": {
-							RawExtension: runtime.RawExtension{Raw: []byte(`{"strategy": "streaming"}`)},
+							RawExtension: runtime.RawExtension{Raw: []byte(`{
+								"strategy": {
+								  "templatingValueFrom": {
+									"required": true,
+									"configMapKeyRef": {
+									  "name": "jaeger-configmap-reference",
+									  "key": "putStrategy"
+									}
+								  }
+								}
+							  }`),
+							},
 						},
 					},
 					Resources: []apiv1alpha1.ConfigResource{
@@ -158,6 +169,36 @@ func OperandConfigObj(name, namespace string) *apiv1alpha1.OperandConfig {
 							},
 							Data: &runtime.RawExtension{
 								Raw: []byte(`{"data": {"strategy": "allinone"}}`),
+							},
+							Force: false,
+						},
+						{
+							Name:       "jaeger-configmap-reference",
+							APIVersion: "v1",
+							Kind:       "ConfigMap",
+							Labels: map[string]string{
+								"jaeger": "jaeger-configmap-reference",
+							},
+							Annotations: map[string]string{
+								"jaeger": "jaeger-configmap-reference",
+							},
+							Data: &runtime.RawExtension{
+								Raw: []byte(`{
+									"data": {
+									  "getStrategy": {
+										"templatingValueFrom": {
+										  "required": true,
+										  "objectRef": {
+											"apiVersion": "v1",
+											"kind": "ConfigMap",
+											"name": "jaeger-configmap",
+											"path": "data.strategy"
+										  }
+										}
+									  },
+									  "putStrategy": "streaming"
+									}
+								}`),
 							},
 							Force: false,
 						},
