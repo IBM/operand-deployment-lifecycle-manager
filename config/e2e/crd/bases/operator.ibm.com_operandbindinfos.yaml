@@ -51,18 +51,37 @@ spec:
           metadata:
             type: object
           spec:
-            x-kubernetes-preserve-unknown-fields: true
             description: OperandBindInfoSpec defines the desired state of OperandBindInfo.
             properties:
               bindings:
                 additionalProperties:
-                  description: Bindable is a pair of Secret and/or Configmap.
+                  description: Bindable is a Kubernetes resources to be shared from
+                    one namespace to another. List of supported resources are Secrets,
+                    Configmaps, Services, and Routes. Secrets and Configmaps will
+                    be copied such that a new Secret/Configmap with exactly the same
+                    data will be created in the target namespace. Services and Routes
+                    data will be copied into a configmap in the target namespace.
                   properties:
                     configmap:
                       description: The configmap identifies an existing configmap
                         object. if it exists, the ODLM will share to the namespace
                         of the OperandRequest.
                       type: string
+                    route:
+                      description: Route data will shared by copying it into a configmap
+                        which is then created in the target namespace
+                      properties:
+                        data:
+                          additionalProperties:
+                            type: string
+                          description: Data is a key-value pair where the value is
+                            a YAML path to a value in the OpenShift Route, e.g. .spec.host
+                            or .spec.tls.termination
+                          type: object
+                        name:
+                          description: Name is the name of the OpenShift Route resource
+                          type: string
+                      type: object
                     secret:
                       description: The secret identifies an existing secret. if it
                         exists, the ODLM will share to the namespace of the OperandRequest.
@@ -90,6 +109,7 @@ spec:
             - operand
             - registry
             type: object
+            x-kubernetes-preserve-unknown-fields: true
           status:
             description: OperandBindInfoStatus defines the observed state of OperandBindInfo.
             properties:
@@ -102,6 +122,7 @@ spec:
                   type: string
                 type: array
             type: object
+            x-kubernetes-preserve-unknown-fields: true
         type: object
     served: true
     storage: true

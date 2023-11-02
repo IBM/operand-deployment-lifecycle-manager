@@ -72,6 +72,21 @@ type Bindable struct {
 	// The configmap identifies an existing configmap object. if it exists, the ODLM will share to the namespace of the OperandRequest.
 	// +optional
 	Configmap string `json:"configmap,omitempty"`
+	// Route data will shared by copying it into a configmap which is then
+	// created in the target namespace
+	// +optional
+	Route Route `json:"route,omitempty"`
+}
+
+// Route represents the name and data inside an OpenShift route.
+type Route struct {
+	// Name is the name of the OpenShift Route resource
+	// +optional
+	Name string `json:"name"`
+	// Data is a key-value pair where the value is a YAML path to a value in the
+	// OpenShift Route, e.g. .spec.host or .spec.tls.termination
+	// +optional
+	Data map[string]string `json:"data"`
 }
 
 // OperandBindInfoStatus defines the observed state of OperandBindInfo.

@@ -25,6 +25,7 @@ import (
 	"sync"
 	"time"
 
+	ocproute "github.com/openshift/api/route/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -257,6 +258,15 @@ func EnsureLabelsForConfigMap(cm *corev1.ConfigMap, labels map[string]string) {
 	}
 	for k, v := range labels {
 		cm.Labels[k] = v
+	}
+}
+
+func EnsureLabelsForRoute(r *ocproute.Route, labels map[string]string) {
+	if r.Labels == nil {
+		r.Labels = make(map[string]string)
+	}
+	for k, v := range labels {
+		r.Labels[k] = v
 	}
 }
 
