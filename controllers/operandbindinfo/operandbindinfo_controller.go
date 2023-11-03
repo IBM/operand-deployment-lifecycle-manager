@@ -17,6 +17,7 @@
 package operandbindinfo
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"reflect"
@@ -36,6 +37,7 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/util/jsonpath"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -220,6 +222,15 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 					}
 					requeue = requeue || requeueRoute
 				}
+			}
+			// Copy Route data into configmap and share configmap
+			if binding.Service != nil {
+				requeueService, err := r.copyService(ctx, *binding.Service, "", operandNamespace, bindRequest.Namespace, key, bindInfoInstance, requestInstance)
+				if err != nil {
+					merr.Add(err)
+					continue
+				}
+				requeue = requeue || requeueService
 			}
 		}
 	}
@@ -427,6 +438,8 @@ func (r *Reconciler) copyConfigmap(ctx context.Context, sourceName, targetName, 
 	return false, nil
 }
 
+// copyRoute reads the data map and copies OCP Route data as specified by the
+// field path in the data map values
 func (r *Reconciler) copyRoute(ctx context.Context, route operatorv1alpha1.Route, targetName, sourceNs, targetNs, key string,
 	bindInfoInstance *operatorv1alpha1.OperandBindInfo, requestInstance *operatorv1alpha1.OperandRequest) (requeue bool, err error) {
 	if route.Name == "" || sourceNs == "" || targetNs == "" {
@@ -521,7 +534,103 @@ func (r *Reconciler) copyRoute(ctx context.Context, route operatorv1alpha1.Route
 	return false, nil
 }
 
-// sanitizedOdlmRouteData takes a map, i.e. ODLM's Route.Data, and an OCP Route.Spec,
+// copyRoute reads the data map and copies K8s Service data as specified by the
+// field path in the data map values
+func (r *Reconciler) copyService(ctx context.Context, service operatorv1alpha1.ServiceData, targetName, sourceNs, targetNs, key string,
+	bindInfoInstance *operatorv1alpha1.OperandBindInfo, requestInstance *operatorv1alpha1.OperandRequest) (requeue bool, err error) {
+	if service.Name == "" || sourceNs == "" || targetNs == "" {
+		return false, nil
+	}
+
+	if service.Name == targetName && sourceNs == targetNs {
+		return false, nil
+	}
+
+	if targetName == "" {
+		if publicPrefix.MatchString(key) {
+			targetName = bindInfoInstance.Name + "-" + service.Name
+		} else {
+			return false, nil
+		}
+	}
+
+	sourceService := &corev1.Service{}
+	if err := r.Client.Get(ctx, types.NamespacedName{Name: service.Name, Namespace: sourceNs}, sourceService); err != nil {
+		if apierrors.IsNotFound(err) {
+			klog.V(3).Infof("Route %s/%s is not found", sourceNs, service.Name)
+			r.Recorder.Eventf(bindInfoInstance, corev1.EventTypeNormal, "NotFound", "No Service %s in the namespace %s", service.Name, sourceNs)
+			return true, nil
+		}
+		return false, errors.Wrapf(err, "failed to get Service %s/%s", sourceNs, service.Name)
+	}
+	// Create the ConfigMap to the OperandRequest namespace
+	labels := make(map[string]string)
+	// Copy from the original labels to the target labels
+	for k, v := range sourceService.Labels {
+		labels[k] = v
+	}
+	labels[bindInfoInstance.Namespace+"."+bindInfoInstance.Name+"/bindinfo"] = "true"
+	labels[constant.OpbiTypeLabel] = "copy"
+
+	sanitizedData, err := sanitizeServiceData(service.Data, *sourceService)
+	if err != nil {
+		return false, err
+	}
+	cmCopy := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      targetName,
+			Namespace: targetNs,
+			Labels:    labels,
+		},
+		Data: sanitizedData,
+	}
+	// Set the OperandRequest as the controller of the configmap
+	if err := controllerutil.SetControllerReference(requestInstance, cmCopy, r.Scheme); err != nil {
+		return false, errors.Wrapf(err, "failed to set OperandRequest %s as the owner of ConfigMap %s", requestInstance.Name, service.Name)
+	}
+
+	var podRefreshment bool
+	// Create the ConfigMap in the OperandRequest namespace
+	if err := r.Create(ctx, cmCopy); err != nil {
+		if apierrors.IsAlreadyExists(err) {
+			// If already exist, update the ConfigMap
+			existingCm := &corev1.ConfigMap{}
+			if err := r.Client.Get(ctx, types.NamespacedName{Namespace: targetNs, Name: targetName}, existingCm); err != nil {
+				return false, errors.Wrapf(err, "failed to get ConfigMap %s/%s", targetNs, targetName)
+			}
+			if needUpdate := util.CompareConfigMap(cmCopy, existingCm); needUpdate {
+				podRefreshment = true
+				if err := r.Update(ctx, cmCopy); err != nil {
+					return false, errors.Wrapf(err, "failed to update ConfigMap %s/%s", targetNs, service.Name)
+				}
+			}
+		} else {
+			return false, errors.Wrapf(err, "failed to create ConfigMap %s/%s", targetNs, service.Name)
+		}
+	}
+
+	if podRefreshment {
+		if err := r.refreshPods(targetNs, targetName, "configmap"); err != nil {
+			return false, errors.Wrapf(err, "failed to refresh pods mounting ConfigMap %s/%s", targetNs, targetName)
+		}
+	}
+
+	// Set the OperandBindInfo label for the ConfigMap
+	util.EnsureLabelsForService(sourceService, map[string]string{
+		bindInfoInstance.Namespace + "." + bindInfoInstance.Name + "/bindinfo": "true",
+		constant.OpbiTypeLabel: "original",
+	})
+
+	// Update the operand Configmap
+	if err := r.Update(ctx, sourceService); err != nil {
+		return false, errors.Wrapf(err, "failed to update ConfigMap %s/%s", sourceService.Namespace, sourceService.Name)
+	}
+	klog.V(1).Infof("Service %s is copied from the namespace %s to the namespace %s", service.Name, sourceNs, targetNs)
+
+	return false, nil
+}
+
+// sanitizeOdlmRouteData takes a map, i.e. ODLM's Route.Data, and an OCP Route.Spec,
 // and returns a map ready to be included into a ConfigMap's data. The ODLM's
 // Route.Data is sanitized because the values are YAML path references
 // in map because they correspond to YAML fields in a OCP Route. Ensures that:
@@ -554,6 +663,38 @@ func sanitizeOdlmRouteData(m map[string]string, route ocproute.RouteSpec) (map[s
 			return nil, errors.Errorf("Bindable Route.Data references a field that does not exist: %s", v)
 		}
 
+		sanitized[k] = trueValue
+	}
+	return sanitized, nil
+}
+
+// sanitizeServiceData takes a map, i.e. ODLM's Service.Data, and a K8s Service object
+// and returns a map ready to be included into a ConfigMap's data. The ODLM's
+// Service.Data is sanitized because the values are YAML fields in a K8s Service.
+// Ensures that:
+//  1. the field actually exists, otherwise returns an error
+//  2. extracts the value from the K8s Service's field, the value will be
+//     stringified
+func sanitizeServiceData(m map[string]string, service corev1.Service) (map[string]string, error) {
+	sanitized := make(map[string]string, len(m))
+	trueValue := ""
+	jpath := jsonpath.New("sanitizeServiceData")
+	for k, v := range m {
+		stringParts := strings.Split(v, "+")
+		for _, s := range stringParts {
+			actual := s
+			if strings.HasPrefix(s, ".") {
+				if len(s) > 1 {
+					if err := jpath.Parse("{" + s + "}"); err != nil {
+						return nil, err
+					}
+					buf := new(bytes.Buffer)
+					jpath.Execute(buf, service)
+					actual = buf.String()
+				}
+			}
+			trueValue += actual
+		}
 		sanitized[k] = trueValue
 	}
 	return sanitized, nil

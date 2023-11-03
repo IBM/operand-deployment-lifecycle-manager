@@ -270,6 +270,15 @@ func EnsureLabelsForRoute(r *ocproute.Route, labels map[string]string) {
 	}
 }
 
+func EnsureLabelsForService(s *corev1.Service, labels map[string]string) {
+	if s.Labels == nil {
+		s.Labels = make(map[string]string)
+	}
+	for k, v := range labels {
+		s.Labels[k] = v
+	}
+}
+
 func CompareSecret(secret *corev1.Secret, existingSecret *corev1.Secret) (needUpdate bool) {
 	return !equality.Semantic.DeepEqual(secret.GetLabels(), existingSecret.GetLabels()) || !equality.Semantic.DeepEqual(secret.Type, existingSecret.Type) || !equality.Semantic.DeepEqual(secret.Data, existingSecret.Data) || !equality.Semantic.DeepEqual(secret.StringData, existingSecret.StringData)
 }
