@@ -51,7 +51,6 @@ spec:
           metadata:
             type: object
           spec:
-            x-kubernetes-preserve-unknown-fields: true
             description: The OperandRequestSpec identifies one or more specific operands
               (from a specific Registry) that should actually be installed.
             properties:
@@ -77,14 +76,37 @@ spec:
                             type: string
                           bindings:
                             additionalProperties:
-                              description: SecretConfigmap is a pair of Secret and/or
-                                Configmap.
+                              description: Bindable is a Kubernetes resources to be
+                                shared from one namespace to another. List of supported
+                                resources are Secrets, Configmaps, Services, and Routes.
+                                Secrets and Configmaps will be copied such that a
+                                new Secret/Configmap with exactly the same data will
+                                be created in the target namespace. Services and Routes
+                                data will be copied into a configmap in the target
+                                namespace.
                               properties:
                                 configmap:
                                   description: The configmap identifies an existing
                                     configmap object. if it exists, the ODLM will
                                     share to the namespace of the OperandRequest.
                                   type: string
+                                route:
+                                  description: Route data will shared by copying it
+                                    into a configmap which is then created in the
+                                    target namespace
+                                  properties:
+                                    data:
+                                      additionalProperties:
+                                        type: string
+                                      description: Data is a key-value pair where
+                                        the value is a YAML path to a value in the
+                                        OpenShift Route, e.g. .spec.host or .spec.tls.termination
+                                      type: object
+                                    name:
+                                      description: Name is the name of the OpenShift
+                                        Route resource
+                                      type: string
+                                  type: object
                                 secret:
                                   description: The secret identifies an existing secret.
                                     if it exists, the ODLM will share to the namespace
@@ -135,6 +157,7 @@ spec:
             required:
             - requests
             type: object
+            x-kubernetes-preserve-unknown-fields: true
           status:
             description: OperandRequestStatus defines the observed state of OperandRequest.
             properties:
@@ -219,7 +242,55 @@ spec:
               phase:
                 description: Phase is the cluster running phase.
                 type: string
+              services:
+                description: Services reflect the status of operands beyond whether
+                  they have been created
+                items:
+                  properties:
+                    namespace:
+                      type: string
+                    operatorName:
+                      type: string
+                    resources:
+                      description: LastUpdateTime string `json:"lastTransitionTime,omitempty"`
+                      items:
+                        properties:
+                          apiVersion:
+                            type: string
+                          kind:
+                            type: string
+                          managedResources:
+                            description: Message string `json:"message,omitempty"`
+                            items:
+                              properties:
+                                apiVersion:
+                                  type: string
+                                kind:
+                                  type: string
+                                namespace:
+                                  type: string
+                                objectName:
+                                  type: string
+                                status:
+                                  description: Type string `json:"type,omitempty"`
+                                  type: string
+                              type: object
+                            type: array
+                          namespace:
+                            type: string
+                          objectName:
+                            type: string
+                          status:
+                            type: string
+                        type: object
+                      type: array
+                    status:
+                      description: Type string `json:"type,omitempty"`
+                      type: string
+                  type: object
+                type: array
             type: object
+            x-kubernetes-preserve-unknown-fields: true
         type: object
     served: true
     storage: true

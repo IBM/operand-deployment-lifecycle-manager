@@ -238,7 +238,7 @@ func OperandRequestObj(registryName, registryNamespace, requestName, requestName
 						},
 						{
 							Name: "mongodb-atlas-kubernetes",
-							Bindings: map[string]apiv1alpha1.SecretConfigmap{
+							Bindings: map[string]apiv1alpha1.Bindable{
 								"public": {
 									Secret:    "secret4",
 									Configmap: "cm4",
@@ -331,7 +331,7 @@ func OperandRequestObjWithProtected(registryName, registryNamespace, requestName
 						},
 						{
 							Name: "mongodb-atlas-kubernetes",
-							Bindings: map[string]apiv1alpha1.SecretConfigmap{
+							Bindings: map[string]apiv1alpha1.Bindable{
 								"protected": {
 									Secret:    "secret5",
 									Configmap: "cm5",
@@ -356,7 +356,7 @@ func OperandBindInfoObj(name, namespace, registryName, registryNamespace string)
 			Operand:           "mongodb-atlas-kubernetes",
 			Registry:          registryName,
 			RegistryNamespace: registryNamespace,
-			Bindings: map[string]apiv1alpha1.SecretConfigmap{
+			Bindings: map[string]apiv1alpha1.Bindable{
 				"public": {
 					Secret:    "secret1",
 					Configmap: "cm1",

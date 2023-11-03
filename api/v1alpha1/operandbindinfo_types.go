@@ -38,7 +38,7 @@ const (
 	BindInfoFailed    BindInfoPhase = "Failed"
 	BindInfoInit      BindInfoPhase = "Initialized"
 	BindInfoUpdating  BindInfoPhase = "Updating"
-	BindInfoWaiting   BindInfoPhase = "Waiting for Secret and/or Configmap from provider"
+	BindInfoWaiting   BindInfoPhase = "Waiting for Bindable resource from provider. One of: Secret, ConfigMap, Route, or Service"
 )
 
 // OperandBindInfoSpec defines the desired state of OperandBindInfo.
@@ -56,17 +56,37 @@ type OperandBindInfoSpec struct {
 	Description string `json:"description,omitempty"`
 	// The bindings section is used to specify information about the access/configuration data that is to be shared.
 	// +optional
-	Bindings map[string]SecretConfigmap `json:"bindings,omitempty"`
+	Bindings map[string]Bindable `json:"bindings,omitempty"`
 }
 
-// SecretConfigmap is a pair of Secret and/or Configmap.
-type SecretConfigmap struct {
+// Bindable is a Kubernetes resources to be shared from one namespace to another.
+// List of supported resources are Secrets, Configmaps, Services, and Routes.
+// Secrets and Configmaps will be copied such that a new Secret/Configmap with
+// exactly the same data will be created in the target namespace.
+// Services and Routes data will be copied into a configmap in the target
+// namespace.
+type Bindable struct {
 	// The secret identifies an existing secret. if it exists, the ODLM will share to the namespace of the OperandRequest.
 	// +optional
 	Secret string `json:"secret,omitempty"`
 	// The configmap identifies an existing configmap object. if it exists, the ODLM will share to the namespace of the OperandRequest.
 	// +optional
 	Configmap string `json:"configmap,omitempty"`
+	// Route data will shared by copying it into a configmap which is then
+	// created in the target namespace
+	// +optional
+	Route *Route `json:"route,omitempty"`
+}
+
+// Route represents the name and data inside an OpenShift route.
+type Route struct {
+	// Name is the name of the OpenShift Route resource
+	// +optional
+	Name string `json:"name"`
+	// Data is a key-value pair where the value is a YAML path to a value in the
+	// OpenShift Route, e.g. .spec.host or .spec.tls.termination
+	// +optional
+	Data map[string]string `json:"data"`
 }
 
 // OperandBindInfoStatus defines the observed state of OperandBindInfo.

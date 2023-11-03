@@ -63,7 +63,7 @@ type Operand struct {
 	Name string `json:"name"`
 	// The bindings section is used to specify names of secret and/or configmap.
 	// +optional
-	Bindings map[string]SecretConfigmap `json:"bindings,omitempty"`
+	Bindings map[string]Bindable `json:"bindings,omitempty"`
 	// Kind is used when users want to deploy multiple custom resources.
 	// Kind identifies the kind of the custom resource.
 	// +optional

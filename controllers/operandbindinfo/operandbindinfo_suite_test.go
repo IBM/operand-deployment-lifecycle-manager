@@ -106,6 +106,7 @@ var _ = BeforeSuite(func(done Done) {
 
 	// Setup Manager with OperandBindInfo Controller
 	err = (&Reconciler{
+		Config:       cfg,
 		ODLMOperator: deploy.NewODLMOperator(k8sManager, "OperandBindInfo"),
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
