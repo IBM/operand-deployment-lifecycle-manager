@@ -677,9 +677,9 @@ func sanitizeOdlmRouteData(m map[string]string, route ocproute.RouteSpec) (map[s
 //     stringified
 func sanitizeServiceData(m map[string]string, service corev1.Service) (map[string]string, error) {
 	sanitized := make(map[string]string, len(m))
-	trueValue := ""
 	jpath := jsonpath.New("sanitizeServiceData")
 	for k, v := range m {
+		trueValue := ""
 		stringParts := strings.Split(v, "+")
 		for _, s := range stringParts {
 			actual := s
