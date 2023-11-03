@@ -689,7 +689,9 @@ func sanitizeServiceData(m map[string]string, service corev1.Service) (map[strin
 						return nil, err
 					}
 					buf := new(bytes.Buffer)
-					jpath.Execute(buf, service)
+					if err := jpath.Execute(buf, service); err != nil {
+						return nil, err
+					}
 					actual = buf.String()
 				}
 			}
