@@ -223,7 +223,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 					requeue = requeue || requeueRoute
 				}
 			}
-			// Copy Route data into configmap and share configmap
+			// Copy Service data into configmap and share configmap
 			if binding.Service != nil {
 				requeueService, err := r.copyService(ctx, *binding.Service, "", operandNamespace, bindRequest.Namespace, key, bindInfoInstance, requestInstance)
 				if err != nil {
