@@ -89,8 +89,8 @@ spec:
                                     share to the namespace of the OperandRequest.
                                   type: string
                                 route:
-                                  description: Route data will shared by copying it
-                                    into a configmap which is then created in the
+                                  description: Route data will be shared by copying
+                                    it into a configmap which is then created in the
                                     target namespace
                                   properties:
                                     data:
@@ -110,6 +110,23 @@ spec:
                                     if it exists, the ODLM will share to the namespace
                                     of the OperandRequest.
                                   type: string
+                                service:
+                                  description: Service data will be shared by copying
+                                    it into a configmap which is then created in the
+                                    target namespace
+                                  properties:
+                                    data:
+                                      additionalProperties:
+                                        type: string
+                                      description: Data is a key-value pair where
+                                        the value is a YAML path to a value in the
+                                        Kubernetes Service, e.g. .spec.ports[0]port
+                                      type: object
+                                    name:
+                                      description: Name is the name of the Kubernetes
+                                        Service resource
+                                      type: string
+                                  type: object
                               type: object
                             description: The bindings section is used to specify names
                               of secret and/or configmap.

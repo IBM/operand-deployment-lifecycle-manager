@@ -129,7 +129,7 @@ metadata:
     categories: Developer Tools, Monitoring, Logging & Tracing, Security
     certified: "false"
     containerImage: icr.io/cpopen/odlm:latest
-    createdAt: "2023-11-02T22:53:11Z"
+    createdAt: "2023-11-03T17:30:05Z"
     description: The Operand Deployment Lifecycle Manager provides a Kubernetes CRD-based API to manage the lifecycle of operands.
     nss.operator.ibm.com/managed-operators: ibm-odlm
     olm.skipRange: '>=1.2.0 <4.2.1'
