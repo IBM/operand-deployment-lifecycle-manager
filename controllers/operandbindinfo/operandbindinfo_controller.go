@@ -17,7 +17,6 @@
 package operandbindinfo
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"reflect"
@@ -37,7 +36,6 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/util/jsonpath"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -677,25 +675,10 @@ func sanitizeOdlmRouteData(m map[string]string, route ocproute.RouteSpec) (map[s
 //     stringified
 func sanitizeServiceData(m map[string]string, service corev1.Service) (map[string]string, error) {
 	sanitized := make(map[string]string, len(m))
-	jpath := jsonpath.New("sanitizeServiceData")
 	for k, v := range m {
-		trueValue := ""
-		stringParts := strings.Split(v, "+")
-		for _, s := range stringParts {
-			actual := s
-			if strings.HasPrefix(s, ".") {
-				if len(s) > 1 {
-					if err := jpath.Parse("{" + s + "}"); err != nil {
-						return nil, err
-					}
-					buf := new(bytes.Buffer)
-					if err := jpath.Execute(buf, service); err != nil {
-						return nil, err
-					}
-					actual = buf.String()
-				}
-			}
-			trueValue += actual
+		trueValue, err := util.SanitizeObjectString(v, service)
+		if err != nil {
+			return nil, err
 		}
 		sanitized[k] = trueValue
 	}

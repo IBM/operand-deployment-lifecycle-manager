@@ -672,13 +672,11 @@ func (m *ODLMOperator) GetValueRefFromObject(ctx context.Context, instanceType, 
 		return "", nil
 	}
 
-	value, ok, err := unstructured.NestedString(obj.Object, strings.Split(path, ".")...)
+	sanitizedString, err := util.SanitizeObjectString(path, obj.Object)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to parse path %v from %s %s/%s", path, obj.GetKind(), obj.GetNamespace(), obj.GetName())
-	} else if !ok {
-		return "", errors.Errorf("failed to get path %v from %s %s/%s, the value is not found", path, obj.GetKind(), obj.GetNamespace(), obj.GetName())
 	}
 
-	klog.V(2).Infof("Get value %s from %s %s/%s", value, objKind, obj.GetNamespace(), obj.GetName())
-	return value, nil
+	klog.V(2).Infof("Get value %s from %s %s/%s", sanitizedString, objKind, obj.GetNamespace(), obj.GetName())
+	return sanitizedString, nil
 }
