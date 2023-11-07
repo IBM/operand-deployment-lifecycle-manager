@@ -17,6 +17,7 @@
 package util
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"sort"
@@ -31,6 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/util/jsonpath"
 )
 
 type TemplateValueRef struct {
@@ -285,4 +287,34 @@ func CompareSecret(secret *corev1.Secret, existingSecret *corev1.Secret) (needUp
 
 func CompareConfigMap(configMap *corev1.ConfigMap, existingConfigMap *corev1.ConfigMap) (needUpdate bool) {
 	return !equality.Semantic.DeepEqual(configMap.GetLabels(), existingConfigMap.GetLabels()) || !equality.Semantic.DeepEqual(configMap.Data, existingConfigMap.Data) || !equality.Semantic.DeepEqual(configMap.BinaryData, existingConfigMap.BinaryData)
+}
+
+// SanitizeObjectString takes a string, i.e. .metadata.namespace, and a K8s object
+// and returns a string got from K8s object. The required string
+// is sanitized because the values are YAML fields in a K8s object.
+// Ensures that:
+//  1. the field actually exists, otherwise returns an error
+//  2. extracts the value from the K8s Service's field, the value will be
+//     stringified
+func SanitizeObjectString(jsonPath string, data interface{}) (string, error) {
+	jpath := jsonpath.New("sanitizeObjectData")
+	stringParts := strings.Split(jsonPath, "+")
+	sanitized := ""
+	for _, s := range stringParts {
+		actual := s
+		if strings.HasPrefix(s, ".") {
+			if len(s) > 1 {
+				if err := jpath.Parse("{" + s + "}"); err != nil {
+					return "", err
+				}
+				buf := new(bytes.Buffer)
+				if err := jpath.Execute(buf, data); err != nil {
+					return "", err
+				}
+				actual = buf.String()
+			}
+		}
+		sanitized += actual
+	}
+	return sanitized, nil
 }
