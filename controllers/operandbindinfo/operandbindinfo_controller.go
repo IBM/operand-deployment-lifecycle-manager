@@ -259,8 +259,8 @@ func (r *Reconciler) copySecret(ctx context.Context, sourceName, targetName, sou
 		Data:       secret.Data,
 		StringData: secret.StringData,
 	}
-	// Set the OperandRequest as the controller of the Secret
-	if err := controllerutil.SetControllerReference(requestInstance, secretCopy, r.Scheme); err != nil {
+	// Set the OperandRequest as the owner of the Secret
+	if err := controllerutil.SetOwnerReference(requestInstance, secretCopy, r.Scheme); err != nil {
 		return false, errors.Wrapf(err, "failed to set OperandRequest %s as the owner of Secret %s", requestInstance.Name, targetName)
 	}
 
@@ -273,6 +273,14 @@ func (r *Reconciler) copySecret(ctx context.Context, sourceName, targetName, sou
 			if err := r.Client.Get(ctx, types.NamespacedName{Namespace: targetNs, Name: targetName}, existingSecret); err != nil {
 				return false, errors.Wrapf(err, "failed to get secret %s/%s", targetNs, targetName)
 			}
+
+			// Copy the owner reference from the existing secret to the new secret
+			secretCopy.SetOwnerReferences(existingSecret.GetOwnerReferences())
+			// Set the OperandRequest as the owner of the new Secret
+			if err := controllerutil.SetOwnerReference(requestInstance, secretCopy, r.Scheme); err != nil {
+				return false, errors.Wrapf(err, "failed to set OperandRequest %s as the owner of Secret %s", requestInstance.Name, targetName)
+			}
+
 			if needUpdate := compareSecret(secretCopy, existingSecret); needUpdate {
 				podRefreshment = true
 				if err := r.Update(ctx, secretCopy); err != nil {
@@ -350,8 +358,8 @@ func (r *Reconciler) copyConfigmap(ctx context.Context, sourceName, targetName, 
 		Data:       cm.Data,
 		BinaryData: cm.BinaryData,
 	}
-	// Set the OperandRequest as the controller of the configmap
-	if err := controllerutil.SetControllerReference(requestInstance, cmCopy, r.Scheme); err != nil {
+	// Set OperandRequest as the owners of the configmap
+	if err := controllerutil.SetOwnerReference(requestInstance, cmCopy, r.Scheme); err != nil {
 		return false, errors.Wrapf(err, "failed to set OperandRequest %s as the owner of ConfigMap %s", requestInstance.Name, sourceName)
 	}
 
@@ -364,6 +372,14 @@ func (r *Reconciler) copyConfigmap(ctx context.Context, sourceName, targetName, 
 			if err := r.Client.Get(ctx, types.NamespacedName{Namespace: targetNs, Name: targetName}, existingCm); err != nil {
 				return false, errors.Wrapf(err, "failed to get ConfigMap %s/%s", targetNs, targetName)
 			}
+
+			// Copy the owner reference from the existing secret to the new configmap
+			cmCopy.SetOwnerReferences(existingCm.GetOwnerReferences())
+			// Set the OperandRequest as the owner of the new configmap
+			if err := controllerutil.SetOwnerReference(requestInstance, cmCopy, r.Scheme); err != nil {
+				return false, errors.Wrapf(err, "failed to set OperandRequest %s as the owner of ConfigMap %s", requestInstance.Name, targetName)
+			}
+
 			if needUpdate := compareConfigMap(cmCopy, existingCm); needUpdate {
 				podRefreshment = true
 				if err := r.Update(ctx, cmCopy); err != nil {
@@ -783,9 +799,9 @@ func ensureLabelsForConfigMap(cm *corev1.ConfigMap, labels map[string]string) {
 }
 
 func compareSecret(secret *corev1.Secret, existingSecret *corev1.Secret) (needUpdate bool) {
-	return !equality.Semantic.DeepEqual(secret.GetLabels(), existingSecret.GetLabels()) || !equality.Semantic.DeepEqual(secret.Type, existingSecret.Type) || !equality.Semantic.DeepEqual(secret.Data, existingSecret.Data) || !equality.Semantic.DeepEqual(secret.StringData, existingSecret.StringData)
+	return !equality.Semantic.DeepEqual(secret.GetLabels(), existingSecret.GetLabels()) || !equality.Semantic.DeepEqual(secret.Type, existingSecret.Type) || !equality.Semantic.DeepEqual(secret.Data, existingSecret.Data) || !equality.Semantic.DeepEqual(secret.StringData, existingSecret.StringData) || !equality.Semantic.DeepEqual(secret.GetOwnerReferences(), existingSecret.GetOwnerReferences())
 }
 
 func compareConfigMap(configMap *corev1.ConfigMap, existingConfigMap *corev1.ConfigMap) (needUpdate bool) {
-	return !equality.Semantic.DeepEqual(configMap.GetLabels(), existingConfigMap.GetLabels()) || !equality.Semantic.DeepEqual(configMap.Data, existingConfigMap.Data) || !equality.Semantic.DeepEqual(configMap.BinaryData, existingConfigMap.BinaryData)
+	return !equality.Semantic.DeepEqual(configMap.GetLabels(), existingConfigMap.GetLabels()) || !equality.Semantic.DeepEqual(configMap.Data, existingConfigMap.Data) || !equality.Semantic.DeepEqual(configMap.BinaryData, existingConfigMap.BinaryData) || !equality.Semantic.DeepEqual(configMap.GetOwnerReferences(), existingConfigMap.GetOwnerReferences())
 }

@@ -386,7 +386,7 @@ func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance
 	crFromRequest.SetNamespace(requestKey.Namespace)
 	crFromRequest.SetAPIVersion(operand.APIVersion)
 	crFromRequest.SetKind(operand.Kind)
-	// Set the OperandRequest as the controller of the CR from request
+	// Set the OperandRequest as the owner of the CR from request
 	if err := controllerutil.SetOwnerReference(requestInstance, &crFromRequest, r.Scheme); err != nil {
 		merr.Add(errors.Wrapf(err, "failed to set ownerReference for custom resource %s/%s", requestKey.Namespace, name))
 	}
