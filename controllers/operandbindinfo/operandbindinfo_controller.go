@@ -296,8 +296,8 @@ func (r *Reconciler) copySecret(ctx context.Context, sourceName, targetName, sou
 		Data:       secret.Data,
 		StringData: secret.StringData,
 	}
-	// Set the OperandRequest as the controller of the Secret
-	if err := controllerutil.SetControllerReference(requestInstance, secretCopy, r.Scheme); err != nil {
+	// Set the OperandRequest as the owner of the Secret
+	if err := controllerutil.SetOwnerReference(requestInstance, secretCopy, r.Scheme); err != nil {
 		return false, errors.Wrapf(err, "failed to set OperandRequest %s as the owner of Secret %s", requestInstance.Name, targetName)
 	}
 
@@ -310,6 +310,14 @@ func (r *Reconciler) copySecret(ctx context.Context, sourceName, targetName, sou
 			if err := r.Client.Get(ctx, types.NamespacedName{Namespace: targetNs, Name: targetName}, existingSecret); err != nil {
 				return false, errors.Wrapf(err, "failed to get secret %s/%s", targetNs, targetName)
 			}
+
+			// Copy the owner reference from the existing secret to the new secret
+			secretCopy.SetOwnerReferences(existingSecret.GetOwnerReferences())
+			// Set the OperandRequest as the owner of the new Secret
+			if err := controllerutil.SetOwnerReference(requestInstance, secretCopy, r.Scheme); err != nil {
+				return false, errors.Wrapf(err, "failed to set OperandRequest %s as the owner of Secret %s", requestInstance.Name, targetName)
+			}
+
 			if needUpdate := util.CompareSecret(secretCopy, existingSecret); needUpdate {
 				podRefreshment = true
 				if err := r.Update(ctx, secretCopy); err != nil {
@@ -389,8 +397,8 @@ func (r *Reconciler) copyConfigmap(ctx context.Context, sourceName, targetName, 
 		Data:       cm.Data,
 		BinaryData: cm.BinaryData,
 	}
-	// Set the OperandRequest as the controller of the configmap
-	if err := controllerutil.SetControllerReference(requestInstance, cmCopy, r.Scheme); err != nil {
+	// Set OperandRequest as the owners of the configmap
+	if err := controllerutil.SetOwnerReference(requestInstance, cmCopy, r.Scheme); err != nil {
 		return false, errors.Wrapf(err, "failed to set OperandRequest %s as the owner of ConfigMap %s", requestInstance.Name, sourceName)
 	}
 
@@ -403,6 +411,14 @@ func (r *Reconciler) copyConfigmap(ctx context.Context, sourceName, targetName, 
 			if err := r.Client.Get(ctx, types.NamespacedName{Namespace: targetNs, Name: targetName}, existingCm); err != nil {
 				return false, errors.Wrapf(err, "failed to get ConfigMap %s/%s", targetNs, targetName)
 			}
+
+			// Copy the owner reference from the existing secret to the new configmap
+			cmCopy.SetOwnerReferences(existingCm.GetOwnerReferences())
+			// Set the OperandRequest as the owner of the new configmap
+			if err := controllerutil.SetOwnerReference(requestInstance, cmCopy, r.Scheme); err != nil {
+				return false, errors.Wrapf(err, "failed to set OperandRequest %s as the owner of ConfigMap %s", requestInstance.Name, targetName)
+			}
+
 			if needUpdate := util.CompareConfigMap(cmCopy, existingCm); needUpdate {
 				podRefreshment = true
 				if err := r.Update(ctx, cmCopy); err != nil {

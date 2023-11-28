@@ -282,11 +282,18 @@ func EnsureLabelsForService(s *corev1.Service, labels map[string]string) {
 }
 
 func CompareSecret(secret *corev1.Secret, existingSecret *corev1.Secret) (needUpdate bool) {
-	return !equality.Semantic.DeepEqual(secret.GetLabels(), existingSecret.GetLabels()) || !equality.Semantic.DeepEqual(secret.Type, existingSecret.Type) || !equality.Semantic.DeepEqual(secret.Data, existingSecret.Data) || !equality.Semantic.DeepEqual(secret.StringData, existingSecret.StringData)
+	return !equality.Semantic.DeepEqual(secret.GetLabels(), existingSecret.GetLabels()) ||
+		!equality.Semantic.DeepEqual(secret.Type, existingSecret.Type) ||
+		!equality.Semantic.DeepEqual(secret.Data, existingSecret.Data) ||
+		!equality.Semantic.DeepEqual(secret.StringData, existingSecret.StringData) ||
+		!equality.Semantic.DeepEqual(secret.GetOwnerReferences(), existingSecret.GetOwnerReferences())
 }
 
 func CompareConfigMap(configMap *corev1.ConfigMap, existingConfigMap *corev1.ConfigMap) (needUpdate bool) {
-	return !equality.Semantic.DeepEqual(configMap.GetLabels(), existingConfigMap.GetLabels()) || !equality.Semantic.DeepEqual(configMap.Data, existingConfigMap.Data) || !equality.Semantic.DeepEqual(configMap.BinaryData, existingConfigMap.BinaryData)
+	return !equality.Semantic.DeepEqual(configMap.GetLabels(), existingConfigMap.GetLabels()) ||
+		!equality.Semantic.DeepEqual(configMap.Data, existingConfigMap.Data) ||
+		!equality.Semantic.DeepEqual(configMap.BinaryData, existingConfigMap.BinaryData) ||
+		!equality.Semantic.DeepEqual(configMap.GetOwnerReferences(), existingConfigMap.GetOwnerReferences())
 }
 
 // SanitizeObjectString takes a string, i.e. .metadata.namespace, and a K8s object
