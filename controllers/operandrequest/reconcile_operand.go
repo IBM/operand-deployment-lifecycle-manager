@@ -31,6 +31,7 @@ import (
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/pkg/errors"
 	authorizationv1 "k8s.io/api/authorization/v1"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -75,6 +76,12 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 			if opdRegistry == nil {
 				klog.Warningf("Cannot find %s in the OperandRegistry instance %s in the namespace %s ", operand.Name, req.Registry, req.RegistryNamespace)
 				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorNotFound, operatorv1alpha1.ServiceNotFound, &r.Mutex)
+				continue
+			}
+
+			if opdRegistry.InstallMode == operatorv1alpha1.InstallModeNoop {
+				requestInstance.SetNoSuitableRegistryCondition(registryKey.String(), opdRegistry.Name+" is in maintenance status", operatorv1alpha1.ResourceTypeOperandRegistry, corev1.ConditionTrue, &r.Mutex)
+				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorRunning, operatorv1alpha1.ServiceRunning, &r.Mutex)
 				continue
 			}
 
