@@ -60,7 +60,7 @@ func NewODLMOperator(mgr manager.Manager, name string) *ODLMOperator {
 		Config:                  mgr.GetConfig(),
 		Recorder:                mgr.GetEventRecorderFor(name),
 		Scheme:                  mgr.GetScheme(),
-		MaxConcurrentReconciles: 5,
+		MaxConcurrentReconciles: 10,
 	}
 }
 
