@@ -567,6 +567,7 @@ func (r *Reconciler) deleteAllCustomResource(ctx context.Context, csv *olmv1alph
 	wg.Wait()
 
 	if len(merr.Errors) != 0 {
+		klog.Errorf("Failed to delete custom resource from OperandRequest for operator %s", operandName)
 		return merr
 	}
 
@@ -621,6 +622,7 @@ func (r *Reconciler) deleteAllCustomResource(ctx context.Context, csv *olmv1alph
 							r.Mutex.Lock()
 							defer r.Mutex.Unlock()
 							merr.Add(err)
+							return
 						}
 					}()
 				}
@@ -631,6 +633,7 @@ func (r *Reconciler) deleteAllCustomResource(ctx context.Context, csv *olmv1alph
 	}
 	wg.Wait()
 	if len(merr.Errors) != 0 {
+		klog.Errorf("Failed to delete custom resource from OperandConfig for operator %s", operandName)
 		return merr
 	}
 
@@ -839,7 +842,7 @@ func (r *Reconciler) deleteCustomResource(ctx context.Context, existingCR unstru
 				if strings.EqualFold(kind, "OperandRequest") {
 					return true, nil
 				}
-				klog.V(3).Infof("Waiting for CR %s is removed ...", kind)
+				klog.V(3).Infof("Waiting for CR %s to be removed ...", kind)
 				err := r.Client.Get(ctx, types.NamespacedName{
 					Name:      name,
 					Namespace: namespace,
@@ -1135,7 +1138,10 @@ func (r *Reconciler) deleteK8sResource(ctx context.Context, existingK8sRes unstr
 				return errors.Wrapf(err, "failed to delete k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 			}
 			err = wait.PollImmediate(constant.DefaultCRDeletePeriod, constant.DefaultCRDeleteTimeout, func() (bool, error) {
-				klog.V(3).Infof("Waiting for k8s resource %s is removed ...", kind)
+				if strings.EqualFold(kind, "OperandRequest") {
+					return true, nil
+				}
+				klog.V(3).Infof("Waiting for resource %s to be removed ...", kind)
 				err := r.Client.Get(ctx, types.NamespacedName{
 					Name:      name,
 					Namespace: namespace,

@@ -519,6 +519,7 @@ func (r *Reconciler) absentOperatorsAndOperands(ctx context.Context, requestInst
 					r.Mutex.Lock()
 					defer r.Mutex.Unlock()
 					merr.Add(err)
+					return // return here to avoid removing the operand from remainingOperands
 				}
 				requestInstance.RemoveServiceStatus(fmt.Sprintf("%v", o), &r.Mutex)
 				(*remainingOperands).Remove(o)
