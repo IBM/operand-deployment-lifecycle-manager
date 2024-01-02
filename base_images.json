@@ -7,7 +7,7 @@
     "destStage": "edge",
     "destNamespace": "build-images",
     "destImage": "ubi8",
-    "tag": "8.8-1067.1698056881",
+    "tag": "8.9-1028",
     "updatePackages": []
   },
   {
@@ -18,7 +18,7 @@
     "destStage": "edge",
     "destNamespace": "build-images",
     "destImage": "ubi8-minimal",
-    "tag": "8.8-1072.1697626218",
+    "tag": "8.9-1029",
     "updatePackages": []
   },
   {
@@ -29,7 +29,7 @@
     "destStage": "edge",
     "destNamespace": "build-images",
     "destImage": "ubi9-micro",
-    "tag": "9.2-15.1696515526",
+    "tag": "9.3-9",
     "updatePackages": []
   },
   {
@@ -40,21 +40,28 @@
     "destStage": "edge",
     "destNamespace": "build-images",
     "destImage": "helm-operator",
-    "tag": "v1.32.0",
+    "tag": "v1.33.0",
     "updatePackages": []
   },
   {
     "imageType": "node",
     "sourceImage": "ubi8-minimal",
-    "sourceTag": "8.8-1072.1697626218",
+    "sourceTag": "8.9-1029",
     "destImage": "node-v18-ubi8-minimal",
-    "nodeVersion": "18.18.2"
+    "nodeVersion": "18.19.0"
+  },
+  {
+    "imageType": "node",
+    "sourceImage": "ubi8-minimal",
+    "sourceTag": "8.9-1029",
+    "destImage": "node-v20-ubi8-minimal",
+    "nodeVersion": "20.10.0"
   },
   {
     "imageType": "liberty",
     "sourceImage": "node-v18-ubi8-minimal",
-    "sourceTag": "18.18.2_8.8-1072.1697626218",
+    "sourceTag": "18.18.2_8.9-1029",
     "destImage": "liberty11-ubi8-minimal",
-    "libertyVersion": "23.0.0.10"
+    "libertyVersion": "23.0.0.12"
   }
 ]
