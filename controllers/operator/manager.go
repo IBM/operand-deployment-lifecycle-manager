@@ -60,7 +60,7 @@ func NewODLMOperator(mgr manager.Manager, name string) *ODLMOperator {
 		Config:                  mgr.GetConfig(),
 		Recorder:                mgr.GetEventRecorderFor(name),
 		Scheme:                  mgr.GetScheme(),
-		MaxConcurrentReconciles: 10,
+		MaxConcurrentReconciles: 3,
 	}
 }
 
@@ -366,7 +366,7 @@ func (m *ODLMOperator) GetClusterServiceVersion(ctx context.Context, sub *olmv1a
 		Name:      csvName,
 		Namespace: csvNamespace,
 	}
-	if err := m.Client.Get(ctx, csvKey, csv); err != nil {
+	if err := m.Reader.Get(ctx, csvKey, csv); err != nil {
 		if apierrors.IsNotFound(err) {
 			klog.V(3).Infof("ClusterServiceVersion %s is not ready. Will check it when it is stable", sub.Name)
 			return nil, nil
