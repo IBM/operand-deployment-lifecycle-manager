@@ -269,7 +269,7 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 						merr.Add(err)
 					}
 				} else {
-					if r.CheckLabel(k8sRes, map[string]string{constant.OpreqLabel: "true"}) && res.Force {
+					if res.Force {
 						// Update k8s resource
 						klog.V(3).Info("Found existing k8s resource: " + res.Name)
 						if err := r.updateK8sResource(ctx, k8sRes, res.Data, res.Labels, res.Annotations); err != nil {
@@ -992,7 +992,7 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 		if err != nil {
 			return errors.Wrapf(err, "failed to get k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 		}
-		if !r.CheckLabel(existingK8sRes, map[string]string{constant.OpreqLabel: "true"}) {
+		if !r.CheckLabel(existingK8sRes, map[string]string{constant.OpreqLabel: "true"}) && (newLabels == nil || newLabels[constant.OpreqLabel] != "true") {
 			return nil
 		}
 
@@ -1050,7 +1050,7 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 			return false, errors.Wrapf(err, "failed to get k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 		}
 
-		if !r.CheckLabel(existingK8sRes, map[string]string{constant.OpreqLabel: "true"}) {
+		if !r.CheckLabel(existingK8sRes, map[string]string{constant.OpreqLabel: "true"}) && (newLabels == nil || newLabels[constant.OpreqLabel] != "true") {
 			return true, nil
 		}
 
