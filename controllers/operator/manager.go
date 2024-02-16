@@ -130,7 +130,6 @@ func (s sortableCatalogSource) Less(i, j int) bool {
 	}
 	// Compare catalogsource priorities first, higher priority comes first
 	iPriority, jPriority := s[i].Priority, s[j].Priority
-	klog.V(2).Infof("iPriority: %v, jPriority: %v", iPriority, jPriority)
 	if iPriority != jPriority {
 		return iPriority > jPriority
 	}
@@ -179,8 +178,12 @@ func (m *ODLMOperator) GetCatalogSourceFromPackage(ctx context.Context, packageN
 			klog.Errorf("Not found PackageManifest %s in the namespace %s has channel %s", packageName, namespace, channel)
 			return "", "", nil
 		}
+		klog.V(2).Infof("Found %v CatalogSources for PackageManifest %s in the namespace %s has channel %s", len(catalogSourceCandidate), packageName, namespace, channel)
 		// Sort CatalogSources by priority
 		sort.Sort(sortableCatalogSource(catalogSourceCandidate))
+		for i, c := range catalogSourceCandidate {
+			klog.V(2).Infof("The %vth sorted CatalogSource is %s in namespace %s with priority: %v", i, c.Name, c.Namespace, c.Priority)
+		}
 		return catalogSourceCandidate[0].Name, catalogSourceCandidate[0].Namespace, nil
 	}
 }
