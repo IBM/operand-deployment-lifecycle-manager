@@ -76,6 +76,20 @@ func (m *ODLMOperator) GetOperandRegistry(ctx context.Context, key types.Namespa
 	if reg.Annotations != nil && reg.Annotations["excluded-catalogsource"] != "" {
 		excludedCatalogSources = strings.Split(reg.Annotations["excluded-catalogsource"], ",")
 	}
+	// Get catalog used by ODLM itself by check its own subscription
+	opts := []client.ListOption{
+		client.MatchingLabels{fmt.Sprintf("operators.coreos.com/ibm-odlm.%s", util.GetOperatorNamespace()): ""},
+		client.InNamespace(util.GetOperatorNamespace()),
+	}
+	odlmCatalog := ""
+	odlmCatalogNs := ""
+	odlmSubList := &olmv1alpha1.SubscriptionList{}
+	if err := m.Reader.List(ctx, odlmSubList, opts...); err != nil || len(odlmSubList.Items) == 0 {
+		klog.Warningf("No Subscription found for ibm-odlm in the namespace %s", util.GetOperatorNamespace())
+	} else {
+		odlmCatalog = odlmSubList.Items[0].Spec.CatalogSource
+		odlmCatalogNs = odlmSubList.Items[0].Spec.CatalogSourceNamespace
+	}
 
 	for i, o := range reg.Spec.Operators {
 		if o.Scope == "" {
@@ -91,7 +105,7 @@ func (m *ODLMOperator) GetOperandRegistry(ctx context.Context, key types.Namespa
 			reg.Spec.Operators[i].Namespace = key.Namespace
 		}
 		if o.SourceName == "" || o.SourceNamespace == "" {
-			catalogSourceName, catalogSourceNs, err := m.GetCatalogSourceFromPackage(ctx, o.PackageName, reg.Spec.Operators[i].Namespace, o.Channel, key.Namespace, excludedCatalogSources)
+			catalogSourceName, catalogSourceNs, err := m.GetCatalogSourceFromPackage(ctx, o.PackageName, reg.Spec.Operators[i].Namespace, o.Channel, key.Namespace, odlmCatalog, odlmCatalogNs, excludedCatalogSources)
 			if err != nil {
 				return nil, err
 			}
@@ -107,11 +121,13 @@ func (m *ODLMOperator) GetOperandRegistry(ctx context.Context, key types.Namespa
 }
 
 type CatalogSource struct {
-	Name              string
-	Namespace         string
-	OpNamespace       string
-	RegistryNamespace string
-	Priority          int
+	Name                 string
+	Namespace            string
+	OpNamespace          string
+	RegistryNamespace    string
+	Priority             int
+	ODLMCatalog          string
+	ODLMCatalogNamespace string
 }
 
 type sortableCatalogSource []CatalogSource
@@ -120,7 +136,8 @@ func (s sortableCatalogSource) Len() int      { return len(s) }
 func (s sortableCatalogSource) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 func (s sortableCatalogSource) Less(i, j int) bool {
 
-	// Check if the catalogsource is in the same namespace as operator
+	// Check if the catalogsource is in the same namespace as operator.
+	// CatalogSources in operator namespace (private CatalogSource) have a higher priority than those in other namespaces (global CatalogSource).
 	inOpNsI, inOpNsJ := s[i].Namespace == s[i].OpNamespace, s[j].Namespace == s[j].OpNamespace
 	if inOpNsI && !inOpNsJ {
 		return true
@@ -128,11 +145,23 @@ func (s sortableCatalogSource) Less(i, j int) bool {
 	if !inOpNsI && inOpNsJ {
 		return false
 	}
+
 	// Compare catalogsource priorities first, higher priority comes first
 	iPriority, jPriority := s[i].Priority, s[j].Priority
 	if iPriority != jPriority {
 		return iPriority > jPriority
 	}
+
+	// Check if the catalogsource is in the same catalog as ODLM itself.
+	// CatalogSources in the same catalog as ODLM have a higher priority than those in other catalogs.
+	inODLMNsI, inODLMNsJ := s[i].Name == s[i].ODLMCatalog && s[i].Namespace == s[i].ODLMCatalogNamespace, s[j].Name == s[j].ODLMCatalog && s[j].Namespace == s[j].ODLMCatalogNamespace
+	if inODLMNsI && !inODLMNsJ {
+		return true
+	}
+	if !inODLMNsI && inODLMNsJ {
+		return false
+	}
+
 	// If their namespaces are the same, then compare the name of the catalogsource
 	if s[i].Namespace == s[j].Namespace {
 		return s[i].Name < s[j].Name
@@ -140,7 +169,7 @@ func (s sortableCatalogSource) Less(i, j int) bool {
 	return s[i].Namespace < s[j].Namespace
 }
 
-func (m *ODLMOperator) GetCatalogSourceFromPackage(ctx context.Context, packageName, namespace, channel, registryNs string, excludedCatalogSources []string) (catalogSourceName string, catalogSourceNs string, err error) {
+func (m *ODLMOperator) GetCatalogSourceFromPackage(ctx context.Context, packageName, namespace, channel, registryNs, odlmCatalog, odlmCatalogNs string, excludedCatalogSources []string) (catalogSourceName string, catalogSourceNs string, err error) {
 	packageManifestList := &operatorsv1.PackageManifestList{}
 	opts := []client.ListOption{
 		client.MatchingFields{"metadata.name": packageName},
@@ -172,7 +201,15 @@ func (m *ODLMOperator) GetCatalogSourceFromPackage(ctx context.Context, packageN
 				klog.Warning(err)
 				continue
 			}
-			catalogSourceCandidate = append(catalogSourceCandidate, CatalogSource{Name: pm.Status.CatalogSource, Namespace: pm.Status.CatalogSourceNamespace, OpNamespace: namespace, RegistryNamespace: registryNs, Priority: catalogsource.Spec.Priority})
+			catalogSourceCandidate = append(catalogSourceCandidate, CatalogSource{
+				Name:                 pm.Status.CatalogSource,
+				Namespace:            pm.Status.CatalogSourceNamespace,
+				OpNamespace:          namespace,
+				RegistryNamespace:    registryNs,
+				Priority:             catalogsource.Spec.Priority,
+				ODLMCatalog:          odlmCatalog,
+				ODLMCatalogNamespace: odlmCatalogNs,
+			})
 		}
 		if len(catalogSourceCandidate) == 0 {
 			klog.Errorf("Not found PackageManifest %s in the namespace %s has channel %s", packageName, namespace, channel)
