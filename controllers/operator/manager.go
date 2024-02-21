@@ -689,7 +689,7 @@ func (m *ODLMOperator) GetValueRefFromObject(ctx context.Context, instanceType, 
 	var obj unstructured.Unstructured
 	obj.SetAPIVersion(objAPIVersion)
 	obj.SetKind(objKind)
-	if err := m.Client.Get(ctx, types.NamespacedName{Name: objName, Namespace: objNs}, &obj); err != nil {
+	if err := m.Reader.Get(ctx, types.NamespacedName{Name: objName, Namespace: objNs}, &obj); err != nil {
 		if apierrors.IsNotFound(err) {
 			klog.V(3).Infof("%s %s/%s is not found", objKind, objNs, objName)
 			return "", nil
