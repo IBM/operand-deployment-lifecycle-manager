@@ -7,7 +7,7 @@
     "destStage": "edge",
     "destNamespace": "build-images",
     "destImage": "ubi8",
-    "tag": "8.9-1107.1706791207",
+    "tag": "8.9-1136",
     "updatePackages": []
   },
   {
@@ -18,7 +18,7 @@
     "destStage": "edge",
     "destNamespace": "build-images",
     "destImage": "ubi8-minimal",
-    "tag": "8.9-1108.1706795067",
+    "tag": "8.9-1137",
     "updatePackages": []
   },
   {
@@ -30,6 +30,28 @@
     "destNamespace": "build-images",
     "destImage": "ubi9-micro",
     "tag": "9.3-13",
+    "updatePackages": []
+  },
+  {
+    "imageType": "external",
+    "sourceRepo": "registry.access.redhat.com",
+    "sourceNamespace": "ubi9",
+    "sourceImage": "ubi",
+    "destStage": "edge",
+    "destNamespace": "build-images",
+    "destImage": "ubi9",
+    "tag": "9.3-1552",
+    "updatePackages": []
+  },
+  {
+    "imageType": "external",
+    "sourceRepo": "registry.access.redhat.com",
+    "sourceNamespace": "ubi9",
+    "sourceImage": "ubi-minimal",
+    "destStage": "edge",
+    "destNamespace": "build-images",
+    "destImage": "ubi9-minimal",
+    "tag": "9.3-1552",
     "updatePackages": []
   },
   {
@@ -46,22 +68,43 @@
   {
     "imageType": "node",
     "sourceImage": "ubi8-minimal",
-    "sourceTag": "8.9-1108.1706795067",
+    "sourceTag": "8.9-1137",
     "destImage": "node-v18-ubi8-minimal",
-    "nodeVersion": "18.19.0"
+    "nodeVersion": "18.19.1"
   },
   {
     "imageType": "node",
     "sourceImage": "ubi8-minimal",
-    "sourceTag": "8.9-1108.1706795067",
+    "sourceTag": "8.9-1137",
     "destImage": "node-v20-ubi8-minimal",
-    "nodeVersion": "20.11.0"
+    "nodeVersion": "20.11.1"
+  },
+  {
+    "imageType": "node",
+    "sourceImage": "ubi9-minimal",
+    "sourceTag": "9.3-1552",
+    "destImage": "node-v18-ubi9-minimal",
+    "nodeVersion": "18.19.1"
+  },
+  {
+    "imageType": "node",
+    "sourceImage": "ubi9-minimal",
+    "sourceTag": "9.3-1552",
+    "destImage": "node-v20-ubi9-minimal",
+    "nodeVersion": "20.11.1"
   },
   {
     "imageType": "liberty",
     "sourceImage": "node-v18-ubi8-minimal",
-    "sourceTag": "18.19.0_8.9-1108.1706795067",
+    "sourceTag": "18.19.1_8.9-1137",
     "destImage": "liberty11-ubi8-minimal",
+    "libertyVersion": "24.0.0.1"
+  },
+  {
+    "imageType": "liberty",
+    "sourceImage": "node-v18-ubi9-minimal",
+    "sourceTag": "18.19.1_9.3-1552",
+    "destImage": "liberty11-ubi9-minimal",
     "libertyVersion": "24.0.0.1"
   }
 ]
