@@ -179,6 +179,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 			}
 			merr.Add(err)
 			continue
+		} else if !requestInstance.ObjectMeta.DeletionTimestamp.IsZero() {
+			klog.Warningf("OperandRequest %s/%s is being deleted, skip the OperandBindInfo %s/%s", requestInstance.Namespace, requestInstance.Name, bindInfoInstance.Namespace, bindInfoInstance.Name)
+			continue
 		}
 		// Get binding information from OperandRequest
 		secretReq, cmReq := getBindingInfofromRequest(bindInfoInstance, requestInstance)
