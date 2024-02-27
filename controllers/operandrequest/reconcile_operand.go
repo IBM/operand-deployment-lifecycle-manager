@@ -771,11 +771,11 @@ func (r *Reconciler) updateCustomResource(ctx context.Context, existingCR unstru
 		// Merge spec from update existing CR and OperandConfig spec
 		updatedCRSpec := util.MergeCR(updatedExistingCRRaw, crConfig)
 
-		CRgeneration := existingCR.GetGeneration()
-
 		if reflect.DeepEqual(existingCR.Object["spec"], updatedCRSpec) && !forceUpdate {
 			return true, nil
 		}
+
+		CRgeneration := existingCR.GetGeneration()
 
 		klog.V(2).Infof("updating custom resource with apiversion: %s, kind: %s, %s/%s", apiversion, kind, namespace, name)
 
@@ -1057,61 +1057,56 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 			return true, nil
 		}
 
-		// isEqual := r.CheckAnnotation(existingK8sRes, newAnnotations) && r.CheckLabel(existingK8sRes, newLabels)
 		if k8sResConfig != nil {
-			k8sResConfigDecoded := make(map[string]interface{})
-			k8sResConfigUnmarshalErr := json.Unmarshal(k8sResConfig.Raw, &k8sResConfigDecoded)
-			if k8sResConfigUnmarshalErr != nil {
-				klog.Errorf("failed to unmarshal k8s Resource Config: %v", k8sResConfigUnmarshalErr)
+
+			existingK8sResRaw, err := json.Marshal(existingK8sRes.Object["spec"])
+			if err != nil {
+				klog.Error(err)
+				return false, err
 			}
 
-			for k, v := range k8sResConfigDecoded {
-				// isEqual = isEqual && reflect.DeepEqual(existingK8sRes.Object[k], v)
-				existingK8sRes.Object[k] = v
+			// Merge spec from existing CR and OperandConfig spec
+			updatedExistingK8sRes := util.MergeCR(existingK8sResRaw, k8sResConfig.Raw)
+
+			r.EnsureAnnotation(existingK8sRes, newAnnotations)
+			r.EnsureLabel(existingK8sRes, newLabels)
+
+			if reflect.DeepEqual(existingK8sRes.Object["spec"], updatedExistingK8sRes) {
+				return true, nil
+			}
+
+			CRgeneration := existingK8sRes.GetGeneration()
+
+			klog.V(2).Infof("updating k8s resource with apiversion: %s, kind: %s, %s/%s", apiversion, kind, namespace, name)
+
+			existingK8sRes.Object["spec"] = updatedExistingK8sRes
+			err = r.Update(ctx, &existingK8sRes)
+
+			if err != nil {
+				return false, errors.Wrapf(err, "failed to update k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+			}
+
+			UpdatedK8sRes := unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": apiversion,
+					"kind":       kind,
+				},
+			}
+
+			err = r.Client.Get(ctx, types.NamespacedName{
+				Name:      name,
+				Namespace: namespace,
+			}, &UpdatedK8sRes)
+
+			if err != nil {
+				return false, errors.Wrapf(err, "failed to get k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+
+			}
+
+			if UpdatedK8sRes.GetGeneration() != CRgeneration {
+				klog.V(2).Infof("Finish updating the k8s Resource: -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 			}
 		}
-
-		CRgeneration := existingK8sRes.GetGeneration()
-
-		// if isEqual {
-		// 	return true, nil
-		// }
-
-		r.EnsureAnnotation(existingK8sRes, newAnnotations)
-		r.EnsureLabel(existingK8sRes, newLabels)
-		if err := r.setOwnerReferences(ctx, &existingK8sRes, ownerReferences); err != nil {
-			return false, errors.Wrapf(err, "failed to set ownerReferences for k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
-		}
-
-		klog.V(2).Infof("updating k8s resource with apiversion: %s, kind: %s, %s/%s", apiversion, kind, namespace, name)
-
-		err = r.Update(ctx, &existingK8sRes)
-
-		if err != nil {
-			return false, errors.Wrapf(err, "failed to update k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
-		}
-
-		UpdatedK8sRes := unstructured.Unstructured{
-			Object: map[string]interface{}{
-				"apiVersion": apiversion,
-				"kind":       kind,
-			},
-		}
-
-		err = r.Client.Get(ctx, types.NamespacedName{
-			Name:      name,
-			Namespace: namespace,
-		}, &UpdatedK8sRes)
-
-		if err != nil {
-			return false, errors.Wrapf(err, "failed to get k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
-
-		}
-
-		if UpdatedK8sRes.GetGeneration() != CRgeneration {
-			klog.V(2).Infof("Finish updating the k8s Resource: -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
-		}
-
 		return true, nil
 	})
 
