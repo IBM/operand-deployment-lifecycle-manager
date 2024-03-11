@@ -1059,6 +1059,20 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 
 		if k8sResConfig != nil {
 
+			k8sResConfigDecoded := make(map[string]interface{})
+			k8sResConfigUnmarshalErr := json.Unmarshal(k8sResConfig.Raw, &k8sResConfigDecoded)
+			if k8sResConfigUnmarshalErr != nil {
+				klog.Errorf("failed to unmarshal k8s Resource Config: %v", k8sResConfigUnmarshalErr)
+			}
+
+			// Convert k8s resource spec in OperandConfig to string
+			k8sResConfigRaw, err := json.Marshal(k8sResConfigDecoded["spec"])
+			if err != nil {
+				klog.Error(err)
+				return false, err
+			}
+
+			// Convert existing k8s resource spec to string
 			existingK8sResRaw, err := json.Marshal(existingK8sRes.Object["spec"])
 			if err != nil {
 				klog.Error(err)
@@ -1066,7 +1080,7 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 			}
 
 			// Merge spec from existing CR and OperandConfig spec
-			updatedExistingK8sRes := util.MergeCR(existingK8sResRaw, k8sResConfig.Raw)
+			updatedExistingK8sRes := util.MergeCR(existingK8sResRaw, k8sResConfigRaw)
 
 			r.EnsureAnnotation(existingK8sRes, newAnnotations)
 			r.EnsureLabel(existingK8sRes, newLabels)
