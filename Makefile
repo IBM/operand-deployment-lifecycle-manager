@@ -35,7 +35,7 @@ VERSION ?= $(shell git describe --exact-match 2> /dev/null || \
 RELEASE_VERSION ?= $(shell cat ./version/version.go | grep "Version =" | awk '{ print $$3}' | tr -d '"')
 LATEST_VERSION ?= latest
 OPERATOR_SDK_VERSION=v1.32.0
-YQ_VERSION=v4.17.2
+YQ_VERSION=v4.42.1
 DEFAULT_CHANNEL ?= v$(shell cat ./version/version.go | grep "Version =" | awk '{ print $$3}' | tr -d '"' | cut -d '.' -f1,2)
 CHANNELS ?= $(DEFAULT_CHANNEL)
 
@@ -208,14 +208,14 @@ bundle-manifests:
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle \
 	-q --overwrite --version $(OPERATOR_VERSION) $(BUNDLE_METADATA_OPTS)
 	$(OPERATOR_SDK) bundle validate ./bundle
-	$(YQ) eval-all -i '.spec.relatedImages = load("config/manifests/bases/operand-deployment-lifecycle-manager.clusterserviceversion.yaml").spec.relatedImages' bundle/manifests/operand-deployment-lifecycle-manager.clusterserviceversion.yaml
+	$(YQ) eval-all -i '.spec.relatedImages |= load("config/manifests/bases/operand-deployment-lifecycle-manager.clusterserviceversion.yaml").spec.relatedImages' bundle/manifests/operand-deployment-lifecycle-manager.clusterserviceversion.yaml
 	@# Need to replace fields this way to avoid changing PROJECT name and CSV file name, which may or may not impact CICD automation
 	$(YQ) e -i '.annotations["operators.operatorframework.io.bundle.package.v1"] = "ibm-odlm"' bundle/metadata/annotations.yaml
 	sed -i'' s/operand-deployment-lifecycle-manager/ibm-odlm/ bundle.Dockerfile
 
-generate-all: manifests kustomize operator-sdk ## Generate bundle manifests, metadata and package manifests
+generate-all: yq manifests kustomize operator-sdk ## Generate bundle manifests, metadata and package manifests
 	$(OPERATOR_SDK) generate kustomize manifests -q
-	- make bundle-manifests CHANNELS=v4.2 DEFAULT_CHANNEL=v4.2
+	- make bundle-manifests CHANNELS=v4.3 DEFAULT_CHANNEL=v4.3
 
 ##@ Test
 

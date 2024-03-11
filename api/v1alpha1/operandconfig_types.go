@@ -49,6 +49,7 @@ type ConfigService struct {
 	Resources []ConfigResource `json:"resources,omitempty"`
 }
 
+// +kubebuilder:pruning:PreserveUnknownFields
 // ConfigResource defines the resource needed for the service
 type ConfigResource struct {
 	// Name is the resource name.
@@ -75,6 +76,28 @@ type ConfigResource struct {
 	// +nullable
 	// +optional
 	Data *runtime.RawExtension `json:"data,omitempty"`
+	// OwnerReferences is the list of owner references.
+	// +optional
+	OwnerReferences []OwnerReference `json:"ownerReferences,omitempty"`
+}
+
+type OwnerReference struct {
+	// API version of the referent.
+	APIVersion string `json:"apiVersion"`
+	// Kind of the referent.
+	Kind string `json:"kind"`
+	// Name of the referent.
+	Name string `json:"name"`
+	// If true, this reference points to the managing controller.
+	// Default is false.
+	// +optional
+	Controller *bool `json:"controller,omitempty"`
+	// If true, AND if the owner has the "foregroundDeletion" finalizer, then
+	// the owner cannot be deleted from the key-value store until this
+	// reference is removed.
+	// Defaults to false.
+	// +optional
+	BlockOwnerDeletion *bool `json:"blockOwnerDeletion,omitempty"`
 }
 
 // OperandConfigStatus defines the observed state of OperandConfig.
