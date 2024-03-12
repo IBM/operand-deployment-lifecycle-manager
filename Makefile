@@ -18,6 +18,8 @@
 KUBECTL ?= $(shell which kubectl)
 OPERATOR_SDK ?= $(shell which operator-sdk)
 OPM ?= $(shell which opm)
+KUSTOMIZE ?= $(shell which kustomize)
+KUSTOMIZE_VERSION=v3.8.7
 
 ENVCRDS_DIR=$(shell pwd)/testcrds
 
@@ -33,6 +35,7 @@ VERSION ?= $(shell git describe --exact-match 2> /dev/null || \
 RELEASE_VERSION ?= $(shell cat ./version/version.go | grep "Version =" | awk '{ print $$3}' | tr -d '"')
 LATEST_VERSION ?= latest
 OPERATOR_SDK_VERSION=v1.24.0
+YQ_VERSION=v4.42.1
 
 LOCAL_OS := $(shell uname)
 ifeq ($(LOCAL_OS),Linux)
@@ -89,9 +92,6 @@ BUNDLE_DEFAULT_CHANNEL := --default-channel=$(DEFAULT_CHANNEL)
 endif
 BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 
-# Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
-CRD_OPTIONS ?= "crd:trivialVersions=true"
-
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
@@ -109,6 +109,23 @@ include common/Makefile.common.mk
 ##@ Development
 
 check: lint-all ## Check all files lint error
+
+yq: ## Install yq, a yaml processor
+ifneq ($(shell yq -V | cut -d ' ' -f 3 | cut -d '.' -f 1 ), 4)
+	@{ \
+	if [ v$(shell ./bin/yq --version | cut -d ' ' -f3) != $(YQ_VERSION) ]; then\
+		set -e ;\
+		mkdir -p bin ;\
+		echo "Downloading yq ...";\
+		curl -sSLO https://github.com/mikefarah/yq/releases/download/$(YQ_VERSION)/yq_$(LOCAL_OS)_$(LOCAL_ARCH);\
+		mv yq_$(LOCAL_OS)_$(LOCAL_ARCH) ./bin/yq ;\
+		chmod +x ./bin/yq ;\
+	fi;\
+	}
+YQ=$(realpath ./bin/yq)
+else
+YQ=$(shell which yq)
+endif
 
 operator-sdk:
 ifneq ($(shell operator-sdk version | cut -d ',' -f1 | cut -d ':' -f2 | tr -d '"' | xargs | cut -d '.' -f1), v1)
@@ -135,6 +152,19 @@ code-dev: ## Run the default dev commands which are the go tidy, fmt, vet then e
 	- make check
 	- make test
 
+kustomize: ## Install kustomize
+ifeq (, $(shell which kustomize 2>/dev/null))
+	@{ \
+	set -e ;\
+	mkdir -p bin ;\
+	echo "Downloading kustomize ...";\
+	curl -sSLo - https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/$(KUSTOMIZE_VERSION)/kustomize_$(KUSTOMIZE_VERSION)_$(LOCAL_OS)_$(LOCAL_ARCH).tar.gz | tar xzf - -C bin/ ;\
+	}
+KUSTOMIZE=$(realpath ./bin/kustomize)
+else
+KUSTOMIZE=$(shell which kustomize)
+endif
+
 manager: generate code-fmt code-vet ## Build manager binary
 	go build -o bin/manager main.go
 
@@ -158,7 +188,7 @@ deploy-e2e: kustomize ## Deploy controller in the configured Kubernetes cluster 
 ##@ Generate code and manifests
 
 manifests: controller-gen ## Generate manifests e.g. CRD, RBAC etc.
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=operand-deployment-lifecycle-manager webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) crd rbac:roleName=operand-deployment-lifecycle-manager webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
 generate: controller-gen ## Generate code e.g. API etc.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
@@ -167,10 +197,14 @@ bundle-manifests:
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle \
 	-q --overwrite --version $(OPERATOR_VERSION) $(BUNDLE_METADATA_OPTS)
 	$(OPERATOR_SDK) bundle validate ./bundle
+	$(YQ) eval-all -i '.spec.relatedImages |= load("config/manifests/bases/operand-deployment-lifecycle-manager.clusterserviceversion.yaml").spec.relatedImages' bundle/manifests/operand-deployment-lifecycle-manager.clusterserviceversion.yaml
+	# Need to replace fields this way to avoid changing PROJECT name and CSV file name, which may or may not impact CICD automation
+	$(YQ) e -i '.annotations["operators.operatorframework.io.bundle.package.v1"] = "ibm-odlm"' bundle/metadata/annotations.yaml
+	sed -i'' s/operand-deployment-lifecycle-manager/ibm-odlm/ bundle.Dockerfile
 
-generate-all: manifests kustomize operator-sdk ## Generate bundle manifests, metadata and package manifests
+generate-all: yq manifests kustomize operator-sdk ## Generate bundle manifests, metadata and package manifests
 	$(OPERATOR_SDK) generate kustomize manifests -q
-	- make bundle-manifests CHANNELS=v3.20 DEFAULT_CHANNEL=v3.20
+	- make bundle-manifests CHANNELS=v3.23 DEFAULT_CHANNEL=v3.23
 
 ##@ Test
 
@@ -221,8 +255,8 @@ build-operator-image: $(CONFIG_DOCKER_TARGET) ## Build the operator image.
 	--build-arg GOARCH=$(LOCAL_ARCH) -f Dockerfile .
 
 build-operator-dev-image: ## Build the operator dev image.
-	@echo "Building the $(OPERATOR_IMAGE_NAME) docker image..."
-	@docker build -t $(OPERATOR_IMAGE_NAME):$(VERSION) \
+	@echo "Building the $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME) docker image..."
+	@docker build -t $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(VERSION) \
 	--build-arg VCS_REF=$(VCS_REF) --build-arg VCS_URL=$(VCS_URL) \
 	--build-arg GOARCH=$(LOCAL_ARCH) -f Dockerfile .
 
@@ -236,7 +270,6 @@ build-test-operator-image: $(CONFIG_DOCKER_TARGET) ## Build the operator test im
 
 build-push-dev-image: build-operator-dev-image  ## Build and push the operator dev images.
 	@echo "Pushing the $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(VERSION) docker image to $(DEV_REGISTRY)..."
-	@docker tag $(OPERATOR_IMAGE_NAME):$(VERSION) $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(VERSION)
 	@docker push $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(VERSION)
 
 build-push-image: $(CONFIG_DOCKER_TARGET) build-operator-image  ## Build and push the operator images.
@@ -245,12 +278,9 @@ build-push-image: $(CONFIG_DOCKER_TARGET) build-operator-image  ## Build and pus
 	@docker push $(ARTIFACTORYA_REGISTRY)/$(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION)
 
 build-push-bundle-image: yq
-	@cp -f bundle/manifests/operand-deployment-lifecycle-manager.clusterserviceversion.yaml /tmp/operand-deployment-lifecycle-manager.clusterserviceversion.yaml
-	$(YQ) eval -i 'del(.spec.replaces)' bundle/manifests/operand-deployment-lifecycle-manager.clusterserviceversion.yaml
 	@docker build -f bundle.Dockerfile -t $(QUAY_REGISTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) .
 	@echo "Pushing the $(BUNDLE_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
 	@docker push $(QUAY_REGISTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION)
-	@mv /tmp/operand-deployment-lifecycle-manager.clusterserviceversion.yaml bundle/manifests/operand-deployment-lifecycle-manager.clusterserviceversion.yaml
 
 build-catalog-source:
 	@opm -u docker index add --bundles $(QUAY_REGISTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) --tag $(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME)-catalog:$(VERSION)
@@ -260,6 +290,12 @@ build-catalog: build-push-bundle-image build-catalog-source
 
 multiarch-image: $(CONFIG_DOCKER_TARGET) ## Generate multiarch images for operator image.
 	@MAX_PULLING_RETRY=20 RETRY_INTERVAL=30 common/scripts/multiarch_image.sh $(ARTIFACTORYA_REGISTRY) $(OPERATOR_IMAGE_NAME) $(VERSION) $(RELEASE_VERSION)
+
+run-bundle:
+	$(OPERATOR_SDK) run bundle $(QUAY_REGISTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) --install-mode OwnNamespace
+
+cleanup-bundle:
+	$(OPERATOR_SDK) cleanup ibm-odlm
 
 ##@ Help
 help: ## Display this help

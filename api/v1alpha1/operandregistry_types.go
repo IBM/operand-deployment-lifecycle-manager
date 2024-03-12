@@ -26,6 +26,7 @@ import (
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+// +kubebuilder:pruning:PreserveUnknownFields
 // Operator defines the desired state of Operators.
 type Operator struct {
 	// A unique name for the operator whose operand may be deployed.
