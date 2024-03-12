@@ -44,6 +44,7 @@ type ConfigService struct {
 	Resources []ConfigResource `json:"resources,omitempty"`
 }
 
+// +kubebuilder:pruning:PreserveUnknownFields
 // ConfigResource defines the resource needed for the service
 type ConfigResource struct {
 	// Name is the resource name.
