@@ -1065,60 +1065,69 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 				klog.Errorf("failed to unmarshal k8s Resource Config: %v", k8sResConfigUnmarshalErr)
 			}
 
-			// Convert k8s resource spec in OperandConfig to string
-			k8sResConfigRaw, err := json.Marshal(k8sResConfigDecoded["spec"])
-			if err != nil {
-				klog.Error(err)
-				return false, err
-			}
+			for key := range existingK8sRes.Object {
+				if _, ok := k8sResConfigDecoded[key]; !ok {
+					continue
+				}
+				if reflect.DeepEqual(existingK8sRes.Object[key], k8sResConfigDecoded[key]) {
+					continue
+				}
 
-			// Convert existing k8s resource spec to string
-			existingK8sResRaw, err := json.Marshal(existingK8sRes.Object["spec"])
-			if err != nil {
-				klog.Error(err)
-				return false, err
-			}
+				// Convert k8s resource spec in OperandConfig to string
+				k8sResConfigRaw, err := json.Marshal(k8sResConfigDecoded[key])
+				if err != nil {
+					klog.Error(err)
+					return false, err
+				}
 
-			// Merge spec from existing CR and OperandConfig spec
-			updatedExistingK8sRes := util.MergeCR(existingK8sResRaw, k8sResConfigRaw)
+				// Convert existing k8s resource spec to string
+				existingK8sResRaw, err := json.Marshal(existingK8sRes.Object[key])
+				if err != nil {
+					klog.Error(err)
+					return false, err
+				}
 
-			r.EnsureAnnotation(existingK8sRes, newAnnotations)
-			r.EnsureLabel(existingK8sRes, newLabels)
+				// Merge spec from existing CR and OperandConfig spec
+				updatedExistingK8sRes := util.MergeCR(existingK8sResRaw, k8sResConfigRaw)
 
-			if reflect.DeepEqual(existingK8sRes.Object["spec"], updatedExistingK8sRes) {
-				return true, nil
-			}
+				r.EnsureAnnotation(existingK8sRes, newAnnotations)
+				r.EnsureLabel(existingK8sRes, newLabels)
 
-			CRgeneration := existingK8sRes.GetGeneration()
+				if reflect.DeepEqual(existingK8sRes.Object[key], updatedExistingK8sRes) {
+					return true, nil
+				}
 
-			klog.V(2).Infof("updating k8s resource with apiversion: %s, kind: %s, %s/%s", apiversion, kind, namespace, name)
+				CRgeneration := existingK8sRes.GetGeneration()
 
-			existingK8sRes.Object["spec"] = updatedExistingK8sRes
-			err = r.Update(ctx, &existingK8sRes)
+				klog.Infof("updating k8s resource with apiversion: %s, kind: %s, %s/%s", apiversion, kind, namespace, name)
 
-			if err != nil {
-				return false, errors.Wrapf(err, "failed to update k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
-			}
+				existingK8sRes.Object[key] = updatedExistingK8sRes
+				err = r.Update(ctx, &existingK8sRes)
 
-			UpdatedK8sRes := unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"apiVersion": apiversion,
-					"kind":       kind,
-				},
-			}
+				if err != nil {
+					return false, errors.Wrapf(err, "failed to update k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+				}
 
-			err = r.Client.Get(ctx, types.NamespacedName{
-				Name:      name,
-				Namespace: namespace,
-			}, &UpdatedK8sRes)
+				UpdatedK8sRes := unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"apiVersion": apiversion,
+						"kind":       kind,
+					},
+				}
 
-			if err != nil {
-				return false, errors.Wrapf(err, "failed to get k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+				err = r.Client.Get(ctx, types.NamespacedName{
+					Name:      name,
+					Namespace: namespace,
+				}, &UpdatedK8sRes)
 
-			}
+				if err != nil {
+					return false, errors.Wrapf(err, "failed to get k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 
-			if UpdatedK8sRes.GetGeneration() != CRgeneration {
-				klog.V(2).Infof("Finish updating the k8s Resource: -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+				}
+
+				if UpdatedK8sRes.GetGeneration() != CRgeneration {
+					klog.Infof("Finish updating the k8s Resource: -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+				}
 			}
 		}
 		return true, nil

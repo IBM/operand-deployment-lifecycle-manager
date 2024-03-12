@@ -72,6 +72,25 @@ func checkKeyBeforeMerging(key string, defaultMap interface{}, changedMap interf
 					checkKeyBeforeMerging(newKey, defaultMapRef[newKey], changedMapRef[newKey], finalMap[key].(map[string]interface{}))
 				}
 			}
+		case []interface{}:
+			if changedMap == nil {
+				finalMap[key] = defaultMap
+			} else if _, ok := changedMap.([]interface{}); ok { //Check that the changed map value is also a slice []interface
+				defaultMapRef := defaultMap
+				changedMapRef := changedMap.([]interface{})
+				for i := range defaultMapRef {
+					if _, ok := defaultMapRef[i].(map[string]interface{}); ok {
+						for newKey := range defaultMapRef[i].(map[string]interface{}) {
+							// check if the changedMapRef[i] is nil
+							if changedMapRef[i] == nil {
+								changedMapRef[i] = map[string]interface{}{}
+							}
+							checkKeyBeforeMerging(newKey, defaultMapRef[i].(map[string]interface{})[newKey], changedMapRef[i].(map[string]interface{})[newKey], finalMap[key].([]interface{})[i].(map[string]interface{}))
+						}
+					}
+				}
+			}
+
 		default:
 			//Check if the value was set, otherwise set it
 			if changedMap == nil {
