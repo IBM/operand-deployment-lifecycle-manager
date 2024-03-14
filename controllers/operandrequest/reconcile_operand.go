@@ -1094,41 +1094,43 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 				r.EnsureLabel(existingK8sRes, newLabels)
 
 				if reflect.DeepEqual(existingK8sRes.Object[key], updatedExistingK8sRes) {
-					return true, nil
+					continue
 				}
-
-				CRgeneration := existingK8sRes.GetGeneration()
 
 				klog.Infof("updating k8s resource with apiversion: %s, kind: %s, %s/%s", apiversion, kind, namespace, name)
 
 				existingK8sRes.Object[key] = updatedExistingK8sRes
-				err = r.Update(ctx, &existingK8sRes)
-
-				if err != nil {
-					return false, errors.Wrapf(err, "failed to update k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
-				}
-
-				UpdatedK8sRes := unstructured.Unstructured{
-					Object: map[string]interface{}{
-						"apiVersion": apiversion,
-						"kind":       kind,
-					},
-				}
-
-				err = r.Client.Get(ctx, types.NamespacedName{
-					Name:      name,
-					Namespace: namespace,
-				}, &UpdatedK8sRes)
-
-				if err != nil {
-					return false, errors.Wrapf(err, "failed to get k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
-
-				}
-
-				if UpdatedK8sRes.GetGeneration() != CRgeneration {
-					klog.Infof("Finish updating the k8s Resource: -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
-				}
 			}
+
+			CRgeneration := existingK8sRes.GetGeneration()
+
+			err = r.Update(ctx, &existingK8sRes)
+
+			if err != nil {
+				return false, errors.Wrapf(err, "failed to update k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+			}
+
+			UpdatedK8sRes := unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": apiversion,
+					"kind":       kind,
+				},
+			}
+
+			err = r.Client.Get(ctx, types.NamespacedName{
+				Name:      name,
+				Namespace: namespace,
+			}, &UpdatedK8sRes)
+
+			if err != nil {
+				return false, errors.Wrapf(err, "failed to get k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+
+			}
+
+			if UpdatedK8sRes.GetGeneration() != CRgeneration {
+				klog.Infof("Finish updating the k8s Resource: -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+			}
+
 		}
 		return true, nil
 	})
