@@ -9,6 +9,14 @@ rules:
   - catalogsources
   verbs:
   - get
+- apiGroups:
+  - operator.ibm.com
+  resources:
+  - certmanagers
+  - auditloggings
+  verbs:
+  - get
+  - delete
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
