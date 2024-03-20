@@ -129,12 +129,12 @@ metadata:
     categories: Developer Tools, Monitoring, Logging & Tracing, Security
     certified: "false"
     containerImage: icr.io/cpopen/odlm:latest
-    createdAt: "2024-03-13T21:38:26Z"
+    createdAt: "2024-03-20T18:18:08Z"
     description: The Operand Deployment Lifecycle Manager provides a Kubernetes CRD-based API to manage the lifecycle of operands.
     nss.operator.ibm.com/managed-operators: ibm-odlm
     olm.skipRange: '>=1.2.0 <4.3.0'
     operators.openshift.io/infrastructure-features: '["disconnected"]'
-    operators.operatorframework.io/builder: operator-sdk-v1.32.0
+    operators.operatorframework.io/builder: operator-sdk-v1.29.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/IBM/operand-deployment-lifecycle-manager
     support: IBM
@@ -214,6 +214,9 @@ spec:
             path: phase
             x-descriptors:
               - urn:alm:descriptor:io.kubernetes.phase
+        version: v1alpha1
+      - kind: OperatorConfig
+        name: operatorconfigs.operator.ibm.com
         version: v1alpha1
   description: |-
     # Introduction
@@ -562,22 +565,22 @@ spec:
   install:
     spec:
       clusterPermissions:
-      - rules:
-        - apiGroups:
-          - operators.coreos.com
-          resources:
-          - catalogsources
-          verbs:
-          - get
-        - apiGroups:
-          - operator.ibm.com
-          resources:
-          - certmanagers
-          - auditloggings
-          verbs:
-          - get
-          - delete
-        serviceAccountName: operand-deployment-lifecycle-manager
+        - rules:
+            - apiGroups:
+                - operators.coreos.com
+              resources:
+                - catalogsources
+              verbs:
+                - get
+            - apiGroups:
+                - operator.ibm.com
+              resources:
+                - certmanagers
+                - auditloggings
+              verbs:
+                - get
+                - delete
+          serviceAccountName: operand-deployment-lifecycle-manager
       deployments:
         - label:
             app.kubernetes.io/instance: operand-deployment-lifecycle-manager
