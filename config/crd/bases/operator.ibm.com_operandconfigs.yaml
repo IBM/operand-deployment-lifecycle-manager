@@ -100,11 +100,41 @@ spec:
                           namespace:
                             description: Namespace is the namespace of the resource.
                             type: string
+                          ownerReferences:
+                            description: OwnerReferences is the list of owner references.
+                            items:
+                              properties:
+                                apiVersion:
+                                  description: API version of the referent.
+                                  type: string
+                                blockOwnerDeletion:
+                                  description: If true, AND if the owner has the "foregroundDeletion"
+                                    finalizer, then the owner cannot be deleted from
+                                    the key-value store until this reference is removed.
+                                    Defaults to false.
+                                  type: boolean
+                                controller:
+                                  description: If true, this reference points to the
+                                    managing controller. Default is false.
+                                  type: boolean
+                                kind:
+                                  description: Kind of the referent.
+                                  type: string
+                                name:
+                                  description: Name of the referent.
+                                  type: string
+                              required:
+                              - apiVersion
+                              - kind
+                              - name
+                              type: object
+                            type: array
                         required:
                         - apiVersion
                         - kind
                         - name
                         type: object
+                        x-kubernetes-preserve-unknown-fields: true
                       type: array
                     spec:
                       additionalProperties:

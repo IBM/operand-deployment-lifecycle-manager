@@ -265,14 +265,14 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 				if err != nil && !apierrors.IsNotFound(err) {
 					merr.Add(errors.Wrapf(err, "failed to get k8s resource %s/%s", k8sResNs, res.Name))
 				} else if apierrors.IsNotFound(err) {
-					if err := r.createK8sResource(ctx, k8sRes, res.Data, res.Labels, res.Annotations); err != nil {
+					if err := r.createK8sResource(ctx, k8sRes, res.Data, res.Labels, res.Annotations, &res.OwnerReferences); err != nil {
 						merr.Add(err)
 					}
 				} else {
 					if res.Force {
 						// Update k8s resource
 						klog.V(3).Info("Found existing k8s resource: " + res.Name)
-						if err := r.updateK8sResource(ctx, k8sRes, res.Data, res.Labels, res.Annotations); err != nil {
+						if err := r.updateK8sResource(ctx, k8sRes, res.Data, res.Labels, res.Annotations, &res.OwnerReferences); err != nil {
 							merr.Add(err)
 						}
 					} else {
@@ -939,7 +939,7 @@ func (r *Reconciler) checkCustomResource(ctx context.Context, requestInstance *o
 	return nil
 }
 
-func (r *Reconciler) createK8sResource(ctx context.Context, k8sResTemplate unstructured.Unstructured, k8sResConfig *runtime.RawExtension, newLabels, newAnnotations map[string]string) error {
+func (r *Reconciler) createK8sResource(ctx context.Context, k8sResTemplate unstructured.Unstructured, k8sResConfig *runtime.RawExtension, newLabels, newAnnotations map[string]string, ownerReferences *[]operatorv1alpha1.OwnerReference) error {
 	kind := k8sResTemplate.GetKind()
 	name := k8sResTemplate.GetName()
 	namespace := k8sResTemplate.GetNamespace()
@@ -959,6 +959,9 @@ func (r *Reconciler) createK8sResource(ctx context.Context, k8sResTemplate unstr
 	r.EnsureLabel(k8sResTemplate, map[string]string{constant.OpreqLabel: "true"})
 	r.EnsureLabel(k8sResTemplate, newLabels)
 	r.EnsureAnnotation(k8sResTemplate, newAnnotations)
+	if err := r.setOwnerReferences(ctx, &k8sResTemplate, ownerReferences); err != nil {
+		return errors.Wrap(err, "failed to set ownerReferences for k8s resource")
+	}
 
 	// Create the k8s resource
 	err := r.Create(ctx, &k8sResTemplate)
@@ -971,7 +974,7 @@ func (r *Reconciler) createK8sResource(ctx context.Context, k8sResTemplate unstr
 	return nil
 }
 
-func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstructured.Unstructured, k8sResConfig *runtime.RawExtension, newLabels, newAnnotations map[string]string) error {
+func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstructured.Unstructured, k8sResConfig *runtime.RawExtension, newLabels, newAnnotations map[string]string, ownerReferences *[]operatorv1alpha1.OwnerReference) error {
 	kind := existingK8sRes.GetKind()
 	apiversion := existingK8sRes.GetAPIVersion()
 	name := existingK8sRes.GetName()
@@ -1023,7 +1026,7 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 			if err := r.deleteK8sResource(ctx, existingK8sRes, namespace); err != nil {
 				return errors.Wrap(err, "failed to update k8s resource")
 			}
-			if err := r.createK8sResource(ctx, templatek8sRes, k8sResConfig, newLabels, newAnnotations); err != nil {
+			if err := r.createK8sResource(ctx, templatek8sRes, k8sResConfig, newLabels, newAnnotations, ownerReferences); err != nil {
 				return errors.Wrap(err, "failed to update k8s resource")
 			}
 		}
@@ -1076,6 +1079,9 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 
 		r.EnsureAnnotation(existingK8sRes, newAnnotations)
 		r.EnsureLabel(existingK8sRes, newLabels)
+		if err := r.setOwnerReferences(ctx, &existingK8sRes, ownerReferences); err != nil {
+			return false, errors.Wrapf(err, "failed to set ownerReferences for k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+		}
 
 		klog.V(2).Infof("updating k8s resource with apiversion: %s, kind: %s, %s/%s", apiversion, kind, namespace, name)
 
@@ -1278,4 +1284,33 @@ func (r *Reconciler) ResourceForKind(gvk schema.GroupVersionKind, namespace stri
 		return nil, err
 	}
 	return &mapping.Resource, nil
+}
+
+func (r *Reconciler) setOwnerReferences(ctx context.Context, controlledRes *unstructured.Unstructured, ownerReferences *[]operatorv1alpha1.OwnerReference) error {
+	if ownerReferences != nil {
+		for _, owner := range *ownerReferences {
+			ownerObj := unstructured.Unstructured{}
+			ownerObj.SetAPIVersion(owner.APIVersion)
+			ownerObj.SetKind(owner.Kind)
+			ownerObj.SetName(owner.Name)
+
+			if err := r.Reader.Get(ctx, types.NamespacedName{
+				Name:      owner.Name,
+				Namespace: controlledRes.GetNamespace(),
+			}, &ownerObj); err != nil {
+				return errors.Wrapf(err, "failed to get owner object -- Kind: %s, NamespacedName: %s/%s", owner.Kind, controlledRes.GetNamespace(), owner.Name)
+			}
+			if owner.Controller != nil && *owner.Controller {
+				if err := controllerutil.SetControllerReference(&ownerObj, controlledRes, r.Scheme); err != nil {
+					return errors.Wrapf(err, "failed to set controller ownerReference for k8s resource -- Kind: %s, NamespacedName: %s/%s", controlledRes.GetKind(), controlledRes.GetNamespace(), controlledRes.GetName())
+				}
+			} else {
+				if err := controllerutil.SetOwnerReference(&ownerObj, controlledRes, r.Scheme); err != nil {
+					return errors.Wrapf(err, "failed to set ownerReference for k8s resource -- Kind: %s, NamespacedName: %s/%s", controlledRes.GetKind(), controlledRes.GetNamespace(), controlledRes.GetName())
+				}
+			}
+			klog.Infof("Set %s with name %s as Owner for k8s resource -- Kind: %s, NamespacedName: %s/%s", owner.Kind, owner.Name, controlledRes.GetKind(), controlledRes.GetNamespace(), controlledRes.GetName())
+		}
+	}
+	return nil
 }
