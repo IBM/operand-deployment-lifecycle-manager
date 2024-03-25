@@ -31,6 +31,9 @@ const (
 	//OpreqLabel is the label used to label the subscription/CR managed by ODLM
 	OpreqLabel string = "operator.ibm.com/opreq-control"
 
+	//InternalOpreqLabel is the label used label the OperandRequest internally created by ODLM
+	OperandOnlyLabel string = "operator.ibm.com/operand-only"
+
 	//ODLMReferenceLabel is the label used to label the resources used for ODLM operand value reference
 	ODLMReferenceLabel string = "operator.ibm.com/referenced-by-odlm-resource"
 

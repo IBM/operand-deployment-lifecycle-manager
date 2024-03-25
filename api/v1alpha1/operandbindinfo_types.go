@@ -118,7 +118,7 @@ type OperandBindInfoStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 
-// OperandBindInfo is the Schema for the operandbindinfoes API.
+// OperandBindInfo is the Schema for the operandbindinfoes API. Documentation For additional details regarding install parameters check https://ibm.biz/icpfs39install. License By installing this product you accept the license terms https://ibm.biz/icpfs39license
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=operandbindinfos,shortName=opbi,scope=Namespaced
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=.metadata.creationTimestamp

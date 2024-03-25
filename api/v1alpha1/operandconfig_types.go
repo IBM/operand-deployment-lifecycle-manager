@@ -117,7 +117,7 @@ type CrStatus struct {
 	CrStatus map[string]ServicePhase `json:"customResourceStatus,omitempty"`
 }
 
-// OperandConfig is the Schema for the operandconfigs API.
+// OperandConfig is the Schema for the operandconfigs API. Documentation For additional details regarding install parameters check https://ibm.biz/icpfs39install. License By installing this product you accept the license terms https://ibm.biz/icpfs39license
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=operandconfigs,shortName=opcon,scope=Namespaced
