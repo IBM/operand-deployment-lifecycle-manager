@@ -148,7 +148,7 @@ type ReconcileRequest struct {
 // +kubebuilder:printcolumn:name="Created At",type=string,JSONPath=.metadata.creationTimestamp
 // +operator-sdk:csv:customresourcedefinitions:displayName="OperandRegistry"
 
-// OperandRegistry is the Schema for the operandregistries API.
+// OperandRegistry is the Schema for the operandregistries API. Documentation For additional details regarding install parameters check https://ibm.biz/icpfs39install. License By installing this product you accept the license terms https://ibm.biz/icpfs39license
 type OperandRegistry struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

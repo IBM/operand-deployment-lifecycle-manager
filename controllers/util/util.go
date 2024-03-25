@@ -235,6 +235,15 @@ func Contains(list []string, s string) bool {
 	return false
 }
 
+func Differs(list []string, s string) bool {
+	for _, v := range list {
+		if v != s {
+			return true
+		}
+	}
+	return false
+}
+
 func ObjectToNewUnstructured(obj interface{}) (*unstructured.Unstructured, error) {
 	content, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
 	if err != nil {

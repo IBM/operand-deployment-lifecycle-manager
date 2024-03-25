@@ -100,9 +100,6 @@ BUNDLE_DEFAULT_CHANNEL := --default-channel=$(DEFAULT_CHANNEL)
 endif
 BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 
-# Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
-CRD_OPTIONS ?= "crd:trivialVersions=true"
-
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
@@ -199,7 +196,7 @@ deploy-e2e: kustomize ## Deploy controller in the configured Kubernetes cluster 
 ##@ Generate code and manifests
 
 manifests: controller-gen ## Generate manifests e.g. CRD, RBAC etc.
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=operand-deployment-lifecycle-manager webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) crd rbac:roleName=operand-deployment-lifecycle-manager webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
 generate: controller-gen ## Generate code e.g. API etc.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
