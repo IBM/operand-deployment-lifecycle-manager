@@ -1065,42 +1065,25 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 				klog.Errorf("failed to unmarshal k8s Resource Config: %v", k8sResConfigUnmarshalErr)
 			}
 
-			for key := range existingK8sRes.Object {
-				if _, ok := k8sResConfigDecoded[key]; !ok {
-					continue
-				}
-				if reflect.DeepEqual(existingK8sRes.Object[key], k8sResConfigDecoded[key]) {
-					continue
-				}
-
-				// Convert k8s resource spec in OperandConfig to string
-				k8sResConfigRaw, err := json.Marshal(k8sResConfigDecoded[key])
-				if err != nil {
-					klog.Error(err)
-					return false, err
-				}
-
-				// Convert existing k8s resource spec to string
-				existingK8sResRaw, err := json.Marshal(existingK8sRes.Object[key])
-				if err != nil {
-					klog.Error(err)
-					return false, err
-				}
-
-				// Merge spec from existing CR and OperandConfig spec
-				updatedExistingK8sRes := util.MergeCR(existingK8sResRaw, k8sResConfigRaw)
-
-				r.EnsureAnnotation(existingK8sRes, newAnnotations)
-				r.EnsureLabel(existingK8sRes, newLabels)
-
-				if reflect.DeepEqual(existingK8sRes.Object[key], updatedExistingK8sRes) {
-					continue
-				}
-
-				klog.Infof("updating k8s resource with apiversion: %s, kind: %s, %s/%s", apiversion, kind, namespace, name)
-
-				existingK8sRes.Object[key] = updatedExistingK8sRes
+			// Convert existing k8s resource spec to string
+			existingK8sResRaw, err := json.Marshal(existingK8sRes.Object)
+			if err != nil {
+				klog.Error(err)
+				return false, err
 			}
+
+			// Merge spec from existing CR and OperandConfig spec
+			updatedExistingK8sRes := util.MergeCR(existingK8sResRaw, k8sResConfig.Raw)
+
+			r.EnsureAnnotation(existingK8sRes, newAnnotations)
+			r.EnsureLabel(existingK8sRes, newLabels)
+
+			if reflect.DeepEqual(existingK8sRes.Object, updatedExistingK8sRes) {
+				return true, nil
+			}
+			klog.Infof("updating k8s resource with apiversion: %s, kind: %s, %s/%s", apiversion, kind, namespace, name)
+
+			existingK8sRes.Object = updatedExistingK8sRes
 
 			CRgeneration := existingK8sRes.GetGeneration()
 
@@ -1130,7 +1113,6 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 			if UpdatedK8sRes.GetGeneration() != CRgeneration {
 				klog.Infof("Finish updating the k8s Resource: -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 			}
-
 		}
 		return true, nil
 	})
