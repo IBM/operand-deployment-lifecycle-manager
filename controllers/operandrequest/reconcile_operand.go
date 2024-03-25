@@ -1077,6 +1077,9 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 
 			r.EnsureAnnotation(existingK8sRes, newAnnotations)
 			r.EnsureLabel(existingK8sRes, newLabels)
+			if err := r.setOwnerReferences(ctx, &existingK8sRes, ownerReferences); err != nil {
+				return false, errors.Wrapf(err, "failed to set ownerReferences for k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+			}
 
 			if reflect.DeepEqual(existingK8sRes.Object, updatedExistingK8sRes) {
 				return true, nil
