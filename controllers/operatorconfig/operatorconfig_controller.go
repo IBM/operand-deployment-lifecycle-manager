@@ -14,23 +14,21 @@
 // limitations under the License.
 //
 
-package controllers
+package operatorconfig
 
 import (
 	"context"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
+	deploy "github.com/IBM/operand-deployment-lifecycle-manager/controllers/operator"
 )
 
 // OperatorConfigReconciler reconciles a OperatorConfig object
 type OperatorConfigReconciler struct {
-	client.Client
-	Scheme *runtime.Scheme
+	*deploy.ODLMOperator
 }
 
 //+kubebuilder:rbac:groups=operator.ibm.com,resources=operatorconfigs,verbs=get;list;watch;create;update;patch;delete

@@ -40,7 +40,6 @@ import (
 	nssv1 "github.com/IBM/ibm-namespace-scope-operator/api/v1"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
-	"github.com/IBM/operand-deployment-lifecycle-manager/controllers"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/k8sutil"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/namespacescope"
@@ -50,6 +49,7 @@ import (
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/operandrequest"
 	deploy "github.com/IBM/operand-deployment-lifecycle-manager/controllers/operator"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/operatorchecker"
+	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/operatorconfig"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/util"
 	// +kubebuilder:scaffold:imports
 )
@@ -167,9 +167,8 @@ func main() {
 			}
 		}
 	}
-	if err = (&controllers.OperatorConfigReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+	if err = (&operatorconfig.OperatorConfigReconciler{
+		ODLMOperator: deploy.NewODLMOperator(mgr, "OperatorConfig"),
 	}).SetupWithManager(mgr); err != nil {
 		klog.Error(err, "unable to create controller", "controller", "OperatorConfig")
 		os.Exit(1)
