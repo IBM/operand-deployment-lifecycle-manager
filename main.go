@@ -167,7 +167,7 @@ func main() {
 			}
 		}
 	}
-	if err = (&operatorconfig.OperatorConfigReconciler{
+	if err = (&operatorconfig.Reconciler{
 		ODLMOperator: deploy.NewODLMOperator(mgr, "OperatorConfig"),
 	}).SetupWithManager(mgr); err != nil {
 		klog.Error(err, "unable to create controller", "controller", "OperatorConfig")
