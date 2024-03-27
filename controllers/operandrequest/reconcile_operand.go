@@ -28,6 +28,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/mohae/deepcopy"
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/pkg/errors"
 	authorizationv1 "k8s.io/api/authorization/v1"
@@ -1059,21 +1060,21 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 
 		if k8sResConfig != nil {
 
-			k8sResConfigDecoded := make(map[string]interface{})
-			k8sResConfigUnmarshalErr := json.Unmarshal(k8sResConfig.Raw, &k8sResConfigDecoded)
-			if k8sResConfigUnmarshalErr != nil {
-				klog.Errorf("failed to unmarshal k8s Resource Config: %v", k8sResConfigUnmarshalErr)
-			}
-
-			// Convert existing k8s resource spec to string
+			// Convert existing k8s resource to string
 			existingK8sResRaw, err := json.Marshal(existingK8sRes.Object)
 			if err != nil {
 				klog.Error(err)
 				return false, err
 			}
 
-			// Merge spec from existing CR and OperandConfig spec
+			// Merge the existing CR and the CR from the OperandConfig
 			updatedExistingK8sRes := util.MergeCR(existingK8sResRaw, k8sResConfig.Raw)
+
+			// Deep copy the existing k8s resource
+			originalK8sRes := deepcopy.Copy(existingK8sRes.Object)
+
+			// Update the existing k8s resource with the merged CR
+			existingK8sRes.Object = updatedExistingK8sRes
 
 			r.EnsureAnnotation(existingK8sRes, newAnnotations)
 			r.EnsureLabel(existingK8sRes, newLabels)
@@ -1081,12 +1082,11 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 				return false, errors.Wrapf(err, "failed to set ownerReferences for k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 			}
 
-			if reflect.DeepEqual(existingK8sRes.Object, updatedExistingK8sRes) {
+			if reflect.DeepEqual(originalK8sRes, existingK8sRes.Object) {
 				return true, nil
 			}
-			klog.Infof("updating k8s resource with apiversion: %s, kind: %s, %s/%s", apiversion, kind, namespace, name)
 
-			existingK8sRes.Object = updatedExistingK8sRes
+			klog.Infof("updating k8s resource with apiversion: %s, kind: %s, %s/%s", apiversion, kind, namespace, name)
 
 			CRgeneration := existingK8sRes.GetGeneration()
 
