@@ -1,0 +1,12 @@
+apiVersion: operator.ibm.com/v1alpha1
+kind: OperatorConfig
+metadata:
+  labels:
+    app.kubernetes.io/name: operatorconfig
+    app.kubernetes.io/instance: operatorconfig-sample
+    app.kubernetes.io/part-of: operand-deployment-lifecycle-manager
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: operand-deployment-lifecycle-manager
+  name: operatorconfig-sample
+spec:
+  # TODO(user): Add fields here

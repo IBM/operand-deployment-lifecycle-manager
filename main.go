@@ -49,6 +49,7 @@ import (
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/operandrequest"
 	deploy "github.com/IBM/operand-deployment-lifecycle-manager/controllers/operator"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/operatorchecker"
+	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/operatorconfig"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/util"
 	// +kubebuilder:scaffold:imports
 )
@@ -165,6 +166,12 @@ func main() {
 				os.Exit(1)
 			}
 		}
+	}
+	if err = (&operatorconfig.Reconciler{
+		ODLMOperator: deploy.NewODLMOperator(mgr, "OperatorConfig"),
+	}).SetupWithManager(mgr); err != nil {
+		klog.Error(err, "unable to create controller", "controller", "OperatorConfig")
+		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder
 
