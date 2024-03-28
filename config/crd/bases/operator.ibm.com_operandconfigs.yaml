@@ -1,11 +1,9 @@
-
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.6.1
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.14.0
   name: operandconfigs.operator.ibm.com
 spec:
   group: operator.ibm.com
@@ -32,17 +30,24 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: OperandConfig is the Schema for the operandconfigs API.
+        description: OperandConfig is the Schema for the operandconfigs API. Documentation
+          For additional details regarding install parameters check https://ibm.biz/icpfs39install.
+          License By installing this product you accept the license terms https://ibm.biz/icpfs39license
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -108,14 +113,16 @@ spec:
                                   description: API version of the referent.
                                   type: string
                                 blockOwnerDeletion:
-                                  description: If true, AND if the owner has the "foregroundDeletion"
-                                    finalizer, then the owner cannot be deleted from
-                                    the key-value store until this reference is removed.
+                                  description: |-
+                                    If true, AND if the owner has the "foregroundDeletion" finalizer, then
+                                    the owner cannot be deleted from the key-value store until this
+                                    reference is removed.
                                     Defaults to false.
                                   type: boolean
                                 controller:
-                                  description: If true, this reference points to the
-                                    managing controller. Default is false.
+                                  description: |-
+                                    If true, this reference points to the managing controller.
+                                    Default is false.
                                   type: boolean
                                 kind:
                                   description: Kind of the referent.
@@ -177,9 +184,3 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []

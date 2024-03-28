@@ -129,7 +129,7 @@ metadata:
     categories: Developer Tools, Monitoring, Logging & Tracing, Security
     certified: "false"
     containerImage: icr.io/cpopen/odlm:latest
-    createdAt: "2024-03-13T21:38:26Z"
+    createdAt: "2024-03-20T04:25:43Z"
     description: The Operand Deployment Lifecycle Manager provides a Kubernetes CRD-based API to manage the lifecycle of operands.
     nss.operator.ibm.com/managed-operators: ibm-odlm
     olm.skipRange: '>=1.2.0 <4.3.0'
@@ -149,7 +149,7 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-      - description: OperandBindInfo is the Schema for the operandbindinfoes API.
+      - description: OperandBindInfo is the Schema for the operandbindinfoes API. Documentation For additional details regarding install parameters check https://ibm.biz/icpfs39install. License By installing this product you accept the license terms https://ibm.biz/icpfs39license
         displayName: OperandBindInfo
         kind: OperandBindInfo
         name: operandbindinfos.operator.ibm.com
@@ -160,7 +160,7 @@ spec:
             x-descriptors:
               - urn:alm:descriptor:io.kubernetes.phase
         version: v1alpha1
-      - description: OperandConfig is the Schema for the operandconfigs API.
+      - description: OperandConfig is the Schema for the operandconfigs API. Documentation For additional details regarding install parameters check https://ibm.biz/icpfs39install. License By installing this product you accept the license terms https://ibm.biz/icpfs39license
         displayName: OperandConfig
         kind: OperandConfig
         name: operandconfigs.operator.ibm.com
@@ -175,7 +175,7 @@ spec:
             x-descriptors:
               - urn:alm:descriptor:io.kubernetes.phase
         version: v1alpha1
-      - description: OperandRegistry is the Schema for the operandregistries API.
+      - description: OperandRegistry is the Schema for the operandregistries API. Documentation For additional details regarding install parameters check https://ibm.biz/icpfs39install. License By installing this product you accept the license terms https://ibm.biz/icpfs39license
         displayName: OperandRegistry
         kind: OperandRegistry
         name: operandregistries.operator.ibm.com
@@ -195,7 +195,7 @@ spec:
             x-descriptors:
               - urn:alm:descriptor:io.kubernetes.phase
         version: v1alpha1
-      - description: OperandRequest is the Schema for the operandrequests API.
+      - description: OperandRequest is the Schema for the operandrequests API. Documentation For additional details regarding install parameters check https://ibm.biz/icpfs39install. License By installing this product you accept the license terms https://ibm.biz/icpfs39license
         displayName: OperandRequest
         kind: OperandRequest
         name: operandrequests.operator.ibm.com
@@ -562,22 +562,22 @@ spec:
   install:
     spec:
       clusterPermissions:
-      - rules:
-        - apiGroups:
-          - operators.coreos.com
-          resources:
-          - catalogsources
-          verbs:
-          - get
-        - apiGroups:
-          - operator.ibm.com
-          resources:
-          - certmanagers
-          - auditloggings
-          verbs:
-          - get
-          - delete
-        serviceAccountName: operand-deployment-lifecycle-manager
+        - rules:
+            - apiGroups:
+                - operators.coreos.com
+              resources:
+                - catalogsources
+              verbs:
+                - get
+            - apiGroups:
+                - operator.ibm.com
+              resources:
+                - certmanagers
+                - auditloggings
+              verbs:
+                - get
+                - delete
+          serviceAccountName: operand-deployment-lifecycle-manager
       deployments:
         - label:
             app.kubernetes.io/instance: operand-deployment-lifecycle-manager

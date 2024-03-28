@@ -1073,8 +1073,7 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 			// Deep copy the existing k8s resource
 			originalK8sRes, err := deepcopy.Anything(existingK8sRes.Object)
 			if err != nil {
-				klog.Error(err)
-				return false, err
+				return false, errors.Wrapf(err, "failed to deep copy k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 			}
 
 			// Update the existing k8s resource with the merged CR
