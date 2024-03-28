@@ -28,7 +28,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/mohae/deepcopy"
+	"github.com/barkimedes/go-deepcopy"
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/pkg/errors"
 	authorizationv1 "k8s.io/api/authorization/v1"
@@ -1071,7 +1071,11 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 			updatedExistingK8sRes := util.MergeCR(existingK8sResRaw, k8sResConfig.Raw)
 
 			// Deep copy the existing k8s resource
-			originalK8sRes := deepcopy.Copy(existingK8sRes.Object)
+			originalK8sRes, err := deepcopy.Anything(existingK8sRes.Object)
+			if err != nil {
+				klog.Error(err)
+				return false, err
+			}
 
 			// Update the existing k8s resource with the merged CR
 			existingK8sRes.Object = updatedExistingK8sRes
