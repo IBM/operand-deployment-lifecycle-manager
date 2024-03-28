@@ -5,6 +5,7 @@ go 1.20
 require (
 	github.com/IBM/controller-filtered-cache v0.3.5
 	github.com/IBM/ibm-namespace-scope-operator v1.17.3
+	github.com/barkimedes/go-deepcopy v0.0.0-20220514131651-17c30cfc62df
 	github.com/deckarep/golang-set v1.7.1
 	github.com/google/go-cmp v0.5.9
 	github.com/jaegertracing/jaeger-operator v1.36.0
