@@ -20,6 +20,7 @@ import (
 	"context"
 
 	"github.com/barkimedes/go-deepcopy"
+	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -34,7 +35,6 @@ import (
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
 	deploy "github.com/IBM/operand-deployment-lifecycle-manager/controllers/operator"
-	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 )
 
 // OperatorConfigReconciler reconciles a OperatorConfig object
