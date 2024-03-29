@@ -31,6 +31,7 @@ type OperatorConfigSpec struct {
 	Foo string `json:"foo,omitempty"`
 
 	// Services is a list of services to be configured, specifically their operators
+	// +kubebuilder:pruning:PreserveUnknownFields
 	Services []ServiceOperatorConfig `json:"services,omitempty"`
 }
 
