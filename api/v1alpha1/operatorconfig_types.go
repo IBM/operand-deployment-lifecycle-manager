@@ -86,7 +86,7 @@ type OperatorConfigList struct {
 	Items           []OperatorConfig `json:"items"`
 }
 
-// GetOperator obtains the operator definition with the operand name.
+// GetConfigForOperator obtains a particular ServiceOperatorConfig by using operator name for searching.
 func (r *OperatorConfig) GetConfigForOperator(name string) *ServiceOperatorConfig {
 	for _, o := range r.Spec.Services {
 		if o.Name == name {
