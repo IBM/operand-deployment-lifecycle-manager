@@ -83,6 +83,9 @@ spec:
                         is not set, the operator namespace is the same as OperandRegistry
                         Namespace
                       type: string
+                    operatorConfig:
+                      description: OperatorConfig is the name of the OperatorConfig
+                      type: string
                     packageName:
                       description: Name of the package that defines the applications.
                       type: string

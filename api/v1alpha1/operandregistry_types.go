@@ -73,6 +73,9 @@ type Operator struct {
 	// SubscriptionConfig is used to override operator configuration.
 	// +optional
 	SubscriptionConfig *olmv1alpha1.SubscriptionConfig `json:"subscriptionConfig,omitempty"`
+	// OperatorConfig is the name of the OperatorConfig
+	// +optional
+	OperatorConfig string `json:"operatorConfig,omitempty"`
 }
 
 // +kubebuilder:validation:Enum=public;private

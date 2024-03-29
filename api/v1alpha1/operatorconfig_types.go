@@ -85,6 +85,16 @@ type OperatorConfigList struct {
 	Items           []OperatorConfig `json:"items"`
 }
 
+// GetOperator obtains the operator definition with the operand name.
+func (r *OperatorConfig) GetConfigForOperator(name string) *ServiceOperatorConfig {
+	for _, o := range r.Spec.Services {
+		if o.Name == name {
+			return &o
+		}
+	}
+	return nil
+}
+
 func init() {
 	SchemeBuilder.Register(&OperatorConfig{}, &OperatorConfigList{})
 }

@@ -59,6 +59,9 @@ rules:
   - operandbindinfos
   - operandbindinfos/status
   - operandbindinfos/finalizers
+  - operatorconfigs
+  - operatorconfigs/status
+  - operatorconfigs/finalizers
 - verbs:
   - create
   - delete
