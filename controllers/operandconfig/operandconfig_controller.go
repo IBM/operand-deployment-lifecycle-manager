@@ -54,6 +54,8 @@ type Reconciler struct {
 	*deploy.ODLMOperator
 }
 
+//+kubebuilder:rbac:groups=operator.ibm.com,namespace="placeholder",resources=operandconfigs;operandconfigs/status;operandconfigs/finalizers,verbs=get;list;watch;create;update;patch;delete
+
 // Reconcile reads that state of the cluster for a OperandConfig object and makes changes based on the state read
 // and what is in the OperandConfig.Spec
 // Note:

@@ -71,3 +71,43 @@ var _ = Describe("Get environmental variables", func() {
 		})
 	})
 })
+
+var _ = Describe("Contains", func() {
+	It("Should return true if the list contains the string", func() {
+		list := []string{"apple", "banana", "cherry"}
+		s := "banana"
+		Expect(Contains(list, s)).Should(BeTrue())
+	})
+
+	It("Should return false if the list does not contain the string", func() {
+		list := []string{"apple", "banana", "cherry"}
+		s := "orange"
+		Expect(Contains(list, s)).Should(BeFalse())
+	})
+
+	It("Should return false if the list is empty", func() {
+		list := []string{}
+		s := "apple"
+		Expect(Contains(list, s)).Should(BeFalse())
+	})
+})
+
+var _ = Describe("Differs", func() {
+	It("Should return true if the list contains a different string", func() {
+		list := []string{"apple", "banana", "cherry"}
+		s := "banana"
+		Expect(Differs(list, s)).Should(BeTrue())
+	})
+
+	It("Should return false if the list contains only the same string", func() {
+		list := []string{"apple", "apple", "apple"}
+		s := "apple"
+		Expect(Differs(list, s)).Should(BeFalse())
+	})
+
+	It("Should return false if the list is empty", func() {
+		list := []string{}
+		s := "apple"
+		Expect(Differs(list, s)).Should(BeFalse())
+	})
+})

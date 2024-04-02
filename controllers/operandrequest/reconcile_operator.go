@@ -406,45 +406,23 @@ func (r *Reconciler) uninstallOperatorsAndOperands(ctx context.Context, operandN
 		return nil
 	}
 
-	// remove request info including channel and operator namespace in annotation of subscription
-	reqName := requestInstance.ObjectMeta.Name
-	reqNs := requestInstance.ObjectMeta.Namespace
-	delete(sub.Annotations, reqNs+"."+reqName+"."+op.Name+"/request")
-	delete(sub.Annotations, reqNs+"."+reqName+"."+op.Name+"/operatorNamespace")
-
-	uninstallOperatorOnly := false
-	var nsAnnoSlice []string
-	namespaceReg, _ := regexp.Compile(`^(.*)\.(.*)\.(.*)\/operatorNamespace`)
-	for anno, ns := range sub.Annotations {
-		if namespaceReg.MatchString(anno) {
-			nsAnnoSlice = append(nsAnnoSlice, ns)
+	uninstallOperator, uninstallOperand := checkSubAnnotationsForUninstall(requestInstance.ObjectMeta.Name, requestInstance.ObjectMeta.Namespace, op.Name, sub)
+	if !uninstallOperand && !uninstallOperator {
+		if err = r.updateSubscription(ctx, requestInstance, sub); err != nil {
+			requestInstance.SetMemberStatus(op.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
+			return err
 		}
-	}
-	if len(nsAnnoSlice) != 0 {
-		// No OperandRequest is requesting operator in existing subscription's namespace, uninstall Operator only
-		if !util.Contains(nsAnnoSlice, sub.Namespace) {
-			uninstallOperatorOnly = true
-		} else {
-			// remove the associated request from annotation of subscription
-			if err = r.updateSubscription(ctx, requestInstance, sub); err != nil {
-				requestInstance.SetMemberStatus(op.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
-				return err
-			}
-			requestInstance.SetMemberStatus(op.Name, operatorv1alpha1.OperatorUpdating, "", &r.Mutex)
+		requestInstance.SetMemberStatus(op.Name, operatorv1alpha1.OperatorUpdating, "", &r.Mutex)
 
-			klog.V(1).Infof("Did not delete Subscription %s/%s which is requested by other OperandRequests", sub.Namespace, sub.Name)
-			return nil
-		}
+		klog.V(1).Infof("No deletion, subscription %s/%s and its operands are still requested by other OperandRequests", sub.Namespace, sub.Name)
+		return nil
 	}
 
-	csv, err := r.GetClusterServiceVersion(ctx, sub)
-	// If can't get CSV, requeue the request
-	if err != nil {
+	if csv, err := r.GetClusterServiceVersion(ctx, sub); err != nil {
+		// If can't get CSV, requeue the request
 		return err
-	}
-
-	if csv != nil {
-		if !uninstallOperatorOnly {
+	} else if csv != nil {
+		if uninstallOperand {
 			klog.V(2).Infof("Deleting all the Custom Resources for CSV, Namespace: %s, Name: %s", csv.Namespace, csv.Name)
 			if err := r.deleteAllCustomResource(ctx, csv, requestInstance, configInstance, operandName, configInstance.Namespace); err != nil {
 				return err
@@ -454,34 +432,46 @@ func (r *Reconciler) uninstallOperatorsAndOperands(ctx context.Context, operandN
 				return err
 			}
 		}
-		if r.checkUninstallLabel(sub) {
-			klog.V(1).Infof("Operator %s has label operator.ibm.com/opreq-do-not-uninstall. Skip the uninstall", op.Name)
-			return nil
-		}
+		if uninstallOperator {
+			if r.checkUninstallLabel(sub) {
+				klog.V(1).Infof("Operator %s has label operator.ibm.com/opreq-do-not-uninstall. Skip the uninstall", op.Name)
+				return nil
+			}
 
-		klog.V(3).Info("Set Deleting Condition in the operandRequest")
-		requestInstance.SetDeletingCondition(csv.Name, operatorv1alpha1.ResourceTypeCsv, corev1.ConditionTrue, &r.Mutex)
+			klog.V(3).Info("Set Deleting Condition in the operandRequest")
+			requestInstance.SetDeletingCondition(csv.Name, operatorv1alpha1.ResourceTypeCsv, corev1.ConditionTrue, &r.Mutex)
 
-		klog.V(1).Infof("Deleting the ClusterServiceVersion, Namespace: %s, Name: %s", csv.Namespace, csv.Name)
-		if err := r.Delete(ctx, csv); err != nil {
-			requestInstance.SetDeletingCondition(csv.Name, operatorv1alpha1.ResourceTypeCsv, corev1.ConditionFalse, &r.Mutex)
-			return errors.Wrap(err, "failed to delete the ClusterServiceVersion")
-		}
-	}
-
-	klog.V(2).Infof("Deleting the Subscription, Namespace: %s, Name: %s", namespace, op.Name)
-	requestInstance.SetDeletingCondition(op.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionTrue, &r.Mutex)
-
-	if err := r.Delete(ctx, sub); err != nil {
-		if apierrors.IsNotFound(err) {
-			klog.Warningf("Subscription %s was not found in namespace %s", op.Name, namespace)
-		} else {
-			requestInstance.SetDeletingCondition(op.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionFalse, &r.Mutex)
-			return errors.Wrap(err, "failed to delete subscription")
+			klog.V(1).Infof("Deleting the ClusterServiceVersion, Namespace: %s, Name: %s", csv.Namespace, csv.Name)
+			if err := r.Delete(ctx, csv); err != nil {
+				requestInstance.SetDeletingCondition(csv.Name, operatorv1alpha1.ResourceTypeCsv, corev1.ConditionFalse, &r.Mutex)
+				return errors.Wrap(err, "failed to delete the ClusterServiceVersion")
+			}
 		}
 	}
 
-	klog.V(1).Infof("Subscription %s/%s is deleted", namespace, op.Name)
+	if uninstallOperator {
+		klog.V(2).Infof("Deleting the Subscription, Namespace: %s, Name: %s", namespace, op.Name)
+		requestInstance.SetDeletingCondition(op.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionTrue, &r.Mutex)
+
+		if err := r.Delete(ctx, sub); err != nil {
+			if apierrors.IsNotFound(err) {
+				klog.Warningf("Subscription %s was not found in namespace %s", op.Name, namespace)
+			} else {
+				requestInstance.SetDeletingCondition(op.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionFalse, &r.Mutex)
+				return errors.Wrap(err, "failed to delete subscription")
+			}
+		}
+
+		klog.V(1).Infof("Subscription %s/%s is deleted", namespace, op.Name)
+	} else {
+		if err = r.updateSubscription(ctx, requestInstance, sub); err != nil {
+			requestInstance.SetMemberStatus(op.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
+			return err
+		}
+		requestInstance.SetMemberStatus(op.Name, operatorv1alpha1.OperatorUpdating, "", &r.Mutex)
+		klog.V(1).Infof("Subscription %s/%s is not deleted due to the annotation from OperandRequest", namespace, op.Name)
+	}
+
 	return nil
 }
 
@@ -652,4 +642,59 @@ func compareSub(sub *olmv1alpha1.Subscription, originalSub *olmv1alpha1.Subscrip
 func CheckSingletonServices(operator string) bool {
 	singletonServices := []string{"ibm-cert-manager-operator", "ibm-licensing-operator"}
 	return util.Contains(singletonServices, operator)
+}
+
+// checkSubAnnotationsForUninstall checks the annotations of a Subscription object
+// to determine whether the operator and operand should be uninstalled.
+// It takes the name of the OperandRequest, the namespace of the OperandRequest,
+// the name of the operator, and a pointer to the Subscription object as input.
+// It returns two boolean values: uninstallOperator and uninstallOperand.
+// If uninstallOperator is true, it means the operator should be uninstalled.
+// If uninstallOperand is true, it means the operand should be uninstalled.
+func checkSubAnnotationsForUninstall(reqName, reqNs, opName string, sub *olmv1alpha1.Subscription) (bool, bool) {
+	uninstallOperator := true
+	uninstallOperand := true
+
+	var curChannel string
+	if sub.GetAnnotations() != nil {
+		curChannel = sub.Annotations[reqNs+"."+reqName+"."+opName+"/request"]
+	}
+
+	delete(sub.Annotations, reqNs+"."+reqName+"."+opName+"/request")
+	delete(sub.Annotations, reqNs+"."+reqName+"."+opName+"/operatorNamespace")
+
+	var opreqNsSlice []string
+	var operatorNameSlice []string
+	var channelSlice []string
+	namespaceReg, _ := regexp.Compile(`^(.*)\.(.*)\.(.*)\/operatorNamespace`)
+	channelReg, _ := regexp.Compile(`^(.*)\.(.*)\.(.*)\/request`)
+
+	for key, value := range sub.Annotations {
+		if namespaceReg.MatchString(key) {
+			opreqNsSlice = append(opreqNsSlice, value)
+		}
+
+		if channelReg.MatchString(key) {
+			channelSlice = append(channelSlice, value)
+			// Extract the operator name from the key
+			keyParts := strings.Split(key, "/")
+			annoPrefix := strings.Split(keyParts[0], ".")
+			operatorNameSlice = append(operatorNameSlice, annoPrefix[len(annoPrefix)-1])
+		}
+	}
+
+	// If one of remaining <prefix>/operatorNamespace annotations' values is the same as subscription's namespace,
+	// the operator should NOT be uninstalled.
+	if util.Contains(opreqNsSlice, sub.Namespace) {
+		uninstallOperator = false
+	}
+
+	// If the removed/uninstalled <prefix>/request annotation's value is NOT the same as all other <prefix>/request annotation's values.
+	// or the operator namespace in one of remaining annotation is the same as the operator name in removed/uninstalled <prefix>/request
+	// the operand should NOT be uninstalled.
+	if util.Differs(channelSlice, curChannel) || util.Contains(operatorNameSlice, opName) {
+		uninstallOperand = false
+	}
+
+	return uninstallOperator, uninstallOperand
 }

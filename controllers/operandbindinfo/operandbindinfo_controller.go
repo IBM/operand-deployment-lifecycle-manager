@@ -70,6 +70,8 @@ var (
 	isRouteAPI         = false
 )
 
+// +kubebuilder:rbac:groups=operator.ibm.com,namespace="placeholder",resources=operandbindinfos;operandbindinfos/status;operandbindinfos/finalizers,verbs=get;list;watch;create;update;patch;delete
+
 // Reconcile reads that state of the cluster for a OperandBindInfo object and makes changes based on the state read
 // and what is in the OperandBindInfo.Spec
 // Note:

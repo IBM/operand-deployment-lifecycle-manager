@@ -129,12 +129,12 @@ metadata:
     categories: Developer Tools, Monitoring, Logging & Tracing, Security
     certified: "false"
     containerImage: icr.io/cpopen/odlm:latest
-    createdAt: "2024-03-29T03:10:47Z"
+    createdAt: "2024-04-02T02:16:34Z"
     description: The Operand Deployment Lifecycle Manager provides a Kubernetes CRD-based API to manage the lifecycle of operands.
     nss.operator.ibm.com/managed-operators: ibm-odlm
     olm.skipRange: '>=1.2.0 <4.3.0'
     operators.openshift.io/infrastructure-features: '["disconnected"]'
-    operators.operatorframework.io/builder: operator-sdk-v1.29.0
+    operators.operatorframework.io/builder: operator-sdk-v1.32.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/IBM/operand-deployment-lifecycle-manager
     support: IBM
@@ -149,7 +149,7 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-      - description: OperandBindInfo is the Schema for the operandbindinfoes API.
+      - description: OperandBindInfo is the Schema for the operandbindinfoes API. Documentation For additional details regarding install parameters check https://ibm.biz/icpfs39install. License By installing this product you accept the license terms https://ibm.biz/icpfs39license
         displayName: OperandBindInfo
         kind: OperandBindInfo
         name: operandbindinfos.operator.ibm.com
@@ -160,7 +160,7 @@ spec:
             x-descriptors:
               - urn:alm:descriptor:io.kubernetes.phase
         version: v1alpha1
-      - description: OperandConfig is the Schema for the operandconfigs API.
+      - description: OperandConfig is the Schema for the operandconfigs API. Documentation For additional details regarding install parameters check https://ibm.biz/icpfs39install. License By installing this product you accept the license terms https://ibm.biz/icpfs39license
         displayName: OperandConfig
         kind: OperandConfig
         name: operandconfigs.operator.ibm.com
@@ -175,7 +175,7 @@ spec:
             x-descriptors:
               - urn:alm:descriptor:io.kubernetes.phase
         version: v1alpha1
-      - description: OperandRegistry is the Schema for the operandregistries API.
+      - description: OperandRegistry is the Schema for the operandregistries API. Documentation For additional details regarding install parameters check https://ibm.biz/icpfs39install. License By installing this product you accept the license terms https://ibm.biz/icpfs39license
         displayName: OperandRegistry
         kind: OperandRegistry
         name: operandregistries.operator.ibm.com
@@ -195,7 +195,7 @@ spec:
             x-descriptors:
               - urn:alm:descriptor:io.kubernetes.phase
         version: v1alpha1
-      - description: OperandRequest is the Schema for the operandrequests API.
+      - description: OperandRequest is the Schema for the operandrequests API. Documentation For additional details regarding install parameters check https://ibm.biz/icpfs39install. License By installing this product you accept the license terms https://ibm.biz/icpfs39license
         displayName: OperandRequest
         kind: OperandRequest
         name: operandrequests.operator.ibm.com
@@ -215,7 +215,9 @@ spec:
             x-descriptors:
               - urn:alm:descriptor:io.kubernetes.phase
         version: v1alpha1
-      - kind: OperatorConfig
+      - description: OperatorConfig is the Schema for the operatorconfigs API
+        displayName: Operator Config
+        kind: OperatorConfig
         name: operatorconfigs.operator.ibm.com
         version: v1alpha1
   description: |-
@@ -567,19 +569,19 @@ spec:
       clusterPermissions:
         - rules:
             - apiGroups:
+                - operator.ibm.com
+              resources:
+                - auditloggings
+                - certmanagers
+              verbs:
+                - delete
+                - get
+            - apiGroups:
                 - operators.coreos.com
               resources:
                 - catalogsources
               verbs:
                 - get
-            - apiGroups:
-                - operator.ibm.com
-              resources:
-                - certmanagers
-                - auditloggings
-              verbs:
-                - get
-                - delete
           serviceAccountName: operand-deployment-lifecycle-manager
       deployments:
         - label:
@@ -675,9 +677,37 @@ spec:
       permissions:
         - rules:
             - apiGroups:
+                - ""
+              resources:
+                - configmaps
+                - namespaces
+                - secrets
+                - services
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
                 - '*'
               resources:
                 - '*'
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - k8s.keycloak.org
+              resources:
+                - keycloakrealmimports
+                - keycloaks
               verbs:
                 - create
                 - delete
@@ -690,47 +720,50 @@ spec:
                 - operator.ibm.com
               resources:
                 - operandconfigs
-                - operandconfigs/status
                 - operandconfigs/finalizers
+                - operandconfigs/status
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - operator.ibm.com
+              resources:
                 - operandregistries
-                - operandregistries/status
                 - operandregistries/finalizers
+                - operandregistries/status
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - operator.ibm.com
+              resources:
                 - operandrequests
-                - operandrequests/status
                 - operandrequests/finalizers
-                - operandbindinfos
-                - operandbindinfos/status
-                - operandbindinfos/finalizers
+                - operandrequests/status
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - operator.ibm.com
+              resources:
                 - operatorconfigs
-                - operatorconfigs/status
                 - operatorconfigs/finalizers
-              verbs:
-                - create
-                - delete
-                - get
-                - list
-                - patch
-                - update
-                - watch
-            - apiGroups:
-                - ""
-              resources:
-                - configmaps
-                - secrets
-                - services
-                - namespaces
-              verbs:
-                - create
-                - delete
-                - get
-                - list
-                - patch
-                - update
-                - watch
-            - apiGroups:
-                - route.openshift.io
-              resources:
-                - routes
+                - operatorconfigs/status
               verbs:
                 - create
                 - delete
@@ -742,8 +775,8 @@ spec:
             - apiGroups:
                 - operators.coreos.com
               resources:
-                - operatorgroups
-                - installplans
+                - clusterserviceversions
+                - subscriptions
               verbs:
                 - create
                 - delete
@@ -753,9 +786,10 @@ spec:
                 - update
                 - watch
             - apiGroups:
-                - k8s.keycloak.org
+                - operators.coreos.com
               resources:
-                - keycloaks
+                - installplans
+                - operatorgroups
               verbs:
                 - create
                 - delete
@@ -769,6 +803,18 @@ spec:
               resources:
                 - packagemanifests
               verbs:
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - route.openshift.io
+              resources:
+                - routes
+              verbs:
+                - create
+                - delete
                 - get
                 - list
                 - patch

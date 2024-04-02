@@ -1,11 +1,9 @@
-
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.6.1
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.14.0
   name: operandrequests.operator.ibm.com
 spec:
   group: operator.ibm.com
@@ -32,17 +30,24 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: OperandRequest is the Schema for the operandrequests API.
+        description: OperandRequest is the Schema for the operandrequests API. Documentation
+          For additional details regarding install parameters check https://ibm.biz/icpfs39install.
+          License By installing this product you accept the license terms https://ibm.biz/icpfs39license
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -72,13 +77,12 @@ spec:
                             type: string
                           bindings:
                             additionalProperties:
-                              description: Bindable is a Kubernetes resources to be
-                                shared from one namespace to another. List of supported
-                                resources are Secrets, Configmaps, Services, and Routes.
-                                Secrets and Configmaps will be copied such that a
-                                new Secret/Configmap with exactly the same data will
-                                be created in the target namespace. Services and Routes
-                                data will be copied into a configmap in the target
+                              description: |-
+                                Bindable is a Kubernetes resources to be shared from one namespace to another.
+                                List of supported resources are Secrets, Configmaps, Services, and Routes.
+                                Secrets and Configmaps will be copied such that a new Secret/Configmap with
+                                exactly the same data will be created in the target namespace.
+                                Services and Routes data will be copied into a configmap in the target
                                 namespace.
                               properties:
                                 configmap:
@@ -87,15 +91,15 @@ spec:
                                     share to the namespace of the OperandRequest.
                                   type: string
                                 route:
-                                  description: Route data will be shared by copying
-                                    it into a configmap which is then created in the
-                                    target namespace
+                                  description: |-
+                                    Route data will be shared by copying it into a configmap which is then
+                                    created in the target namespace
                                   properties:
                                     data:
                                       additionalProperties:
                                         type: string
-                                      description: Data is a key-value pair where
-                                        the value is a YAML path to a value in the
+                                      description: |-
+                                        Data is a key-value pair where the value is a YAML path to a value in the
                                         OpenShift Route, e.g. .spec.host or .spec.tls.termination
                                       type: object
                                     name:
@@ -109,15 +113,15 @@ spec:
                                     of the OperandRequest.
                                   type: string
                                 service:
-                                  description: Service data will be shared by copying
-                                    it into a configmap which is then created in the
-                                    target namespace
+                                  description: |-
+                                    Service data will be shared by copying it into a configmap which is then
+                                    created in the target namespace
                                   properties:
                                     data:
                                       additionalProperties:
                                         type: string
-                                      description: Data is a key-value pair where
-                                        the value is a YAML path to a value in the
+                                      description: |-
+                                        Data is a key-value pair where the value is a YAML path to a value in the
                                         Kubernetes Service, e.g. .spec.ports[0]port
                                       type: object
                                     name:
@@ -130,22 +134,22 @@ spec:
                               of secret and/or configmap.
                             type: object
                           instanceName:
-                            description: InstanceName is used when users want to deploy
-                              multiple custom resources. It is the name of the custom
-                              resource.
+                            description: |-
+                              InstanceName is used when users want to deploy multiple custom resources.
+                              It is the name of the custom resource.
                             type: string
                           kind:
-                            description: Kind is used when users want to deploy multiple
-                              custom resources. Kind identifies the kind of the custom
-                              resource.
+                            description: |-
+                              Kind is used when users want to deploy multiple custom resources.
+                              Kind identifies the kind of the custom resource.
                             type: string
                           name:
                             description: Name of the operand to be deployed.
                             type: string
                           spec:
-                            description: Spec is used when users want to deploy multiple
-                              custom resources. It is the configuration map of custom
-                              resource.
+                            description: |-
+                              Spec is used when users want to deploy multiple custom resources.
+                              It is the configuration map of custom resource.
                             nullable: true
                             type: object
                             x-kubernetes-preserve-unknown-fields: true
@@ -158,9 +162,9 @@ spec:
                         reside.
                       type: string
                     registryNamespace:
-                      description: Specifies the namespace in which the OperandRegistry
-                        reside. The default is the current namespace in which the
-                        request is defined.
+                      description: |-
+                        Specifies the namespace in which the OperandRegistry reside.
+                        The default is the current namespace in which the request is defined.
                       type: string
                   required:
                   - operands
@@ -178,8 +182,9 @@ spec:
                 description: Conditions represents the current state of the Request
                   Service.
                 items:
-                  description: Condition represents the current state of the Request
-                    Service. A condition might not show up if it is not happening.
+                  description: |-
+                    Condition represents the current state of the Request Service.
+                    A condition might not show up if it is not happening.
                   properties:
                     lastTransitionTime:
                       description: Last time the condition transitioned from one status
@@ -309,9 +314,3 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []

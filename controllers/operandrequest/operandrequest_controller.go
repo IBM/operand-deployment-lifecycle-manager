@@ -61,6 +61,18 @@ type clusterObjects struct {
 	subscription  *olmv1alpha1.Subscription
 }
 
+//+kubebuilder:rbac:groups=operator.ibm.com,resources=certmanagers;auditloggings,verbs=get;delete
+//+kubebuilder:rbac:groups=operators.coreos.com,resources=catalogsources,verbs=get
+
+//+kubebuilder:rbac:groups=*,namespace="placeholder",resources=*,verbs=create;delete;get;list;patch;update;watch
+//+kubebuilder:rbac:groups=operator.ibm.com,namespace="placeholder",resources=operandrequests;operandrequests/status;operandrequests/finalizers,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",namespace="placeholder",resources=configmaps;secrets;services;namespaces,verbs=create;delete;get;list;patch;update;watch
+//+kubebuilder:rbac:groups=route.openshift.io,namespace="placeholder",resources=routes,verbs=create;delete;get;list;patch;update;watch
+//+kubebuilder:rbac:groups=operators.coreos.com,namespace="placeholder",resources=operatorgroups;installplans,verbs=create;delete;get;list;patch;update;watch
+//+kubebuilder:rbac:groups=k8s.keycloak.org,namespace="placeholder",resources=keycloaks;keycloakrealmimports,verbs=create;delete;get;list;patch;update;watch
+//+kubebuilder:rbac:groups=packages.operators.coreos.com,namespace="placeholder",resources=packagemanifests,verbs=get;list;patch;update;watch
+//+kubebuilder:rbac:groups=operators.coreos.com,namespace="placeholder",resources=clusterserviceversions;subscriptions,verbs=create;delete;get;list;patch;update;watch
+
 // Reconcile reads that state of the cluster for a OperandRequest object and makes changes based on the state read
 // and what is in the OperandRequest.Spec
 // Note:
