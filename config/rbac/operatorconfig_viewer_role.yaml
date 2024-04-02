@@ -1,0 +1,27 @@
+# permissions for end users to view operatorconfigs.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: operatorconfig-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: operand-deployment-lifecycle-manager
+    app.kubernetes.io/part-of: operand-deployment-lifecycle-manager
+    app.kubernetes.io/managed-by: kustomize
+  name: operatorconfig-viewer-role
+rules:
+- apiGroups:
+  - operator.ibm.com
+  resources:
+  - operatorconfigs
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - operator.ibm.com
+  resources:
+  - operatorconfigs/status
+  verbs:
+  - get
