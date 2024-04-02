@@ -102,6 +102,11 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.phase
       version: v1alpha1
+    - description: OperatorConfig is the Schema for the operatorconfigs API
+      displayName: Operator Config
+      kind: OperatorConfig
+      name: operatorconfigs.operator.ibm.com
+      version: v1alpha1
   description: |-
     # Introduction
 

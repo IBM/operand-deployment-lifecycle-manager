@@ -464,6 +464,11 @@ func (r *Reconciler) uninstallOperatorsAndOperands(ctx context.Context, operandN
 
 		klog.V(1).Infof("Subscription %s/%s is deleted", namespace, op.Name)
 	} else {
+		if err = r.updateSubscription(ctx, requestInstance, sub); err != nil {
+			requestInstance.SetMemberStatus(op.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
+			return err
+		}
+		requestInstance.SetMemberStatus(op.Name, operatorv1alpha1.OperatorUpdating, "", &r.Mutex)
 		klog.V(1).Infof("Subscription %s/%s is not deleted due to the annotation from OperandRequest", namespace, op.Name)
 	}
 

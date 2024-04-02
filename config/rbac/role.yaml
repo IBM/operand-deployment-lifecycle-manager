@@ -1,29 +1,45 @@
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: operand-deployment-lifecycle-manager
 rules:
 - apiGroups:
+  - operator.ibm.com
+  resources:
+  - auditloggings
+  - certmanagers
+  verbs:
+  - delete
+  - get
+- apiGroups:
   - operators.coreos.com
   resources:
   - catalogsources
   verbs:
   - get
-- apiGroups:
-  - operator.ibm.com
-  resources:
-  - certmanagers
-  - auditloggings
-  verbs:
-  - get
-  - delete
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  creationTimestamp: null
   name: operand-deployment-lifecycle-manager
+  namespace: placeholder
 rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  - namespaces
+  - secrets
+  - services
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
   - '*'
   resources:
@@ -36,7 +52,12 @@ rules:
   - patch
   - update
   - watch
-- verbs:
+- apiGroups:
+  - k8s.keycloak.org
+  resources:
+  - keycloakrealmimports
+  - keycloaks
+  verbs:
   - create
   - delete
   - get
@@ -44,25 +65,55 @@ rules:
   - patch
   - update
   - watch
-  apiGroups:
+- apiGroups:
   - operator.ibm.com
   resources:
   - operandconfigs
-  - operandconfigs/status
   - operandconfigs/finalizers
+  - operandconfigs/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - operator.ibm.com
+  resources:
   - operandregistries
-  - operandregistries/status
   - operandregistries/finalizers
+  - operandregistries/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - operator.ibm.com
+  resources:
   - operandrequests
-  - operandrequests/status
   - operandrequests/finalizers
-  - operandbindinfos
-  - operandbindinfos/status
-  - operandbindinfos/finalizers
+  - operandrequests/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - operator.ibm.com
+  resources:
   - operatorconfigs
-  - operatorconfigs/status
   - operatorconfigs/finalizers
-- verbs:
+  - operatorconfigs/status
+  verbs:
   - create
   - delete
   - get
@@ -70,39 +121,12 @@ rules:
   - patch
   - update
   - watch
-  apiGroups:
-  - ''
-  resources:
-  - configmaps
-  - secrets
-  - services
-  - namespaces
-- verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-  apiGroups:
-  - route.openshift.io
-  resources:
-  - routes
-- verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-  apiGroups:
+- apiGroups:
   - operators.coreos.com
   resources:
-  - operatorgroups
-  - installplans
-- verbs:
+  - clusterserviceversions
+  - subscriptions
+  verbs:
   - create
   - delete
   - get
@@ -110,15 +134,36 @@ rules:
   - patch
   - update
   - watch
-  apiGroups:
-  - k8s.keycloak.org
+- apiGroups:
+  - operators.coreos.com
   resources:
-  - keycloaks
+  - installplans
+  - operatorgroups
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
   - packages.operators.coreos.com
   resources:
   - packagemanifests
   verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - route.openshift.io
+  resources:
+  - routes
+  verbs:
+  - create
+  - delete
   - get
   - list
   - patch
