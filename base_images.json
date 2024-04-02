@@ -29,7 +29,7 @@
     "destStage": "edge",
     "destNamespace": "build-images",
     "destImage": "ubi9-micro",
-    "tag": "9.3-13",
+    "tag": "9.3-15",
     "updatePackages": []
   },
   {
@@ -40,7 +40,7 @@
     "destStage": "edge",
     "destNamespace": "build-images",
     "destImage": "ubi9",
-    "tag": "9.3-1552",
+    "tag": "9.3-1610",
     "updatePackages": []
   },
   {
@@ -51,7 +51,7 @@
     "destStage": "edge",
     "destNamespace": "build-images",
     "destImage": "ubi9-minimal",
-    "tag": "9.3-1552",
+    "tag": "9.3-1612",
     "updatePackages": []
   },
   {
@@ -62,7 +62,7 @@
     "destStage": "edge",
     "destNamespace": "build-images",
     "destImage": "helm-operator",
-    "tag": "v1.33.0",
+    "tag": "v1.34.0",
     "updatePackages": []
   },
   {
@@ -70,41 +70,27 @@
     "sourceImage": "ubi8-minimal",
     "sourceTag": "8.9-1137",
     "destImage": "node-v18-ubi8-minimal",
-    "nodeVersion": "18.19.1"
+    "nodeVersion": "18.20.0"
   },
   {
     "imageType": "node",
     "sourceImage": "ubi8-minimal",
     "sourceTag": "8.9-1137",
     "destImage": "node-v20-ubi8-minimal",
-    "nodeVersion": "20.11.1"
+    "nodeVersion": "20.12.0"
   },
   {
     "imageType": "node",
     "sourceImage": "ubi9-minimal",
-    "sourceTag": "9.3-1552",
+    "sourceTag": "9.3-1612",
     "destImage": "node-v18-ubi9-minimal",
-    "nodeVersion": "18.19.1"
+    "nodeVersion": "18.20.0"
   },
   {
     "imageType": "node",
     "sourceImage": "ubi9-minimal",
-    "sourceTag": "9.3-1552",
+    "sourceTag": "9.3-1612",
     "destImage": "node-v20-ubi9-minimal",
-    "nodeVersion": "20.11.1"
-  },
-  {
-    "imageType": "liberty",
-    "sourceImage": "node-v18-ubi8-minimal",
-    "sourceTag": "18.19.1_8.9-1137",
-    "destImage": "liberty11-ubi8-minimal",
-    "libertyVersion": "24.0.0.1"
-  },
-  {
-    "imageType": "liberty",
-    "sourceImage": "node-v18-ubi9-minimal",
-    "sourceTag": "18.19.1_9.3-1552",
-    "destImage": "liberty11-ubi9-minimal",
-    "libertyVersion": "24.0.0.1"
+    "nodeVersion": "20.12.0"
   }
 ]
