@@ -129,7 +129,7 @@ metadata:
     categories: Developer Tools, Monitoring, Logging & Tracing, Security
     certified: "false"
     containerImage: icr.io/cpopen/odlm:latest
-    createdAt: "2024-04-02T02:16:34Z"
+    createdAt: "2024-04-04T03:40:45Z"
     description: The Operand Deployment Lifecycle Manager provides a Kubernetes CRD-based API to manage the lifecycle of operands.
     nss.operator.ibm.com/managed-operators: ibm-odlm
     olm.skipRange: '>=1.2.0 <4.3.0'
@@ -215,8 +215,8 @@ spec:
             x-descriptors:
               - urn:alm:descriptor:io.kubernetes.phase
         version: v1alpha1
-      - description: OperatorConfig is the Schema for the operatorconfigs API
-        displayName: Operator Config
+      - description: OperatorConfig is the Schema for the operatorconfigs API. Documentation For additional details regarding install parameters check https://ibm.biz/icpfs39install. License By installing this product you accept the license terms https://ibm.biz/icpfs39license
+        displayName: OperatorConfig
         kind: OperatorConfig
         name: operatorconfigs.operator.ibm.com
         version: v1alpha1
@@ -708,6 +708,20 @@ spec:
               resources:
                 - keycloakrealmimports
                 - keycloaks
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - operator.ibm.com
+              resources:
+                - operandbindinfos
+                - operandbindinfos/finalizers
+                - operandbindinfos/status
               verbs:
                 - create
                 - delete
