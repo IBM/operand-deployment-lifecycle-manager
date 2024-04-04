@@ -18,10 +18,23 @@ spec:
     singular: operatorconfig
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    - description: Current Phase
+      jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Created At
+      type: string
+    name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: OperatorConfig is the Schema for the operatorconfigs API
+        description: OperatorConfig is the Schema for the operatorconfigs API. Documentation
+          For additional details regarding install parameters check https://ibm.biz/icpfs39install.
+          License By installing this product you accept the license terms https://ibm.biz/icpfs39license
         properties:
           apiVersion:
             description: |-
