@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
+	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
 	deploy "github.com/IBM/operand-deployment-lifecycle-manager/controllers/operator"
 )
 
@@ -73,19 +74,25 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			operand := u
 			operator := registry.GetOperator(operand.Name)
 			if operator.OperatorConfig == "" {
-				break
+				continue
 			}
 
 			var sub *olmv1alpha1.Subscription
 			sub, err = r.GetSubscription(ctx, operator.Name, operator.Namespace, registry.Namespace, operator.PackageName)
 			if err != nil {
 				return ctrl.Result{}, err
+			} else if sub == nil {
+				klog.Infof("Subscription for Operator %s/%s not found", operator.Name, operator.PackageName)
+				return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
 			}
 
 			var csv *olmv1alpha1.ClusterServiceVersion
 			csv, err = r.GetClusterServiceVersion(ctx, sub)
 			if err != nil {
 				return ctrl.Result{}, err
+			} else if csv == nil {
+				klog.Infof("ClusterServiceVersion for Operator %s/%s not found", operator.Name, operator.PackageName)
+				return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
 			}
 
 			klog.Infof("Fetching OperatorConfig: %s", operator.OperatorConfig)
@@ -94,12 +101,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				Name:      operator.OperatorConfig,
 				Namespace: registry.Namespace,
 			}, config); err != nil {
-				return ctrl.Result{}, client.IgnoreNotFound(err)
+				if client.IgnoreNotFound(err) != nil {
+					return ctrl.Result{}, err
+				}
+				klog.Infof("OperatorConfig %s/%s does not exist for operand %s in request %s, %s", registry.Namespace, operator.OperatorConfig, operator.Name, instance.Namespace, instance.Name)
+				continue
 			}
 			serviceConfig := config.GetConfigForOperator(operator.Name)
 			if serviceConfig == nil {
 				klog.Infof("OperatorConfig: %s, does not have configuration for operator: %s", operator.OperatorConfig, operator.Name)
-				return ctrl.Result{}, nil
+				continue
 			}
 
 			copyToCast, err := deepcopy.Anything(csv)
@@ -108,13 +119,17 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			}
 			csvToUpdate := copyToCast.(*olmv1alpha1.ClusterServiceVersion)
 			klog.Infof("Applying OperatorConfig: %s to Operator: %s via CSV: %s, %s", operator.OperatorConfig, operator.Name, csv.Name, csv.Namespace)
-			return r.configCsv(ctx, csvToUpdate, serviceConfig)
+			if err := r.configCsv(ctx, csvToUpdate, serviceConfig); err != nil {
+				klog.Errorf("Failed to apply OperatorConfig %s/%s to Operator: %s via CSV: %s, %s", registry.Namespace, operator.OperatorConfig, operator.Name, csv.Namespace, csv.Name)
+				return ctrl.Result{}, err
+			}
 		}
 	}
-	return ctrl.Result{}, nil
+	klog.Infof("Finished reconciling OperatorConfig for request: %s, %s", instance.Namespace, instance.Name)
+	return ctrl.Result{RequeueAfter: constant.DefaultSyncPeriod}, nil
 }
 
-func (r *Reconciler) configCsv(ctx context.Context, csv *olmv1alpha1.ClusterServiceVersion, config *operatorv1alpha1.ServiceOperatorConfig) (ctrl.Result, error) {
+func (r *Reconciler) configCsv(ctx context.Context, csv *olmv1alpha1.ClusterServiceVersion, config *operatorv1alpha1.ServiceOperatorConfig) error {
 	if config.Replicas != nil {
 		csv.Spec.InstallStrategy.StrategySpec.DeploymentSpecs[0].Spec.Replicas = config.Replicas
 	}
@@ -125,9 +140,9 @@ func (r *Reconciler) configCsv(ctx context.Context, csv *olmv1alpha1.ClusterServ
 		csv.Spec.InstallStrategy.StrategySpec.DeploymentSpecs[0].Spec.Template.Spec.TopologySpreadConstraints = config.TopologySpreadConstraints
 	}
 	if err := r.Client.Update(ctx, csv); err != nil {
-		return ctrl.Result{}, err
+		return err
 	}
-	return ctrl.Result{}, nil
+	return nil
 }
 
 func (r *Reconciler) requestsFromMapFunc(ctx context.Context) handler.MapFunc {

@@ -392,6 +392,11 @@ func (m *ODLMOperator) GetSubscription(ctx context.Context, name, operatorNs, se
 
 // GetClusterServiceVersion gets the ClusterServiceVersion from the subscription
 func (m *ODLMOperator) GetClusterServiceVersion(ctx context.Context, sub *olmv1alpha1.Subscription) (*olmv1alpha1.ClusterServiceVersion, error) {
+	// Check if subscription is nil
+	if sub == nil {
+		klog.Error("The subscription is nil")
+		return nil, fmt.Errorf("the subscription is nil")
+	}
 	// Check the ClusterServiceVersion status in the subscription
 	if sub.Status.InstalledCSV == "" {
 		klog.Warningf("The ClusterServiceVersion for Subscription %s is not ready. Will check it again", sub.Name)
