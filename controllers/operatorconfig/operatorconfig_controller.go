@@ -103,10 +103,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			}, config); err != nil {
 				if client.IgnoreNotFound(err) != nil {
 					return ctrl.Result{}, err
-				} else {
-					klog.Infof("OperatorConfig %s/%s does not exist for operand %s in request %s, %s", registry.Namespace, operator.OperatorConfig, operator.Name, instance.Namespace, instance.Name)
-					continue
 				}
+				klog.Infof("OperatorConfig %s/%s does not exist for operand %s in request %s, %s", registry.Namespace, operator.OperatorConfig, operator.Name, instance.Namespace, instance.Name)
+				continue
 			}
 			serviceConfig := config.GetConfigForOperator(operator.Name)
 			if serviceConfig == nil {
