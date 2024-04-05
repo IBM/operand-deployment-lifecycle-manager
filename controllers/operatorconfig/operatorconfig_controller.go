@@ -102,9 +102,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				Namespace: registry.Namespace,
 			}, config); err != nil {
 				if client.IgnoreNotFound(err) != nil {
-					return ctrl.Result{}, client.IgnoreNotFound(err)
+					return ctrl.Result{}, err
 				} else {
-					klog.Infof("OperatorConfig %s/%s does not exist for oeprand %s in request %s, %s", registry.Namespace, operator.OperatorConfig, operator.Name, instance.Namespace, instance.Name)
+					klog.Infof("OperatorConfig %s/%s does not exist for operand %s in request %s, %s", registry.Namespace, operator.OperatorConfig, operator.Name, instance.Namespace, instance.Name)
 					continue
 				}
 			}
@@ -127,7 +127,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 	}
 	klog.Infof("Finished reconciling OperatorConfig for request: %s, %s", instance.Namespace, instance.Name)
-	return ctrl.Result{}, nil
+	return ctrl.Result{RequeueAfter: constant.DefaultSyncPeriod}, nil
 }
 
 func (r *Reconciler) configCsv(ctx context.Context, csv *olmv1alpha1.ClusterServiceVersion, config *operatorv1alpha1.ServiceOperatorConfig) error {
