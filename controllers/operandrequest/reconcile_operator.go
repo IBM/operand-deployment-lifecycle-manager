@@ -220,8 +220,11 @@ func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance 
 			requestInstance.SetNoSuitableRegistryCondition(registryKey.String(), opt.Name+" is in maintenance status", operatorv1alpha1.ResourceTypeOperandRegistry, corev1.ConditionTrue, &r.Mutex)
 			requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorRunning, operatorv1alpha1.ServiceRunning, mu)
 
-			//set operator channel back to previous one if it is tombstone service
-			sub.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/request"] = sub.Spec.Channel
+			// check if sub.Spec.Channel and opt.Channel are valid semantic version
+			// set annotation channel back to previous one if sub.Spec.Channel is lower than opt.Channel
+			if semver.IsValid(sub.Spec.Channel) && semver.IsValid(opt.Channel) && semver.Compare(sub.Spec.Channel, opt.Channel) < 0 {
+				sub.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/request"] = sub.Spec.Channel
+			}
 		} else {
 			requestInstance.SetNotFoundOperatorFromRegistryCondition(operand.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionFalse, mu)
 
