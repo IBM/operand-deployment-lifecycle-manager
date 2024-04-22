@@ -100,7 +100,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	klog.V(1).Infof("Reconciling OperandBindInfo: %s", req.NamespacedName)
 
 	if isRouteAPI {
-		klog.Info("Route API enabled")
+		klog.V(2).Info("Route API enabled")
 	} else {
 		klog.Info("Route API disabled")
 	}
