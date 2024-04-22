@@ -33,7 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
+	"github.com/IBM/operand-deployment-lifecycle-manager/v4/api/v1alpha1"
 )
 
 func createTestNamespace(namespace string) {

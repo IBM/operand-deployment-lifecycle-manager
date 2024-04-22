@@ -1,4 +1,4 @@
-module github.com/IBM/operand-deployment-lifecycle-manager
+module github.com/IBM/operand-deployment-lifecycle-manager/v4
 
 go 1.20
 

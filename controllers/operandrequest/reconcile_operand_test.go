@@ -29,8 +29,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
-	deploy "github.com/IBM/operand-deployment-lifecycle-manager/controllers/operator"
+	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/v4/api/v1alpha1"
+	deploy "github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operator"
 )
 
 type MockReader struct {

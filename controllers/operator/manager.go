@@ -37,9 +37,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	apiv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
-	constant "github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
-	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/util"
+	apiv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/v4/api/v1alpha1"
+	constant "github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/constant"
+	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/util"
 )
 
 // ODLMOperator is the struct for ODLM controllers
