@@ -80,10 +80,7 @@ func checkKeyBeforeMerging(key string, defaultMap interface{}, changedMap interf
 				changedMapRef := changedMap.([]interface{})
 				for i := range defaultMapRef {
 					if _, ok := defaultMapRef[i].(map[string]interface{}); ok {
-						if len(changedMapRef) <= i {
-							finalMap[key] = append(finalMap[key].([]interface{}), defaultMapRef[i])
-						} else {
-
+						if len(changedMapRef) > i {
 							for newKey := range defaultMapRef[i].(map[string]interface{}) {
 								checkKeyBeforeMerging(newKey, defaultMapRef[i].(map[string]interface{})[newKey], changedMapRef[i].(map[string]interface{})[newKey], finalMap[key].([]interface{})[i].(map[string]interface{}))
 							}
