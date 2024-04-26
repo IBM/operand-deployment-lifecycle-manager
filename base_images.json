@@ -70,27 +70,27 @@
     "sourceImage": "ubi8-minimal",
     "sourceTag": "8.9-1161",
     "destImage": "node-v18-ubi8-minimal",
-    "nodeVersion": "18.20.1"
+    "nodeVersion": "18.20.2"
   },
   {
     "imageType": "node",
     "sourceImage": "ubi8-minimal",
     "sourceTag": "8.9-1161",
     "destImage": "node-v20-ubi8-minimal",
-    "nodeVersion": "20.12.1"
+    "nodeVersion": "20.12.2"
   },
   {
     "imageType": "node",
     "sourceImage": "ubi9-minimal",
     "sourceTag": "9.3-1612",
     "destImage": "node-v18-ubi9-minimal",
-    "nodeVersion": "18.20.1"
+    "nodeVersion": "18.20.2"
   },
   {
     "imageType": "node",
     "sourceImage": "ubi9-minimal",
     "sourceTag": "9.3-1612",
     "destImage": "node-v20-ubi9-minimal",
-    "nodeVersion": "20.12.1"
+    "nodeVersion": "20.12.2"
   }
 ]
