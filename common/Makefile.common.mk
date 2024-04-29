@@ -39,9 +39,6 @@ endif
 config-docker: get-cluster-credentials
 	@common/scripts/artifactory_config_docker.sh
 
-config-docker-quay: get-cluster-credentials
-	@common/scripts/quay_config_docker.sh
-
 # find or download operator-sdk
 # download operator-sdk if necessary
 operator-sdk:

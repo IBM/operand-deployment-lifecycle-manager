@@ -109,7 +109,6 @@ endif
 
 ifeq ($(BUILD_LOCALLY),0)
     export CONFIG_DOCKER_TARGET = config-docker
-    export CONFIG_DOCKER_TARGET_QUAY = config-docker-quay
 endif
 
 include common/Makefile.common.mk
