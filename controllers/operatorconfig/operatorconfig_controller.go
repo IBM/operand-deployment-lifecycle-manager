@@ -62,7 +62,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	klog.Infof("Reconciling OperatorConfig for request: %s, %s", instance.Namespace, instance.Name)
+	klog.Infof("Reconciling OperatorConfig for OperandRequest: %s/%s", instance.Namespace, instance.Name)
 
 	for _, v := range instance.Spec.Requests {
 		reqBlock := v
@@ -73,7 +73,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		for _, u := range reqBlock.Operands {
 			operand := u
 			operator := registry.GetOperator(operand.Name)
-			if operator.OperatorConfig == "" {
+			if operator == nil || operator.OperatorConfig == "" {
 				continue
 			}
 
@@ -104,12 +104,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				if client.IgnoreNotFound(err) != nil {
 					return ctrl.Result{}, err
 				}
-				klog.Infof("OperatorConfig %s/%s does not exist for operand %s in request %s, %s", registry.Namespace, operator.OperatorConfig, operator.Name, instance.Namespace, instance.Name)
+				klog.Infof("OperatorConfig %s/%s does not exist for operand %s in OperandRequest %s/%s", registry.Namespace, operator.OperatorConfig, operator.Name, instance.Namespace, instance.Name)
 				continue
 			}
 			serviceConfig := config.GetConfigForOperator(operator.Name)
 			if serviceConfig == nil {
-				klog.Infof("OperatorConfig: %s, does not have configuration for operator: %s", operator.OperatorConfig, operator.Name)
+				klog.Infof("OperatorConfig %s does not have configuration for operator: %s", operator.OperatorConfig, operator.Name)
 				continue
 			}
 
@@ -125,7 +125,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			}
 		}
 	}
-	klog.Infof("Finished reconciling OperatorConfig for request: %s, %s", instance.Namespace, instance.Name)
+	klog.Infof("Finished reconciling OperatorConfig for OperandRequest %s/%s", instance.Namespace, instance.Name)
 	return ctrl.Result{RequeueAfter: constant.DefaultSyncPeriod}, nil
 }
 
