@@ -26,8 +26,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
-	deploy "github.com/IBM/operand-deployment-lifecycle-manager/controllers/operator"
+	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/constant"
+	deploy "github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operator"
 )
 
 // Reconciler reconciles a OperatorChecker object

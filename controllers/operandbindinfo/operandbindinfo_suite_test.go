@@ -37,10 +37,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	nssv1 "github.com/IBM/ibm-namespace-scope-operator/api/v1"
-	apiv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
-	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/operandregistry"
-	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/operandrequest"
-	deploy "github.com/IBM/operand-deployment-lifecycle-manager/controllers/operator"
+	apiv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/v4/api/v1alpha1"
+	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operandregistry"
+	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operandrequest"
+	deploy "github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operator"
 	// +kubebuilder:scaffold:imports
 )
 

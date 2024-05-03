@@ -46,9 +46,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
-	constant "github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
-	util "github.com/IBM/operand-deployment-lifecycle-manager/controllers/util"
+	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/v4/api/v1alpha1"
+	constant "github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/constant"
+	util "github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/util"
 )
 
 func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *operatorv1alpha1.OperandRequest) *util.MultiErr {
