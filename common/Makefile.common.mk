@@ -94,7 +94,7 @@ kind: ## Download kind locally if necessary.
 
 ENVTEST = $(shell pwd)/common/bin/setup-envtest
 setup-envtest: ## Download envtest-setup locally if necessary.
-	$(call go-get-tool,$(ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest@latest)
+	$(call go-get-tool,$(ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest@7b4325d5a38dff0c7eb9a939d079950eafcc4f7e)
 
 FINDFILES=find . \( -path ./.git -o -path ./.github -o -path ./testcrds \) -prune -o -type f
 XARGS = xargs -0 ${XARGS_FLAGS}
