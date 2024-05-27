@@ -159,11 +159,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, nil
 	}
 	// Get the operand namespace
-	operandOperator := registryInstance.GetOperator(bindInfoInstance.Spec.Operand)
-	if operandOperator == nil {
-		klog.Errorf("failed to find operator %s in the OperandRegistry %s", bindInfoInstance.Spec.Operand, registryInstance.Name)
+	operandOperator, err := r.GetOperandFromRegistry(ctx, registryInstance, bindInfoInstance.Spec.Operand)
+	if err != nil || operandOperator == nil {
+		klog.Errorf("failed to find operator %s in the OperandRegistry %s: %v", bindInfoInstance.Spec.Operand, registryInstance.Name, err)
 		r.Recorder.Eventf(bindInfoInstance, corev1.EventTypeWarning, "NotFound", "NotFound operator %s in the OperandRegistry %s", bindInfoInstance.Spec.Operand, registryInstance.Name)
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, err
 	}
 	operandNamespace := registryInstance.Namespace
 

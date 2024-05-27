@@ -22,17 +22,16 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 
-	"github.com/barkimedes/go-deepcopy"
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/pkg/errors"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -73,8 +72,12 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 
 		for i, operand := range req.Operands {
 
-			opdRegistry := registryInstance.GetOperator(operand.Name)
-			if opdRegistry == nil {
+			opdRegistry, err := r.GetOperandFromRegistry(ctx, registryInstance, operand.Name)
+			if err != nil {
+				klog.Warningf("Failed to get the Operand %s from the OperandRegistry %s", operand.Name, registryKey.String())
+				merr.Add(errors.Wrapf(err, "failed to get the Operand %s from the OperandRegistry %s", operand.Name, registryKey.String()))
+				continue
+			} else if opdRegistry == nil {
 				klog.Warningf("Cannot find %s in the OperandRegistry instance %s in the namespace %s ", operand.Name, req.Registry, req.RegistryNamespace)
 				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorNotFound, operatorv1alpha1.ServiceNotFound, &r.Mutex)
 				continue
@@ -772,7 +775,7 @@ func (r *Reconciler) updateCustomResource(ctx context.Context, existingCR unstru
 		// Merge spec from update existing CR and OperandConfig spec
 		updatedCRSpec := util.MergeCR(updatedExistingCRRaw, crConfig)
 
-		if reflect.DeepEqual(existingCR.Object["spec"], updatedCRSpec) && !forceUpdate {
+		if equality.Semantic.DeepEqual(existingCR.Object["spec"], updatedCRSpec) && !forceUpdate {
 			return true, nil
 		}
 
@@ -1069,13 +1072,6 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 
 			// Merge the existing CR and the CR from the OperandConfig
 			updatedExistingK8sRes := util.MergeCR(existingK8sResRaw, k8sResConfig.Raw)
-
-			// Deep copy the existing k8s resource
-			originalK8sRes, err := deepcopy.Anything(existingK8sRes.Object)
-			if err != nil {
-				return false, errors.Wrapf(err, "failed to deep copy k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
-			}
-
 			// Update the existing k8s resource with the merged CR
 			existingK8sRes.Object = updatedExistingK8sRes
 
@@ -1085,13 +1081,20 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 				return false, errors.Wrapf(err, "failed to set ownerReferences for k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 			}
 
-			if reflect.DeepEqual(originalK8sRes, existingK8sRes.Object) {
+			resourceVersion := existingK8sRes.GetResourceVersion()
+			CRgeneration := existingK8sRes.GetGeneration()
+			err = r.Update(ctx, &existingK8sRes, client.DryRunAll)
+			if err != nil {
+				return false, errors.Wrapf(err, "failed to update k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+			}
+
+			if newResourceVersion := existingK8sRes.GetResourceVersion(); resourceVersion == newResourceVersion {
+				// if the resourceVersion is the same, the update is not performed
+				klog.Infof("The k8s resource with apiversion: %s, kind: %s, %s/%s is not updated", apiversion, kind, namespace, name)
 				return true, nil
 			}
 
 			klog.Infof("updating k8s resource with apiversion: %s, kind: %s, %s/%s", apiversion, kind, namespace, name)
-
-			CRgeneration := existingK8sRes.GetGeneration()
 
 			err = r.Update(ctx, &existingK8sRes)
 

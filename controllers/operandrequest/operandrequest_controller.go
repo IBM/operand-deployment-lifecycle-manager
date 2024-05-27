@@ -354,18 +354,27 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	ReferencePredicates := predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
 			labels := e.Object.GetLabels()
-			for labelKey, labelValue := range labels {
-				if labelKey == constant.ODLMWatchedLabel {
-					return labelValue == "true"
+			// only return true when both conditions are met at the same time:
+			// 1. label contain key "constant.ODLMWatchedLabel" and value is true
+			// 2. label does not contain key "constant.OpbiTypeLabel" with value "copy"
+			if labels != nil {
+				if labelValue, ok := labels[constant.ODLMWatchedLabel]; ok && labelValue == "true" {
+					if labelValue, ok := labels[constant.OpbiTypeLabel]; ok && labelValue == "copy" {
+						return false
+					}
+					return true
 				}
 			}
 			return false
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			labels := e.ObjectNew.GetLabels()
-			for labelKey, labelValue := range labels {
-				if labelKey == constant.ODLMWatchedLabel {
-					return labelValue == "true"
+			if labels != nil {
+				if labelValue, ok := labels[constant.ODLMWatchedLabel]; ok && labelValue == "true" {
+					if labelValue, ok := labels[constant.OpbiTypeLabel]; ok && labelValue == "copy" {
+						return false
+					}
+					return true
 				}
 			}
 			return false

@@ -60,7 +60,7 @@ func NewODLMOperator(mgr manager.Manager, name string) *ODLMOperator {
 		Config:                  mgr.GetConfig(),
 		Recorder:                mgr.GetEventRecorderFor(name),
 		Scheme:                  mgr.GetScheme(),
-		MaxConcurrentReconciles: 3,
+		MaxConcurrentReconciles: 5,
 	}
 }
 
@@ -69,26 +69,6 @@ func (m *ODLMOperator) GetOperandRegistry(ctx context.Context, key types.Namespa
 	reg := &apiv1alpha1.OperandRegistry{}
 	if err := m.Client.Get(ctx, key, reg); err != nil {
 		return nil, err
-	}
-	// Get excluded CatalogSource from annotation
-	// excluded-catalogsource: catalogsource1, catalogsource2
-	var excludedCatalogSources []string
-	if reg.Annotations != nil && reg.Annotations["excluded-catalogsource"] != "" {
-		excludedCatalogSources = strings.Split(reg.Annotations["excluded-catalogsource"], ",")
-	}
-	// Get catalog used by ODLM itself by check its own subscription
-	opts := []client.ListOption{
-		client.MatchingLabels{fmt.Sprintf("operators.coreos.com/ibm-odlm.%s", util.GetOperatorNamespace()): ""},
-		client.InNamespace(util.GetOperatorNamespace()),
-	}
-	odlmCatalog := ""
-	odlmCatalogNs := ""
-	odlmSubList := &olmv1alpha1.SubscriptionList{}
-	if err := m.Reader.List(ctx, odlmSubList, opts...); err != nil || len(odlmSubList.Items) == 0 {
-		klog.Warningf("No Subscription found for ibm-odlm in the namespace %s", util.GetOperatorNamespace())
-	} else {
-		odlmCatalog = odlmSubList.Items[0].Spec.CatalogSource
-		odlmCatalogNs = odlmSubList.Items[0].Spec.CatalogSourceNamespace
 	}
 
 	for i, o := range reg.Spec.Operators {
@@ -103,18 +83,6 @@ func (m *ODLMOperator) GetOperandRegistry(ctx context.Context, key types.Namespa
 		}
 		if o.Namespace == "" {
 			reg.Spec.Operators[i].Namespace = key.Namespace
-		}
-		if o.SourceName == "" || o.SourceNamespace == "" {
-			catalogSourceName, catalogSourceNs, err := m.GetCatalogSourceFromPackage(ctx, o.PackageName, reg.Spec.Operators[i].Namespace, o.Channel, key.Namespace, odlmCatalog, odlmCatalogNs, excludedCatalogSources)
-			if err != nil {
-				return nil, err
-			}
-
-			if catalogSourceName == "" || catalogSourceNs == "" {
-				klog.V(2).Infof("no catalogsource found for %v", o.PackageName)
-			}
-
-			reg.Spec.Operators[i].SourceName, reg.Spec.Operators[i].SourceNamespace = catalogSourceName, catalogSourceNs
 		}
 	}
 	return reg, nil
@@ -429,6 +397,46 @@ func (m *ODLMOperator) GetOperatorNamespace(installMode, namespace string) strin
 		return constant.ClusterOperatorNamespace
 	}
 	return namespace
+}
+
+// GetOperandFromRegistry gets the Operand from the OperandRegistry
+func (m *ODLMOperator) GetOperandFromRegistry(ctx context.Context, reg *apiv1alpha1.OperandRegistry, operandName string) (*apiv1alpha1.Operator, error) {
+	opt := reg.GetOperator(operandName)
+	// Get excluded CatalogSource from annotation
+	// excluded-catalogsource: catalogsource1, catalogsource2
+	var excludedCatalogSources []string
+	if reg.Annotations != nil && reg.Annotations["excluded-catalogsource"] != "" {
+		excludedCatalogSources = strings.Split(reg.Annotations["excluded-catalogsource"], ",")
+	}
+	// Get catalog used by ODLM itself by check its own subscription
+	opts := []client.ListOption{
+		client.MatchingLabels{fmt.Sprintf("operators.coreos.com/ibm-odlm.%s", util.GetOperatorNamespace()): ""},
+		client.InNamespace(util.GetOperatorNamespace()),
+	}
+	odlmCatalog := ""
+	odlmCatalogNs := ""
+	odlmSubList := &olmv1alpha1.SubscriptionList{}
+	if err := m.Reader.List(ctx, odlmSubList, opts...); err != nil || len(odlmSubList.Items) == 0 {
+		klog.Warningf("No Subscription found for ibm-odlm in the namespace %s", util.GetOperatorNamespace())
+	} else {
+		odlmCatalog = odlmSubList.Items[0].Spec.CatalogSource
+		odlmCatalogNs = odlmSubList.Items[0].Spec.CatalogSourceNamespace
+	}
+
+	if opt.SourceName == "" || opt.SourceNamespace == "" {
+		catalogSourceName, catalogSourceNs, err := m.GetCatalogSourceFromPackage(ctx, opt.PackageName, opt.Namespace, opt.Channel, reg.Namespace, odlmCatalog, odlmCatalogNs, excludedCatalogSources)
+		if err != nil {
+			return nil, err
+		}
+
+		if catalogSourceName == "" || catalogSourceNs == "" {
+			klog.V(2).Infof("no catalogsource found for %v", opt.PackageName)
+		}
+
+		opt.SourceName, opt.SourceNamespace = catalogSourceName, catalogSourceNs
+	}
+
+	return opt, nil
 }
 
 func (m *ODLMOperator) CheckLabel(unstruct unstructured.Unstructured, labels map[string]string) bool {

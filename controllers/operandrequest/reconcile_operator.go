@@ -137,7 +137,11 @@ func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance 
 	// Check the requested Operand if exist in specific OperandRegistry
 	var opt *operatorv1alpha1.Operator
 	if registryInstance != nil {
-		opt = registryInstance.GetOperator(operand.Name)
+		var err error
+		opt, err = r.GetOperandFromRegistry(ctx, registryInstance, operand.Name)
+		if err != nil {
+			return err
+		}
 	}
 	if opt == nil {
 		if registryInstance != nil {
@@ -381,7 +385,8 @@ func (r *Reconciler) deleteSubscription(ctx context.Context, cr *operatorv1alpha
 }
 
 func (r *Reconciler) uninstallOperatorsAndOperands(ctx context.Context, operandName string, requestInstance *operatorv1alpha1.OperandRequest, registryInstance *operatorv1alpha1.OperandRegistry, configInstance *operatorv1alpha1.OperandConfig) error {
-	op := registryInstance.GetOperator(operandName)
+	// No error handling for un-installation step in case Catalog has been deleted
+	op, _ := r.GetOperandFromRegistry(ctx, registryInstance, operandName)
 	if op == nil {
 		klog.Warningf("Operand %s not found", operandName)
 		return nil
