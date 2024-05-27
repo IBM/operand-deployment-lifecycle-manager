@@ -72,8 +72,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 		for _, u := range reqBlock.Operands {
 			operand := u
-			operator := registry.GetOperator(operand.Name)
-			if operator == nil || operator.OperatorConfig == "" {
+			operator, err := r.GetOperandFromRegistry(ctx, registry, operand.Name)
+			if err != nil {
+				return ctrl.Result{}, err
+			} else if operator == nil || operator.OperatorConfig == "" {
 				continue
 			}
 

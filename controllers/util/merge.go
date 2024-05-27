@@ -18,8 +18,8 @@ package util
 
 import (
 	"encoding/json"
-	"reflect"
 
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/klog"
 )
 
@@ -59,7 +59,7 @@ func MergeCR(defaultCR, changedCR []byte) map[string]interface{} {
 }
 
 func checkKeyBeforeMerging(key string, defaultMap interface{}, changedMap interface{}, finalMap map[string]interface{}) {
-	if !reflect.DeepEqual(defaultMap, changedMap) {
+	if !equality.Semantic.DeepEqual(defaultMap, changedMap) {
 		switch defaultMap := defaultMap.(type) {
 		case map[string]interface{}:
 			//Check that the changed map value doesn't contain this map at all and is nil
