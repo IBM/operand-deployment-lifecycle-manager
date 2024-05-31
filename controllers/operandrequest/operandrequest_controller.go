@@ -156,6 +156,18 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{Requeue: true}, err
 	}
 
+	// Clean the phase of each operand under spec.request.operand
+	for _, member := range requestInstance.Status.Members {
+		klog.V(2).Info("Cleaning the member status for Operand: ", member.Name)
+		requestInstance.RemoveOperandPhase(member.Name, &r.Mutex)
+	}
+	requestInstance.Status.Phase = operatorv1alpha1.ClusterPhaseNone
+
+	if err := r.Client.Status().Update(ctx, requestInstance); err != nil {
+		klog.Errorf("failed to update the status of the OperandRequest %s: %v", req.NamespacedName.String(), err)
+		return ctrl.Result{}, err
+	}
+
 	// Reconcile Operators
 	if err := r.reconcileOperator(ctx, requestInstance); err != nil {
 		klog.Errorf("failed to reconcile Operators for OperandRequest %s: %v", req.NamespacedName.String(), err)
