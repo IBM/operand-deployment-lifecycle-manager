@@ -83,6 +83,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 				continue
 			}
 
+			// Set no-op operator to Running status
 			if opdRegistry.InstallMode == operatorv1alpha1.InstallModeNoop {
 				requestInstance.SetNoSuitableRegistryCondition(registryKey.String(), opdRegistry.Name+" is in maintenance status", operatorv1alpha1.ResourceTypeOperandRegistry, corev1.ConditionTrue, &r.Mutex)
 				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorRunning, operatorv1alpha1.ServiceRunning, &r.Mutex)
@@ -164,7 +165,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 
 			if len(requestList) == 0 || !util.Contains(requestList, requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/request") {
 				klog.Infof("Subscription %s in the namespace %s is NOT managed by %s/%s, Skip reconciling Operands", sub.Name, sub.Namespace, requestInstance.Namespace, requestInstance.Name)
-				requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceFailed, &r.Mutex)
+				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
 				continue
 			}
 

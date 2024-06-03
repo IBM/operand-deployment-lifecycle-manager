@@ -429,6 +429,15 @@ func (r *OperandRequest) RemoveServiceStatus(operatorName string, mu sync.Locker
 	}
 }
 
+func (r *OperandRequest) RemoveOperandPhase(name string, mu sync.Locker) {
+	mu.Lock()
+	defer mu.Unlock()
+	pos, m := getMemberStatus(&r.Status, name)
+	if m != nil {
+		r.Status.Members[pos].Phase = MemberPhase{}
+	}
+}
+
 func (r *OperandRequest) SetServiceStatus(ctx context.Context, service ServiceStatus, updater client.StatusClient, mu sync.Locker) error {
 	mu.Lock()
 	defer mu.Unlock()
