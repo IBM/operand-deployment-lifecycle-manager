@@ -402,6 +402,10 @@ func (m *ODLMOperator) GetOperatorNamespace(installMode, namespace string) strin
 // GetOperandFromRegistry gets the Operand from the OperandRegistry
 func (m *ODLMOperator) GetOperandFromRegistry(ctx context.Context, reg *apiv1alpha1.OperandRegistry, operandName string) (*apiv1alpha1.Operator, error) {
 	opt := reg.GetOperator(operandName)
+	if opt == nil {
+		return nil, nil
+	}
+
 	// Get excluded CatalogSource from annotation
 	// excluded-catalogsource: catalogsource1, catalogsource2
 	var excludedCatalogSources []string
