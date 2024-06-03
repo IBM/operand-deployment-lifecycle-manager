@@ -81,7 +81,7 @@ func main() {
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	var stepSize = flag.Int("batch-chunk-size", 1, "batch-chunk-size is used to control at most how many subscriptions will be created concurrently")
+	var stepSize = flag.Int("batch-chunk-size", 3, "batch-chunk-size is used to control at most how many subscriptions will be created concurrently")
 
 	flag.Parse()
 
