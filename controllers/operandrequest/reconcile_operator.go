@@ -229,6 +229,9 @@ func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance 
 			if semver.IsValid(sub.Spec.Channel) && semver.IsValid(opt.Channel) && semver.Compare(sub.Spec.Channel, opt.Channel) < 0 {
 				sub.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/request"] = sub.Spec.Channel
 			}
+		} else if opt.SourceNamespace == "" || opt.SourceName == "" {
+			klog.Errorf("Failed to find catalogsource for operator %s with channel %s", opt.Name, opt.Channel)
+			requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", mu)
 		} else {
 			requestInstance.SetNotFoundOperatorFromRegistryCondition(operand.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionFalse, mu)
 
