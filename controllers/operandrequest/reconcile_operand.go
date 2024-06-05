@@ -236,7 +236,7 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 			go func(res operatorv1alpha1.ConfigResource) {
 				defer wg.Done()
 				defer func() { <-semaphore }() // release semaphore
-				err := r.reconcileK8sResourceWithRetries(ctx, res, service.Name, opConfigName, opConfigNs, chunkSize)
+				err := r.reconcileK8sResourceWithRetries(ctx, res, service.Name, opConfigName, opConfigNs)
 				if err != nil {
 					merr.Add(err)
 				}
@@ -486,17 +486,17 @@ func newServiceStatus(operatorName string, namespace string, resources []operato
 	return serviceSpec
 }
 
-func (r *Reconciler) reconcileK8sResourceWithRetries(ctx context.Context, res operatorv1alpha1.ConfigResource, serviceName, opConfigName, opConfigNs string, chunkSize int) error {
+func (r *Reconciler) reconcileK8sResourceWithRetries(ctx context.Context, res operatorv1alpha1.ConfigResource, serviceName, opConfigName, opConfigNs string) error {
 	var err error
-	for i := 0; i < chunkSize; i++ {
+	for i := 0; i < int(constant.DefaultCRRetryNumber); i++ {
 		err = r.reconcileK8sResource(ctx, res, serviceName, opConfigName, opConfigNs)
 		if err == nil {
 			return nil
 		}
-		klog.Errorf("Failed to reconcile k8s resource %s/%s: %v", res.Namespace, res.Name, err)
-		if i < chunkSize-1 {
+		klog.Errorf("Failed to reconcile k8s resource -- Kind: %s, NamespacedName: %s/%s with error: %v", res.Kind, res.Namespace, res.Name, err)
+		if i < int(constant.DefaultCRRetryNumber)-1 {
 			waitTime := time.Duration((1 << i) * 4 * int(time.Second))
-			klog.Warningf("Retry reconcile k8s resource %s/%s after %v", res.Namespace, res.Name, waitTime)
+			klog.Warningf("Retry reconcile k8s resource -- Kind: %s, NamespacedName: %s/%s after waiting %v", res.Kind, res.Namespace, res.Name, waitTime)
 			time.Sleep(waitTime)
 		}
 	}

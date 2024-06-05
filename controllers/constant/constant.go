@@ -90,4 +90,7 @@ const (
 
 	//DefaultCSVWaitPeriod is the default period for wait CSV ready
 	DefaultCSVWaitPeriod = 1 * time.Minute
+
+	//DefaultCRRetryNumber is the default maximum number of retry for reconciling a custom resource
+	DefaultCRRetryNumber = 3
 )
