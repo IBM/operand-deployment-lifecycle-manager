@@ -21,6 +21,7 @@ import (
 
 	"github.com/barkimedes/go-deepcopy"
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -169,7 +170,20 @@ func (r *Reconciler) requestsFromMapFunc(ctx context.Context) handler.MapFunc {
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	ctx := context.Background()
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&operatorv1alpha1.OperandRequest{}).
+		For(&operatorv1alpha1.OperandRequest{}, builder.WithPredicates(predicate.Funcs{
+			CreateFunc: func(e event.CreateEvent) bool {
+				return true
+			},
+			DeleteFunc: func(e event.DeleteEvent) bool {
+				// Evaluates to false if the object has been confirmed deleted.
+				return !e.DeleteStateUnknown
+			},
+			UpdateFunc: func(e event.UpdateEvent) bool {
+				oldObject := e.ObjectOld.(*operatorv1alpha1.OperandRequest)
+				newObject := e.ObjectNew.(*operatorv1alpha1.OperandRequest)
+				return !equality.Semantic.DeepEqual(oldObject.Spec, newObject.Spec) || !equality.Semantic.DeepEqual(oldObject.Status, newObject.Status)
+			},
+		})).
 		Watches(&source.Kind{Type: &operatorv1alpha1.OperatorConfig{}}, handler.EnqueueRequestsFromMapFunc(r.requestsFromMapFunc(ctx)), builder.WithPredicates(predicate.Funcs{
 			CreateFunc: func(e event.CreateEvent) bool {
 				return true
@@ -177,6 +191,11 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 			DeleteFunc: func(e event.DeleteEvent) bool {
 				// Evaluates to false if the object has been confirmed deleted.
 				return !e.DeleteStateUnknown
+			},
+			UpdateFunc: func(e event.UpdateEvent) bool {
+				oldObject := e.ObjectOld.(*operatorv1alpha1.OperatorConfig)
+				newObject := e.ObjectNew.(*operatorv1alpha1.OperatorConfig)
+				return !equality.Semantic.DeepEqual(oldObject.Spec, newObject.Spec)
 			},
 		})).
 		Complete(r)
