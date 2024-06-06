@@ -351,20 +351,23 @@ func (r *Reconciler) deleteSubscription(ctx context.Context, cr *operatorv1alpha
 
 	klog.V(2).Infof("Deleting Subscription %s/%s ...", sub.Namespace, sub.Name)
 
-	csv, err := r.GetClusterServiceVersion(ctx, sub)
+	csvList, err := r.GetClusterServiceVersionList(ctx, sub)
 	// If can't get CSV, requeue the request
 	if err != nil {
 		return err
 	}
 
-	if csv != nil {
-		klog.V(3).Info("Set Deleting Condition in the operandRequest")
-		cr.SetDeletingCondition(csv.Name, operatorv1alpha1.ResourceTypeCsv, corev1.ConditionTrue, &r.Mutex)
+	if csvList != nil {
+		klog.Infof("Found %d ClusterServiceVersions for Subscription %s/%s", len(csvList), sub.Namespace, sub.Name)
+		for _, csv := range csvList {
+			klog.V(3).Info("Set Deleting Condition in the operandRequest")
+			cr.SetDeletingCondition(csv.Name, operatorv1alpha1.ResourceTypeCsv, corev1.ConditionTrue, &r.Mutex)
 
-		klog.V(1).Infof("Deleting the ClusterServiceVersion, Namespace: %s, Name: %s", csv.Namespace, csv.Name)
-		if err := r.Delete(ctx, csv); err != nil {
-			cr.SetDeletingCondition(csv.Name, operatorv1alpha1.ResourceTypeCsv, corev1.ConditionFalse, &r.Mutex)
-			return err
+			klog.V(1).Infof("Deleting the ClusterServiceVersion, Namespace: %s, Name: %s", csv.Namespace, csv.Name)
+			if err := r.Delete(ctx, csv); err != nil {
+				cr.SetDeletingCondition(csv.Name, operatorv1alpha1.ResourceTypeCsv, corev1.ConditionFalse, &r.Mutex)
+				return err
+			}
 		}
 	}
 
@@ -426,16 +429,17 @@ func (r *Reconciler) uninstallOperatorsAndOperands(ctx context.Context, operandN
 		return nil
 	}
 
-	if csv, err := r.GetClusterServiceVersion(ctx, sub); err != nil {
+	if csvList, err := r.GetClusterServiceVersionList(ctx, sub); err != nil {
 		// If can't get CSV, requeue the request
 		return err
-	} else if csv != nil {
+	} else if csvList != nil {
+		klog.Infof("Found %d ClusterServiceVersions for Subscription %s/%s", len(csvList), sub.Namespace, sub.Name)
 		if uninstallOperand {
-			klog.V(2).Infof("Deleting all the Custom Resources for CSV, Namespace: %s, Name: %s", csv.Namespace, csv.Name)
-			if err := r.deleteAllCustomResource(ctx, csv, requestInstance, configInstance, operandName, configInstance.Namespace); err != nil {
+			klog.V(2).Infof("Deleting all the Custom Resources for CSV, Namespace: %s, Name: %s", csvList[0].Namespace, csvList[0].Name)
+			if err := r.deleteAllCustomResource(ctx, csvList[0], requestInstance, configInstance, operandName, configInstance.Namespace); err != nil {
 				return err
 			}
-			klog.V(2).Infof("Deleting all the k8s Resources for CSV, Namespace: %s, Name: %s", csv.Namespace, csv.Name)
+			klog.V(2).Infof("Deleting all the k8s Resources for CSV, Namespace: %s, Name: %s", csvList[0].Namespace, csvList[0].Name)
 			if err := r.deleteAllK8sResource(ctx, configInstance, operandName, configInstance.Namespace); err != nil {
 				return err
 			}
@@ -447,12 +451,14 @@ func (r *Reconciler) uninstallOperatorsAndOperands(ctx context.Context, operandN
 			}
 
 			klog.V(3).Info("Set Deleting Condition in the operandRequest")
-			requestInstance.SetDeletingCondition(csv.Name, operatorv1alpha1.ResourceTypeCsv, corev1.ConditionTrue, &r.Mutex)
+			requestInstance.SetDeletingCondition(csvList[0].Name, operatorv1alpha1.ResourceTypeCsv, corev1.ConditionTrue, &r.Mutex)
 
-			klog.V(1).Infof("Deleting the ClusterServiceVersion, Namespace: %s, Name: %s", csv.Namespace, csv.Name)
-			if err := r.Delete(ctx, csv); err != nil {
-				requestInstance.SetDeletingCondition(csv.Name, operatorv1alpha1.ResourceTypeCsv, corev1.ConditionFalse, &r.Mutex)
-				return errors.Wrap(err, "failed to delete the ClusterServiceVersion")
+			for _, csv := range csvList {
+				klog.V(1).Infof("Deleting the ClusterServiceVersion, Namespace: %s, Name: %s", csv.Namespace, csv.Name)
+				if err := r.Delete(ctx, csv); err != nil {
+					requestInstance.SetDeletingCondition(csv.Name, operatorv1alpha1.ResourceTypeCsv, corev1.ConditionFalse, &r.Mutex)
+					return errors.Wrapf(err, "failed to delete the ClusterServiceVersion %s/%s", csv.Namespace, csv.Name)
+				}
 			}
 		}
 	}

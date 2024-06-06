@@ -391,6 +391,44 @@ func (m *ODLMOperator) GetClusterServiceVersion(ctx context.Context, sub *olmv1a
 	return csv, nil
 }
 
+// GetClusterServiceVersionList gets a list of ClusterServiceVersions from the subscription
+func (m *ODLMOperator) GetClusterServiceVersionList(ctx context.Context, sub *olmv1alpha1.Subscription) ([]*olmv1alpha1.ClusterServiceVersion, error) {
+	// Check if subscription is nil
+	if sub == nil {
+		klog.Error("The subscription is nil")
+		return nil, fmt.Errorf("the subscription is nil")
+	}
+
+	packageName := sub.Spec.Package
+	csvNamespace := sub.Namespace
+
+	// Get the ClusterServiceVersion list with label operators.coreos.com/packageName.csvNamespace=''
+	csvList := &olmv1alpha1.ClusterServiceVersionList{}
+	opts := []client.ListOption{
+		client.MatchingLabels{fmt.Sprintf("operators.coreos.com/%s.%s", packageName, csvNamespace): ""},
+		client.InNamespace(csvNamespace),
+	}
+
+	if err := m.Reader.List(ctx, csvList, opts...); err != nil {
+		if apierrors.IsNotFound(err) || len(csvList.Items) == 0 {
+			klog.V(3).Infof("No ClusterServiceVersion found with label operators.coreos.com/%s.%s", packageName, csvNamespace)
+			return nil, nil
+		}
+		return nil, errors.Wrapf(err, "failed to list ClusterServiceVersions with label operators.coreos.com/%s.%s", packageName, csvNamespace)
+	} else if len(csvList.Items) > 1 {
+		klog.Warningf("Multiple ClusterServiceVersions found with label operators.coreos.com/%s.%s", packageName, csvNamespace)
+	}
+
+	var csvs []*olmv1alpha1.ClusterServiceVersion
+	for i := range csvList.Items {
+		klog.V(3).Infof("Get ClusterServiceVersion %s in the namespace %s", csvList.Items[i].Name, csvNamespace)
+		csvs = append(csvs, &csvList.Items[i])
+	}
+
+	klog.V(3).Infof("Get %v ClusterServiceVersions in the namespace %s", len(csvs), csvNamespace)
+	return csvs, nil
+}
+
 // GetOperatorNamespace returns the operator namespace based on the install mode
 func (m *ODLMOperator) GetOperatorNamespace(installMode, namespace string) string {
 	if installMode == apiv1alpha1.InstallModeCluster {
