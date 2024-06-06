@@ -121,7 +121,7 @@ var _ = Describe("OperandConfig controller", func() {
 			}, timeout, interval).Should(Succeed())
 
 			By("Creating and Setting status of the ClusterServiceVersions")
-			jaegerCSV := testutil.ClusterServiceVersion("jaeger-csv.v0.0.1", operatorNamespaceName, testutil.JaegerExample)
+			jaegerCSV := testutil.ClusterServiceVersion("jaeger-csv.v0.0.1", "jaeger", operatorNamespaceName, testutil.JaegerExample)
 			Expect(k8sClient.Create(ctx, jaegerCSV)).Should(Succeed())
 			Eventually(func() error {
 				k8sClient.Get(ctx, types.NamespacedName{Name: "jaeger-csv.v0.0.1", Namespace: operatorNamespaceName}, jaegerCSV)
@@ -129,7 +129,7 @@ var _ = Describe("OperandConfig controller", func() {
 				return k8sClient.Status().Update(ctx, jaegerCSV)
 			}, timeout, interval).Should(Succeed())
 
-			mongodbCSV := testutil.ClusterServiceVersion("mongodb-atlas-kubernetes-csv.v0.0.1", operatorNamespaceName, testutil.MongodbExample)
+			mongodbCSV := testutil.ClusterServiceVersion("mongodb-atlas-kubernetes-csv.v0.0.1", "mongodb-atlas-kubernetes", operatorNamespaceName, testutil.MongodbExample)
 			Expect(k8sClient.Create(ctx, mongodbCSV)).Should(Succeed())
 			Eventually(func() error {
 				k8sClient.Get(ctx, types.NamespacedName{Name: "mongodb-atlas-kubernetes-csv.v0.0.1", Namespace: operatorNamespaceName}, mongodbCSV)
