@@ -495,13 +495,16 @@ func SubscriptionStatus(name, namespace, csvVersion string) olmv1alpha1.Subscrip
 	}
 }
 
-func ClusterServiceVersion(name, namespace, example string) *olmv1alpha1.ClusterServiceVersion {
+func ClusterServiceVersion(name, packageName, namespace, example string) *olmv1alpha1.ClusterServiceVersion {
 	return &olmv1alpha1.ClusterServiceVersion{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 			Annotations: map[string]string{
 				"alm-examples": example,
+			},
+			Labels: map[string]string{
+				"operators.coreos.com/" + packageName + "." + namespace: "",
 			},
 		},
 		Spec: olmv1alpha1.ClusterServiceVersionSpec{
