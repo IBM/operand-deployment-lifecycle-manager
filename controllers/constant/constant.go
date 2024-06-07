@@ -93,4 +93,7 @@ const (
 
 	//DefaultCRRetryNumber is the default maximum number of retry for reconciling a custom resource
 	DefaultCRRetryNumber = 3
+
+	//StatusMonitoredServices is the annotation key for monitored services
+	StatusMonitoredServices = "status-monitored-services"
 )

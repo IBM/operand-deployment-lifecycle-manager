@@ -326,17 +326,16 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 					merr.Add(err)
 					continue
 				}
-				statusSpec, err := r.getOperandStatus(crFromALM)
+				statusFromCR, err := r.getOperandStatus(crFromALM)
 				if err != nil {
 					return err
 				}
 				serviceKind := crFromALM.GetKind()
-				if serviceKind != "OperandRequest" && statusSpec.ObjectName != "" {
+				if serviceKind != "OperandRequest" && statusFromCR.ObjectName != "" {
 					var resources []operatorv1alpha1.OperandStatus
-					resources = append(resources, statusSpec)
-					serviceSpec := newServiceStatus(operandName, operatorNamespace, resources)
-					seterr := requestInstance.SetServiceStatus(ctx, serviceSpec, r.Client, mu)
-					if seterr != nil {
+					resources = append(resources, statusFromCR)
+					serviceStatus := newServiceStatus(operandName, operatorNamespace, resources)
+					if seterr := requestInstance.SetServiceStatus(ctx, serviceStatus, r.Client, mu); seterr != nil {
 						return seterr
 					}
 				}
@@ -410,15 +409,15 @@ func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance
 			if err := r.updateCustomResource(ctx, crFromRequest, requestKey.Namespace, operand.Kind, operand.Spec.Raw, map[string]interface{}{}, requestInstance); err != nil {
 				return err
 			}
-			statusSpec, err := r.getOperandStatus(crFromRequest)
+			statusFromCR, err := r.getOperandStatus(crFromRequest)
 			if err != nil {
 				return err
 			}
-			if operand.Kind != "OperandRequest" && statusSpec.ObjectName != "" {
+			if operand.Kind != "OperandRequest" && statusFromCR.ObjectName != "" {
 				var resources []operatorv1alpha1.OperandStatus
-				resources = append(resources, statusSpec)
-				serviceSpec := newServiceStatus(operand.Name, operatorNamespace, resources)
-				seterr := requestInstance.SetServiceStatus(ctx, serviceSpec, r.Client, mu)
+				resources = append(resources, statusFromCR)
+				serviceStatus := newServiceStatus(operand.Name, operatorNamespace, resources)
+				seterr := requestInstance.SetServiceStatus(ctx, serviceStatus, r.Client, mu)
 				if seterr != nil {
 					return seterr
 				}
@@ -481,7 +480,6 @@ func newServiceStatus(operatorName string, namespace string, resources []operato
 		}
 	}
 	serviceSpec.Status = status //TODO logic to determine readiness
-	// serviceSpec.LastUpdateTime = time.Now().Format(time.RFC3339)
 	serviceSpec.Resources = resources
 	return serviceSpec
 }
@@ -1357,4 +1355,50 @@ func (r *Reconciler) setOwnerReferences(ctx context.Context, controlledRes *unst
 		}
 	}
 	return nil
+}
+
+func (r *Reconciler) ServiceStatusIsReady(ctx context.Context, requestInstance *operatorv1alpha1.OperandRequest) (bool, error) {
+	requestedServicesSet := make(map[string]struct{})
+	for _, req := range requestInstance.Spec.Requests {
+		registryKey := requestInstance.GetRegistryKey(req)
+		registryInstance, err := r.GetOperandRegistry(ctx, registryKey)
+		if err != nil {
+			klog.Errorf("Failed to get OperandRegistry %s, %v", registryKey, err)
+			return false, err
+		}
+		if registryInstance.Annotations != nil && registryInstance.Annotations[constant.StatusMonitoredServices] != "" {
+			monitoredServices := strings.Split(registryInstance.Annotations[constant.StatusMonitoredServices], ",")
+			for _, operand := range req.Operands {
+				if util.Contains(monitoredServices, operand.Name) {
+					requestedServicesSet[operand.Name] = struct{}{}
+				}
+			}
+		}
+	}
+
+	if len(requestedServicesSet) == 0 {
+		klog.V(2).Infof("No services to be monitored for OperandRequest %s/%s", requestInstance.Namespace, requestInstance.Name)
+		return true, nil
+	}
+
+	if len(requestInstance.Status.Services) == 0 {
+		klog.Infof("Waiting for status.services to be instantiated for OperandRequest %s/%s ...", requestInstance.Namespace, requestInstance.Name)
+		return false, nil
+	}
+	if len(requestedServicesSet) != len(requestInstance.Status.Services) {
+		klog.Infof("Waiting for status of all requested services to be instantiated for OperandRequest %s/%s ...", requestInstance.Namespace, requestInstance.Name)
+		return false, nil
+	}
+
+	serviceStatus := true
+	// wait for the status of the requested services to be ready
+	for _, s := range requestInstance.Status.Services {
+		if _, ok := requestedServicesSet[s.OperatorName]; ok {
+			if s.Status != "Ready" {
+				klog.Infof("Waiting for status of service %s to be Ready for OperandRequest %s/%s ...", s.OperatorName, requestInstance.Namespace, requestInstance.Name)
+				serviceStatus = false
+			}
+		}
+	}
+	return serviceStatus, nil
 }
