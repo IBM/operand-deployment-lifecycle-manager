@@ -144,7 +144,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	}
 
 	// Initialize the status for OperandRequest instance
-	if !requestInstance.InitRequestStatus() {
+	if !requestInstance.InitRequestStatus(&r.Mutex) {
 		return ctrl.Result{Requeue: true}, nil
 	}
 
@@ -154,18 +154,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, err
 	} else if !isAdded {
 		return ctrl.Result{Requeue: true}, err
-	}
-
-	// Clean the phase of each operand under spec.request.operand
-	for _, member := range requestInstance.Status.Members {
-		klog.V(2).Info("Cleaning the member status for Operand: ", member.Name)
-		requestInstance.RemoveOperandPhase(member.Name, &r.Mutex)
-	}
-	requestInstance.Status.Phase = operatorv1alpha1.ClusterPhaseNone
-
-	if err := r.Client.Status().Update(ctx, requestInstance); err != nil {
-		klog.Errorf("failed to update the status of the OperandRequest %s: %v", req.NamespacedName.String(), err)
-		return ctrl.Result{}, err
 	}
 
 	// Reconcile Operators
@@ -186,8 +174,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
 	}
 
-	//check if status.services is present (if a relevant service was requested), requeue again is im/iam is not ready yet
-	if requestInstance.CheckServiceStatus() {
+	//check if status.services is present (if a relevant service was requested), requeue again if service is not ready yet
+	if isReady, err := r.ServiceStatusIsReady(ctx, requestInstance); !isReady || err != nil {
 		return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
 	}
 
@@ -416,7 +404,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				oldObject := e.ObjectOld.(*operatorv1alpha1.OperandRegistry)
 				newObject := e.ObjectNew.(*operatorv1alpha1.OperandRegistry)
-				return !reflect.DeepEqual(oldObject.Spec, newObject.Spec)
+				return !reflect.DeepEqual(oldObject.Spec, newObject.Spec) || !reflect.DeepEqual(oldObject.GetAnnotations(), newObject.GetAnnotations())
 			},
 			DeleteFunc: func(e event.DeleteEvent) bool {
 				// Evaluates to false if the object has been confirmed deleted.
