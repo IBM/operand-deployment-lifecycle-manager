@@ -1382,7 +1382,7 @@ func (r *Reconciler) ServiceStatusIsReady(ctx context.Context, requestInstance *
 			return false, nil
 		}
 		if len(requestedServicesSet) != len(requestInstance.Status.Services) {
-			klog.Infof("Waiting for statuf of all requested services to be instantiated for OperandRequest %s/%s ...", requestInstance.Namespace, requestInstance.Name)
+			klog.Infof("Waiting for status of all requested services to be instantiated for OperandRequest %s/%s ...", requestInstance.Namespace, requestInstance.Name)
 			return false, nil
 		}
 
