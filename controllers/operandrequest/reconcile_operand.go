@@ -1376,25 +1376,29 @@ func (r *Reconciler) ServiceStatusIsReady(ctx context.Context, requestInstance *
 		}
 	}
 
-	if len(requestedServicesSet) != 0 {
-		if len(requestInstance.Status.Services) == 0 {
-			klog.Infof("Waiting for status.services to be instantiated for OperandRequest %s/%s ...", requestInstance.Namespace, requestInstance.Name)
-			return false, nil
-		}
-		if len(requestedServicesSet) != len(requestInstance.Status.Services) {
-			klog.Infof("Waiting for status of all requested services to be instantiated for OperandRequest %s/%s ...", requestInstance.Namespace, requestInstance.Name)
-			return false, nil
-		}
+	if len(requestedServicesSet) == 0 {
+		klog.V(2).Infof("No services to be monitored for OperandRequest %s/%s", requestInstance.Namespace, requestInstance.Name)
+		return true, nil
+	}
 
-		// wait for the status of the requested services to be ready
-		for _, s := range requestInstance.Status.Services {
-			if _, ok := requestedServicesSet[s.OperatorName]; ok {
-				if s.Status != "Ready" {
-					klog.Infof("Waiting for status of service %s to be Ready for OperandRequest %s/%s ...", s.OperatorName, requestInstance.Namespace, requestInstance.Name)
-					return false, nil
-				}
+	if len(requestInstance.Status.Services) == 0 {
+		klog.Infof("Waiting for status.services to be instantiated for OperandRequest %s/%s ...", requestInstance.Namespace, requestInstance.Name)
+		return false, nil
+	}
+	if len(requestedServicesSet) != len(requestInstance.Status.Services) {
+		klog.Infof("Waiting for status of all requested services to be instantiated for OperandRequest %s/%s ...", requestInstance.Namespace, requestInstance.Name)
+		return false, nil
+	}
+
+	serviceStatus := true
+	// wait for the status of the requested services to be ready
+	for _, s := range requestInstance.Status.Services {
+		if _, ok := requestedServicesSet[s.OperatorName]; ok {
+			if s.Status != "Ready" {
+				klog.Infof("Waiting for status of service %s to be Ready for OperandRequest %s/%s ...", s.OperatorName, requestInstance.Namespace, requestInstance.Name)
+				serviceStatus = false
 			}
 		}
 	}
-	return true, nil
+	return serviceStatus, nil
 }
