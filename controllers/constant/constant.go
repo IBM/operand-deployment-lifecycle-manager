@@ -64,6 +64,9 @@ const (
 	//HashedData is the key for checking the checksum of data section
 	HashedData string = "hashedData"
 
+	// SubscriptionRestartCount is the name use to count the restart times done by operator checker
+	SubscriptionRestartCount string = "operator.ibm.com/operator-checker-restart-count"
+
 	//DefaultRequestTimeout is the default timeout for kube request
 	DefaultRequestTimeout = 5 * time.Second
 

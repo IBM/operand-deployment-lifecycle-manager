@@ -18,6 +18,8 @@ package operatorchecker
 
 import (
 	"context"
+	"math"
+	"strconv"
 	"strings"
 	"time"
 
@@ -48,6 +50,20 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
 	}
 
+	if subscriptionInstance.Spec.InstallPlanApproval == olmv1alpha1.ApprovalManual {
+		return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
+	}
+
+	restartCount := 0
+	forceRestart := false
+	if subscriptionInstance.GetAnnotations() == nil {
+		subscriptionInstance.SetAnnotations(make(map[string]string))
+	}
+	existingAnnotations := subscriptionInstance.GetAnnotations()
+	if existingRestartCount, ok := existingAnnotations[constant.SubscriptionRestartCount]; ok {
+		restartCount, _ = strconv.Atoi(existingRestartCount)
+	}
+
 	if subscriptionInstance.Status.CurrentCSV == "" && subscriptionInstance.Status.State == "" {
 		// cover fresh install case
 		csvList, err := r.getCSVBySubscription(ctx, subscriptionInstance)
@@ -67,45 +83,30 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 			return ctrl.Result{}, client.IgnoreNotFound(err)
 		}
 		if subscriptionInstance.Status.CurrentCSV == "" && subscriptionInstance.Status.State == "" {
+			if restartCount > 5 {
+				if err = r.Delete(ctx, subscriptionInstance); err != nil {
+					return ctrl.Result{}, err
+				}
+				forceRestart = true
+			} else {
+				restartCount = restartCount + 1
+				existingAnnotations[constant.SubscriptionRestartCount] = strconv.Itoa(restartCount)
+				subscriptionInstance.SetAnnotations(existingAnnotations)
+				if err = r.Update(ctx, subscriptionInstance); err != nil {
+					return ctrl.Result{}, err
+				}
+			}
 			if err = r.deleteCSV(ctx, csv.Name, csv.Namespace); err != nil {
 				return ctrl.Result{}, client.IgnoreNotFound(err)
 			}
 		}
 	}
 
-	if subscriptionInstance.Status.State == "UpgradePending" && subscriptionInstance.Status.CurrentCSV != "" && subscriptionInstance.Status.InstalledCSV != "" {
-		// cover upgrade case
-		csvList, err := r.getCSVBySubscription(ctx, subscriptionInstance)
-		if err != nil {
-			klog.Error(err)
-			return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
-		}
-		if len(csvList) != 1 {
-			klog.Warning("Not found matched CSV, CSVList length: ", len(csvList))
-			return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
-		}
-		csv := csvList[0]
-
-		currentCSVVersion := ""
-		if len(strings.SplitN(subscriptionInstance.Status.CurrentCSV, ".", 2)) == 2 {
-			currentCSVVersion = strings.SplitN(subscriptionInstance.Status.CurrentCSV, ".", 2)[1]
-		}
-
-		if currentCSVVersion != csv.Spec.Version.String() {
-			time.Sleep(constant.DefaultCSVWaitPeriod)
-			subscriptionInstance, err := r.getSubscription(ctx, req)
-			if err != nil {
-				return ctrl.Result{}, client.IgnoreNotFound(err)
-			}
-			if subscriptionInstance.Status.State == "UpgradePending" && subscriptionInstance.Status.CurrentCSV != "" && subscriptionInstance.Status.InstalledCSV != "" {
-				if err = r.deleteCSV(ctx, csv.Name, csv.Namespace); err != nil {
-					return ctrl.Result{}, client.IgnoreNotFound(err)
-				}
-			}
-		}
+	if forceRestart {
+		return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
 	}
-
-	return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
+	requeueTime := constant.DefaultRequeueDuration * time.Duration(math.Pow(2, float64(restartCount)))
+	return ctrl.Result{RequeueAfter: requeueTime}, nil
 }
 
 func (r *Reconciler) getCSVBySubscription(ctx context.Context, subscriptionInstance *olmv1alpha1.Subscription) ([]olmv1alpha1.ClusterServiceVersion, error) {
