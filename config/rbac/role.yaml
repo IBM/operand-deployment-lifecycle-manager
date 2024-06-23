@@ -10,6 +10,7 @@ rules:
     - get
     - list
     - watch
+    - update
   apiGroups:
     - operator.ibm.com
   resources:
@@ -54,6 +55,18 @@ rules:
   - certmanager.k8s.io
   resources:
   - clusterissuers
+  verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+- apiGroups:
+    - admissionregistration.k8s.io
+  resources:
+    - mutatingwebhookconfigurations
   verbs:
     - create
     - delete

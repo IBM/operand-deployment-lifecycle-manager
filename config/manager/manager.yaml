@@ -92,5 +92,11 @@ spec:
           privileged: false
           readOnlyRootFilesystem: true
           runAsNonRoot: true
+        volumeMounts:
+          - mountPath: /etc/ssl/certs/webhook
+            name: webhook-certs
       terminationGracePeriodSeconds: 10
       serviceAccount: operand-deployment-lifecycle-manager
+      volumes:
+        - emptyDir: {}
+          name: webhook-certs

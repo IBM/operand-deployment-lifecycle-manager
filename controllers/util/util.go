@@ -17,6 +17,8 @@
 package util
 
 import (
+	"context"
+	"errors"
 	"os"
 	"sort"
 	"strconv"
@@ -24,7 +26,10 @@ import (
 	"sync"
 	"time"
 
+	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/discovery"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // GetOperatorNamespace returns the Namespace of the operator
@@ -65,6 +70,23 @@ func GetIsolatedMode() bool {
 func GetoperatorCheckerMode() bool {
 	isEnable, found := os.LookupEnv("OPERATORCHECKER_MODE")
 	if found && isEnable == "false" {
+		return true
+	}
+	return false
+}
+
+func GetPartialWatchNamespace() string {
+	ns, found := os.LookupEnv("PARTIAL_WATCH_NAMESPACE")
+	if !found {
+		return ""
+	}
+	return ns
+}
+
+func PartialWatchNamespaceEnabled() bool {
+	// If it is not found, it is enabled by default
+	isEnabled, found := os.LookupEnv("ENABLE_PARTIAL_WATCH_NAMESPACE")
+	if !found || isEnabled == "true" {
 		return true
 	}
 	return false
@@ -187,4 +209,47 @@ func Contains(list []string, s string) bool {
 		}
 	}
 	return false
+}
+
+// returns error, roleName, roleUID
+func GetClusterRoleDetails(kube client.Client, ns string, csvName string) (string, types.UID, error) {
+	existingResource := &rbacv1.ClusterRoleList{}
+	opts := []client.ListOption{
+		client.MatchingLabels(map[string]string{
+			"olm.owner.namespace": ns,
+			"olm.owner":           csvName,
+		}),
+	}
+	err := kube.List(context.TODO(), existingResource, opts...)
+	if err != nil {
+		return "", "", err
+	}
+	switch len(existingResource.Items) {
+	case 0:
+		return "", "", errors.New("unable to find ClusterRole for operator " + csvName)
+	default:
+		// 1 or more ClusterRole returned so index first one
+		return existingResource.Items[0].Name, existingResource.Items[0].UID, nil
+	}
+}
+
+func GetClusterRole(kube client.Client, ns string, csvName string) (*rbacv1.ClusterRole, error) {
+	existingResource := &rbacv1.ClusterRoleList{}
+	opts := []client.ListOption{
+		client.MatchingLabels(map[string]string{
+			"olm.owner.namespace": ns,
+			"olm.owner":           csvName,
+		}),
+	}
+	err := kube.List(context.TODO(), existingResource, opts...)
+	if err != nil {
+		return nil, err
+	}
+	switch len(existingResource.Items) {
+	case 0:
+		return nil, errors.New("unable to find ClusterRole for operator " + csvName)
+	default:
+		// 1 or more ClusterRole returned so index first one
+		return &existingResource.Items[0], nil
+	}
 }
