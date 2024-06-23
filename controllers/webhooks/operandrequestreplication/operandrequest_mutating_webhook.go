@@ -66,7 +66,7 @@ func (r *Defaulter) Handle(ctx context.Context, req admission.Request) admission
 			}
 
 			// get the new OperandRequest spec with the valid operands
-			if newOpreqSpec, err := GetNewOpreqSpec(ctx, r.Client, opreq, r.OperatorNs); err != nil {
+			if newOpreqSpec, err := GetFilteredOpreqSpec(ctx, r.Client, opreq, r.OperatorNs); err != nil {
 				klog.Errorf("Failed to get new OperandRequest spec: %v", err)
 				return admission.Errored(http.StatusInternalServerError, err)
 			} else if newOpreqSpec == nil || len(newOpreqSpec.Requests) == 0 {
@@ -146,7 +146,7 @@ func (r *Defaulter) Handle(ctx context.Context, req admission.Request) admission
 func (r *Defaulter) Default(instance *odlm.OperandRequest) {
 }
 
-func GetNewOpreqSpec(ctx context.Context, kube client.Client, opreq *odlm.OperandRequest, operatorNs string) (*odlm.OperandRequestSpec, error) {
+func GetFilteredOpreqSpec(ctx context.Context, kube client.Client, opreq *odlm.OperandRequest, operatorNs string) (*odlm.OperandRequestSpec, error) {
 	newOpreqSpec := &odlm.OperandRequestSpec{}
 	for _, req := range opreq.Spec.Requests {
 		// get the OperandRegistry from the registry and registryNamespace
@@ -215,7 +215,7 @@ func AddAnnotationToOperandRequests(kube client.Client, partialWatchNamespace, o
 				}
 
 				// Check if there are valid operand in the OperandRequest requiring replication
-				if newOpreqSpec, err := GetNewOpreqSpec(context.TODO(), kube, &opreq, operatorNamespace); err != nil {
+				if newOpreqSpec, err := GetFilteredOpreqSpec(context.TODO(), kube, &opreq, operatorNamespace); err != nil {
 					isFinished = false
 					klog.Errorf("Failed to get new OperandRequest spec: %v", err)
 					continue

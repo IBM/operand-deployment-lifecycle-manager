@@ -102,7 +102,7 @@ var (
 	}
 )
 
-func TestGetNewOpreqSpec(t *testing.T) {
+func TestGetFilteredOpreqSpec(t *testing.T) {
 	ctx := context.TODO()
 
 	scheme := runtime.NewScheme()
@@ -116,7 +116,7 @@ func TestGetNewOpreqSpec(t *testing.T) {
 	err := kube.Create(ctx, registry)
 	assert.NoError(t, err)
 
-	newOpreqSpec, err := GetNewOpreqSpec(ctx, kube, opreq, operatorNamespace)
+	newOpreqSpec, err := GetFilteredOpreqSpec(ctx, kube, opreq, operatorNamespace)
 	assert.NoError(t, err)
 
 	expectedOpreqSpec := opreqSpecInOperatorNs.DeepCopy()
