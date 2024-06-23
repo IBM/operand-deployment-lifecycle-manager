@@ -39,7 +39,6 @@ type Defaulter struct {
 	OperatorNs string
 }
 
-// podAnnotator adds an annotation to every incoming pods.
 func (r *Defaulter) Handle(ctx context.Context, req admission.Request) admission.Response {
 	klog.Infof("Webhook is invoked by OperandRequest %s/%s", req.AdmissionRequest.Namespace, req.AdmissionRequest.Name)
 
@@ -244,5 +243,4 @@ func AddAnnotationToOperandRequests(kube client.Client, partialWatchNamespace, o
 			time.Sleep(sleepTime)
 		}
 	}
-
 }

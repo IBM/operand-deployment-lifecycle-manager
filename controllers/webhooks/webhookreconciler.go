@@ -21,7 +21,6 @@ import (
 	"strings"
 
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -123,7 +122,7 @@ func (reconciler *MutatingWebhookReconciler) Reconcile(ctx context.Context, clie
 	cr := &admissionregistrationv1.MutatingWebhookConfiguration{
 		ObjectMeta: v1.ObjectMeta{
 			Name: reconciler.name,
-			OwnerReferences: []metav1.OwnerReference{
+			OwnerReferences: []v1.OwnerReference{
 				{
 					APIVersion: "rbac.authorization.k8s.io/v1",
 					Kind:       "ClusterRole",
@@ -204,7 +203,7 @@ func (reconciler *ValidatingWebhookReconciler) Reconcile(ctx context.Context, cl
 	cr := &admissionregistrationv1.ValidatingWebhookConfiguration{
 		ObjectMeta: v1.ObjectMeta{
 			Name: reconciler.name,
-			OwnerReferences: []metav1.OwnerReference{
+			OwnerReferences: []v1.OwnerReference{
 				{
 					APIVersion: "rbac.authorization.k8s.io/v1",
 					Kind:       "ClusterRole",
