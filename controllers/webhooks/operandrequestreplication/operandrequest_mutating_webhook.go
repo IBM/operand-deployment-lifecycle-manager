@@ -184,6 +184,18 @@ func (r *Defaulter) InjectDecoder(decoder *admission.Decoder) error {
 
 func AddAnnotationToOperandRequests(kube client.Client, partialWatchNamespace, operatorNamespace string) {
 	for {
+		// wait for OperandRegistry common-service in operatorNamespace to be created
+		registryKey := types.NamespacedName{
+			Name:      "common-service",
+			Namespace: operatorNamespace,
+		}
+		registry := &odlm.OperandRegistry{}
+		if err := kube.Get(context.TODO(), registryKey, registry); err != nil {
+			klog.Warningf("Failed to get OperandRegistry common-service in the %s namespace: %v, retrying...", operatorNamespace, err)
+			time.Sleep(5 * time.Second)
+			continue
+		}
+
 		isFinished := true
 		sleepTime := 5 * time.Second
 		// Get all OperandRequests in the partial watch namespace
