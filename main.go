@@ -17,6 +17,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
 	"strings"
@@ -33,6 +34,8 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
 	cache "github.com/IBM/controller-filtered-cache/filteredcache"
@@ -49,6 +52,8 @@ import (
 	deploy "github.com/IBM/operand-deployment-lifecycle-manager/controllers/operator"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/operatorchecker"
 	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/util"
+	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/webhooks"
+	opreqreplication "github.com/IBM/operand-deployment-lifecycle-manager/controllers/webhooks/operandrequestreplication"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -162,6 +167,41 @@ func main() {
 				os.Exit(1)
 			}
 		}
+	}
+
+	partialWatchNamespace := util.GetPartialWatchNamespace()
+	if partialWatchNamespace != "" && util.PartialWatchNamespaceEnabled() {
+		operatorNamespace := util.GetOperatorNamespace()
+		cfg, err := config.GetConfig()
+		if err != nil {
+			klog.Error(err, "")
+			os.Exit(1)
+		}
+		kubeClient, err := client.New(cfg, client.Options{
+			Scheme: scheme,
+		})
+		if err != nil {
+			klog.Error(err, "")
+			os.Exit(1)
+		}
+
+		if err := webhooks.SetupWebhooks(mgr, kubeClient, operatorNamespace, partialWatchNamespace); err != nil {
+			klog.Error(err, "Error setting up webhook server")
+		}
+
+		clusterRole, err := util.GetClusterRole(kubeClient, operatorNamespace, constant.CSVName)
+		if err != nil {
+			klog.Errorf("unable to get cluster role: %v", err)
+			os.Exit(1)
+		}
+
+		if err := webhooks.Config.Reconcile(context.TODO(), kubeClient, clusterRole); err != nil {
+			klog.Errorf("unable to create webhook configuration: %v", err)
+			os.Exit(1)
+		}
+
+		// add annotation annotation "operand.ibm.com/watched-by-odlm-in-$OperatorNs" to all OperandRequests in partial watch namespace
+		go opreqreplication.AddAnnotationToOperandRequests(kubeClient, partialWatchNamespace, operatorNamespace)
 	}
 	// +kubebuilder:scaffold:builder
 

@@ -21,6 +21,11 @@ import (
 )
 
 const (
+	//OperatorName is the name of operator
+	OperatorName string = "operand-deployment-lifecycle-manager"
+
+	//CSVName is the name of Operand Deployment Lifecycle Manager CSV
+	CSVName string = "operand-deployment-lifecycle-manager.v1.21.13"
 
 	//ClusterOperatorNamespace is the namespace of cluster operators
 	ClusterOperatorNamespace string = "openshift-operators"
@@ -51,6 +56,9 @@ const (
 
 	//FindOperandRegistry is the key for checking if the OperandRegistry is found
 	FindOperandRegistry string = "operator.ibm.com/operandregistry-is-not-found"
+
+	//OdlmManagedLabel is the label used to label the webhook managed by ODLM
+	OdlmManagedLabel string = "operator.ibm.com/managedBy-odlm"
 
 	//HashedData is the key for checking the checksum of data section
 	HashedData string = "hashedData"

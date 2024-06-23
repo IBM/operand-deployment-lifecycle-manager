@@ -573,6 +573,7 @@ spec:
                 - get
                 - list
                 - watch
+                - update
             - apiGroups:
                 - operator.ibm.com
               resources:
@@ -610,6 +611,18 @@ spec:
                 - certmanager.k8s.io
               resources:
                 - clusterissuers
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - admissionregistration.k8s.io
+              resources:
+                - mutatingwebhookconfigurations
               verbs:
                 - create
                 - delete
@@ -705,9 +718,15 @@ spec:
                       privileged: false
                       readOnlyRootFilesystem: true
                       runAsNonRoot: true
+                    volumeMounts:
+                      - mountPath: /etc/ssl/certs/webhook
+                        name: webhook-certs
                 serviceAccount: operand-deployment-lifecycle-manager
                 serviceAccountName: operand-deployment-lifecycle-manager
                 terminationGracePeriodSeconds: 10
+                volumes:
+                  - emptyDir: {}
+                    name: webhook-certs
       permissions:
         - rules:
             - apiGroups:
