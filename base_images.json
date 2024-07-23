@@ -7,7 +7,7 @@
     "destStage": "edge",
     "destNamespace": "build-images",
     "destImage": "ubi8",
-    "tag": "8.10-901.1717584420",
+    "tag": "8.10-1020",
     "updatePackages": []
   },
   {
@@ -18,7 +18,7 @@
     "destStage": "edge",
     "destNamespace": "build-images",
     "destImage": "ubi8-minimal",
-    "tag": "8.10-896.1717584414",
+    "tag": "8.10-1018",
     "updatePackages": []
   },
   {
@@ -40,7 +40,7 @@
     "destStage": "edge",
     "destNamespace": "build-images",
     "destImage": "ubi9",
-    "tag": "9.4-1123",
+    "tag": "9.4-1123.1719560047",
     "updatePackages": []
   },
   {
@@ -57,29 +57,29 @@
   {
     "imageType": "node",
     "sourceImage": "ubi8-minimal",
-    "sourceTag": "8.10-896.1717584414",
+    "sourceTag": "8.10-1018",
     "destImage": "node-v18-ubi8-minimal",
-    "nodeVersion": "18.20.3"
+    "nodeVersion": "18.20.4"
   },
   {
     "imageType": "node",
     "sourceImage": "ubi8-minimal",
-    "sourceTag": "8.10-896.1717584414",
+    "sourceTag": "8.10-1018",
     "destImage": "node-v20-ubi8-minimal",
-    "nodeVersion": "20.15.0"
+    "nodeVersion": "20.15.1"
   },
   {
     "imageType": "node",
     "sourceImage": "ubi9-minimal",
     "sourceTag": "9.4-1134",
     "destImage": "node-v18-ubi9-minimal",
-    "nodeVersion": "18.20.3"
+    "nodeVersion": "18.20.4"
   },
   {
     "imageType": "node",
     "sourceImage": "ubi9-minimal",
     "sourceTag": "9.4-1134",
     "destImage": "node-v20-ubi9-minimal",
-    "nodeVersion": "20.15.0"
+    "nodeVersion": "20.15.1"
   }
 ]
