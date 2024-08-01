@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -226,7 +225,9 @@ func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance 
 
 			// check if sub.Spec.Channel and opt.Channel are valid semantic version
 			// set annotation channel back to previous one if sub.Spec.Channel is lower than opt.Channel
-			if semver.IsValid(sub.Spec.Channel) && semver.IsValid(opt.Channel) && semver.Compare(sub.Spec.Channel, opt.Channel) < 0 {
+			subChanel := util.FindSemantic(sub.Spec.Channel)
+			optChannel := util.FindSemantic(opt.Channel)
+			if semver.IsValid(subChanel) && semver.IsValid(optChannel) && semver.Compare(subChanel, optChannel) < 0 {
 				sub.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/request"] = sub.Spec.Channel
 			}
 		} else if opt.SourceNamespace == "" || opt.SourceName == "" {
@@ -235,21 +236,8 @@ func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance 
 		} else {
 			requestInstance.SetNotFoundOperatorFromRegistryCondition(operand.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionFalse, mu)
 
-			// check request annotation in subscription, get all available channels
-			var semverlList []string
-			reg, _ := regexp.Compile(`^(.*)\.(.*)\.(.*)\/request`)
-			for anno, channel := range sub.Annotations {
-				if reg.MatchString(anno) && semver.IsValid(channel) {
-					semverlList = append(semverlList, channel)
-				}
-			}
-			if len(semverlList) == 0 {
-				// channel is not valid semantic version
-				sub.Spec.Channel = opt.Channel
-			} else if !util.Contains(semverlList, sub.Spec.Channel) {
-				// upgrade channel to minimal version existing in annotation
-				sort.Sort(semver.ByVersion(semverlList))
-				sub.Spec.Channel = semverlList[0]
+			if minChannel := util.FindMinSemver(sub.Annotations, sub.Spec.Channel); minChannel != "" {
+				sub.Spec.Channel = minChannel
 			}
 
 			// update the spec iff channel in sub matches channel in opreg
