@@ -154,6 +154,12 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 				continue
 			}
 
+			if err := r.DeleteRedundantCSV(ctx, csv.Name, csv.Namespace, registryKey.Namespace, opdRegistry.PackageName); err != nil {
+				merr.Add(errors.Wrapf(err, "failed to delete the redundant ClusterServiceVersion %s in the namespace %s", csv.Name, csv.Namespace))
+				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
+				continue
+			}
+
 			// find the OperandRequest which has the same operator's channel version as existing subscription.
 			// ODLM will only reconcile Operand based on OperandConfig for this OperandRequest
 			var requestList []string
