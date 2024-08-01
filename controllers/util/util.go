@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -27,6 +28,7 @@ import (
 	"time"
 
 	ocproute "github.com/openshift/api/route/v1"
+	"golang.org/x/mod/semver"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -333,4 +335,46 @@ func SanitizeObjectString(jsonPath string, data interface{}) (string, error) {
 		sanitized += actual
 	}
 	return sanitized, nil
+}
+
+// FindSemantic checks if a given string contains a substring which is a valid semantic version, and returns that substring
+func FindSemantic(input string) string {
+	// Define the regular expression pattern for flexible semantic versions
+	semverPattern := `\bv?(\d+)(\.\d+)?(\.\d+)?\b`
+
+	// Compile the regular expression
+	re := regexp.MustCompile(semverPattern)
+
+	// Find the first match in the input string
+	match := re.FindString(input)
+
+	// if no match is found, return default minimal version
+	if match == "" {
+		return "v0.0.0"
+	}
+
+	return match
+}
+
+// FindMinSemver returns the minimal semantic version from annotations
+func FindMinSemver(annotations map[string]string, curChannel string) string {
+	// check request annotation in subscription, get all available channels
+	var semverlList []string
+	var semVerChannelMappings = make(map[string]string)
+	reg, _ := regexp.Compile(`^(.*)\.(.*)\.(.*)\/request`)
+	for anno, channel := range annotations {
+		prunedChannel := FindSemantic(channel)
+		if reg.MatchString(anno) && semver.IsValid(prunedChannel) {
+			semverlList = append(semverlList, prunedChannel)
+			semVerChannelMappings[prunedChannel] = channel
+		}
+	}
+	if len(semverlList) == 0 {
+		return ""
+	} else if !Contains(semverlList, FindSemantic(curChannel)) {
+		// upgrade channel to minimal version existing in annotation
+		sort.Sort(semver.ByVersion(semverlList))
+		return semVerChannelMappings[semverlList[0]]
+	}
+	return curChannel
 }
