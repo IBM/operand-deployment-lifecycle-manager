@@ -371,11 +371,11 @@ func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance
 	var crFromRequest unstructured.Unstructured
 
 	if operand.APIVersion == "" {
-		return fmt.Errorf("the APIVersion of operand is empty for operator " + operand.Name)
+		return fmt.Errorf("the APIVersion of operand is empty for operator %s", operand.Name)
 	}
 
 	if operand.Kind == "" {
-		return fmt.Errorf("the Kind of operand is empty for operator " + operand.Name)
+		return fmt.Errorf("the Kind of operand is empty for operator %s", operand.Name)
 	}
 
 	var name string
@@ -509,14 +509,14 @@ func (r *Reconciler) reconcileK8sResourceWithRetries(ctx context.Context, res op
 
 func (r *Reconciler) reconcileK8sResource(ctx context.Context, res operatorv1alpha1.ConfigResource, serviceName, opConfigName, opConfigNs string) error {
 	if res.APIVersion == "" {
-		return fmt.Errorf("the APIVersion of k8s resource is empty for operator " + serviceName)
+		return fmt.Errorf("the APIVersion of k8s resource is empty for operator %s", serviceName)
 	}
 
 	if res.Kind == "" {
-		return fmt.Errorf("the Kind of k8s resource is empty for operator " + serviceName)
+		return fmt.Errorf("the Kind of k8s resource is empty for operator %s", serviceName)
 	}
 	if res.Name == "" {
-		return fmt.Errorf("the Name of k8s resource is empty for operator " + serviceName)
+		return fmt.Errorf("the Name of k8s resource is empty for operator %s", serviceName)
 	}
 	var k8sResNs string
 	if res.Namespace == "" {
