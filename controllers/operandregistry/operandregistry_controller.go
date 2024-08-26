@@ -78,7 +78,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	}
 
 	// Summarize instance status
-	if instance.Status.OperatorsStatus == nil || len(instance.Status.OperatorsStatus) == 0 {
+	if len(instance.Status.OperatorsStatus) == 0 {
 		instance.UpdateRegistryPhase(operatorv1alpha1.RegistryReady)
 	} else {
 		instance.UpdateRegistryPhase(operatorv1alpha1.RegistryRunning)
