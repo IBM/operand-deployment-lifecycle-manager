@@ -1,6 +1,6 @@
 module github.com/IBM/operand-deployment-lifecycle-manager/v4
 
-go 1.20
+go 1.23
 
 require (
 	github.com/IBM/controller-filtered-cache v0.3.5
@@ -112,4 +112,3 @@ require (
 
 // fix vulnerability: CVE-2021-3121 in github.com/gogo/protobuf v1.2.1
 replace github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
-
