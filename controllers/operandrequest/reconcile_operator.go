@@ -156,6 +156,12 @@ func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance 
 		return nil
 	}
 
+	if opt.UserManaged {
+		klog.Infof("Skip installing operator %s because it is managed by user", opt.PackageName)
+		requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorRunning, operatorv1alpha1.ServiceRunning, mu)
+		return nil
+	}
+
 	// Check subscription if exist
 	namespace := r.GetOperatorNamespace(opt.InstallMode, opt.Namespace)
 	sub, err := r.GetSubscription(ctx, opt.Name, namespace, registryInstance.Namespace, opt.PackageName)

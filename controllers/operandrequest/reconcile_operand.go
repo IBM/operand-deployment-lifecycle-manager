@@ -170,10 +170,12 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 				}
 			}
 
-			if len(requestList) == 0 || !util.Contains(requestList, requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/request") {
-				klog.Infof("Subscription %s in the namespace %s is NOT managed by %s/%s, Skip reconciling Operands", sub.Name, sub.Namespace, requestInstance.Namespace, requestInstance.Name)
-				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
-				continue
+			if !opdRegistry.UserManaged {
+				if len(requestList) == 0 || !util.Contains(requestList, requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/request") {
+					klog.Infof("Subscription %s in the namespace %s is NOT managed by %s/%s, Skip reconciling Operands", sub.Name, sub.Namespace, requestInstance.Namespace, requestInstance.Name)
+					requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
+					continue
+				}
 			}
 
 			klog.V(3).Info("Generating customresource base on ClusterServiceVersion: ", csv.GetName())
@@ -185,7 +187,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 				if err == nil {
 					// Check the requested Service Config if exist in specific OperandConfig
 					opdConfig := configInstance.GetService(operand.Name)
-					if opdConfig == nil {
+					if opdConfig == nil && !opdRegistry.UserManaged {
 						klog.V(2).Infof("There is no service: %s from the OperandConfig instance: %s/%s, Skip reconciling Operands", operand.Name, registryKey.Namespace, req.Registry)
 						continue
 					}
