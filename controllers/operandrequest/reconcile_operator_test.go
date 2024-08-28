@@ -26,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/v4/api/v1alpha1"
+	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/constant"
 )
 
 func TestGenerateClusterObjects(t *testing.T) {
@@ -125,6 +126,9 @@ func TestCheckSubAnnotationsForUninstall(t *testing.T) {
 				reqNsA + "." + reqNameA + "." + opNameA + "/request":           opChannelA,
 				reqNsA + "." + reqNameA + "." + opNameA + "/operatorNamespace": reqNsA,
 			},
+			Labels: map[string]string{
+				constant.OpreqLabel: "true",
+			},
 		},
 	}
 
@@ -146,6 +150,9 @@ func TestCheckSubAnnotationsForUninstall(t *testing.T) {
 				reqNsA + "." + reqNameA + "." + opNameA + "/operatorNamespace": reqNsA,
 				reqNsB + "." + reqNameB + "." + opNameB + "/request":           opChannelB,
 				reqNsB + "." + reqNameB + "." + opNameB + "/operatorNamespace": reqNsB,
+			},
+			Labels: map[string]string{
+				constant.OpreqLabel: "true",
 			},
 		},
 	}
