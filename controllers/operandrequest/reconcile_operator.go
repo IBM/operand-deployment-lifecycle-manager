@@ -156,15 +156,25 @@ func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance 
 		return nil
 	}
 
-	if opt.UserManaged {
-		klog.Infof("Skip installing operator %s because it is managed by user", opt.PackageName)
-		requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorRunning, operatorv1alpha1.ServiceRunning, mu)
-		return nil
-	}
-
 	// Check subscription if exist
 	namespace := r.GetOperatorNamespace(opt.InstallMode, opt.Namespace)
 	sub, err := r.GetSubscription(ctx, opt.Name, namespace, registryInstance.Namespace, opt.PackageName)
+
+	if opt.UserManaged {
+		klog.Infof("Skip installing operator %s because it is managed by user", opt.PackageName)
+		if sub == nil {
+			return errors.New("operator" + opt.Name + " is user managed, but no Subscription exists, waiting...")
+		}
+		sub.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/request"] = opt.Channel
+		sub.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/operatorNamespace"] = namespace
+		if err = r.updateSubscription(ctx, requestInstance, sub); err != nil {
+			requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorFailed, "", mu)
+			return err
+		}
+		requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorUpdating, "", mu)
+		// requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorRunning, operatorv1alpha1.ServiceRunning, mu)
+		return nil
+	}
 
 	if sub == nil && err == nil {
 		if opt.InstallMode == operatorv1alpha1.InstallModeNoop {
@@ -409,9 +419,10 @@ func (r *Reconciler) uninstallOperatorsAndOperands(ctx context.Context, operandN
 	}
 
 	if _, ok := sub.Labels[constant.OpreqLabel]; !ok {
-		// Subscription existing and not managed by OperandRequest controller
-		klog.V(2).Infof("Subscription %s in the namespace %s isn't created by ODLM", sub.Name, sub.Namespace)
-		return nil
+		if !op.UserManaged {
+			klog.V(2).Infof("Subscription %s in the namespace %s isn't created by ODLM and isn't user managed", sub.Name, sub.Namespace)
+			return nil
+		}
 	}
 
 	uninstallOperator, uninstallOperand := checkSubAnnotationsForUninstall(requestInstance.ObjectMeta.Name, requestInstance.ObjectMeta.Namespace, op.Name, sub)
@@ -697,6 +708,10 @@ func checkSubAnnotationsForUninstall(reqName, reqNs, opName string, sub *olmv1al
 	// If one of remaining <prefix>/operatorNamespace annotations' values is the same as subscription's namespace,
 	// the operator should NOT be uninstalled.
 	if util.Contains(opreqNsSlice, sub.Namespace) {
+		uninstallOperator = false
+	}
+
+	if _, ok := sub.Labels[constant.OpreqLabel]; !ok {
 		uninstallOperator = false
 	}
 
