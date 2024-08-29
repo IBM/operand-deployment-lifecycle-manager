@@ -99,53 +99,67 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 			namespace := r.GetOperatorNamespace(opdRegistry.InstallMode, opdRegistry.Namespace)
 
 			sub, err := r.GetSubscription(ctx, operatorName, namespace, registryInstance.Namespace, opdRegistry.PackageName)
-
-			if sub == nil && err == nil {
-				klog.Warningf("There is no Subscription %s or %s in the namespace %s and %s", operatorName, opdRegistry.PackageName, namespace, registryInstance.Namespace)
-				continue
-
-			} else if err != nil {
+			if err != nil {
 				merr.Add(errors.Wrapf(err, "failed to get the Subscription %s in the namespace %s and %s", operatorName, namespace, registryInstance.Namespace))
 				return merr
 			}
 
-			if _, ok := sub.Labels[constant.OpreqLabel]; !ok {
-				// Subscription existing and not managed by OperandRequest controller
-				klog.Warningf("Subscription %s in the namespace %s isn't created by ODLM", sub.Name, sub.Namespace)
-			}
-
-			// It the installplan is not created yet, ODLM will try later
-			if sub.Status.Install == nil || sub.Status.InstallPlanRef.Name == "" {
-				klog.Warningf("The Installplan for Subscription %s is not ready. Will check it again", sub.Name)
-				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorInstalling, "", &r.Mutex)
-				continue
-			}
-
-			// If the installplan is deleted after is completed, ODLM won't block the CR update.
-			ipName := sub.Status.InstallPlanRef.Name
-			ipNamespace := sub.Namespace
-			ip := &olmv1alpha1.InstallPlan{}
-			ipKey := types.NamespacedName{
-				Name:      ipName,
-				Namespace: ipNamespace,
-			}
-			if err := r.Client.Get(ctx, ipKey, ip); err != nil {
-				if !apierrors.IsNotFound(err) {
-					merr.Add(errors.Wrapf(err, "failed to get Installplan"))
+			if !opdRegistry.UserManaged {
+				if sub == nil {
+					klog.Warningf("There is no Subscription %s or %s in the namespace %s and %s", operatorName, opdRegistry.PackageName, namespace, registryInstance.Namespace)
+					continue
 				}
-			} else if ip.Status.Phase == olmv1alpha1.InstallPlanPhaseFailed {
-				klog.Errorf("installplan %s/%s is failed", ipNamespace, ipName)
-				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
-				continue
+
+				if _, ok := sub.Labels[constant.OpreqLabel]; !ok {
+					// Subscription existing and not managed by OperandRequest controller
+					klog.Warningf("Subscription %s in the namespace %s isn't created by ODLM", sub.Name, sub.Namespace)
+				}
+
+				// It the installplan is not created yet, ODLM will try later
+				if sub.Status.Install == nil || sub.Status.InstallPlanRef.Name == "" {
+					klog.Warningf("The Installplan for Subscription %s is not ready. Will check it again", sub.Name)
+					requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorInstalling, "", &r.Mutex)
+					continue
+				}
+
+				// If the installplan is deleted after is completed, ODLM won't block the CR update.
+				ipName := sub.Status.InstallPlanRef.Name
+				ipNamespace := sub.Namespace
+				ip := &olmv1alpha1.InstallPlan{}
+				ipKey := types.NamespacedName{
+					Name:      ipName,
+					Namespace: ipNamespace,
+				}
+				if err := r.Client.Get(ctx, ipKey, ip); err != nil {
+					if !apierrors.IsNotFound(err) {
+						merr.Add(errors.Wrapf(err, "failed to get Installplan"))
+					}
+				} else if ip.Status.Phase == olmv1alpha1.InstallPlanPhaseFailed {
+					klog.Errorf("installplan %s/%s is failed", ipNamespace, ipName)
+					requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
+					continue
+				}
+
 			}
 
-			csv, err := r.GetClusterServiceVersion(ctx, sub)
+			var csv *olmv1alpha1.ClusterServiceVersion
 
-			// If can't get CSV, requeue the request
-			if err != nil {
-				merr.Add(err)
-				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
-				continue
+			if opdRegistry.UserManaged {
+				csvList, err := r.GetClusterServiceVersionListFromPackage(ctx, opdRegistry.PackageName, opdRegistry.Namespace)
+				if err != nil {
+					merr.Add(err)
+					requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
+					continue
+				}
+				csv = csvList[0]
+			} else {
+				csv, err = r.GetClusterServiceVersion(ctx, sub)
+				// If can't get CSV, requeue the request
+				if err != nil {
+					merr.Add(err)
+					requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
+					continue
+				}
 			}
 
 			if csv == nil {
@@ -154,23 +168,23 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 				continue
 			}
 
-			if err := r.DeleteRedundantCSV(ctx, csv.Name, csv.Namespace, registryKey.Namespace, opdRegistry.PackageName); err != nil {
-				merr.Add(errors.Wrapf(err, "failed to delete the redundant ClusterServiceVersion %s in the namespace %s", csv.Name, csv.Namespace))
-				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
-				continue
-			}
-
-			// find the OperandRequest which has the same operator's channel version as existing subscription.
-			// ODLM will only reconcile Operand based on OperandConfig for this OperandRequest
-			var requestList []string
-			reg, _ := regexp.Compile(`^(.*)\.(.*)\.(.*)\/request`)
-			for anno, version := range sub.Annotations {
-				if reg.MatchString(anno) && version == sub.Spec.Channel {
-					requestList = append(requestList, anno)
-				}
-			}
+			// if err := r.DeleteRedundantCSV(ctx, csv.Name, csv.Namespace, registryKey.Namespace, opdRegistry.PackageName); err != nil {
+			// 	merr.Add(errors.Wrapf(err, "failed to delete the redundant ClusterServiceVersion %s in the namespace %s", csv.Name, csv.Namespace))
+			// 	requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
+			// 	continue
+			// }
 
 			if !opdRegistry.UserManaged {
+				// find the OperandRequest which has the same operator's channel version as existing subscription.
+				// ODLM will only reconcile Operand based on OperandConfig for this OperandRequest
+				var requestList []string
+				reg, _ := regexp.Compile(`^(.*)\.(.*)\.(.*)\/request`)
+				for anno, version := range sub.Annotations {
+					if reg.MatchString(anno) && version == sub.Spec.Channel {
+						requestList = append(requestList, anno)
+					}
+				}
+
 				if len(requestList) == 0 || !util.Contains(requestList, requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/request") {
 					klog.Infof("Subscription %s in the namespace %s is NOT managed by %s/%s, Skip reconciling Operands", sub.Name, sub.Namespace, requestInstance.Namespace, requestInstance.Name)
 					requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
@@ -191,7 +205,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 						klog.V(2).Infof("There is no service: %s from the OperandConfig instance: %s/%s, Skip reconciling Operands", operand.Name, registryKey.Namespace, req.Registry)
 						continue
 					}
-					err = r.reconcileCRwithConfig(ctx, opdConfig, configInstance.Name, configInstance.Namespace, csv, requestInstance, operand.Name, sub.Namespace, &r.Mutex)
+					err = r.reconcileCRwithConfig(ctx, opdConfig, configInstance.Name, configInstance.Namespace, csv, requestInstance, operand.Name, csv.Namespace, &r.Mutex)
 					if err != nil {
 						merr.Add(err)
 						requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceFailed, &r.Mutex)
@@ -205,7 +219,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 				}
 
 			} else {
-				err = r.reconcileCRwithRequest(ctx, requestInstance, operand, types.NamespacedName{Name: requestInstance.Name, Namespace: requestInstance.Namespace}, i, sub.Namespace, &r.Mutex)
+				err = r.reconcileCRwithRequest(ctx, requestInstance, operand, types.NamespacedName{Name: requestInstance.Name, Namespace: requestInstance.Namespace}, i, csv.Namespace, &r.Mutex)
 				if err != nil {
 					merr.Add(err)
 					requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceFailed, &r.Mutex)

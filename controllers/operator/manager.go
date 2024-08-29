@@ -429,6 +429,47 @@ func (m *ODLMOperator) GetClusterServiceVersionList(ctx context.Context, sub *ol
 	return csvs, nil
 }
 
+// GetClusterServiceVersionList gets a list of ClusterServiceVersions from the subscription
+func (m *ODLMOperator) GetClusterServiceVersionListFromPackage(ctx context.Context, name, namespace string) ([]*olmv1alpha1.ClusterServiceVersion, error) {
+	packageName := name
+	csvNamespace := namespace
+
+	csvList := &olmv1alpha1.ClusterServiceVersionList{}
+
+	opts := []client.ListOption{
+		client.InNamespace(csvNamespace),
+	}
+
+	if err := m.Reader.List(ctx, csvList, opts...); err != nil {
+		if apierrors.IsNotFound(err) || len(csvList.Items) == 0 {
+			klog.V(3).Infof("No ClusterServiceVersion found")
+			return nil, nil
+		}
+		return nil, errors.Wrapf(err, "failed to list ClusterServiceVersions")
+	}
+
+	var csvs []*olmv1alpha1.ClusterServiceVersion
+	// filter csvList to find one(s) that contain packageName
+	for _, v := range csvList.Items {
+		csv := v
+		if csv.Annotations == nil {
+			continue
+		}
+		if _, ok := csv.Annotations["operatorframework.io/properties"]; !ok {
+			continue
+		}
+		annotation := fmt.Sprintf("\"packageName\":\"%s\"", packageName)
+		if !strings.Contains(csv.Annotations["operatorframework.io/properties"], annotation) {
+			continue
+		}
+		klog.V(3).Infof("Get ClusterServiceVersion %s in the namespace %s", csv.Name, csvNamespace)
+		csvs = append(csvs, &csv)
+	}
+
+	klog.V(3).Infof("Get %v ClusterServiceVersions in the namespace %s", len(csvs), csvNamespace)
+	return csvs, nil
+}
+
 func (m *ODLMOperator) DeleteRedundantCSV(ctx context.Context, csvName, operatorNs, serviceNs, packageName string) error {
 	// Get the csv by its name and namespace
 	csv := &olmv1alpha1.ClusterServiceVersion{}
