@@ -356,9 +356,31 @@ func FindSemantic(input string) string {
 	return match
 }
 
-// FindMinSemver returns the minimal semantic version from annotations
-func FindMinSemver(annotations map[string]string, curChannel string) string {
-	// check request annotation in subscription, get all available channels
+// FindMinSemver returns the minimal semantic version by given channel and semver list
+func FindMinSemver(curChannel string, semverlList []string, semVerChannelMappings map[string]string) string {
+	if len(semverlList) == 0 {
+		return ""
+	} else if !Contains(semverlList, FindSemantic(curChannel)) || curChannel == "" { // if current channel is not in the list or empty
+		// change channel to minimal version in the list
+		sort.Sort(semver.ByVersion(semverlList))
+		return semVerChannelMappings[semverlList[0]]
+	}
+	return curChannel
+}
+
+// FindMaxSemver returns the maximal semantic version by given channel and semver list
+func FindMaxSemver(curChannel string, semverlList []string, semVerChannelMappings map[string]string) string {
+	if len(semverlList) == 0 {
+		return ""
+	} else if !Contains(semverlList, FindSemantic(curChannel)) || curChannel == "" { // if current channel is not in the list or empty
+		// change channel to maximal version in the list
+		sort.Sort(semver.ByVersion(semverlList))
+		return semVerChannelMappings[semverlList[len(semverlList)-1]]
+	}
+	return curChannel
+}
+
+func FindSemverFromAnnotations(annotations map[string]string) ([]string, map[string]string) {
 	var semverlList []string
 	var semVerChannelMappings = make(map[string]string)
 	reg, _ := regexp.Compile(`^(.*)\.(.*)\.(.*)\/request`)
@@ -369,12 +391,13 @@ func FindMinSemver(annotations map[string]string, curChannel string) string {
 			semVerChannelMappings[prunedChannel] = channel
 		}
 	}
-	if len(semverlList) == 0 {
-		return ""
-	} else if !Contains(semverlList, FindSemantic(curChannel)) {
-		// upgrade channel to minimal version existing in annotation
-		sort.Sort(semver.ByVersion(semverlList))
-		return semVerChannelMappings[semverlList[0]]
-	}
-	return curChannel
+	return semverlList, semVerChannelMappings
+}
+
+func FindMinSemverFromAnnotations(annotations map[string]string, curChannel string) string {
+	// check request annotation in subscription, get all available channels
+	var semverlList []string
+	var semVerChannelMappings = make(map[string]string)
+	semverlList, semVerChannelMappings = FindSemverFromAnnotations(annotations)
+	return FindMinSemver(curChannel, semverlList, semVerChannelMappings)
 }

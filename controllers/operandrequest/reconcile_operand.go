@@ -22,7 +22,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -175,17 +174,10 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 			}
 
 			if !opdRegistry.UserManaged {
-				// find the OperandRequest which has the same operator's channel version as existing subscription.
+				// find the OperandRequest which has the same operator's channel or fallback channels as existing subscription.
 				// ODLM will only reconcile Operand based on OperandConfig for this OperandRequest
-				var requestList []string
-				reg, _ := regexp.Compile(`^(.*)\.(.*)\.(.*)\/request`)
-				for anno, version := range sub.Annotations {
-					if reg.MatchString(anno) && version == sub.Spec.Channel {
-						requestList = append(requestList, anno)
-					}
-				}
-
-				if len(requestList) == 0 || !util.Contains(requestList, requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/request") {
+				channels := []string{opdRegistry.Channel}
+				if channels = append(channels, opdRegistry.FallbackChannels...); !util.Contains(channels, sub.Spec.Channel) {
 					klog.Infof("Subscription %s in the namespace %s is NOT managed by %s/%s, Skip reconciling Operands", sub.Name, sub.Namespace, requestInstance.Namespace, requestInstance.Name)
 					requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
 					continue
