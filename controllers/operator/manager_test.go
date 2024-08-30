@@ -170,13 +170,11 @@ func TestGetFirstAvailableSemverChannelFromCatalog(t *testing.T) {
 	fallbackChannels := []string{}
 	channel := "v1.0"
 
-	packageName := "package1"
-	namespace := "namespace1"
 	catalogName := "catalog1"
 	catalogNs := "namespace1"
 
 	// Test with empty fallback channels and channel exists in the catalog
-	result := getFirstAvailableSemverChannelFromCatalog(packageManifestList, fallbackChannels, channel, packageName, namespace, catalogName, catalogNs)
+	result := getFirstAvailableSemverChannelFromCatalog(packageManifestList, fallbackChannels, channel, catalogName, catalogNs)
 	expectedResult := "v1.0"
 
 	if result != expectedResult {
@@ -185,7 +183,7 @@ func TestGetFirstAvailableSemverChannelFromCatalog(t *testing.T) {
 
 	// Test with empty fallback channels and channel does not exist in the catalog
 	channel = "alpha"
-	result = getFirstAvailableSemverChannelFromCatalog(packageManifestList, fallbackChannels, channel, packageName, namespace, catalogName, catalogNs)
+	result = getFirstAvailableSemverChannelFromCatalog(packageManifestList, fallbackChannels, channel, catalogName, catalogNs)
 	expectedResult = ""
 
 	if result != expectedResult {
@@ -196,7 +194,7 @@ func TestGetFirstAvailableSemverChannelFromCatalog(t *testing.T) {
 	channel = "v3.0"
 
 	// Test with fallback channels and channel does not exist in the catalog, but fallback channel exists
-	result = getFirstAvailableSemverChannelFromCatalog(packageManifestList, fallbackChannels, channel, packageName, namespace, catalogName, catalogNs)
+	result = getFirstAvailableSemverChannelFromCatalog(packageManifestList, fallbackChannels, channel, catalogName, catalogNs)
 	expectedResult = "v2.0"
 
 	if result != expectedResult {
@@ -208,7 +206,7 @@ func TestGetFirstAvailableSemverChannelFromCatalog(t *testing.T) {
 	channel = "v3.0"
 
 	// Test with fallback channels, but channel exist in the catalog
-	result = getFirstAvailableSemverChannelFromCatalog(packageManifestList, fallbackChannels, channel, packageName, namespace, catalogName, catalogNs)
+	result = getFirstAvailableSemverChannelFromCatalog(packageManifestList, fallbackChannels, channel, catalogName, catalogNs)
 	expectedResult = "v3.0"
 
 	if result != expectedResult {

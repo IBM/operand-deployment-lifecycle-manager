@@ -138,7 +138,9 @@ func (s sortableCatalogSource) Less(i, j int) bool {
 	return s[i].Namespace < s[j].Namespace
 }
 
-func (m *ODLMOperator) GetCatalogSourceAndChannelFromPackage(ctx context.Context, opregCatalog, opregCatalogNs, packageName, namespace, channel string, fallbackChannels []string, registryNs, odlmCatalog, odlmCatalogNs string, excludedCatalogSources []string) (catalogSourceName string, catalogSourceNs string, availableChannel string, err error) {
+func (m *ODLMOperator) GetCatalogSourceAndChannelFromPackage(ctx context.Context, opregCatalog, opregCatalogNs, packageName, namespace, channel string, fallbackChannels []string,
+	registryNs, odlmCatalog, odlmCatalogNs string, excludedCatalogSources []string) (catalogSourceName string, catalogSourceNs string, availableChannel string, err error) {
+
 	packageManifestList := &operatorsv1.PackageManifestList{}
 	opts := []client.ListOption{
 		client.MatchingFields{"metadata.name": packageName},
@@ -156,7 +158,7 @@ func (m *ODLMOperator) GetCatalogSourceAndChannelFromPackage(ctx context.Context
 	default:
 		// Check if the CatalogSource and CatalogSource namespace are specified in OperandRegistry
 		if opregCatalog != "" && opregCatalogNs != "" {
-			curChannel := getFirstAvailableSemverChannelFromCatalog(packageManifestList, fallbackChannels, channel, packageName, namespace, opregCatalog, opregCatalogNs)
+			curChannel := getFirstAvailableSemverChannelFromCatalog(packageManifestList, fallbackChannels, channel, opregCatalog, opregCatalogNs)
 			if curChannel == "" {
 				klog.Errorf("Not found PackageManifest %s in the namespace %s has channel %s or fallback channels %s in the CatalogSource %s in the namespace %s", packageName, namespace, channel, fallbackChannels, opregCatalog, opregCatalogNs)
 				return "", "", "", nil
@@ -252,7 +254,7 @@ func prunedSemverChannel(fallbackChannels []string) ([]string, map[string]string
 	return semverlList, semVerChannelMappings
 }
 
-func getFirstAvailableSemverChannelFromCatalog(packageManifestList *operatorsv1.PackageManifestList, fallbackChannels []string, channel, packageName, namespace, catalogName, catalogNs string) string {
+func getFirstAvailableSemverChannelFromCatalog(packageManifestList *operatorsv1.PackageManifestList, fallbackChannels []string, channel, catalogName, catalogNs string) string {
 	semverlList, semVerChannelMappings := prunedSemverChannel(fallbackChannels)
 	sort.Sort(semver.ByVersion(semverlList))
 

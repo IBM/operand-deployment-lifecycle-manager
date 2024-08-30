@@ -396,8 +396,6 @@ func FindSemverFromAnnotations(annotations map[string]string) ([]string, map[str
 
 func FindMinSemverFromAnnotations(annotations map[string]string, curChannel string) string {
 	// check request annotation in subscription, get all available channels
-	var semverlList []string
-	var semVerChannelMappings = make(map[string]string)
-	semverlList, semVerChannelMappings = FindSemverFromAnnotations(annotations)
+	semverlList, semVerChannelMappings := FindSemverFromAnnotations(annotations)
 	return FindMinSemver(curChannel, semverlList, semVerChannelMappings)
 }
