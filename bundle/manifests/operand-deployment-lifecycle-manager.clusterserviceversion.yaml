@@ -129,7 +129,7 @@ metadata:
     categories: Developer Tools, Monitoring, Logging & Tracing, Security
     certified: "false"
     containerImage: icr.io/cpopen/odlm:latest
-    createdAt: "2024-04-04T03:40:45Z"
+    createdAt: "2024-08-27T18:18:40Z"
     description: The Operand Deployment Lifecycle Manager provides a Kubernetes CRD-based API to manage the lifecycle of operands.
     nss.operator.ibm.com/managed-operators: ibm-odlm
     olm.skipRange: '>=1.2.0 <4.3.5'
@@ -664,8 +664,6 @@ spec:
                         ephemeral-storage: 256Mi
                         memory: 200Mi
                     securityContext:
-                      seccompProfile:
-                        type: RuntimeDefault
                       allowPrivilegeEscalation: false
                       capabilities:
                         drop:
@@ -673,6 +671,8 @@ spec:
                       privileged: false
                       readOnlyRootFilesystem: true
                       runAsNonRoot: true
+                      seccompProfile:
+                        type: RuntimeDefault
                 serviceAccount: operand-deployment-lifecycle-manager
                 serviceAccountName: operand-deployment-lifecycle-manager
                 terminationGracePeriodSeconds: 10

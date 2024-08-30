@@ -238,18 +238,19 @@ func (r *Reconciler) checkFinalizer(ctx context.Context, requestInstance *operat
 	for _, m := range requestInstance.Status.Members {
 		remainingOperands.Add(m.Name)
 	}
-	existingSub := &olmv1alpha1.SubscriptionList{}
+	// TODO: update to check OperandRequest status to see if member is user managed or not
+	// existingSub := &olmv1alpha1.SubscriptionList{}
 
-	opts := []client.ListOption{
-		client.MatchingLabels(map[string]string{constant.OpreqLabel: "true"}),
-	}
+	// opts := []client.ListOption{
+	// 	client.MatchingLabels(map[string]string{constant.OpreqLabel: "true"}),
+	// }
 
-	if err := r.Client.List(ctx, existingSub, opts...); err != nil {
-		return err
-	}
-	if len(existingSub.Items) == 0 {
-		return nil
-	}
+	// if err := r.Client.List(ctx, existingSub, opts...); err != nil {
+	// 	return err
+	// }
+	// if len(existingSub.Items) == 0 {
+	// 	return nil
+	// }
 	// Delete all the subscriptions that created by current request
 	if err := r.absentOperatorsAndOperands(ctx, requestInstance, &remainingOperands); err != nil {
 		return err

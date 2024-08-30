@@ -429,6 +429,47 @@ func (m *ODLMOperator) GetClusterServiceVersionList(ctx context.Context, sub *ol
 	return csvs, nil
 }
 
+// GetClusterServiceVersionList gets a list of ClusterServiceVersions from the subscription
+func (m *ODLMOperator) GetClusterServiceVersionListFromPackage(ctx context.Context, name, namespace string) ([]*olmv1alpha1.ClusterServiceVersion, error) {
+	packageName := name
+	csvNamespace := namespace
+
+	csvList := &olmv1alpha1.ClusterServiceVersionList{}
+
+	opts := []client.ListOption{
+		client.InNamespace(csvNamespace),
+	}
+
+	if err := m.Reader.List(ctx, csvList, opts...); err != nil {
+		if apierrors.IsNotFound(err) || len(csvList.Items) == 0 {
+			klog.V(3).Infof("No ClusterServiceVersion found")
+			return nil, nil
+		}
+		return nil, errors.Wrapf(err, "failed to list ClusterServiceVersions")
+	}
+
+	var csvs []*olmv1alpha1.ClusterServiceVersion
+	// filter csvList to find one(s) that contain packageName
+	for _, v := range csvList.Items {
+		csv := v
+		if csv.Annotations == nil {
+			continue
+		}
+		if _, ok := csv.Annotations["operatorframework.io/properties"]; !ok {
+			continue
+		}
+		annotation := fmt.Sprintf("\"packageName\":\"%s\"", packageName)
+		if !strings.Contains(csv.Annotations["operatorframework.io/properties"], annotation) {
+			continue
+		}
+		klog.V(3).Infof("Get ClusterServiceVersion %s in the namespace %s", csv.Name, csvNamespace)
+		csvs = append(csvs, &csv)
+	}
+
+	klog.V(3).Infof("Get %v ClusterServiceVersions in the namespace %s", len(csvs), csvNamespace)
+	return csvs, nil
+}
+
 func (m *ODLMOperator) DeleteRedundantCSV(ctx context.Context, csvName, operatorNs, serviceNs, packageName string) error {
 	// Get the csv by its name and namespace
 	csv := &olmv1alpha1.ClusterServiceVersion{}
@@ -450,7 +491,7 @@ func (m *ODLMOperator) DeleteRedundantCSV(ctx context.Context, csvName, operator
 	}
 	// Delete the CSV if the csv does not contain label operators.coreos.com/packageName.operatorNs='' AND does not contains label olm.copiedFrom: operatorNs
 	if _, ok := csv.GetLabels()[fmt.Sprintf("operators.coreos.com/%s.%s", packageName, operatorNs)]; !ok {
-		if csv.GetLabels()["olm.copiedFrom"] != operatorNs {
+		if _, ok := csv.Labels["olm.copiedFrom"]; !ok {
 			klog.Infof("Delete the redundant ClusterServiceVersion %s in the namespace %s", csvName, serviceNs)
 			if err := m.Client.Delete(ctx, csv); err != nil {
 				return errors.Wrapf(err, "failed to delete ClusterServiceVersion %s/%s", serviceNs, csvName)

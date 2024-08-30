@@ -76,6 +76,8 @@ type Operator struct {
 	// OperatorConfig is the name of the OperatorConfig
 	// +optional
 	OperatorConfig string `json:"operatorConfig,omitempty"`
+	// UserManaged is a flag to indicate whether operator is managed by user
+	UserManaged bool `json:"userManaged,omitempty"`
 }
 
 // +kubebuilder:validation:Enum=public;private

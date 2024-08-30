@@ -2051,6 +2051,10 @@ spec:
                       items:
                         type: string
                       type: array
+                    userManaged:
+                      description: UserManaged is a flag to indicate whether operator
+                        is managed by user
+                      type: boolean
                   required:
                   - channel
                   - name

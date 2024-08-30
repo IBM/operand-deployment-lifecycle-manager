@@ -160,6 +160,19 @@ func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance 
 	namespace := r.GetOperatorNamespace(opt.InstallMode, opt.Namespace)
 	sub, err := r.GetSubscription(ctx, opt.Name, namespace, registryInstance.Namespace, opt.PackageName)
 
+	if opt.UserManaged {
+		klog.Infof("Skip installing operator %s because it is managed by user", opt.PackageName)
+		csvList, err := r.GetClusterServiceVersionListFromPackage(ctx, opt.PackageName, namespace)
+		if err != nil {
+			return errors.Wrapf(err, "failed to get CSV from package %s/%s", namespace, opt.PackageName)
+		}
+		if len(csvList) == 0 {
+			return errors.New("operator " + opt.Name + " is user managed, but no CSV exists, waiting...")
+		}
+		requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorUpdating, "", mu)
+		return nil
+	}
+
 	if sub == nil && err == nil {
 		if opt.InstallMode == operatorv1alpha1.InstallModeNoop {
 			requestInstance.SetNoSuitableRegistryCondition(registryKey.String(), opt.Name+" is in maintenance status", operatorv1alpha1.ResourceTypeOperandRegistry, corev1.ConditionTrue, &r.Mutex)
@@ -403,9 +416,10 @@ func (r *Reconciler) uninstallOperatorsAndOperands(ctx context.Context, operandN
 	}
 
 	if _, ok := sub.Labels[constant.OpreqLabel]; !ok {
-		// Subscription existing and not managed by OperandRequest controller
-		klog.V(2).Infof("Subscription %s in the namespace %s isn't created by ODLM", sub.Name, sub.Namespace)
-		return nil
+		if !op.UserManaged {
+			klog.V(2).Infof("Subscription %s in the namespace %s isn't created by ODLM and isn't user managed", sub.Name, sub.Namespace)
+			return nil
+		}
 	}
 
 	uninstallOperator, uninstallOperand := checkSubAnnotationsForUninstall(requestInstance.ObjectMeta.Name, requestInstance.ObjectMeta.Namespace, op.Name, sub)
@@ -480,6 +494,54 @@ func (r *Reconciler) uninstallOperatorsAndOperands(ctx context.Context, operandN
 	return nil
 }
 
+func (r *Reconciler) uninstallOperands(ctx context.Context, operandName string, requestInstance *operatorv1alpha1.OperandRequest, registryInstance *operatorv1alpha1.OperandRegistry, configInstance *operatorv1alpha1.OperandConfig) error {
+	// No error handling for un-installation step in case Catalog has been deleted
+	op, _ := r.GetOperandFromRegistry(ctx, registryInstance, operandName)
+	if op == nil {
+		klog.Warningf("Operand %s not found", operandName)
+		return nil
+	}
+
+	namespace := r.GetOperatorNamespace(op.InstallMode, op.Namespace)
+	uninstallOperand := false
+	operatorStatus, ok := registryInstance.Status.OperatorsStatus[op.Name]
+	if !ok {
+		return nil
+	}
+	if operatorStatus.ReconcileRequests == nil {
+		return nil
+	}
+	if len(operatorStatus.ReconcileRequests) > 1 {
+		return nil
+	}
+	if operatorStatus.ReconcileRequests[0].Name == requestInstance.Name {
+		uninstallOperand = true
+	}
+
+	// get list reconcileRequests
+	// ignore the name which triggered reconcile
+	// if list is empty then uninstallOperand = true
+
+	if csvList, err := r.GetClusterServiceVersionListFromPackage(ctx, op.PackageName, namespace); err != nil {
+		// If can't get CSV, requeue the request
+		return err
+	} else if csvList != nil {
+		klog.Infof("Found %d ClusterServiceVersions for package %s/%s", len(csvList), op.Name, namespace)
+		if uninstallOperand {
+			klog.V(2).Infof("Deleting all the Custom Resources for CSV, Namespace: %s, Name: %s", csvList[0].Namespace, csvList[0].Name)
+			if err := r.deleteAllCustomResource(ctx, csvList[0], requestInstance, configInstance, operandName, configInstance.Namespace); err != nil {
+				return err
+			}
+			klog.V(2).Infof("Deleting all the k8s Resources for CSV, Namespace: %s, Name: %s", csvList[0].Namespace, csvList[0].Name)
+			if err := r.deleteAllK8sResource(ctx, configInstance, operandName, configInstance.Namespace); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 func (r *Reconciler) absentOperatorsAndOperands(ctx context.Context, requestInstance *operatorv1alpha1.OperandRequest, remainingOperands *gset.Set) error {
 	needDeletedOperands := r.getNeedDeletedOperands(requestInstance)
 
@@ -510,11 +572,24 @@ func (r *Reconciler) absentOperatorsAndOperands(ctx context.Context, requestInst
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				if err := r.uninstallOperatorsAndOperands(ctx, fmt.Sprintf("%v", o), requestInstance, registryInstance, configInstance); err != nil {
-					r.Mutex.Lock()
-					defer r.Mutex.Unlock()
-					merr.Add(err)
-					return // return here to avoid removing the operand from remainingOperands
+				op, _ := r.GetOperandFromRegistry(ctx, registryInstance, fmt.Sprintf("%v", o))
+				if op == nil {
+					klog.Warningf("Operand %s not found", fmt.Sprintf("%v", o))
+				}
+				if op != nil && !op.UserManaged {
+					if err := r.uninstallOperatorsAndOperands(ctx, fmt.Sprintf("%v", o), requestInstance, registryInstance, configInstance); err != nil {
+						r.Mutex.Lock()
+						defer r.Mutex.Unlock()
+						merr.Add(err)
+						return // return here to avoid removing the operand from remainingOperands
+					}
+				} else {
+					if err := r.uninstallOperands(ctx, fmt.Sprintf("%v", o), requestInstance, registryInstance, configInstance); err != nil {
+						r.Mutex.Lock()
+						defer r.Mutex.Unlock()
+						merr.Add(err)
+						return // return here to avoid removing the operand from remainingOperands
+					}
 				}
 				requestInstance.RemoveServiceStatus(fmt.Sprintf("%v", o), &r.Mutex)
 				(*remainingOperands).Remove(o)
@@ -691,6 +766,10 @@ func checkSubAnnotationsForUninstall(reqName, reqNs, opName string, sub *olmv1al
 	// If one of remaining <prefix>/operatorNamespace annotations' values is the same as subscription's namespace,
 	// the operator should NOT be uninstalled.
 	if util.Contains(opreqNsSlice, sub.Namespace) {
+		uninstallOperator = false
+	}
+
+	if _, ok := sub.Labels[constant.OpreqLabel]; !ok {
 		uninstallOperator = false
 	}
 
