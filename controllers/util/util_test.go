@@ -150,7 +150,7 @@ var _ = Describe("FindSemantic", func() {
 	})
 })
 
-var _ = Describe("FindMinSemver", func() {
+var _ = Describe("FindMinSemverFromAnnotations", func() {
 	It("Should return the minimal semantic version from annotations", func() {
 		annotations := map[string]string{
 			"namespace-a.common-service.operator-a/request": "stable",
@@ -160,7 +160,7 @@ var _ = Describe("FindMinSemver", func() {
 		}
 		curChannel := "stable-v1.3.0"
 		expected := "stable"
-		Expect(FindMinSemver(annotations, curChannel)).Should(Equal(expected))
+		Expect(FindMinSemverFromAnnotations(annotations, curChannel)).Should(Equal(expected))
 	})
 
 	It("Should return the minimal semantic version from annotations", func() {
@@ -171,7 +171,7 @@ var _ = Describe("FindMinSemver", func() {
 		}
 		curChannel := "v3"
 		expected := "v4.0"
-		Expect(FindMinSemver(annotations, curChannel)).Should(Equal(expected))
+		Expect(FindMinSemverFromAnnotations(annotations, curChannel)).Should(Equal(expected))
 	})
 
 	It("Should return the current channel if it exists in annotations", func() {
@@ -183,7 +183,7 @@ var _ = Describe("FindMinSemver", func() {
 		}
 		curChannel := "stable-v1.1.0"
 		expected := "stable-v1.1.0"
-		Expect(FindMinSemver(annotations, curChannel)).Should(Equal(expected))
+		Expect(FindMinSemverFromAnnotations(annotations, curChannel)).Should(Equal(expected))
 	})
 
 	It("Should return the current channel if it exists in annotations", func() {
@@ -195,7 +195,7 @@ var _ = Describe("FindMinSemver", func() {
 		}
 		curChannel := "stable"
 		expected := "stable"
-		Expect(FindMinSemver(annotations, curChannel)).Should(Equal(expected))
+		Expect(FindMinSemverFromAnnotations(annotations, curChannel)).Should(Equal(expected))
 	})
 
 	It("Should return an empty string if no valid semantic versions are found", func() {
@@ -207,6 +207,54 @@ var _ = Describe("FindMinSemver", func() {
 		}
 		curChannel := "stable-v2.0.0"
 		expected := ""
-		Expect(FindMinSemver(annotations, curChannel)).Should(Equal(expected))
+		Expect(FindMinSemverFromAnnotations(annotations, curChannel)).Should(Equal(expected))
+	})
+})
+
+var _ = Describe("FindMaxSemver", func() {
+	It("Should return the maximal semantic version from the given channel and semver list", func() {
+		curChannel := "stable-v1.2.0"
+		semverList := []string{"v1.0.0", "v1.1.0", "v1.3.0", "v1.4.0"}
+		semVerChannelMappings := map[string]string{
+			"v1.0.0": "stable-v1.0.0",
+			"v1.1.0": "stable-v1.1.0",
+			"v1.3.0": "stable-v1.3.0",
+			"v1.4.0": "stable-v1.4.0",
+		}
+		expected := "stable-v1.4.0"
+		Expect(FindMaxSemver(curChannel, semverList, semVerChannelMappings)).Should(Equal(expected))
+	})
+
+	It("Should return the current channel if it exists in the semver list", func() {
+		curChannel := "stable-v1.2.0"
+		semverList := []string{"v1.0.0", "v1.1.0", "v1.2.0", "v1.3.0"}
+		semVerChannelMappings := map[string]string{
+			"v1.0.0": "stable-v1.0.0",
+			"v1.1.0": "stable-v1.1.0",
+			"v1.2.0": "stable-v1.2.0",
+			"v1.3.0": "stable-v1.3.0",
+		}
+		expected := "stable-v1.2.0"
+		Expect(FindMaxSemver(curChannel, semverList, semVerChannelMappings)).Should(Equal(expected))
+	})
+
+	It("Should return an empty string if the semver list is empty", func() {
+		curChannel := "stable-v1.2.0"
+		semverList := []string{}
+		semVerChannelMappings := map[string]string{}
+		expected := ""
+		Expect(FindMaxSemver(curChannel, semverList, semVerChannelMappings)).Should(Equal(expected))
+	})
+
+	It("Should return an empty string if the semVerChannelMappings has no valid mappings", func() {
+		curChannel := "stable-v1.2.0"
+		semverList := []string{"v1.4.0", "v1.5.0", "v1.6.0"}
+		semVerChannelMappings := map[string]string{
+			"v1.0.0": "stable-v1.0.0",
+			"v1.1.0": "stable-v1.1.0",
+			"v1.3.0": "stable-v1.3.0",
+		}
+		expected := ""
+		Expect(FindMaxSemver(curChannel, semverList, semVerChannelMappings)).Should(Equal(expected))
 	})
 })

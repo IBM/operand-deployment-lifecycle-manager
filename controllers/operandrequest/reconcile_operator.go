@@ -238,6 +238,7 @@ func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance 
 
 			// check if sub.Spec.Channel and opt.Channel are valid semantic version
 			// set annotation channel back to previous one if sub.Spec.Channel is lower than opt.Channel
+			// To avoid upgrade from one maintenance version to another maintenance version like from v3 to v3.23
 			subChanel := util.FindSemantic(sub.Spec.Channel)
 			optChannel := util.FindSemantic(opt.Channel)
 			if semver.IsValid(subChanel) && semver.IsValid(optChannel) && semver.Compare(subChanel, optChannel) < 0 {
@@ -249,11 +250,11 @@ func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance 
 		} else {
 			requestInstance.SetNotFoundOperatorFromRegistryCondition(operand.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionFalse, mu)
 
-			if minChannel := util.FindMinSemver(sub.Annotations, sub.Spec.Channel); minChannel != "" {
+			if minChannel := util.FindMinSemverFromAnnotations(sub.Annotations, sub.Spec.Channel); minChannel != "" {
 				sub.Spec.Channel = minChannel
 			}
 
-			// update the spec iff channel in sub matches channel in opreg
+			// update the spec iff channel in sub matches channel
 			if sub.Spec.Channel == opt.Channel {
 				isMatchedChannel = true
 				sub.Spec.CatalogSource = opt.SourceName
@@ -422,7 +423,7 @@ func (r *Reconciler) uninstallOperatorsAndOperands(ctx context.Context, operandN
 		}
 	}
 
-	uninstallOperator, uninstallOperand := checkSubAnnotationsForUninstall(requestInstance.ObjectMeta.Name, requestInstance.ObjectMeta.Namespace, op.Name, sub)
+	uninstallOperator, uninstallOperand := checkSubAnnotationsForUninstall(requestInstance.ObjectMeta.Name, requestInstance.ObjectMeta.Namespace, op.Name, op.InstallMode, sub)
 	if !uninstallOperand && !uninstallOperator {
 		if err = r.updateSubscription(ctx, requestInstance, sub); err != nil {
 			requestInstance.SetMemberStatus(op.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
@@ -731,21 +732,15 @@ func CheckSingletonServices(operator string) bool {
 // It returns two boolean values: uninstallOperator and uninstallOperand.
 // If uninstallOperator is true, it means the operator should be uninstalled.
 // If uninstallOperand is true, it means the operand should be uninstalled.
-func checkSubAnnotationsForUninstall(reqName, reqNs, opName string, sub *olmv1alpha1.Subscription) (bool, bool) {
+func checkSubAnnotationsForUninstall(reqName, reqNs, opName, installMode string, sub *olmv1alpha1.Subscription) (bool, bool) {
 	uninstallOperator := true
 	uninstallOperand := true
-
-	var curChannel string
-	if sub.GetAnnotations() != nil {
-		curChannel = sub.Annotations[reqNs+"."+reqName+"."+opName+"/request"]
-	}
 
 	delete(sub.Annotations, reqNs+"."+reqName+"."+opName+"/request")
 	delete(sub.Annotations, reqNs+"."+reqName+"."+opName+"/operatorNamespace")
 
 	var opreqNsSlice []string
 	var operatorNameSlice []string
-	var channelSlice []string
 	namespaceReg, _ := regexp.Compile(`^(.*)\.(.*)\.(.*)\/operatorNamespace`)
 	channelReg, _ := regexp.Compile(`^(.*)\.(.*)\.(.*)\/request`)
 
@@ -755,7 +750,6 @@ func checkSubAnnotationsForUninstall(reqName, reqNs, opName string, sub *olmv1al
 		}
 
 		if channelReg.MatchString(key) {
-			channelSlice = append(channelSlice, value)
 			// Extract the operator name from the key
 			keyParts := strings.Split(key, "/")
 			annoPrefix := strings.Split(keyParts[0], ".")
@@ -773,10 +767,11 @@ func checkSubAnnotationsForUninstall(reqName, reqNs, opName string, sub *olmv1al
 		uninstallOperator = false
 	}
 
-	// If the removed/uninstalled <prefix>/request annotation's value is NOT the same as all other <prefix>/request annotation's values.
-	// or the operator namespace in one of remaining annotation is the same as the operator name in removed/uninstalled <prefix>/request
-	// the operand should NOT be uninstalled.
-	if util.Differs(channelSlice, curChannel) || util.Contains(operatorNameSlice, opName) {
+	// When one of following conditions are met, the operand will NOT be uninstalled:
+	// 1. operator is not uninstalled AND intallMode is no-op.
+	// 2. operator is uninstalled AND  at least one other <prefix>/operatorNamespace annotation exists.
+	// 2. remaining <prefix>/request annotation's values contain the same operator name
+	if (!uninstallOperator && installMode == operatorv1alpha1.InstallModeNoop) || (uninstallOperator && len(opreqNsSlice) != 0) || util.Contains(operatorNameSlice, opName) {
 		uninstallOperand = false
 	}
 

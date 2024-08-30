@@ -88,43 +88,43 @@ func TestGenerateClusterObjects(t *testing.T) {
 }
 
 func TestCheckSubAnnotationsForUninstall(t *testing.T) {
+
 	reqNameA := "common-service"
-	reqNsA := "ibm-common-services"
-	opNameA := "ibm-iam"
-	opChannelA := "v3"
+	reqNsOld := "ibm-common-services"
+	opNameV3 := "ibm-iam"
+	opChannelV3 := "v3"
 
 	reqNameB := "other-request"
-	reqNsB := "other-namespace"
-	opNameB := "ibm-im"
-	opChannelB := "v4.0"
+	reqNsNew := "other-namespace"
+	opNameV4 := "ibm-im"
+	opChannelV4 := "v4.0"
 
-	reqNameC := "common-service"
-	reqNsC := "ibm-common-services"
+	reqNameC := "common-service-postgresql"
 	opNameC := "common-service-postgresql"
-	opChannelC := "stable-v1"
+	opChannelC := "stable-v1.22"
 
-	reqNameD := "common-service"
-	reqNsD := "ibm-common-services"
+	reqNameD := "edb-keycloak"
 	opNameD := "edb-keycloak"
-	opChannelD := "stable-v1"
+	opChannelD := "stable"
 
 	// The annotation key has prefix: <requestNamespace>.<requestName>.<operatorName>/*
 
 	// When following conditions are met, the operator should be uninstalled:
 	// If all remaining <prefix>/operatorNamespace annotations' values are not the same as subscription's namespace, the operator should be uninstalled.
 
-	// When following conditions are met, the operand should be uninstalled:
-	// 1. The removed/uninstalled <prefix>/request annotation's value is the same as all other <prefix>/request annotation's values.
-	// 2. Operator name in removed/uninstalled <prefix>/request is different from all other <prefix>/request annotation's values.
+	// When one of following conditions are met, the operand will NOT be uninstalled:
+	// 1. operator is not uninstalled AND intallMode is no-op.
+	// 2. operator is uninstalled AND  at least one other <prefix>/operatorNamespace annotation exists.
+	// 2. remaining <prefix>/request annotation's values contain the same operator name
 
-	// Test case 1: uninstallOperator is true, uninstallOperand is true
-	// The operator and operand should be uninstalled because only the remaining OperandRequest B is internal-opreq: true.
+	// Test case 1: uninstallOperator is true, uninstallOperand is true for uninstalling operator with v3 no-op installMode
+	// The operator and operand should be uninstalled because no remaining annotation is left.
 	sub := &olmv1alpha1.Subscription{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: reqNsA,
+			Namespace: reqNsOld,
 			Annotations: map[string]string{
-				reqNsA + "." + reqNameA + "." + opNameA + "/request":           opChannelA,
-				reqNsA + "." + reqNameA + "." + opNameA + "/operatorNamespace": reqNsA,
+				reqNsOld + "." + reqNameA + "." + opNameV3 + "/request":           opChannelV3,
+				reqNsOld + "." + reqNameA + "." + opNameV3 + "/operatorNamespace": reqNsOld,
 			},
 			Labels: map[string]string{
 				constant.OpreqLabel: "true",
@@ -132,24 +132,22 @@ func TestCheckSubAnnotationsForUninstall(t *testing.T) {
 		},
 	}
 
-	uninstallOperator, uninstallOperand := checkSubAnnotationsForUninstall(reqNameA, reqNsA, opNameA, sub)
+	uninstallOperator, uninstallOperand := checkSubAnnotationsForUninstall(reqNameA, reqNsOld, opNameV3, operatorv1alpha1.InstallModeNoop, sub)
 
 	assert.True(t, uninstallOperator)
 	assert.True(t, uninstallOperand)
 
-	assert.NotContains(t, sub.Annotations, reqNsA+"."+reqNameA+"."+opNameA+"/request")
-	assert.NotContains(t, sub.Annotations, reqNsA+"."+reqNameA+"."+opNameA+"/operatorNamespace")
+	assert.NotContains(t, sub.Annotations, reqNsOld+"."+reqNameA+"."+opNameV3+"/request")
+	assert.NotContains(t, sub.Annotations, reqNsOld+"."+reqNameA+"."+opNameV3+"/operatorNamespace")
 
-	// Test case 2: uninstallOperator is true, uninstallOperand is false
-	// The operator should be uninstalled because only the remaining Subscription B requesting operator is not in the same namespace as the Subscription.
+	// Test case 2: uninstallOperator is true, uninstallOperand is true for uninstalling operator with general installMode
+	// The operator and operand should be uninstalled because no remaining annotation is left.
 	sub = &olmv1alpha1.Subscription{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: reqNsA,
+			Namespace: reqNsOld,
 			Annotations: map[string]string{
-				reqNsA + "." + reqNameA + "." + opNameA + "/request":           opChannelA,
-				reqNsA + "." + reqNameA + "." + opNameA + "/operatorNamespace": reqNsA,
-				reqNsB + "." + reqNameB + "." + opNameB + "/request":           opChannelB,
-				reqNsB + "." + reqNameB + "." + opNameB + "/operatorNamespace": reqNsB,
+				reqNsOld + "." + reqNameA + "." + opNameV4 + "/request":           opChannelV4,
+				reqNsOld + "." + reqNameA + "." + opNameV4 + "/operatorNamespace": reqNsOld,
 			},
 			Labels: map[string]string{
 				constant.OpreqLabel: "true",
@@ -157,91 +155,136 @@ func TestCheckSubAnnotationsForUninstall(t *testing.T) {
 		},
 	}
 
-	uninstallOperator, uninstallOperand = checkSubAnnotationsForUninstall(reqNameA, reqNsA, opNameA, sub)
+	uninstallOperator, uninstallOperand = checkSubAnnotationsForUninstall(reqNameA, reqNsOld, opNameV4, operatorv1alpha1.InstallModeNamespace, sub)
+
+	assert.True(t, uninstallOperator)
+	assert.True(t, uninstallOperand)
+
+	assert.NotContains(t, sub.Annotations, reqNsOld+"."+reqNameA+"."+opNameV4+"/request")
+	assert.NotContains(t, sub.Annotations, reqNsOld+"."+reqNameA+"."+opNameV4+"/operatorNamespace")
+
+	// Test case 3: uninstallOperator is true, uninstallOperand is false for all namespace migration
+	// where operator is uninstalled and will be reinstalled in new namespace and operand is not for old operator with v3 no-op installMode
+	sub = &olmv1alpha1.Subscription{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: reqNsOld,
+			Annotations: map[string]string{
+				reqNsOld + "." + reqNameA + "." + opNameV3 + "/request":           opChannelV3,
+				reqNsOld + "." + reqNameA + "." + opNameV3 + "/operatorNamespace": reqNsOld,
+				reqNsNew + "." + reqNameB + "." + opNameV4 + "/request":           opChannelV4,
+				reqNsNew + "." + reqNameB + "." + opNameV4 + "/operatorNamespace": reqNsNew,
+			},
+		},
+	}
+
+	uninstallOperator, uninstallOperand = checkSubAnnotationsForUninstall(reqNameA, reqNsOld, opNameV3, operatorv1alpha1.InstallModeNoop, sub)
 
 	assert.True(t, uninstallOperator)
 	assert.False(t, uninstallOperand)
 
-	assert.NotContains(t, sub.Annotations, reqNsA+"."+reqNameA+"."+opNameA+"/request")
-	assert.NotContains(t, sub.Annotations, reqNsA+"."+reqNameA+"."+opNameA+"/operatorNamespace")
-	assert.Contains(t, sub.Annotations, reqNsB+"."+reqNameB+"."+opNameB+"/request")
-	assert.Contains(t, sub.Annotations, reqNsB+"."+reqNameB+"."+opNameB+"/operatorNamespace")
+	assert.NotContains(t, sub.Annotations, reqNsOld+"."+reqNameA+"."+opNameV3+"/request")
+	assert.NotContains(t, sub.Annotations, reqNsOld+"."+reqNameA+"."+opNameV3+"/operatorNamespace")
+	assert.Contains(t, sub.Annotations, reqNsNew+"."+reqNameB+"."+opNameV4+"/request")
+	assert.Contains(t, sub.Annotations, reqNsNew+"."+reqNameB+"."+opNameV4+"/operatorNamespace")
 
-	// Test case 3: uninstallOperator is false, uninstallOperand is true
-	// The operator should not be uninstalled because the remaining Subscription B requesting operator is in the same namespace as the Subscription.
-	// The operand should be uninstalled because
-	// 1. the operator name in removed/uninstalled Subscription A is different from all other Subscription annotation's values,
-	// 2. but the removed/uninstalled <prefix>/request annotation's value is the same as all other <prefix>/request annotation's values.
+	// Test case 4: uninstallOperator is true, uninstallOperand is false for all namespace migration
+	// where operator is uninstalled and will be reinstalled in new namespace and operand is not for operator with general installMode
 	sub = &olmv1alpha1.Subscription{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: reqNsC,
+			Namespace: reqNsOld,
 			Annotations: map[string]string{
-				reqNsC + "." + reqNameC + "." + opNameC + "/request":           opChannelC,
-				reqNsC + "." + reqNameC + "." + opNameC + "/operatorNamespace": reqNsC,
-				reqNsD + "." + reqNameD + "." + opNameD + "/request":           opChannelD,
-				reqNsD + "." + reqNameD + "." + opNameD + "/operatorNamespace": reqNsD,
+				reqNsOld + "." + reqNameA + "." + opNameV3 + "/request":           opChannelV3,
+				reqNsOld + "." + reqNameA + "." + opNameV3 + "/operatorNamespace": reqNsOld,
+				reqNsNew + "." + reqNameB + "." + opNameV4 + "/request":           opChannelV4,
+				reqNsNew + "." + reqNameB + "." + opNameV4 + "/operatorNamespace": reqNsNew,
 			},
 		},
 	}
 
-	uninstallOperator, uninstallOperand = checkSubAnnotationsForUninstall(reqNameC, reqNsC, opNameC, sub)
+	uninstallOperator, uninstallOperand = checkSubAnnotationsForUninstall(reqNameA, reqNsOld, opNameV3, operatorv1alpha1.InstallModeNamespace, sub)
+
+	assert.True(t, uninstallOperator)
+	assert.False(t, uninstallOperand)
+
+	assert.NotContains(t, sub.Annotations, reqNsOld+"."+reqNameA+"."+opNameV3+"/request")
+	assert.NotContains(t, sub.Annotations, reqNsOld+"."+reqNameA+"."+opNameV3+"/operatorNamespace")
+	assert.Contains(t, sub.Annotations, reqNsNew+"."+reqNameB+"."+opNameV4+"/request")
+	assert.Contains(t, sub.Annotations, reqNsNew+"."+reqNameB+"."+opNameV4+"/operatorNamespace")
+
+	// Test case 5: uninstallOperator is false, uninstallOperand is true for removing operand only for specific operandrequest
+	// The operator should not be uninstalled because the remaining request is requesting operator is in the same namespace as the Subscription.
+	// The operand should be uninstalled because this operand is NOT noop InstallMode And no other OperandRequest is requesting the same operand.
+	// For example, no OperandRequest is requesting common-service-postgresql.
+	sub = &olmv1alpha1.Subscription{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: reqNsOld,
+			Annotations: map[string]string{
+				reqNsOld + "." + reqNameC + "." + opNameC + "/request":           opChannelC,
+				reqNsOld + "." + reqNameC + "." + opNameC + "/operatorNamespace": reqNsOld,
+				reqNsOld + "." + reqNameD + "." + opNameD + "/request":           opChannelD,
+				reqNsOld + "." + reqNameD + "." + opNameD + "/operatorNamespace": reqNsOld,
+			},
+		},
+	}
+
+	uninstallOperator, uninstallOperand = checkSubAnnotationsForUninstall(reqNameC, reqNsOld, opNameC, operatorv1alpha1.InstallModeNamespace, sub)
 
 	assert.False(t, uninstallOperator)
 	assert.True(t, uninstallOperand)
 
-	assert.NotContains(t, sub.Annotations, reqNsC+"."+reqNameC+"."+opNameC+"/request")
-	assert.NotContains(t, sub.Annotations, reqNsC+"."+reqNameC+"."+opNameC+"/operatorNamespace")
-	assert.Contains(t, sub.Annotations, reqNsD+"."+reqNameD+"."+opNameD+"/request")
-	assert.Contains(t, sub.Annotations, reqNsD+"."+reqNameD+"."+opNameD+"/operatorNamespace")
+	assert.NotContains(t, sub.Annotations, reqNsOld+"."+reqNameC+"."+opNameC+"/request")
+	assert.NotContains(t, sub.Annotations, reqNsOld+"."+reqNameC+"."+opNameC+"/operatorNamespace")
+	assert.Contains(t, sub.Annotations, reqNsOld+"."+reqNameD+"."+opNameD+"/request")
+	assert.Contains(t, sub.Annotations, reqNsOld+"."+reqNameD+"."+opNameD+"/operatorNamespace")
 
-	// Test case 4: uninstallOperator is false, uninstallOperand is false
+	// Test case 6: uninstallOperator is false, uninstallOperand is false for removing one no-op operand only for upgrade scenario
+	// The operator should not be uninstalled because the remaining request is requesting operator is in the same namespace as the Subscription.
+	// The operand should NOT be uninstalled because this operand is noop InstallMode And other OperandRequest is requesting the newer version operand.
+	// For example, IAM -> IM in-place upgrade scenario.
+	sub = &olmv1alpha1.Subscription{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: reqNsOld,
+			Annotations: map[string]string{
+				reqNsOld + "." + reqNameA + "." + opNameV3 + "/request":           opChannelV3,
+				reqNsOld + "." + reqNameA + "." + opNameV3 + "/operatorNamespace": reqNsOld,
+				reqNsOld + "." + reqNameB + "." + opNameV4 + "/request":           opChannelV4,
+				reqNsOld + "." + reqNameB + "." + opNameV4 + "/operatorNamespace": reqNsOld,
+			},
+		},
+	}
+
+	uninstallOperator, uninstallOperand = checkSubAnnotationsForUninstall(reqNameA, reqNsOld, opNameV3, operatorv1alpha1.InstallModeNoop, sub)
+
+	assert.False(t, uninstallOperator)
+	assert.False(t, uninstallOperand)
+
+	assert.NotContains(t, sub.Annotations, reqNsOld+"."+reqNameA+"."+opNameV3+"/request")
+	assert.NotContains(t, sub.Annotations, reqNsOld+"."+reqNameA+"."+opNameV3+"/operatorNamespace")
+	assert.Contains(t, sub.Annotations, reqNsOld+"."+reqNameB+"."+opNameV4+"/request")
+	assert.Contains(t, sub.Annotations, reqNsOld+"."+reqNameB+"."+opNameV4+"/operatorNamespace")
+
+	// Test case 7: uninstallOperator is false, uninstallOperand is false
 	// The operator and operand should not be uninstalled because at least one different OperandRequest requesting same operator
-	// But the annotation of removed OperandRequest should be removed.
+	// For example, two OperandRequests are requesting IM.
 	sub = &olmv1alpha1.Subscription{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: reqNsA,
+			Namespace: reqNsNew,
 			Annotations: map[string]string{
-				reqNsA + "." + reqNameA + "." + opNameA + "/request":           opChannelA,
-				reqNsA + "." + reqNameA + "." + opNameA + "/operatorNamespace": reqNsA,
-				// The remaining OperandRequest B is requesting the same operator
-				reqNsB + "." + reqNameB + "." + opNameA + "/request":           opChannelA,
-				reqNsB + "." + reqNameB + "." + opNameA + "/operatorNamespace": reqNsA,
+				reqNsNew + "." + reqNameA + "." + opNameV4 + "/request":           opChannelV4,
+				reqNsNew + "." + reqNameA + "." + opNameV4 + "/operatorNamespace": reqNsNew,
+				reqNsNew + "." + reqNameB + "." + opNameV4 + "/request":           opChannelV4,
+				reqNsNew + "." + reqNameB + "." + opNameV4 + "/operatorNamespace": reqNsNew,
 			},
 		},
 	}
 
-	uninstallOperator, uninstallOperand = checkSubAnnotationsForUninstall(reqNameA, reqNsA, opNameA, sub)
+	uninstallOperator, uninstallOperand = checkSubAnnotationsForUninstall(reqNameA, reqNsNew, opNameV4, operatorv1alpha1.InstallModeNoop, sub)
 
 	assert.False(t, uninstallOperator)
 	assert.False(t, uninstallOperand)
 
-	assert.NotContains(t, sub.Annotations, reqNsA+"."+reqNameA+"."+opNameA+"/request")
-	assert.NotContains(t, sub.Annotations, reqNsA+"."+reqNameA+"."+opNameA+"/operatorNamespace")
-	assert.Contains(t, sub.Annotations, reqNsB+"."+reqNameB+"."+opNameA+"/request")
-	assert.Contains(t, sub.Annotations, reqNsB+"."+reqNameB+"."+opNameA+"/operatorNamespace")
-
-	// Test case 5: uninstallOperator is false, uninstallOperand is false
-	// The operator and operand should not be uninstalled because at OperandRequest request a different operator name and different channel, but the same operator namespace
-	// But the annotation of removed OperandRequest should be removed.
-	sub = &olmv1alpha1.Subscription{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: reqNsA,
-			Annotations: map[string]string{
-				reqNsA + "." + reqNameA + "." + opNameA + "/request":           opChannelA,
-				reqNsA + "." + reqNameA + "." + opNameA + "/operatorNamespace": reqNsA,
-				reqNsB + "." + reqNameB + "." + opNameB + "/request":           opChannelB,
-				reqNsB + "." + reqNameB + "." + opNameB + "/operatorNamespace": reqNsA,
-			},
-		},
-	}
-
-	uninstallOperator, uninstallOperand = checkSubAnnotationsForUninstall(reqNameA, reqNsA, opNameA, sub)
-
-	assert.False(t, uninstallOperator)
-	assert.False(t, uninstallOperand)
-
-	assert.NotContains(t, sub.Annotations, reqNsA+"."+reqNameA+"."+opNameA+"/request")
-	assert.NotContains(t, sub.Annotations, reqNsA+"."+reqNameA+"."+opNameA+"/operatorNamespace")
-	assert.Contains(t, sub.Annotations, reqNsB+"."+reqNameB+"."+opNameB+"/request")
-	assert.Contains(t, sub.Annotations, reqNsB+"."+reqNameB+"."+opNameB+"/operatorNamespace")
+	assert.NotContains(t, sub.Annotations, reqNsNew+"."+reqNameA+"."+opNameV4+"/request")
+	assert.NotContains(t, sub.Annotations, reqNsNew+"."+reqNameA+"."+opNameV4+"/operatorNamespace")
+	assert.Contains(t, sub.Annotations, reqNsNew+"."+reqNameB+"."+opNameV4+"/request")
+	assert.Contains(t, sub.Annotations, reqNsNew+"."+reqNameB+"."+opNameV4+"/operatorNamespace")
 }

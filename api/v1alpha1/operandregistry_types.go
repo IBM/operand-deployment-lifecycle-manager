@@ -58,6 +58,9 @@ type Operator struct {
 	PackageName string `json:"packageName"`
 	// Name of the channel to track.
 	Channel string `json:"channel"`
+	// List of channels to fallback when the main channel is not available.
+	// +optional
+	FallbackChannels []string `json:"fallbackChannels,omitempty"`
 	// Description of a common service.
 	// +optional
 	Description string `json:"description,omitempty"`

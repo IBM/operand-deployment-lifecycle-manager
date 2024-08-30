@@ -26,6 +26,7 @@ import (
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	operatorsv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
 	"github.com/pkg/errors"
+	"golang.org/x/mod/semver"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -137,31 +138,38 @@ func (s sortableCatalogSource) Less(i, j int) bool {
 	return s[i].Namespace < s[j].Namespace
 }
 
-func (m *ODLMOperator) GetCatalogSourceFromPackage(ctx context.Context, packageName, namespace, channel, registryNs, odlmCatalog, odlmCatalogNs string, excludedCatalogSources []string) (catalogSourceName string, catalogSourceNs string, err error) {
+func (m *ODLMOperator) GetCatalogSourceAndChannelFromPackage(ctx context.Context, opregCatalog, opregCatalogNs, packageName, namespace, channel string, fallbackChannels []string,
+	registryNs, odlmCatalog, odlmCatalogNs string, excludedCatalogSources []string) (catalogSourceName string, catalogSourceNs string, availableChannel string, err error) {
+
 	packageManifestList := &operatorsv1.PackageManifestList{}
 	opts := []client.ListOption{
 		client.MatchingFields{"metadata.name": packageName},
 		client.InNamespace(namespace),
 	}
 	if err := m.Reader.List(ctx, packageManifestList, opts...); err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 	number := len(packageManifestList.Items)
 
 	switch number {
 	case 0:
 		klog.V(2).Infof("Not found PackageManifest %s in the namespace %s has channel %s", packageName, namespace, channel)
-		return "", "", nil
-	case 1:
-		if excludedCatalogSources != nil && util.Contains(excludedCatalogSources, packageManifestList.Items[0].Status.CatalogSource) {
-			klog.V(2).Infof("Not found available CatalogSource for PackageManifest %s in the namespace %s, CatalogSource %s is excluded from OperandRegistry annotations", packageName, namespace, packageManifestList.Items[0].Status.CatalogSource)
-			return "", "", nil
-		}
-		return packageManifestList.Items[0].Status.CatalogSource, packageManifestList.Items[0].Status.CatalogSourceNamespace, nil
+		return "", "", "", nil
 	default:
-		var catalogSourceCandidate []CatalogSource
+		// Check if the CatalogSource and CatalogSource namespace are specified in OperandRegistry
+		if opregCatalog != "" && opregCatalogNs != "" {
+			curChannel := getFirstAvailableSemverChannelFromCatalog(packageManifestList, fallbackChannels, channel, opregCatalog, opregCatalogNs)
+			if curChannel == "" {
+				klog.Errorf("Not found PackageManifest %s in the namespace %s has channel %s or fallback channels %s in the CatalogSource %s in the namespace %s", packageName, namespace, channel, fallbackChannels, opregCatalog, opregCatalogNs)
+				return "", "", "", nil
+			}
+			return opregCatalog, opregCatalogNs, curChannel, nil
+		}
+		// Get the CatalogSource and CatalogSource namespace from the PackageManifest
+		var primaryCatalogCandidate []CatalogSource
+		var fallBackChannelAndCatalogMapping = make(map[string][]CatalogSource)
 		for _, pm := range packageManifestList.Items {
-			if !channelCheck(channel, pm.Status.Channels) || (excludedCatalogSources != nil && util.Contains(excludedCatalogSources, pm.Status.CatalogSource)) {
+			if excludedCatalogSources != nil && util.Contains(excludedCatalogSources, pm.Status.CatalogSource) {
 				continue
 			}
 			catalogsource := &olmv1alpha1.CatalogSource{}
@@ -169,7 +177,7 @@ func (m *ODLMOperator) GetCatalogSourceFromPackage(ctx context.Context, packageN
 				klog.Warning(err)
 				continue
 			}
-			catalogSourceCandidate = append(catalogSourceCandidate, CatalogSource{
+			currentCatalog := CatalogSource{
 				Name:                 pm.Status.CatalogSource,
 				Namespace:            pm.Status.CatalogSourceNamespace,
 				OpNamespace:          namespace,
@@ -177,29 +185,93 @@ func (m *ODLMOperator) GetCatalogSourceFromPackage(ctx context.Context, packageN
 				Priority:             catalogsource.Spec.Priority,
 				ODLMCatalog:          odlmCatalog,
 				ODLMCatalogNamespace: odlmCatalogNs,
-			})
+			}
+			if channelCheck(channel, pm.Status.Channels) {
+				primaryCatalogCandidate = append(primaryCatalogCandidate, currentCatalog)
+			}
+			for _, fc := range fallbackChannels {
+				if channelCheck(fc, pm.Status.Channels) {
+					fallBackChannelAndCatalogMapping[fc] = append(fallBackChannelAndCatalogMapping[fc], currentCatalog)
+				}
+			}
 		}
-		if len(catalogSourceCandidate) == 0 {
-			klog.Errorf("Not found PackageManifest %s in the namespace %s has channel %s", packageName, namespace, channel)
-			return "", "", nil
+		if len(primaryCatalogCandidate) == 0 {
+			klog.Warningf("Not found PackageManifest %s in the namespace %s has channel %s", packageName, namespace, channel)
+			if len(fallBackChannelAndCatalogMapping) == 0 {
+				klog.Errorf("Not found PackageManifest %s in the namespace %s has fallback channels %v", packageName, namespace, fallbackChannels)
+				return "", "", "", nil
+			}
+			fallbackChannel, fallbackCatalog := findCatalogFromFallbackChannels(fallbackChannels, fallBackChannelAndCatalogMapping)
+			if len(fallbackCatalog) == 0 {
+				klog.Errorf("Not found PackageManifest %s in the namespace %s has fallback channels %v", packageName, namespace, fallbackChannels)
+				return "", "", "", nil
+			}
+			klog.Infof("Found %v CatalogSources for PackageManifest %s in the namespace %s has fallback channel %s", len(fallbackCatalog), packageName, namespace, fallbackChannel)
+			primaryCatalogCandidate = fallbackCatalog
+			channel = fallbackChannel
 		}
-		klog.V(2).Infof("Found %v CatalogSources for PackageManifest %s in the namespace %s has channel %s", len(catalogSourceCandidate), packageName, namespace, channel)
+		klog.V(2).Infof("Found %v CatalogSources for PackageManifest %s in the namespace %s has channel %s", len(primaryCatalogCandidate), packageName, namespace, channel)
 		// Sort CatalogSources by priority
-		sort.Sort(sortableCatalogSource(catalogSourceCandidate))
-		for i, c := range catalogSourceCandidate {
+		sort.Sort(sortableCatalogSource(primaryCatalogCandidate))
+		for i, c := range primaryCatalogCandidate {
 			klog.V(2).Infof("The %vth sorted CatalogSource is %s in namespace %s with priority: %v", i, c.Name, c.Namespace, c.Priority)
 		}
-		return catalogSourceCandidate[0].Name, catalogSourceCandidate[0].Namespace, nil
+		return primaryCatalogCandidate[0].Name, primaryCatalogCandidate[0].Namespace, channel, nil
 	}
 }
 
-func channelCheck(channelName string, channelList []operatorsv1.PackageChannel) (found bool) {
+func channelCheck(channelName string, channelList []operatorsv1.PackageChannel) bool {
 	for _, channel := range channelList {
 		if channelName == channel.Name {
 			return true
 		}
 	}
 	return false
+}
+
+func findCatalogFromFallbackChannels(fallbackChannels []string, fallBackChannelAndCatalogMapping map[string][]CatalogSource) (string, []CatalogSource) {
+	var fallbackChannel string
+	var fallbackCatalog []CatalogSource
+
+	// sort fallback channels by semantic version
+	semverlList, semVerChannelMappings := prunedSemverChannel(fallbackChannels)
+
+	maxChannel := util.FindMaxSemver("", semverlList, semVerChannelMappings)
+	if catalogSources, ok := fallBackChannelAndCatalogMapping[maxChannel]; ok {
+		fallbackChannel = maxChannel
+		fallbackCatalog = append(fallbackCatalog, catalogSources...)
+	}
+	return fallbackChannel, fallbackCatalog
+}
+
+func prunedSemverChannel(fallbackChannels []string) ([]string, map[string]string) {
+	var semverlList []string
+	var semVerChannelMappings = make(map[string]string)
+	for _, fc := range fallbackChannels {
+		semVerChannelMappings[util.FindSemantic(fc)] = fc
+		semverlList = append(semverlList, util.FindSemantic(fc))
+	}
+	return semverlList, semVerChannelMappings
+}
+
+func getFirstAvailableSemverChannelFromCatalog(packageManifestList *operatorsv1.PackageManifestList, fallbackChannels []string, channel, catalogName, catalogNs string) string {
+	semverlList, semVerChannelMappings := prunedSemverChannel(fallbackChannels)
+	sort.Sort(semver.ByVersion(semverlList))
+
+	for _, pm := range packageManifestList.Items {
+		if pm.Status.CatalogSource == catalogName && pm.Status.CatalogSourceNamespace == catalogNs {
+			if channelCheck(channel, pm.Status.Channels) {
+				return channel
+			}
+			// iterate the sorted semver list in reverse order to get the first available channel
+			for i := len(semverlList) - 1; i >= 0; i-- {
+				if channelCheck(semverlList[i], pm.Status.Channels) {
+					return semVerChannelMappings[semverlList[i]]
+				}
+			}
+		}
+	}
+	return ""
 }
 
 // ListOperandRegistry lists the OperandRegistry instance with default value
@@ -537,18 +609,16 @@ func (m *ODLMOperator) GetOperandFromRegistry(ctx context.Context, reg *apiv1alp
 		odlmCatalogNs = odlmSubList.Items[0].Spec.CatalogSourceNamespace
 	}
 
-	if opt.SourceName == "" || opt.SourceNamespace == "" {
-		catalogSourceName, catalogSourceNs, err := m.GetCatalogSourceFromPackage(ctx, opt.PackageName, opt.Namespace, opt.Channel, reg.Namespace, odlmCatalog, odlmCatalogNs, excludedCatalogSources)
-		if err != nil {
-			return nil, err
-		}
-
-		if catalogSourceName == "" || catalogSourceNs == "" {
-			klog.V(2).Infof("no catalogsource found for %v", opt.PackageName)
-		}
-
-		opt.SourceName, opt.SourceNamespace = catalogSourceName, catalogSourceNs
+	catalogSourceName, catalogSourceNs, channel, err := m.GetCatalogSourceAndChannelFromPackage(ctx, opt.SourceName, opt.SourceNamespace, opt.PackageName, opt.Namespace, opt.Channel, opt.FallbackChannels, reg.Namespace, odlmCatalog, odlmCatalogNs, excludedCatalogSources)
+	if err != nil {
+		return nil, err
 	}
+
+	if catalogSourceName == "" || catalogSourceNs == "" {
+		klog.V(2).Infof("no catalogsource found for %v", opt.PackageName)
+	}
+
+	opt.SourceName, opt.SourceNamespace, opt.Channel = catalogSourceName, catalogSourceNs, channel
 
 	return opt, nil
 }
