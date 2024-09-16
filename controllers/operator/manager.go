@@ -154,7 +154,7 @@ func (m *ODLMOperator) GetCatalogSourceAndChannelFromPackage(ctx context.Context
 	switch number {
 	case 0:
 		klog.V(2).Infof("Not found PackageManifest %s in the namespace %s has channel %s", packageName, namespace, channel)
-		return "", "", "", nil
+		return opregCatalog, opregCatalogNs, channel, nil
 	default:
 		// Check if the CatalogSource and CatalogSource namespace are specified in OperandRegistry
 		if opregCatalog != "" && opregCatalogNs != "" {

@@ -103,6 +103,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		if err := r.Client.Status().Patch(ctx, requestInstance, client.MergeFrom(existingInstance)); err != nil && !apierrors.IsNotFound(err) {
 			reconcileErr = utilerrors.NewAggregate([]error{reconcileErr, fmt.Errorf("error while patching OperandRequest.Status: %v", err)})
 		}
+		if reconcileErr != nil {
+			klog.Errorf("failed to patch status for OperandRequest %s: %v", req.NamespacedName.String(), reconcileErr)
+		}
 	}()
 
 	// Remove finalizer when DeletionTimestamp none zero
@@ -180,7 +183,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	}
 
 	klog.V(1).Infof("Finished reconciling OperandRequest: %s", req.NamespacedName)
-	return ctrl.Result{RequeueAfter: constant.DefaultSyncPeriod}, nil
+	return ctrl.Result{RequeueAfter: constant.DefaultSyncPeriod}, reconcileErr
 }
 
 func (r *Reconciler) checkPermission(ctx context.Context, req ctrl.Request) bool {

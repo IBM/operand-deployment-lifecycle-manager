@@ -174,6 +174,9 @@ func TestCheckSubAnnotationsForUninstall(t *testing.T) {
 				reqNsNew + "." + reqNameB + "." + opNameV4 + "/request":           opChannelV4,
 				reqNsNew + "." + reqNameB + "." + opNameV4 + "/operatorNamespace": reqNsNew,
 			},
+			Labels: map[string]string{
+				constant.OpreqLabel: "true",
+			},
 		},
 	}
 
@@ -197,6 +200,9 @@ func TestCheckSubAnnotationsForUninstall(t *testing.T) {
 				reqNsOld + "." + reqNameA + "." + opNameV3 + "/operatorNamespace": reqNsOld,
 				reqNsNew + "." + reqNameB + "." + opNameV4 + "/request":           opChannelV4,
 				reqNsNew + "." + reqNameB + "." + opNameV4 + "/operatorNamespace": reqNsNew,
+			},
+			Labels: map[string]string{
+				constant.OpreqLabel: "true",
 			},
 		},
 	}
@@ -224,6 +230,9 @@ func TestCheckSubAnnotationsForUninstall(t *testing.T) {
 				reqNsOld + "." + reqNameD + "." + opNameD + "/request":           opChannelD,
 				reqNsOld + "." + reqNameD + "." + opNameD + "/operatorNamespace": reqNsOld,
 			},
+			Labels: map[string]string{
+				constant.OpreqLabel: "true",
+			},
 		},
 	}
 
@@ -250,6 +259,9 @@ func TestCheckSubAnnotationsForUninstall(t *testing.T) {
 				reqNsOld + "." + reqNameB + "." + opNameV4 + "/request":           opChannelV4,
 				reqNsOld + "." + reqNameB + "." + opNameV4 + "/operatorNamespace": reqNsOld,
 			},
+			Labels: map[string]string{
+				constant.OpreqLabel: "true",
+			},
 		},
 	}
 
@@ -275,6 +287,9 @@ func TestCheckSubAnnotationsForUninstall(t *testing.T) {
 				reqNsNew + "." + reqNameB + "." + opNameV4 + "/request":           opChannelV4,
 				reqNsNew + "." + reqNameB + "." + opNameV4 + "/operatorNamespace": reqNsNew,
 			},
+			Labels: map[string]string{
+				constant.OpreqLabel: "true",
+			},
 		},
 	}
 
@@ -287,4 +302,28 @@ func TestCheckSubAnnotationsForUninstall(t *testing.T) {
 	assert.NotContains(t, sub.Annotations, reqNsNew+"."+reqNameA+"."+opNameV4+"/operatorNamespace")
 	assert.Contains(t, sub.Annotations, reqNsNew+"."+reqNameB+"."+opNameV4+"/request")
 	assert.Contains(t, sub.Annotations, reqNsNew+"."+reqNameB+"."+opNameV4+"/operatorNamespace")
+
+	// Test case 8: uninstallOperator is false, uninstallOperand is true for operator with general installMode
+	// The operator should be NOT uninstalled because operator is not been managed by ODLM.
+	// The operand should be uninstalled because no other OperandRequest is requesting the same operand.
+	sub = &olmv1alpha1.Subscription{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: reqNsOld,
+			Annotations: map[string]string{
+				reqNsOld + "." + reqNameA + "." + opNameV4 + "/request":           opChannelV4,
+				reqNsOld + "." + reqNameA + "." + opNameV4 + "/operatorNamespace": reqNsOld,
+			},
+			Labels: map[string]string{
+				constant.OpreqLabel: "false",
+			},
+		},
+	}
+
+	uninstallOperator, uninstallOperand = checkSubAnnotationsForUninstall(reqNameA, reqNsOld, opNameV4, operatorv1alpha1.InstallModeNamespace, sub)
+
+	assert.False(t, uninstallOperator)
+	assert.True(t, uninstallOperand)
+
+	assert.NotContains(t, sub.Annotations, reqNsOld+"."+reqNameA+"."+opNameV4+"/request")
+	assert.NotContains(t, sub.Annotations, reqNsOld+"."+reqNameA+"."+opNameV4+"/operatorNamespace")
 }
