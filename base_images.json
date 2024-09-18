@@ -2,34 +2,12 @@
   {
     "imageType": "external",
     "sourceRepo": "registry.access.redhat.com",
-    "sourceNamespace": "ubi8",
-    "sourceImage": "ubi",
-    "destStage": "edge",
-    "destNamespace": "build-images",
-    "destImage": "ubi8",
-    "tag": "8.10-1054",
-    "updatePackages": []
-  },
-  {
-    "imageType": "external",
-    "sourceRepo": "registry.access.redhat.com",
-    "sourceNamespace": "ubi8",
-    "sourceImage": "ubi-minimal",
-    "destStage": "edge",
-    "destNamespace": "build-images",
-    "destImage": "ubi8-minimal",
-    "tag": "8.10-1052",
-    "updatePackages": []
-  },
-  {
-    "imageType": "external",
-    "sourceRepo": "registry.access.redhat.com",
     "sourceNamespace": "ubi9",
     "sourceImage": "ubi-micro",
     "destStage": "edge",
     "destNamespace": "build-images",
     "destImage": "ubi9-micro",
-    "tag": "9.4-13",
+    "tag": "9.4-15",
     "updatePackages": []
   },
   {
@@ -40,7 +18,7 @@
     "destStage": "edge",
     "destNamespace": "build-images",
     "destImage": "ubi9",
-    "tag": "9.4-1181",
+    "tag": "9.4-1214.1725849297",
     "updatePackages": []
   },
   {
@@ -51,34 +29,20 @@
     "destStage": "edge",
     "destNamespace": "build-images",
     "destImage": "ubi9-minimal",
-    "tag": "9.4-1194",
+    "tag": "9.4-1227.1725849298",
     "updatePackages": []
   },
   {
     "imageType": "node",
-    "sourceImage": "ubi8-minimal",
-    "sourceTag": "8.10-1052",
-    "destImage": "node-v18-ubi8-minimal",
-    "nodeVersion": "18.20.4"
-  },
-  {
-    "imageType": "node",
-    "sourceImage": "ubi8-minimal",
-    "sourceTag": "8.10-1052",
-    "destImage": "node-v20-ubi8-minimal",
-    "nodeVersion": "20.17.0"
-  },
-  {
-    "imageType": "node",
     "sourceImage": "ubi9-minimal",
-    "sourceTag": "9.4-1194",
+    "sourceTag": "9.4-1227.1725849298",
     "destImage": "node-v18-ubi9-minimal",
     "nodeVersion": "18.20.4"
   },
   {
     "imageType": "node",
     "sourceImage": "ubi9-minimal",
-    "sourceTag": "9.4-1194",
+    "sourceTag": "9.4-1227.1725849298",
     "destImage": "node-v20-ubi9-minimal",
     "nodeVersion": "20.17.0"
   }
