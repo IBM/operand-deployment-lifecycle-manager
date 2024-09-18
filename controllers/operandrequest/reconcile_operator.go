@@ -763,7 +763,7 @@ func checkSubAnnotationsForUninstall(reqName, reqNs, opName, installMode string,
 		uninstallOperator = false
 	}
 
-	if _, ok := sub.Labels[constant.OpreqLabel]; !ok {
+	if value, ok := sub.Labels[constant.OpreqLabel]; !ok || value != "true" {
 		uninstallOperator = false
 	}
 

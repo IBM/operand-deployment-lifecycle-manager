@@ -82,6 +82,9 @@ fetch-test-crds:
 	tar -zxf v${NAMESPACESCOPE_VERSION}.tar.gz ibm-namespace-scope-operator-${NAMESPACESCOPE_VERSION}/bundle/manifests && mv ibm-namespace-scope-operator-${NAMESPACESCOPE_VERSION}/bundle/manifests/operator.ibm.com_namespacescopes.yaml ${ENVCRDS_DIR}/operator.ibm.com_namespacescopes.yaml ;\
 	rm -rf ibm-namespace-scope-operator-${NAMESPACESCOPE_VERSION} v${NAMESPACESCOPE_VERSION}.tar.gz ;\
 	}
+	@{ \
+	cp ./controllers/testutil/packagemanifests_crd.yaml ${ENVCRDS_DIR}/packagemanifests_crd.yaml ;\
+	}
 
 
 CONTROLLER_GEN ?= $(shell pwd)/common/bin/controller-gen
