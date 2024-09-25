@@ -18,6 +18,8 @@ package util
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"regexp"
@@ -150,6 +152,14 @@ func StringSliceContentEqual(a, b []string) bool {
 		}
 	}
 	return true
+}
+
+func CalculateHash(input string) string {
+	if input == "" {
+		return ""
+	}
+	hashedData := sha256.Sum256([]byte(input))
+	return hex.EncodeToString(hashedData[:7])
 }
 
 // WaitTimeout waits for the waitgroup for the specified max timeout.
