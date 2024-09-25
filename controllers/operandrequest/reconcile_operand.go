@@ -1066,11 +1066,10 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 
 		if k8sResConfig != nil {
 			k8sResConfigDecoded := make(map[string]interface{})
-			k8sResConfigUnmarshalErr := json.Unmarshal(k8sResConfig.Raw, &k8sResConfigDecoded)
-			if k8sResConfigUnmarshalErr != nil {
-				klog.Errorf("failed to unmarshal k8s Resource Config: %v", k8sResConfigUnmarshalErr)
+			if k8sResConfigUnmarshalErr := json.Unmarshal(k8sResConfig.Raw, &k8sResConfigDecoded); k8sResConfigUnmarshalErr != nil {
+				return errors.Wrap(k8sResConfigUnmarshalErr, "failed to unmarshal k8s Resource Config")
 			}
-	
+
 			if host, found := k8sResConfigDecoded["spec"].(map[string]interface{})["host"].(string); found {
 				hostHash := util.CalculateHash(host)
 
