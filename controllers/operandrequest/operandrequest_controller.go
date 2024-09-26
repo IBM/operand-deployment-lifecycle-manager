@@ -100,6 +100,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		if reflect.DeepEqual(existingInstance.Status, requestInstance.Status) {
 			return
 		}
+
+		// Update requestInstance's resource version to avoid conflicts
+		requestInstance.ResourceVersion = existingInstance.ResourceVersion
 		if err := r.Client.Status().Patch(ctx, requestInstance, client.MergeFrom(existingInstance)); err != nil && !apierrors.IsNotFound(err) {
 			reconcileErr = utilerrors.NewAggregate([]error{reconcileErr, fmt.Errorf("error while patching OperandRequest.Status: %v", err)})
 		}
