@@ -667,7 +667,7 @@ func (r *Reconciler) generateClusterObjects(o *operatorv1alpha1.Operator, regist
 	// Subscription Object
 	sub := &olmv1alpha1.Subscription{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        o.Name,
+			Name:        o.PackageName,
 			Namespace:   namespace,
 			Labels:      labels,
 			Annotations: annotations,
@@ -683,7 +683,7 @@ func (r *Reconciler) generateClusterObjects(o *operatorv1alpha1.Operator, regist
 		},
 	}
 	sub.SetGroupVersionKind(schema.GroupVersionKind{Group: olmv1alpha1.SchemeGroupVersion.Group, Kind: "Subscription", Version: olmv1alpha1.SchemeGroupVersion.Version})
-	klog.V(3).Info("Generating Subscription:  ", o.Name, " in the Namespace: ", namespace)
+	klog.V(3).Info("Generating Subscription:  ", o.PackageName, " in the Namespace: ", namespace)
 	co.subscription = sub
 	return co
 }
