@@ -565,14 +565,14 @@ func (r *Reconciler) reconcileK8sResource(ctx context.Context, res operatorv1alp
 		if err != nil && !apierrors.IsNotFound(err) {
 			return errors.Wrapf(err, "failed to get k8s resource %s/%s", k8sResNs, res.Name)
 		} else if apierrors.IsNotFound(err) {
-			if err := r.createK8sResource(ctx, k8sRes, res.Data, res.Labels, res.Annotations, &res.OwnerReferences); err != nil {
+			if err := r.createK8sResource(ctx, k8sRes, res.Data, res.Labels, res.Annotations, &res.OwnerReferences, &res.OptionalFields); err != nil {
 				return err
 			}
 		} else {
 			if res.Force {
 				// Update k8s resource
 				klog.V(3).Info("Found existing k8s resource: " + res.Name)
-				if err := r.updateK8sResource(ctx, k8sRes, res.Data, res.Labels, res.Annotations, &res.OwnerReferences); err != nil {
+				if err := r.updateK8sResource(ctx, k8sRes, res.Data, res.Labels, res.Annotations, &res.OwnerReferences, &res.OptionalFields); err != nil {
 					return err
 				}
 			} else {
@@ -999,7 +999,7 @@ func (r *Reconciler) checkCustomResource(ctx context.Context, requestInstance *o
 	return nil
 }
 
-func (r *Reconciler) createK8sResource(ctx context.Context, k8sResTemplate unstructured.Unstructured, k8sResConfig *runtime.RawExtension, newLabels, newAnnotations map[string]string, ownerReferences *[]operatorv1alpha1.OwnerReference) error {
+func (r *Reconciler) createK8sResource(ctx context.Context, k8sResTemplate unstructured.Unstructured, k8sResConfig *runtime.RawExtension, newLabels, newAnnotations map[string]string, ownerReferences *[]operatorv1alpha1.OwnerReference, optionalFields *[]operatorv1alpha1.OptionalField) error {
 	kind := k8sResTemplate.GetKind()
 	name := k8sResTemplate.GetName()
 	namespace := k8sResTemplate.GetNamespace()
@@ -1040,6 +1040,9 @@ func (r *Reconciler) createK8sResource(ctx context.Context, k8sResTemplate unstr
 		}
 	}
 
+	if err := r.ExecuteOptionalFields(ctx, &k8sResTemplate, optionalFields); err != nil {
+		return errors.Wrap(err, "failed to execute optional fields")
+	}
 	r.EnsureLabel(k8sResTemplate, map[string]string{constant.OpreqLabel: "true"})
 	r.EnsureLabel(k8sResTemplate, newLabels)
 	r.EnsureAnnotation(k8sResTemplate, newAnnotations)
@@ -1058,21 +1061,21 @@ func (r *Reconciler) createK8sResource(ctx context.Context, k8sResTemplate unstr
 	return nil
 }
 
-func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstructured.Unstructured, k8sResConfig *runtime.RawExtension, newLabels, newAnnotations map[string]string, ownerReferences *[]operatorv1alpha1.OwnerReference) error {
+func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstructured.Unstructured, k8sResConfig *runtime.RawExtension, newLabels, newAnnotations map[string]string, ownerReferences *[]operatorv1alpha1.OwnerReference, optionalFields *[]operatorv1alpha1.OptionalField) error {
 	kind := existingK8sRes.GetKind()
 	apiversion := existingK8sRes.GetAPIVersion()
 	name := existingK8sRes.GetName()
 	namespace := existingK8sRes.GetNamespace()
 
 	if kind == "Job" {
-		if err := r.updateK8sJob(ctx, existingK8sRes, k8sResConfig, newLabels, newAnnotations, ownerReferences); err != nil {
+		if err := r.updateK8sJob(ctx, existingK8sRes, k8sResConfig, newLabels, newAnnotations, ownerReferences, optionalFields); err != nil {
 			return errors.Wrap(err, "failed to update Job")
 		}
 		return nil
 	}
 
 	if kind == "Route" {
-		if err := r.updateK8sRoute(ctx, existingK8sRes, k8sResConfig, newLabels, newAnnotations, ownerReferences); err != nil {
+		if err := r.updateK8sRoute(ctx, existingK8sRes, k8sResConfig, newLabels, newAnnotations, ownerReferences, optionalFields); err != nil {
 			return errors.Wrap(err, "failed to update Route")
 		}
 
@@ -1150,6 +1153,9 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 				existingRes.Object = updatedExistingRes
 			}
 
+			if err := r.ExecuteOptionalFields(ctx, &existingRes, optionalFields); err != nil {
+				return false, errors.Wrap(err, "failed to execute optional fields")
+			}
 			r.EnsureAnnotation(existingRes, newAnnotations)
 			r.EnsureLabel(existingRes, newLabels)
 			if err := r.setOwnerReferences(ctx, &existingRes, ownerReferences); err != nil {
@@ -1197,7 +1203,7 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 	return nil
 }
 
-func (r *Reconciler) updateK8sJob(ctx context.Context, existingK8sRes unstructured.Unstructured, k8sResConfig *runtime.RawExtension, newLabels, newAnnotations map[string]string, ownerReferences *[]operatorv1alpha1.OwnerReference) error {
+func (r *Reconciler) updateK8sJob(ctx context.Context, existingK8sRes unstructured.Unstructured, k8sResConfig *runtime.RawExtension, newLabels, newAnnotations map[string]string, ownerReferences *[]operatorv1alpha1.OwnerReference, optionalFields *[]operatorv1alpha1.OptionalField) error {
 
 	kind := existingK8sRes.GetKind()
 	apiversion := existingK8sRes.GetAPIVersion()
@@ -1250,7 +1256,7 @@ func (r *Reconciler) updateK8sJob(ctx context.Context, existingK8sRes unstructur
 		if err := r.deleteK8sResource(ctx, existingRes, namespace); err != nil {
 			return errors.Wrap(err, "failed to update k8s resource")
 		}
-		if err := r.createK8sResource(ctx, templatek8sRes, k8sResConfig, newLabels, newAnnotations, ownerReferences); err != nil {
+		if err := r.createK8sResource(ctx, templatek8sRes, k8sResConfig, newLabels, newAnnotations, ownerReferences, optionalFields); err != nil {
 			return errors.Wrap(err, "failed to update k8s resource")
 		}
 	}
@@ -1258,7 +1264,7 @@ func (r *Reconciler) updateK8sJob(ctx context.Context, existingK8sRes unstructur
 }
 
 // update route resource
-func (r *Reconciler) updateK8sRoute(ctx context.Context, existingK8sRes unstructured.Unstructured, k8sResConfig *runtime.RawExtension, newLabels, newAnnotations map[string]string, ownerReferences *[]operatorv1alpha1.OwnerReference) error {
+func (r *Reconciler) updateK8sRoute(ctx context.Context, existingK8sRes unstructured.Unstructured, k8sResConfig *runtime.RawExtension, newLabels, newAnnotations map[string]string, ownerReferences *[]operatorv1alpha1.OwnerReference, optionalFields *[]operatorv1alpha1.OptionalField) error {
 	kind := existingK8sRes.GetKind()
 	apiversion := existingK8sRes.GetAPIVersion()
 	name := existingK8sRes.GetName()
@@ -1309,7 +1315,7 @@ func (r *Reconciler) updateK8sRoute(ctx context.Context, existingK8sRes unstruct
 				if err := r.deleteK8sResource(ctx, existingRes, namespace); err != nil {
 					return errors.Wrap(err, "failed to delete Route for recreation")
 				}
-				if err := r.createK8sResource(ctx, templatek8sRes, k8sResConfig, newLabels, newAnnotations, ownerReferences); err != nil {
+				if err := r.createK8sResource(ctx, templatek8sRes, k8sResConfig, newLabels, newAnnotations, ownerReferences, optionalFields); err != nil {
 					return errors.Wrap(err, "failed to update k8s resource")
 				}
 			}
@@ -1509,6 +1515,84 @@ func (r *Reconciler) setOwnerReferences(ctx context.Context, controlledRes *unst
 		}
 	}
 	return nil
+}
+
+func (r *Reconciler) ExecuteOptionalFields(ctx context.Context, resTemplate *unstructured.Unstructured, optionalFields *[]operatorv1alpha1.OptionalField) error {
+	if optionalFields != nil {
+		for _, field := range *optionalFields {
+			// Find the path from resTemplate
+			if value, err := util.SanitizeObjectString(field.Path, resTemplate.Object); err != nil || value == "" {
+				klog.Warningf("Skipping execute optional field, not find the path %s in the object -- Kind: %s, NamespacedName: %s/%s: %v", field.Path, resTemplate.GetKind(), resTemplate.GetNamespace(), resTemplate.GetName(), err)
+				continue
+			}
+			// Find the match expressions
+			if field.MatchExpressions != nil {
+				if !r.findMatchExpressions(ctx, field.MatchExpressions) {
+					klog.Infof("Skip operation '%s' for optional fields: %v for %s %s/%s", field.Operation, field.Path, resTemplate.GetKind(), resTemplate.GetNamespace(), resTemplate.GetName())
+					continue
+				}
+			}
+			// Do operation
+			switch field.Operation {
+			case operatorv1alpha1.OperationRemove:
+				util.RemoveObjectField(resTemplate.Object, field.Path)
+			// case "Add": # TODO
+			default:
+				klog.Warningf("Invalid operation '%s' in optional fields: %v", field.Operation, field)
+			}
+		}
+	}
+	return nil
+}
+
+func (r *Reconciler) findMatchExpressions(ctx context.Context, matchExpressions []operatorv1alpha1.MatchExpression) bool {
+	isMatch := false
+	for _, matchExpression := range matchExpressions {
+		if matchExpression.Key == "" || matchExpression.Operator == "" || matchExpression.ObjectRef == nil {
+			klog.Warningf("Invalid matchExpression: %v", matchExpression)
+			continue
+		}
+		// find value from the object
+		objRef := &unstructured.Unstructured{}
+		objRef.SetAPIVersion(matchExpression.ObjectRef.APIVersion)
+		objRef.SetKind(matchExpression.ObjectRef.Kind)
+		objRef.SetName(matchExpression.ObjectRef.Name)
+		if err := r.Reader.Get(ctx, types.NamespacedName{
+			Name:      matchExpression.ObjectRef.Name,
+			Namespace: matchExpression.ObjectRef.Namespace,
+		}, objRef); err != nil {
+			klog.Warningf("Failed to get the object %v in match expressions: %v", matchExpression.ObjectRef, err)
+			continue
+		}
+		value, _ := util.SanitizeObjectString(matchExpression.Key, objRef.Object)
+
+		switch matchExpression.Operator {
+		case operatorv1alpha1.OperatorIn:
+			if util.Contains(matchExpression.Values, value) {
+				return true
+			}
+		case operatorv1alpha1.OperatorNotIn:
+			if util.Contains(matchExpression.Values, value) {
+				return false
+			} else {
+				isMatch = true
+			}
+		case operatorv1alpha1.OperatorExists:
+			if value != "" {
+				return true
+			}
+		case operatorv1alpha1.OperatorDoesNotExist:
+			if value != "" {
+				return false
+			} else {
+				isMatch = true
+			}
+		default:
+			klog.Warningf("Invalid operator %s in match expressions: %v", matchExpression.Operator, matchExpression)
+		}
+	}
+
+	return isMatch
 }
 
 func (r *Reconciler) ServiceStatusIsReady(ctx context.Context, requestInstance *operatorv1alpha1.OperandRequest) (bool, error) {

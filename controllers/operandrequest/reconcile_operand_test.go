@@ -20,6 +20,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -115,4 +116,172 @@ func TestSetOwnerReferences(t *testing.T) {
 		},
 	}
 	assert.Equal(t, expectedOwnerReferences, controlledRes.GetOwnerReferences())
+}
+func TestFindMatchExpressions(t *testing.T) {
+	// Create a fake client
+	client := fake.NewClientBuilder().Build()
+
+	// Create a mock reader
+	reader := &MockReader{}
+
+	// Create a reconciler instance
+	r := &Reconciler{
+		ODLMOperator: &deploy.ODLMOperator{
+			Client: client,
+			Reader: reader,
+		},
+	}
+
+	// Define test cases
+	tests := []struct {
+		name             string
+		matchExpressions []operatorv1alpha1.MatchExpression
+		expectedResult   bool
+		mockGetError     error
+		mockGetValue     string
+	}{
+		{
+			name: "Valid In operator",
+			matchExpressions: []operatorv1alpha1.MatchExpression{
+				{
+					Key:      ".spec.replicas",
+					Operator: operatorv1alpha1.OperatorIn,
+					Values:   []string{"3", "4"},
+					ObjectRef: &operatorv1alpha1.ObjectRef{
+						APIVersion: "apps/v1",
+						Kind:       "Deployment",
+						Name:       "test-deployment",
+						Namespace:  "test-namespace",
+					},
+				},
+			},
+			expectedResult: true,
+			mockGetValue:   "3",
+		},
+		{
+			name: "Valid NotIn operator",
+			matchExpressions: []operatorv1alpha1.MatchExpression{
+				{
+					Key:      ".spec.replicas",
+					Operator: operatorv1alpha1.OperatorNotIn,
+					Values:   []string{"4", "5"},
+					ObjectRef: &operatorv1alpha1.ObjectRef{
+						APIVersion: "apps/v1",
+						Kind:       "Deployment",
+						Name:       "test-deployment",
+						Namespace:  "test-namespace",
+					},
+				},
+			},
+			expectedResult: true,
+			mockGetValue:   "3",
+		},
+		{
+			name: "Valid Exists operator",
+			matchExpressions: []operatorv1alpha1.MatchExpression{
+				{
+					Key:      ".spec.replicas",
+					Operator: operatorv1alpha1.OperatorExists,
+					ObjectRef: &operatorv1alpha1.ObjectRef{
+						APIVersion: "apps/v1",
+						Kind:       "Deployment",
+						Name:       "test-deployment",
+						Namespace:  "test-namespace",
+					},
+				},
+			},
+			expectedResult: true,
+			mockGetValue:   "1",
+		},
+		{
+			name: "Valid DoesNotExist operator",
+			matchExpressions: []operatorv1alpha1.MatchExpression{
+				{
+					Key:      ".spec.replicas",
+					Operator: operatorv1alpha1.OperatorDoesNotExist,
+					ObjectRef: &operatorv1alpha1.ObjectRef{
+						APIVersion: "apps/v1",
+						Kind:       "Deployment",
+						Name:       "test-deployment",
+						Namespace:  "test-namespace",
+					},
+				},
+			},
+			expectedResult: false,
+			mockGetValue:   "1",
+		},
+		{
+			name: "Valid DoesNotExist operator with non-exist parh .spec.replica",
+			matchExpressions: []operatorv1alpha1.MatchExpression{
+				{
+					Key:      ".spec.replica",
+					Operator: operatorv1alpha1.OperatorDoesNotExist,
+					ObjectRef: &operatorv1alpha1.ObjectRef{
+						APIVersion: "apps/v1",
+						Kind:       "Deployment",
+						Name:       "test-deployment",
+						Namespace:  "test-namespace",
+					},
+				},
+			},
+			expectedResult: true,
+			mockGetValue:   "",
+		},
+		{
+			name: "Invalid match expression",
+			matchExpressions: []operatorv1alpha1.MatchExpression{
+				{
+					Key:      "",
+					Operator: "In",
+					Values:   []string{"3"},
+					ObjectRef: &operatorv1alpha1.ObjectRef{
+						APIVersion: "apps/v1",
+						Kind:       "Deployment",
+						Name:       "test-deployment",
+						Namespace:  "test-namespace",
+					},
+				},
+			},
+			expectedResult: false,
+		},
+		{
+			name: "Failed to get object with path .spec.replica",
+			matchExpressions: []operatorv1alpha1.MatchExpression{
+				{
+					Key:      ".spec.replica",
+					Operator: operatorv1alpha1.OperatorIn,
+					Values:   []string{"3"},
+					ObjectRef: &operatorv1alpha1.ObjectRef{
+						APIVersion: "apps/v1",
+						Kind:       "Deployment",
+						Name:       "test-deployment",
+						Namespace:  "test-namespace",
+					},
+				},
+			},
+			expectedResult: false,
+			mockGetError:   errors.New("failed to get object"),
+			mockGetValue:   "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Mock the Get method of the reader
+			reader.On("Get", mock.Anything, types.NamespacedName{Name: "test-deployment", Namespace: "test-namespace"}, mock.AnythingOfType("*unstructured.Unstructured")).Return(tt.mockGetError).Run(func(args mock.Arguments) {
+				if tt.mockGetError == nil {
+					obj := args.Get(2).(*unstructured.Unstructured)
+					obj.Object["spec"] = map[string]interface{}{
+						"replicas": tt.mockGetValue,
+					}
+				}
+			})
+
+			// Call the findMatchExpressions function
+			result := r.findMatchExpressions(context.Background(), tt.matchExpressions)
+
+			// Assert the result
+			assert.Equal(t, tt.expectedResult, result)
+		})
+	}
 }

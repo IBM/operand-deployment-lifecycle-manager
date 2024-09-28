@@ -436,3 +436,92 @@ func FindMinSemverFromAnnotations(annotations map[string]string, curChannel stri
 	semverlList, semVerChannelMappings := FindSemverFromAnnotations(annotations)
 	return FindMinSemver(curChannel, semverlList, semVerChannelMappings)
 }
+
+// RemoveObjectField removes the field from the object according to the jsonPath
+// jsonPath is a string that represents the path to the field in the object, always starts with "."
+func RemoveObjectField(obj interface{}, jsonPath string) {
+	// Remove the first dot in the beginning of the jsonPath
+	jsonPath = strings.TrimPrefix(jsonPath, ".")
+	fields := strings.Split(jsonPath, ".")
+
+	// Check if the object is a map
+	if objMap, ok := obj.(map[string]interface{}); ok {
+		removeField(objMap, fields)
+	}
+}
+
+// removeField removes the field from the object according to the jsonPath
+func removeField(obj map[string]interface{}, fields []string) {
+	// Check if fields is in the format of one item in the list. For example "container[0]"
+	if strings.Contains(fields[0], "[") {
+		// Get the field name and the index
+		field := strings.Split(fields[0], "[")[0]
+		index, _ := strconv.Atoi(strings.TrimSuffix(strings.TrimPrefix(fields[0], field+"["), "]"))
+		// Check if the field is a list
+		if _, ok := obj[field].([]interface{}); !ok {
+			return
+		}
+		// Check if the index is out of range
+		if index >= len(obj[field].([]interface{})) {
+			return
+		}
+		// Remove the value from the list
+		removeField(obj[field].([]interface{})[index].(map[string]interface{}), fields[1:])
+		return
+	}
+	// Check if the field is the last field in the list
+	if len(fields) == 1 {
+		delete(obj, fields[0])
+		return
+	}
+	// Check if the field is a map
+	if _, ok := obj[fields[0]].(map[string]interface{}); !ok {
+		return
+	}
+	// Remove the value from the map
+	removeField(obj[fields[0]].(map[string]interface{}), fields[1:])
+}
+
+// AddObjectField adds the field to the object according to the jsonPath
+// jsonPath is a string that represents the path to the field in the object, always starts with "."
+func AddObjectField(obj interface{}, jsonPath string, value interface{}) {
+	// Remove the first dot in the beginning of the jsonPath if it exists
+	jsonPath = strings.TrimPrefix(jsonPath, ".")
+	fields := strings.Split(jsonPath, ".")
+
+	// Check if the object is a map
+	if objMap, ok := obj.(map[string]interface{}); ok {
+		addField(objMap, fields, value)
+	}
+}
+
+func addField(obj map[string]interface{}, fields []string, value interface{}) {
+	// Check if fields is in the format of one item in the list. For example "container[0]"
+	if strings.Contains(fields[0], "[") {
+		// Get the field name and the index
+		field := strings.Split(fields[0], "[")[0]
+		index, _ := strconv.Atoi(strings.TrimSuffix(strings.TrimPrefix(fields[0], field+"["), "]"))
+		// Check if the field is a list
+		if _, ok := obj[field].([]interface{}); !ok {
+			obj[field] = make([]interface{}, 0)
+		}
+		// Check if the index is out of range
+		if index >= len(obj[field].([]interface{})) {
+			obj[field] = append(obj[field].([]interface{}), make(map[string]interface{}))
+		}
+		// Add the value to the list
+		addField(obj[field].([]interface{})[index].(map[string]interface{}), fields[1:], value)
+		return
+	}
+	// Check if the field is the last field in the list
+	if len(fields) == 1 {
+		obj[fields[0]] = value
+		return
+	}
+	// Check if the field is a map
+	if _, ok := obj[fields[0]].(map[string]interface{}); !ok {
+		obj[fields[0]] = make(map[string]interface{})
+	}
+	// Add the value to the map
+	addField(obj[fields[0]].(map[string]interface{}), fields[1:], value)
+}

@@ -109,6 +109,106 @@ spec:
                           namespace:
                             description: Namespace is the namespace of the resource.
                             type: string
+                          optionalFields:
+                            description: OptionalFields is the list of fields that
+                              could be updated additionally.
+                            items:
+                              description: OptionalField defines the optional field
+                                for the resource.
+                              properties:
+                                matchExpressions:
+                                  description: MatchExpressions is the match expression
+                                    of the field.
+                                  items:
+                                    description: MatchExpression defines the match
+                                      expression of the field.
+                                    properties:
+                                      key:
+                                        description: Key is the key of the field.
+                                        type: string
+                                      objectRef:
+                                        description: ObjectRef is the reference of
+                                          the object.
+                                        properties:
+                                          apiVersion:
+                                            description: APIVersion is the version
+                                              of the object.
+                                            type: string
+                                          kind:
+                                            description: Kind is the kind of the object.
+                                            type: string
+                                          name:
+                                            description: Name is the name of the object.
+                                            type: string
+                                          namespace:
+                                            description: Namespace is the namespace
+                                              of the object.
+                                            type: string
+                                        required:
+                                        - apiVersion
+                                        - kind
+                                        - name
+                                        type: object
+                                      operator:
+                                        description: Operator is the operator of the
+                                          field.
+                                        type: string
+                                      values:
+                                        description: Values is the values of the field.
+                                        items:
+                                          type: string
+                                        type: array
+                                    required:
+                                    - key
+                                    - operator
+                                    type: object
+                                    x-kubernetes-preserve-unknown-fields: true
+                                  type: array
+                                operation:
+                                  description: Operation is the operation of the field.
+                                  type: string
+                                path:
+                                  description: Path is the json path of the field.
+                                  type: string
+                                valueFrom:
+                                  description: ValueFrom is the field value from the
+                                    object
+                                  properties:
+                                    objectRef:
+                                      description: ObjectRef is the reference of the
+                                        object.
+                                      properties:
+                                        apiVersion:
+                                          description: APIVersion is the version of
+                                            the object.
+                                          type: string
+                                        kind:
+                                          description: Kind is the kind of the object.
+                                          type: string
+                                        name:
+                                          description: Name is the name of the object.
+                                          type: string
+                                        namespace:
+                                          description: Namespace is the namespace
+                                            of the object.
+                                          type: string
+                                      required:
+                                      - apiVersion
+                                      - kind
+                                      - name
+                                      type: object
+                                    path:
+                                      description: Path is the json path of the field.
+                                      type: string
+                                  required:
+                                  - path
+                                  type: object
+                              required:
+                              - operation
+                              - path
+                              type: object
+                              x-kubernetes-preserve-unknown-fields: true
+                            type: array
                           ownerReferences:
                             description: OwnerReferences is the list of owner references.
                             items:
