@@ -29,6 +29,7 @@ import (
 	"sync"
 	"time"
 
+	constant "github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/constant"
 	ocproute "github.com/openshift/api/route/v1"
 	"golang.org/x/mod/semver"
 	corev1 "k8s.io/api/core/v1"
@@ -154,12 +155,37 @@ func StringSliceContentEqual(a, b []string) bool {
 	return true
 }
 
-func CalculateHash(input string) string {
-	if input == "" {
+// CalculateHash calculates the hash value for single resource
+func CalculateHash(input []byte) string {
+	if len(input) == 0 {
 		return ""
 	}
-	hashedData := sha256.Sum256([]byte(input))
+	hashedData := sha256.Sum256(input)
 	return hex.EncodeToString(hashedData[:7])
+}
+
+// CalculateResHashes calculates the hash for the existing cluster resource and the new template resource
+func CalculateResHashes(fromCluster *unstructured.Unstructured, fromTemplate []byte) (string, string) {
+	templateHash := CalculateHash(fromTemplate)
+
+	if fromCluster != nil {
+		clusterAnnos := fromCluster.GetAnnotations()
+		clusterHash := ""
+		if clusterAnnos != nil {
+			clusterHash = clusterAnnos[constant.K8sHashedData]
+		}
+		return clusterHash, templateHash
+	}
+	return "", templateHash
+}
+
+// SetHashAnnotation sets the hash annotation in the object
+func AddHashAnnotation(obj *unstructured.Unstructured, key, hash string, newAnnotations map[string]string) map[string]string {
+	if newAnnotations == nil {
+		newAnnotations = make(map[string]string)
+	}
+	newAnnotations[key] = hash
+	return newAnnotations
 }
 
 // WaitTimeout waits for the waitgroup for the specified max timeout.
