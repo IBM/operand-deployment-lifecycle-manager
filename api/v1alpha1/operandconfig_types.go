@@ -79,6 +79,61 @@ type ConfigResource struct {
 	// OwnerReferences is the list of owner references.
 	// +optional
 	OwnerReferences []OwnerReference `json:"ownerReferences,omitempty"`
+	// OptionalFields is the list of fields that could be updated additionally.
+	// +optional
+	OptionalFields []OptionalField `json:"optionalFields,omitempty"`
+}
+
+// +kubebuilder:pruning:PreserveUnknownFields
+// OptionalField defines the optional field for the resource.
+type OptionalField struct {
+	// Path is the json path of the field.
+	Path string `json:"path"`
+	// Operation is the operation of the field.
+	Operation Operation `json:"operation"`
+	// MatchExpressions is the match expression of the field.
+	// +optional
+	MatchExpressions []MatchExpression `json:"matchExpressions,omitempty"`
+	// ValueFrom is the field value from the object
+	// +optional
+	ValueFrom *ValueFrom `json:"valueFrom,omitempty"`
+}
+
+// +kubebuilder:pruning:PreserveUnknownFields
+// MatchExpression defines the match expression of the field.
+type MatchExpression struct {
+	// Key is the key of the field.
+	Key string `json:"key"`
+	// Operator is the operator of the field.
+	Operator ExpressionOperator `json:"operator"`
+	// Values is the values of the field.
+	// +optional
+	Values []string `json:"values"`
+	// ObjectRef is the reference of the object.
+	// +optional
+	ObjectRef *ObjectRef `json:"objectRef,omitempty"`
+}
+
+// ObjectRef defines the reference of the object.
+type ObjectRef struct {
+	// APIVersion is the version of the object.
+	APIVersion string `json:"apiVersion"`
+	// Kind is the kind of the object.
+	Kind string `json:"kind"`
+	// Name is the name of the object.
+	Name string `json:"name"`
+	// Namespace is the namespace of the object.
+	// +optional
+	Namespace string `json:"namespace"`
+}
+
+// ValueFrom defines the field value from the object.
+type ValueFrom struct {
+	// Path is the json path of the field.
+	Path string `json:"path"`
+	// ObjectRef is the reference of the object.
+	// +optional
+	ObjectRef *ObjectRef `json:"objectRef,omitempty"`
 }
 
 type OwnerReference struct {
@@ -159,6 +214,26 @@ const (
 	ServiceCreating ServicePhase = "Creating"
 	ServiceNotFound ServicePhase = "Not Found"
 	ServiceNone     ServicePhase = ""
+)
+
+// Operation defines the operation of the field.
+type Operation string
+
+// Operation type.
+const (
+	OperationAdd    Operation = "add"
+	OperationRemove Operation = "remove"
+)
+
+// Operator defines the operator type.
+type ExpressionOperator string
+
+// Operator type.
+const (
+	OperatorIn           ExpressionOperator = "In"
+	OperatorNotIn        ExpressionOperator = "NotIn"
+	OperatorExists       ExpressionOperator = "Exists"
+	OperatorDoesNotExist ExpressionOperator = "DoesNotExist"
 )
 
 // GetService obtains the service definition with the operand name.

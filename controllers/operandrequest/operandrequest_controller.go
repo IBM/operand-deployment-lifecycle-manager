@@ -63,6 +63,7 @@ type clusterObjects struct {
 
 //+kubebuilder:rbac:groups=operator.ibm.com,resources=certmanagers;auditloggings,verbs=get;delete
 //+kubebuilder:rbac:groups=operators.coreos.com,resources=catalogsources,verbs=get
+//+kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get
 
 //+kubebuilder:rbac:groups=*,namespace="placeholder",resources=*,verbs=create;delete;get;list;patch;update;watch
 //+kubebuilder:rbac:groups=operator.ibm.com,namespace="placeholder",resources=operandrequests;operandrequests/status;operandrequests/finalizers,verbs=get;list;watch;create;update;patch;delete
