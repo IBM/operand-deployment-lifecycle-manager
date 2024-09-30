@@ -108,7 +108,7 @@ type MatchExpression struct {
 	Operator ExpressionOperator `json:"operator"`
 	// Values is the values of the field.
 	// +optional
-	Values []string `json:"values"`
+	Values []string `json:"values,omitempty"`
 	// ObjectRef is the reference of the object.
 	// +optional
 	ObjectRef *ObjectRef `json:"objectRef,omitempty"`
