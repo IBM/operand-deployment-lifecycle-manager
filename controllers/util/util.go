@@ -29,7 +29,6 @@ import (
 	"sync"
 	"time"
 
-	constant "github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/constant"
 	ocproute "github.com/openshift/api/route/v1"
 	"golang.org/x/mod/semver"
 	corev1 "k8s.io/api/core/v1"
@@ -38,6 +37,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/util/jsonpath"
+
+	constant "github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/constant"
 )
 
 type TemplateValueRef struct {

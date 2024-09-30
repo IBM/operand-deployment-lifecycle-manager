@@ -1140,6 +1140,8 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 				for k, v := range k8sResConfigDecoded {
 					existingRes.Object[k] = v
 				}
+				newAnnotations = util.AddHashAnnotation(&existingRes, constant.K8sHashedData, templateHash, newAnnotations)
+
 			} else {
 				// If the hash number are the same, then do the deep merge
 				// Merge the existing CR and the CR from the OperandConfig

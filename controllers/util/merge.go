@@ -59,9 +59,6 @@ func MergeCR(defaultCR, changedCR []byte) map[string]interface{} {
 		checkKeyBeforeMerging(key, defaultCRDecoded[key], changedCRDecoded[key], changedCRDecoded)
 	}
 
-	// Ensure labels and annotations are merged as well
-	mergeMetadata(defaultCRDecoded, changedCRDecoded)
-
 	return changedCRDecoded
 }
 
@@ -100,36 +97,6 @@ func checkKeyBeforeMerging(key string, defaultMap interface{}, changedMap interf
 			if changedMap == nil {
 				finalMap[key] = defaultMap
 			}
-		}
-	}
-}
-
-// Helper function to merge metadata like labels and annotations
-func mergeMetadata(defaultCRDecoded, changedCRDecoded map[string]interface{}) {
-	// Handle metadata section
-	if defaultMeta, ok := defaultCRDecoded["metadata"].(map[string]interface{}); ok {
-		if changedMeta, ok := changedCRDecoded["metadata"].(map[string]interface{}); ok {
-			// Merge labels
-			if defaultLabels, ok := defaultMeta["labels"].(map[string]interface{}); ok {
-				if changedLabels, ok := changedMeta["labels"].(map[string]interface{}); ok {
-					for key, value := range defaultLabels {
-						changedLabels[key] = value
-					}
-				} else {
-					changedMeta["labels"] = defaultLabels
-				}
-			}
-			if defaultAnnotations, ok := defaultMeta["annotations"].(map[string]interface{}); ok {
-				if changedAnnotations, ok := changedMeta["annotations"].(map[string]interface{}); ok {
-					for key, value := range defaultAnnotations {
-						changedAnnotations[key] = value
-					}
-				} else {
-					changedMeta["annotations"] = defaultAnnotations
-				}
-			}
-		} else {
-			changedCRDecoded["metadata"] = defaultMeta
 		}
 	}
 }
