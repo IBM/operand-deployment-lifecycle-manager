@@ -29,6 +29,7 @@ func MergeCR(defaultCR, changedCR []byte) map[string]interface{} {
 		return make(map[string]interface{})
 	}
 
+	// Handle when only one CR is provided
 	defaultCRDecoded := make(map[string]interface{})
 	changedCRDecoded := make(map[string]interface{})
 	if len(defaultCR) != 0 && len(changedCR) == 0 {
@@ -52,9 +53,12 @@ func MergeCR(defaultCR, changedCR []byte) map[string]interface{} {
 	if changedCRUnmarshalErr != nil {
 		klog.Errorf("failed to unmarshal service spec: %v", changedCRUnmarshalErr)
 	}
+
+	// Merge both specs
 	for key := range defaultCRDecoded {
 		checkKeyBeforeMerging(key, defaultCRDecoded[key], changedCRDecoded[key], changedCRDecoded)
 	}
+
 	return changedCRDecoded
 }
 

@@ -1014,14 +1014,26 @@ func (r *Reconciler) createK8sResource(ctx context.Context, k8sResTemplate unstr
 			k8sResTemplate.Object[k] = v
 		}
 
+		k8sResConfigBytes, err := json.Marshal(k8sResConfigDecoded)
+		if err != nil {
+			return errors.Wrap(err, "failed to marshal k8sResConfigDecoded")
+		}
+
+		// Caculate the hash number of the new created template
+		_, templateHash := util.CalculateResHashes(nil, k8sResConfigBytes)
+
+		newAnnotations = util.AddHashAnnotation(&k8sResTemplate, constant.K8sHashedData, templateHash, newAnnotations)
+
 		if kind == "Route" {
 			if host, found := k8sResConfigDecoded["spec"].(map[string]interface{})["host"].(string); found {
-				hostHash := util.CalculateHash(host)
+				hostHash := util.CalculateHash([]byte(host))
 
-				if newAnnotations == nil {
-					newAnnotations = make(map[string]string)
-				}
-				newAnnotations["operator.ibm.com/odlm.route.hashedData"] = hostHash
+				// if newAnnotations == nil {
+				// 	newAnnotations = make(map[string]string)
+				// }
+				// newAnnotations[constant.RouteHash] = hostHash
+				newAnnotations = util.AddHashAnnotation(&k8sResTemplate, constant.RouteHash, hostHash, newAnnotations)
+
 			} else {
 				klog.Warningf("spec.host not found in Route %s/%s", namespace, name)
 			}
@@ -1064,6 +1076,7 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 			return errors.Wrap(err, "failed to update Route")
 		}
 
+		// update the annotations of the Route host if the host is changed
 		if k8sResConfig != nil {
 			k8sResConfigDecoded := make(map[string]interface{})
 			if k8sResConfigUnmarshalErr := json.Unmarshal(k8sResConfig.Raw, &k8sResConfigDecoded); k8sResConfigUnmarshalErr != nil {
@@ -1071,22 +1084,22 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 			}
 
 			if host, found := k8sResConfigDecoded["spec"].(map[string]interface{})["host"].(string); found {
-				hostHash := util.CalculateHash(host)
+				hostHash := util.CalculateHash([]byte(host))
 
 				if newAnnotations == nil {
 					newAnnotations = make(map[string]string)
 				}
-				newAnnotations["operator.ibm.com/odlm.route.hashedData"] = hostHash
+				newAnnotations[constant.RouteHash] = hostHash
 			} else {
 				klog.Warningf("spec.host not found in Route %s/%s", namespace, name)
 			}
 		}
 	}
 
-	// Update the k8s res
+	// Update the k8s resource
 	err := wait.PollImmediate(constant.DefaultCRFetchPeriod, constant.DefaultCRFetchTimeout, func() (bool, error) {
 
-		existingK8sRes := unstructured.Unstructured{
+		existingRes := unstructured.Unstructured{
 			Object: map[string]interface{}{
 				"apiVersion": apiversion,
 				"kind":       kind,
@@ -1096,40 +1109,56 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 		err := r.Client.Get(ctx, types.NamespacedName{
 			Name:      name,
 			Namespace: namespace,
-		}, &existingK8sRes)
-
+		}, &existingRes)
 		if err != nil {
 			return false, errors.Wrapf(err, "failed to get k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 		}
+		resourceVersion := existingRes.GetResourceVersion()
 
-		if !r.CheckLabel(existingK8sRes, map[string]string{constant.OpreqLabel: "true"}) && (newLabels == nil || newLabels[constant.OpreqLabel] != "true") {
+		if !r.CheckLabel(existingRes, map[string]string{constant.OpreqLabel: "true"}) && (newLabels == nil || newLabels[constant.OpreqLabel] != "true") {
 			return true, nil
 		}
 
 		if k8sResConfig != nil {
 
 			// Convert existing k8s resource to string
-			existingK8sResRaw, err := json.Marshal(existingK8sRes.Object)
+			existingResRaw, err := json.Marshal(existingRes.Object)
 			if err != nil {
 				return false, errors.Wrapf(err, "failed to marshal existing k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 			}
 
-			// Merge the existing CR and the CR from the OperandConfig
-			updatedExistingK8sRes := util.MergeCR(existingK8sResRaw, k8sResConfig.Raw)
-			// Update the existing k8s resource with the merged CR
-			existingK8sRes.Object = updatedExistingK8sRes
+			// Caculate the hash number of the new created template
+			existingHash, templateHash := util.CalculateResHashes(&existingRes, k8sResConfig.Raw)
 
-			r.EnsureAnnotation(existingK8sRes, newAnnotations)
-			r.EnsureLabel(existingK8sRes, newLabels)
-			if err := r.setOwnerReferences(ctx, &existingK8sRes, ownerReferences); err != nil {
+			// If the hash number of the existing k8s resource is different from the hash number of template, update the k8s resource
+			if existingHash != templateHash {
+				k8sResConfigDecoded := make(map[string]interface{})
+				k8sResConfigUnmarshalErr := json.Unmarshal(k8sResConfig.Raw, &k8sResConfigDecoded)
+				if k8sResConfigUnmarshalErr != nil {
+					klog.Errorf("failed to unmarshal k8s Resource Config: %v", k8sResConfigUnmarshalErr)
+				}
+				for k, v := range k8sResConfigDecoded {
+					existingRes.Object[k] = v
+				}
+				newAnnotations = util.AddHashAnnotation(&existingRes, constant.K8sHashedData, templateHash, newAnnotations)
+
+			} else {
+				// If the hash number are the same, then do the deep merge
+				// Merge the existing CR and the CR from the OperandConfig
+				updatedExistingRes := util.MergeCR(existingResRaw, k8sResConfig.Raw)
+				// Update the existing k8s resource with the merged CR
+				existingRes.Object = updatedExistingRes
+			}
+
+			r.EnsureAnnotation(existingRes, newAnnotations)
+			r.EnsureLabel(existingRes, newLabels)
+			if err := r.setOwnerReferences(ctx, &existingRes, ownerReferences); err != nil {
 				return false, errors.Wrapf(err, "failed to set ownerReferences for k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 			}
 
 			klog.Infof("updating k8s resource with apiversion: %s, kind: %s, %s/%s", apiversion, kind, namespace, name)
 
-			resourceVersion := existingK8sRes.GetResourceVersion()
-			err = r.Update(ctx, &existingK8sRes)
-
+			err = r.Update(ctx, &existingRes)
 			if err != nil {
 				return false, errors.Wrapf(err, "failed to update k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 			}
@@ -1156,6 +1185,7 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 			} else {
 				klog.Infof("No updates on k8s resource with apiversion: %s, kind: %s, %s/%s", apiversion, kind, namespace, name)
 			}
+
 		}
 		return true, nil
 	})
@@ -1253,7 +1283,7 @@ func (r *Reconciler) updateK8sRoute(ctx context.Context, existingK8sRes unstruct
 	}
 
 	existingAnnos := existingRes.GetAnnotations()
-	existingHostHash := existingAnnos["operator.ibm.com/odlm.route.hashedData"]
+	existingHostHash := existingAnnos[constant.RouteHash]
 
 	if k8sResConfig != nil {
 		k8sResConfigDecoded := make(map[string]interface{})
@@ -1264,7 +1294,7 @@ func (r *Reconciler) updateK8sRoute(ctx context.Context, existingK8sRes unstruct
 
 		// Read the host from the OperandConfig
 		if newHost, found := k8sResConfigDecoded["spec"].(map[string]interface{})["host"].(string); found {
-			newHostHash := util.CalculateHash(newHost)
+			newHostHash := util.CalculateHash([]byte(newHost))
 
 			// Only re-create the route if the custom host has been removed
 			if newHost == "" && existingHostHash != newHostHash {

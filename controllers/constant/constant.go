@@ -64,6 +64,12 @@ const (
 	//HashedData is the key for checking the checksum of data section
 	HashedData string = "hashedData"
 
+	//HashedData is the key for k8s Resource
+	K8sHashedData string = "operator.ibm.com/operand-depoyment-lifecycle-manager.hashedData"
+
+	//RouteHash is the key for hash value of route
+	RouteHash string = "operator.ibm.com/odlm.route.hashedData"
+
 	//DefaultRequestTimeout is the default timeout for kube request
 	DefaultRequestTimeout = 5 * time.Second
 
