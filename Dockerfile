@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM docker.io/golang:1.23.1-bullseye as builder
+FROM docker.io/golang:1.23.0-bullseye as builder
 ARG GOARCH
 
 WORKDIR /workspace
