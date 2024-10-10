@@ -835,11 +835,11 @@ func (m *ODLMOperator) GetValueRefFromConfigMap(ctx context.Context, instanceTyp
 		}
 		return "", errors.Wrapf(err, "failed to get Configmap %s/%s", cmNs, cmName)
 	}
-	labelvalue := instanceType + "." + instanceNs + "." + instanceName
-	labelvalue = util.GetFirstNCharacter(labelvalue, 63)
+	labelValue := instanceType + "." + instanceNs + "." + instanceName
+	labelValue = util.GetFirstNCharacter(labelValue, 63)
 	// Set the Value Reference label for the ConfigMap
 	util.EnsureLabelsForConfigMap(cm, map[string]string{
-		constant.ODLMReferenceLabel: labelvalue,
+		constant.ODLMReferenceLabel: labelValue,
 		constant.ODLMWatchedLabel:   "true",
 	})
 	// Update the ConfigMap with the Value Reference label
