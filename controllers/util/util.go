@@ -525,3 +525,10 @@ func addField(obj map[string]interface{}, fields []string, value interface{}) {
 	// Add the value to the map
 	addField(obj[fields[0]].(map[string]interface{}), fields[1:], value)
 }
+
+func GetFirstNCharacter(str string, n int) string {
+	if n >= len(str) {
+		return str
+	}
+	return string(str[:n])
+}
