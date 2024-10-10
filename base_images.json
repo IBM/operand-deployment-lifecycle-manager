@@ -44,6 +44,6 @@
     "sourceImage": "ubi9-minimal",
     "sourceTag": "9.4-1227.1726694542",
     "destImage": "node-v20-ubi9-minimal",
-    "nodeVersion": "20.17.0"
+    "nodeVersion": "20.18.0"
   }
 ]
