@@ -322,11 +322,11 @@ func (r *Reconciler) getConfigToRequestMapper() handler.MapFunc {
 func (r *Reconciler) getReferenceToRequestMapper() handler.MapFunc {
 	ctx := context.Background()
 	return func(object client.Object) []ctrl.Request {
-		labels := object.GetLabels()
-		if labels == nil {
+		annotations := object.GetAnnotations()
+		if annotations == nil {
 			return []ctrl.Request{}
 		}
-		odlmReference, ok := labels[constant.ODLMReferenceLabel]
+		odlmReference, ok := annotations[constant.ODLMReferenceAnnotation]
 		if !ok {
 			return []ctrl.Request{}
 		}

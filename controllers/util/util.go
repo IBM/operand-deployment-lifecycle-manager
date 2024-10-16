@@ -302,11 +302,29 @@ func EnsureLabelsForSecret(secret *corev1.Secret, labels map[string]string) {
 	}
 }
 
+func EnsureAnnotationsForSecret(secret *corev1.Secret, annotatinos map[string]string) {
+	if secret.Annotations == nil {
+		secret.Annotations = make(map[string]string)
+	}
+	for k, v := range annotatinos {
+		secret.Annotations[k] = v
+	}
+}
+
 func EnsureLabelsForConfigMap(cm *corev1.ConfigMap, labels map[string]string) {
 	if cm.Labels == nil {
 		cm.Labels = make(map[string]string)
 	}
 	for k, v := range labels {
+		cm.Labels[k] = v
+	}
+}
+
+func EnsureAnnotationForConfigMap(cm *corev1.ConfigMap, annotations map[string]string) {
+	if cm.Annotations == nil {
+		cm.Annotations = make(map[string]string)
+	}
+	for k, v := range annotations {
 		cm.Labels[k] = v
 	}
 }

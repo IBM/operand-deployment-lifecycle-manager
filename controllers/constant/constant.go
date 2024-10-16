@@ -34,8 +34,8 @@ const (
 	//InternalOpreqLabel is the label used label the OperandRequest internally created by ODLM
 	OperandOnlyLabel string = "operator.ibm.com/operand-only"
 
-	//ODLMReferenceLabel is the label used to label the resources used for ODLM operand value reference
-	ODLMReferenceLabel string = "operator.ibm.com/referenced-by-odlm-resource"
+	//ODLMReferenceAnnotation is the annotation used to annotate the resources used for ODLM operand value reference
+	ODLMReferenceAnnotation string = "operator.ibm.com/referenced-by-odlm-resource"
 
 	//ODLMWatchedLabel is the label used to label the resources watched by ODLM for value reference
 	ODLMWatchedLabel string = "operator.ibm.com/watched-by-odlm"

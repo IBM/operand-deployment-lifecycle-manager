@@ -835,12 +835,14 @@ func (m *ODLMOperator) GetValueRefFromConfigMap(ctx context.Context, instanceTyp
 		}
 		return "", errors.Wrapf(err, "failed to get Configmap %s/%s", cmNs, cmName)
 	}
-	labelValue := instanceType + "." + instanceNs + "." + instanceName
-	labelValue = util.GetFirstNCharacter(labelValue, 63)
+
 	// Set the Value Reference label for the ConfigMap
 	util.EnsureLabelsForConfigMap(cm, map[string]string{
-		constant.ODLMReferenceLabel: labelValue,
-		constant.ODLMWatchedLabel:   "true",
+		constant.ODLMWatchedLabel: "true",
+	})
+	// Set the Value Reference Annotation for the ConfigMap
+	util.EnsureAnnotationForConfigMap(cm, map[string]string{
+		constant.ODLMReferenceAnnotation: instanceType + "." + instanceNs + "." + instanceName,
 	})
 	// Update the ConfigMap with the Value Reference label
 	if err := m.Update(ctx, cm); err != nil {
@@ -868,8 +870,11 @@ func (m *ODLMOperator) GetValueRefFromSecret(ctx context.Context, instanceType, 
 
 	// Set the Value Reference label for the Secret
 	util.EnsureLabelsForSecret(secret, map[string]string{
-		constant.ODLMReferenceLabel: instanceType + "." + instanceNs + "." + instanceName,
-		constant.ODLMWatchedLabel:   "true",
+		constant.ODLMWatchedLabel: "true",
+	})
+	// Set the Value Reference Annotation for the Secret
+	util.EnsureAnnotationsForSecret(secret, map[string]string{
+		constant.ODLMReferenceAnnotation: instanceType + "." + instanceNs + "." + instanceName,
 	})
 	// Update the Secret with the Value Reference label
 	if err := m.Update(ctx, secret); err != nil {
@@ -899,8 +904,11 @@ func (m *ODLMOperator) GetValueRefFromObject(ctx context.Context, instanceType, 
 
 	// Set the Value Reference label for the object
 	m.EnsureLabel(obj, map[string]string{
-		constant.ODLMReferenceLabel: instanceType + "." + instanceNs + "." + instanceName,
-		constant.ODLMWatchedLabel:   "true",
+		constant.ODLMWatchedLabel: "true",
+	})
+	// Set the Value Reference Annotation for the Secret
+	m.EnsureAnnotation(obj, map[string]string{
+		constant.ODLMReferenceAnnotation: instanceType + "." + instanceNs + "." + instanceName,
 	})
 	// Update the object with the Value Reference label
 	if err := m.Update(ctx, &obj); err != nil {
