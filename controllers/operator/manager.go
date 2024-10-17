@@ -473,22 +473,24 @@ func (m *ODLMOperator) GetClusterServiceVersionList(ctx context.Context, sub *ol
 
 	packageName := sub.Spec.Package
 	csvNamespace := sub.Namespace
+	labelKey := packageName + "." + csvNamespace
+	labelKey = util.GetFirstNCharacter(labelKey, 63)
 
 	// Get the ClusterServiceVersion list with label operators.coreos.com/packageName.csvNamespace=''
 	csvList := &olmv1alpha1.ClusterServiceVersionList{}
 	opts := []client.ListOption{
-		client.MatchingLabels{fmt.Sprintf("operators.coreos.com/%s.%s", packageName, csvNamespace): ""},
+		client.MatchingLabels{fmt.Sprintf("operators.coreos.com/%s", labelKey): ""},
 		client.InNamespace(csvNamespace),
 	}
 
 	if err := m.Reader.List(ctx, csvList, opts...); err != nil {
 		if apierrors.IsNotFound(err) || len(csvList.Items) == 0 {
-			klog.V(3).Infof("No ClusterServiceVersion found with label operators.coreos.com/%s.%s", packageName, csvNamespace)
+			klog.V(3).Infof("No ClusterServiceVersion found with label operators.coreos.com/%s", labelKey)
 			return nil, nil
 		}
-		return nil, errors.Wrapf(err, "failed to list ClusterServiceVersions with label operators.coreos.com/%s.%s", packageName, csvNamespace)
+		return nil, errors.Wrapf(err, "failed to list ClusterServiceVersions with label operators.coreos.com/%s", labelKey)
 	} else if len(csvList.Items) > 1 {
-		klog.Warningf("Multiple ClusterServiceVersions found with label operators.coreos.com/%s.%s", packageName, csvNamespace)
+		klog.Warningf("Multiple ClusterServiceVersions found with label operators.coreos.com/%s", labelKey)
 	}
 
 	var csvs []*olmv1alpha1.ClusterServiceVersion
@@ -836,8 +838,11 @@ func (m *ODLMOperator) GetValueRefFromConfigMap(ctx context.Context, instanceTyp
 
 	// Set the Value Reference label for the ConfigMap
 	util.EnsureLabelsForConfigMap(cm, map[string]string{
-		constant.ODLMReferenceLabel: instanceType + "." + instanceNs + "." + instanceName,
-		constant.ODLMWatchedLabel:   "true",
+		constant.ODLMWatchedLabel: "true",
+	})
+	// Set the Value Reference Annotation for the ConfigMap
+	util.EnsureAnnotationForConfigMap(cm, map[string]string{
+		constant.ODLMReferenceAnnotation: instanceType + "." + instanceNs + "." + instanceName,
 	})
 	// Update the ConfigMap with the Value Reference label
 	if err := m.Update(ctx, cm); err != nil {
@@ -865,8 +870,11 @@ func (m *ODLMOperator) GetValueRefFromSecret(ctx context.Context, instanceType, 
 
 	// Set the Value Reference label for the Secret
 	util.EnsureLabelsForSecret(secret, map[string]string{
-		constant.ODLMReferenceLabel: instanceType + "." + instanceNs + "." + instanceName,
-		constant.ODLMWatchedLabel:   "true",
+		constant.ODLMWatchedLabel: "true",
+	})
+	// Set the Value Reference Annotation for the Secret
+	util.EnsureAnnotationsForSecret(secret, map[string]string{
+		constant.ODLMReferenceAnnotation: instanceType + "." + instanceNs + "." + instanceName,
 	})
 	// Update the Secret with the Value Reference label
 	if err := m.Update(ctx, secret); err != nil {
@@ -896,8 +904,11 @@ func (m *ODLMOperator) GetValueRefFromObject(ctx context.Context, instanceType, 
 
 	// Set the Value Reference label for the object
 	m.EnsureLabel(obj, map[string]string{
-		constant.ODLMReferenceLabel: instanceType + "." + instanceNs + "." + instanceName,
-		constant.ODLMWatchedLabel:   "true",
+		constant.ODLMWatchedLabel: "true",
+	})
+	// Set the Value Reference Annotation for the Secret
+	m.EnsureAnnotation(obj, map[string]string{
+		constant.ODLMReferenceAnnotation: instanceType + "." + instanceNs + "." + instanceName,
 	})
 	// Update the object with the Value Reference label
 	if err := m.Update(ctx, &obj); err != nil {
