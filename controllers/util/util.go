@@ -325,7 +325,7 @@ func EnsureAnnotationForConfigMap(cm *corev1.ConfigMap, annotations map[string]s
 		cm.Annotations = make(map[string]string)
 	}
 	for k, v := range annotations {
-		cm.Labels[k] = v
+		cm.Annotations[k] = v
 	}
 }
 
