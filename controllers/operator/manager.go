@@ -597,8 +597,9 @@ func (m *ODLMOperator) GetOperandFromRegistry(ctx context.Context, reg *apiv1alp
 		excludedCatalogSources = strings.Split(reg.Annotations["excluded-catalogsource"], ",")
 	}
 	// Get catalog used by ODLM itself by check its own subscription
+	labelKey := util.GetFirstNCharacter("ibm-odlm"+"."+util.GetOperatorNamespace(), 63)
 	opts := []client.ListOption{
-		client.MatchingLabels{fmt.Sprintf("operators.coreos.com/ibm-odlm.%s", util.GetOperatorNamespace()): ""},
+		client.MatchingLabels{fmt.Sprintf("operators.coreos.com/%s", labelKey): ""},
 		client.InNamespace(util.GetOperatorNamespace()),
 	}
 	odlmCatalog := ""
