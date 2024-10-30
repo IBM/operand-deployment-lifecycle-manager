@@ -1396,8 +1396,13 @@ func (r *Reconciler) deleteK8sResource(ctx context.Context, existingK8sRes unstr
 	if apierrors.IsNotFound(err) {
 		klog.V(3).Infof("There is no k8s resource: %s from kind: %s", name, kind)
 	} else {
+		// If the existing k8s resources has the OpreqLabel and does not have the NotUninstallLabel, delete it
+		// If the OpreqLabel is difined in OperandConfig resource, delete it
+		hasOpreqLabel := r.CheckLabel(k8sResShouldBeDeleted, map[string]string{constant.OpreqLabel: "true"})
+		hasNotUninstallLabel := r.CheckLabel(k8sResShouldBeDeleted, map[string]string{constant.NotUninstallLabel: "true"})
+		opreqLabelInConfig := newLabels != nil && newLabels[constant.OpreqLabel] == "true"
 
-		if (newLabels == nil || newLabels[constant.OpreqLabel] == "true") && !r.CheckLabel(k8sResShouldBeDeleted, map[string]string{constant.NotUninstallLabel: "true"}) {
+		if (hasOpreqLabel && !hasNotUninstallLabel) || opreqLabelInConfig {
 			klog.V(3).Infof("Deleting k8s resource: %s from kind: %s", name, kind)
 			err := r.Delete(ctx, &k8sResShouldBeDeleted, client.PropagationPolicy(metav1.DeletePropagationBackground))
 			if err != nil && !apierrors.IsNotFound(err) {
