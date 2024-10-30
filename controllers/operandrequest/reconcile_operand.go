@@ -1116,6 +1116,7 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 		if err != nil {
 			return false, errors.Wrapf(err, "failed to get k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 		}
+
 		resourceVersion := existingRes.GetResourceVersion()
 
 		if !r.CheckLabel(existingRes, map[string]string{constant.OpreqLabel: "true"}) && (newLabels == nil || newLabels[constant.OpreqLabel] != "true") {
@@ -1253,7 +1254,7 @@ func (r *Reconciler) updateK8sJob(ctx context.Context, existingK8sRes unstructur
 		}
 		newAnnotations[constant.HashedData] = newHashedData
 
-		if err := r.deleteK8sResource(ctx, existingRes, namespace); err != nil {
+		if err := r.deleteK8sResource(ctx, existingRes, newLabels, namespace); err != nil {
 			return errors.Wrap(err, "failed to update k8s resource")
 		}
 		if err := r.createK8sResource(ctx, templatek8sRes, k8sResConfig, newLabels, newAnnotations, ownerReferences, optionalFields); err != nil {
@@ -1312,67 +1313,13 @@ func (r *Reconciler) updateK8sRoute(ctx context.Context, existingK8sRes unstruct
 				templatek8sRes.SetName(name)
 				templatek8sRes.SetNamespace(namespace)
 
-				if err := r.deleteK8sResource(ctx, existingRes, namespace); err != nil {
+				if err := r.deleteK8sResource(ctx, existingRes, newLabels, namespace); err != nil {
 					return errors.Wrap(err, "failed to delete Route for recreation")
 				}
 				if err := r.createK8sResource(ctx, templatek8sRes, k8sResConfig, newLabels, newAnnotations, ownerReferences, optionalFields); err != nil {
 					return errors.Wrap(err, "failed to update k8s resource")
 				}
 			}
-		}
-	}
-	return nil
-}
-
-func (r *Reconciler) deleteK8sResource(ctx context.Context, existingK8sRes unstructured.Unstructured, namespace string) error {
-
-	kind := existingK8sRes.GetKind()
-	apiversion := existingK8sRes.GetAPIVersion()
-	name := existingK8sRes.GetName()
-
-	k8sResShouldBeDeleted := unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"apiVersion": apiversion,
-			"kind":       kind,
-		},
-	}
-	err := r.Client.Get(ctx, types.NamespacedName{
-		Name:      name,
-		Namespace: namespace,
-	}, &k8sResShouldBeDeleted)
-	if err != nil && !apierrors.IsNotFound(err) {
-		return errors.Wrapf(err, "failed to get k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
-	}
-	if apierrors.IsNotFound(err) {
-		klog.V(3).Infof("There is no k8s resource: %s from kind: %s", name, kind)
-	} else {
-		if r.CheckLabel(k8sResShouldBeDeleted, map[string]string{constant.OpreqLabel: "true"}) && !r.CheckLabel(k8sResShouldBeDeleted, map[string]string{constant.NotUninstallLabel: "true"}) {
-			klog.V(3).Infof("Deleting k8s resource: %s from kind: %s", name, kind)
-			err := r.Delete(ctx, &k8sResShouldBeDeleted, client.PropagationPolicy(metav1.DeletePropagationBackground))
-			if err != nil && !apierrors.IsNotFound(err) {
-				return errors.Wrapf(err, "failed to delete k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
-			}
-			err = wait.PollImmediate(constant.DefaultCRDeletePeriod, constant.DefaultCRDeleteTimeout, func() (bool, error) {
-				if strings.EqualFold(kind, "OperandRequest") {
-					return true, nil
-				}
-				klog.V(3).Infof("Waiting for resource %s to be removed ...", kind)
-				err := r.Client.Get(ctx, types.NamespacedName{
-					Name:      name,
-					Namespace: namespace,
-				}, &existingK8sRes)
-				if apierrors.IsNotFound(err) {
-					return true, nil
-				}
-				if err != nil {
-					return false, errors.Wrapf(err, "failed to get k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
-				}
-				return false, nil
-			})
-			if err != nil {
-				return errors.Wrapf(err, "failed to delete k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
-			}
-			klog.V(1).Infof("Finish deleting k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 		}
 	}
 	return nil
@@ -1411,7 +1358,7 @@ func (r *Reconciler) deleteAllK8sResource(ctx context.Context, csc *operatorv1al
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if err := r.deleteK8sResource(ctx, k8sResShouldBeDeleted, k8sNamespace); err != nil {
+			if err := r.deleteK8sResource(ctx, k8sResShouldBeDeleted, k8sRes.Labels, k8sNamespace); err != nil {
 				r.Mutex.Lock()
 				defer r.Mutex.Unlock()
 				merr.Add(err)
@@ -1423,6 +1370,66 @@ func (r *Reconciler) deleteAllK8sResource(ctx context.Context, csc *operatorv1al
 
 	if len(merr.Errors) != 0 {
 		return merr
+	}
+	return nil
+}
+
+func (r *Reconciler) deleteK8sResource(ctx context.Context, existingK8sRes unstructured.Unstructured, newLabels map[string]string, namespace string) error {
+
+	kind := existingK8sRes.GetKind()
+	apiversion := existingK8sRes.GetAPIVersion()
+	name := existingK8sRes.GetName()
+
+	k8sResShouldBeDeleted := unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": apiversion,
+			"kind":       kind,
+		},
+	}
+	err := r.Client.Get(ctx, types.NamespacedName{
+		Name:      name,
+		Namespace: namespace,
+	}, &k8sResShouldBeDeleted)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return errors.Wrapf(err, "failed to get k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+	}
+	if apierrors.IsNotFound(err) {
+		klog.V(3).Infof("There is no k8s resource: %s from kind: %s", name, kind)
+	} else {
+		// If the existing k8s resources has the OpreqLabel and does not have the NotUninstallLabel, delete it
+		// If the OpreqLabel is difined in OperandConfig resource, delete it
+		hasOpreqLabel := r.CheckLabel(k8sResShouldBeDeleted, map[string]string{constant.OpreqLabel: "true"})
+		hasNotUninstallLabel := r.CheckLabel(k8sResShouldBeDeleted, map[string]string{constant.NotUninstallLabel: "true"})
+		opreqLabelInConfig := newLabels != nil && newLabels[constant.OpreqLabel] == "true"
+
+		if (hasOpreqLabel && !hasNotUninstallLabel) || opreqLabelInConfig {
+			klog.V(3).Infof("Deleting k8s resource: %s from kind: %s", name, kind)
+			err := r.Delete(ctx, &k8sResShouldBeDeleted, client.PropagationPolicy(metav1.DeletePropagationBackground))
+			if err != nil && !apierrors.IsNotFound(err) {
+				return errors.Wrapf(err, "failed to delete k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+			}
+			err = wait.PollImmediate(constant.DefaultCRDeletePeriod, constant.DefaultCRDeleteTimeout, func() (bool, error) {
+				if strings.EqualFold(kind, "OperandRequest") {
+					return true, nil
+				}
+				klog.V(3).Infof("Waiting for resource %s to be removed ...", kind)
+				err := r.Client.Get(ctx, types.NamespacedName{
+					Name:      name,
+					Namespace: namespace,
+				}, &existingK8sRes)
+				if apierrors.IsNotFound(err) {
+					return true, nil
+				}
+				if err != nil {
+					return false, errors.Wrapf(err, "failed to get k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+				}
+				return false, nil
+			})
+			if err != nil {
+				return errors.Wrapf(err, "failed to delete k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+			}
+			klog.V(1).Infof("Finish deleting k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+		}
 	}
 	return nil
 }
