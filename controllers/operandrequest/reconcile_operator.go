@@ -254,9 +254,12 @@ func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance 
 				sub.Spec.Channel = minChannel
 			}
 
+			channels := []string{opt.Channel}
+			if channels = append(channels, opt.FallbackChannels...); util.Contains(channels, sub.Spec.Channel) {
+				isMatchedChannel = true
+			}
 			// update the spec iff channel in sub matches channel
 			if sub.Spec.Channel == opt.Channel {
-				isMatchedChannel = true
 				sub.Spec.CatalogSource = opt.SourceName
 				sub.Spec.CatalogSourceNamespace = opt.SourceNamespace
 				sub.Spec.Package = opt.PackageName
