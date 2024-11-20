@@ -399,7 +399,9 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 				oldObject := e.ObjectOld.(*olmv1alpha1.Subscription)
 				newObject := e.ObjectNew.(*olmv1alpha1.Subscription)
 				if oldObject.Labels != nil && oldObject.Labels[constant.OpreqLabel] == "true" {
-					return (oldObject.Status.InstalledCSV != "" && newObject.Status.InstalledCSV != "" && oldObject.Status.InstalledCSV != newObject.Status.InstalledCSV)
+					statusToggle := (oldObject.Status.InstalledCSV != "" && newObject.Status.InstalledCSV != "" && oldObject.Status.InstalledCSV != newObject.Status.InstalledCSV)
+					metadataToggle := !reflect.DeepEqual(oldObject.Annotations, newObject.Annotations)
+					return statusToggle || metadataToggle
 				}
 				return false
 			},
