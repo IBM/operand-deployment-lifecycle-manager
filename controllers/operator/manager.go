@@ -27,6 +27,7 @@ import (
 	operatorsv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
 	"github.com/pkg/errors"
 	"golang.org/x/mod/semver"
+	authorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -172,11 +173,19 @@ func (m *ODLMOperator) GetCatalogSourceAndChannelFromPackage(ctx context.Context
 			if excludedCatalogSources != nil && util.Contains(excludedCatalogSources, pm.Status.CatalogSource) {
 				continue
 			}
+
+			hasCatalogPermission := m.CheckResAuth(ctx, namespace, "operators.coreos.com", "catalogsources", "get")
+			if !hasCatalogPermission {
+				klog.V(2).Infof("No permission to get CatalogSource %s in the namespace %s", pm.Status.CatalogSource, pm.Status.CatalogSourceNamespace)
+				continue
+			}
+			// Fetch the CatalogSource if cluster permission allows
 			catalogsource := &olmv1alpha1.CatalogSource{}
 			if err := m.Reader.Get(ctx, types.NamespacedName{Name: pm.Status.CatalogSource, Namespace: pm.Status.CatalogSourceNamespace}, catalogsource); err != nil {
 				klog.Warning(err)
 				continue
 			}
+
 			currentCatalog := CatalogSource{
 				Name:                 pm.Status.CatalogSource,
 				Namespace:            pm.Status.CatalogSourceNamespace,
@@ -218,6 +227,28 @@ func (m *ODLMOperator) GetCatalogSourceAndChannelFromPackage(ctx context.Context
 		}
 		return primaryCatalogCandidate[0].Name, primaryCatalogCandidate[0].Namespace, channel, nil
 	}
+}
+
+func (m *ODLMOperator) CheckResAuth(ctx context.Context, namespace, group, resource, verb string) bool {
+	sar := &authorizationv1.SubjectAccessReview{
+		Spec: authorizationv1.SubjectAccessReviewSpec{
+			ResourceAttributes: &authorizationv1.ResourceAttributes{
+				Namespace: namespace,
+				Group:     group,
+				Resource:  resource,
+				Verb:      verb,
+			},
+		},
+	}
+	if err := m.Create(ctx, sar); err != nil {
+		return false
+	}
+
+	if !sar.Status.Allowed {
+		return false
+	}
+
+	return true
 }
 
 func channelCheck(channelName string, channelList []operatorsv1.PackageChannel) bool {
