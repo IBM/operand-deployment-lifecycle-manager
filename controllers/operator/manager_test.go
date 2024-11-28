@@ -224,6 +224,7 @@ func TestGetFirstAvailableSemverChannelFromCatalog(t *testing.T) {
 type MockReader struct {
 	PackageManifestList *operatorsv1.PackageManifestList
 	CatalogSourceList   *olmv1alpha1.CatalogSourceList
+	CreatedObjects      map[string]client.Object
 }
 
 func (m *MockReader) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
@@ -245,6 +246,20 @@ func (m *MockReader) List(ctx context.Context, list client.ObjectList, opts ...c
 	if packageManifestList, ok := list.(*operatorsv1.PackageManifestList); ok {
 		packageManifestList.Items = m.PackageManifestList.Items
 	}
+	return nil
+}
+
+func (m *MockReader) Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
+	if m.CreatedObjects == nil {
+		m.CreatedObjects = make(map[string]client.Object)
+	}
+
+	// Generate a unique key based on the object's name and namespace
+	key := fmt.Sprintf("%s/%s", obj.GetNamespace(), obj.GetName())
+
+	// Store the object in the map
+	m.CreatedObjects[key] = obj
+
 	return nil
 }
 
