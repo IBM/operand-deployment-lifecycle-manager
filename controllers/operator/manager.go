@@ -174,7 +174,7 @@ func (m *ODLMOperator) GetCatalogSourceAndChannelFromPackage(ctx context.Context
 				continue
 			}
 
-			hasCatalogPermission := m.CheckResAuth(ctx, namespace, "operators.coreos.com", "catalogsources", "get")
+			hasCatalogPermission := m.CheckResAuth(ctx, pm.Status.CatalogSourceNamespace, "operators.coreos.com", "catalogsources", "get")
 			if !hasCatalogPermission {
 				klog.V(2).Infof("No permission to get CatalogSource %s in the namespace %s", pm.Status.CatalogSource, pm.Status.CatalogSourceNamespace)
 				continue
@@ -230,8 +230,8 @@ func (m *ODLMOperator) GetCatalogSourceAndChannelFromPackage(ctx context.Context
 }
 
 func (m *ODLMOperator) CheckResAuth(ctx context.Context, namespace, group, resource, verb string) bool {
-	sar := &authorizationv1.SubjectAccessReview{
-		Spec: authorizationv1.SubjectAccessReviewSpec{
+	sar := &authorizationv1.SelfSubjectAccessReview{
+		Spec: authorizationv1.SelfSubjectAccessReviewSpec{
 			ResourceAttributes: &authorizationv1.ResourceAttributes{
 				Namespace: namespace,
 				Group:     group,
@@ -241,14 +241,13 @@ func (m *ODLMOperator) CheckResAuth(ctx context.Context, namespace, group, resou
 		},
 	}
 	if err := m.Create(ctx, sar); err != nil {
+		klog.Errorf("Failed to check operator permission for Kind %s in namespace %s: %v", resource, namespace, err)
 		return false
 	}
 
-	if !sar.Status.Allowed {
-		return false
-	}
+	klog.V(2).Infof("Operator %s permission in namespace %s for Kind: %s, Allowed: %t, Denied: %t, Reason: %s", verb, namespace, resource, sar.Status.Allowed, sar.Status.Denied, sar.Status.Reason)
 
-	return true
+	return sar.Status.Allowed
 }
 
 func channelCheck(channelName string, channelList []operatorsv1.PackageChannel) bool {

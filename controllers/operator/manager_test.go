@@ -313,7 +313,7 @@ func TestGetCatalogSourceAndChannelFromPackage(t *testing.T) {
 	}
 
 	mockClient.mock.On("Create", ctx, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-		sar := args.Get(1).(*authorizationv1.SubjectAccessReview)
+		sar := args.Get(1).(*authorizationv1.SelfSubjectAccessReview)
 		sar.Status.Allowed = true
 	})
 
@@ -434,9 +434,9 @@ func TestCheckResAuth(t *testing.T) {
 	resource := "test-resource"
 	verb := "get"
 
-	// Test when SubjectAccessReview is allowed
+	// Test when SelfSubjectAccessReview is allowed
 	mockClient.mock.On("Create", ctx, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-		sar := args.Get(1).(*authorizationv1.SubjectAccessReview)
+		sar := args.Get(1).(*authorizationv1.SelfSubjectAccessReview)
 		sar.Status.Allowed = true
 	})
 
@@ -444,10 +444,10 @@ func TestCheckResAuth(t *testing.T) {
 		t.Errorf("Expected CheckResAuth to return true, but got false")
 	}
 
-	// Test when SubjectAccessReview is not allowed
+	// Test when SelfSubjectAccessReview is not allowed
 	mockClient.mock.ExpectedCalls = nil
 	mockClient.mock.On("Create", ctx, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-		sar := args.Get(1).(*authorizationv1.SubjectAccessReview)
+		sar := args.Get(1).(*authorizationv1.SelfSubjectAccessReview)
 		sar.Status.Allowed = false
 	})
 
