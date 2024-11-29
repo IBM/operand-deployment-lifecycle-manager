@@ -669,29 +669,35 @@ func (r *Reconciler) deleteAllCustomResource(ctx context.Context, csv *olmv1alph
 
 			// Compare the name of OperandConfig and CRD name
 			if strings.EqualFold(kind, crdName) {
-				err := r.Client.Get(ctx, types.NamespacedName{
-					Name:      name,
-					Namespace: namespace,
-				}, &crTemplate)
-				if err != nil && !apierrors.IsNotFound(err) {
-					merr.Add(err)
-					continue
-				}
-				if apierrors.IsNotFound(err) {
-					klog.V(2).Info("Finish Deleting the CR: " + kind)
-					continue
-				}
-				if r.CheckLabel(crTemplate, map[string]string{constant.OpreqLabel: "true"}) {
-					wg.Add(1)
-					go func() {
-						defer wg.Done()
-						if err := r.deleteCustomResource(ctx, crTemplate, namespace); err != nil {
-							r.Mutex.Lock()
-							defer r.Mutex.Unlock()
-							merr.Add(err)
-							return
-						}
-					}()
+				if r.checkResAuth(ctx, []string{"get"}, crTemplate) {
+
+					err := r.Client.Get(ctx, types.NamespacedName{
+						Name:      name,
+						Namespace: namespace,
+					}, &crTemplate)
+					if err != nil && !apierrors.IsNotFound(err) {
+						merr.Add(err)
+						continue
+					}
+					if apierrors.IsNotFound(err) {
+						klog.V(2).Info("Finish Deleting the CR: " + kind)
+						continue
+					}
+					if r.CheckLabel(crTemplate, map[string]string{constant.OpreqLabel: "true"}) {
+						wg.Add(1)
+						go func() {
+							defer wg.Done()
+							if r.checkResAuth(ctx, []string{"delete"}, crTemplate) {
+								if err := r.deleteCustomResource(ctx, crTemplate, namespace); err != nil {
+									r.Mutex.Lock()
+									defer r.Mutex.Unlock()
+									merr.Add(err)
+									return
+								}
+							}
+						}()
+					}
+
 				}
 
 			}
