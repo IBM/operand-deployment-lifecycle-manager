@@ -18,11 +18,14 @@ package operator
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"testing"
 
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	operatorsv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
+	"github.com/stretchr/testify/mock"
+	authorizationv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -302,9 +305,17 @@ func TestGetCatalogSourceAndChannelFromPackage(t *testing.T) {
 		CatalogSourceList:   CatalogSourceList,
 	}
 
+	mockClient := &MockClient{}
+
 	operator := &ODLMOperator{
 		Reader: fakeReader,
+		Client: mockClient,
 	}
+
+	mockClient.mock.On("Create", ctx, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+		sar := args.Get(1).(*authorizationv1.SubjectAccessReview)
+		sar.Status.Allowed = true
+	})
 
 	registryNs := "registry-namespace"
 	odlmCatalog := "odlm-catalog"
@@ -398,6 +409,59 @@ func TestGetCatalogSourceAndChannelFromPackage(t *testing.T) {
 		assertCatalogSourceAndChannel(t, catalogSourceName, "catalog2", catalogSourceNs, "namespace1", availableChannel, "v2.0")
 	}
 
+}
+
+type MockClient struct {
+	mock mock.Mock
+	client.Client
+}
+
+func (m *MockClient) Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
+	args := m.mock.Called(ctx, obj, opts)
+	return args.Error(0)
+}
+
+func TestCheckResAuth(t *testing.T) {
+	ctx := context.TODO()
+
+	mockClient := &MockClient{}
+	operator := &ODLMOperator{
+		Client: mockClient,
+	}
+
+	namespace := "test-namespace"
+	group := "test-group"
+	resource := "test-resource"
+	verb := "get"
+
+	// Test when SubjectAccessReview is allowed
+	mockClient.mock.On("Create", ctx, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+		sar := args.Get(1).(*authorizationv1.SubjectAccessReview)
+		sar.Status.Allowed = true
+	})
+
+	if !operator.CheckResAuth(ctx, namespace, group, resource, verb) {
+		t.Errorf("Expected CheckResAuth to return true, but got false")
+	}
+
+	// Test when SubjectAccessReview is not allowed
+	mockClient.mock.ExpectedCalls = nil
+	mockClient.mock.On("Create", ctx, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+		sar := args.Get(1).(*authorizationv1.SubjectAccessReview)
+		sar.Status.Allowed = false
+	})
+
+	if operator.CheckResAuth(ctx, namespace, group, resource, verb) {
+		t.Errorf("Expected CheckResAuth to return false, but got true")
+	}
+
+	// Test when Create returns an error
+	mockClient.mock.ExpectedCalls = nil
+	mockClient.mock.On("Create", ctx, mock.Anything, mock.Anything).Return(fmt.Errorf("create error"))
+
+	if operator.CheckResAuth(ctx, namespace, group, resource, verb) {
+		t.Errorf("Expected CheckResAuth to return false, but got true")
+	}
 }
 
 func assertCatalogSourceAndChannel(t *testing.T, catalogSourceName, expectedCatalogSourceName, catalogSourceNs, expectedCatalogSourceNs, availableChannel, expectedAvailableChannel string) {
