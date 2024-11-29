@@ -27,10 +27,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func TestChannelCheck(t *testing.T) {
@@ -224,7 +221,6 @@ func TestGetFirstAvailableSemverChannelFromCatalog(t *testing.T) {
 type MockReader struct {
 	PackageManifestList *operatorsv1.PackageManifestList
 	CatalogSourceList   *olmv1alpha1.CatalogSourceList
-	CreatedObjects      map[string]client.Object
 }
 
 func (m *MockReader) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
@@ -246,20 +242,6 @@ func (m *MockReader) List(ctx context.Context, list client.ObjectList, opts ...c
 	if packageManifestList, ok := list.(*operatorsv1.PackageManifestList); ok {
 		packageManifestList.Items = m.PackageManifestList.Items
 	}
-	return nil
-}
-
-func (m *MockReader) Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
-	if m.CreatedObjects == nil {
-		m.CreatedObjects = make(map[string]client.Object)
-	}
-
-	// Generate a unique key based on the object's name and namespace
-	key := fmt.Sprintf("%s/%s", obj.GetNamespace(), obj.GetName())
-
-	// Store the object in the map
-	m.CreatedObjects[key] = obj
-
 	return nil
 }
 
@@ -323,9 +305,17 @@ func TestGetCatalogSourceAndChannelFromPackage(t *testing.T) {
 		CatalogSourceList:   CatalogSourceList,
 	}
 
+	mockClient := &MockClient{}
+
 	operator := &ODLMOperator{
 		Reader: fakeReader,
+		Client: mockClient,
 	}
+
+	mockClient.mock.On("Create", ctx, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+		sar := args.Get(1).(*authorizationv1.SubjectAccessReview)
+		sar.Status.Allowed = true
+	})
 
 	registryNs := "registry-namespace"
 	odlmCatalog := "odlm-catalog"
@@ -422,16 +412,12 @@ func TestGetCatalogSourceAndChannelFromPackage(t *testing.T) {
 }
 
 type MockClient struct {
-	mock.Mock
+	mock mock.Mock
+	client.Client
 }
 
-func (m *MockClient) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
-	args := m.Called(ctx, key, obj)
-	return args.Error(0)
-}
-
-func (m *MockClient) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
-	args := m.Called(ctx, list, opts)
+func (m *MockClient) Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
+	args := m.mock.Called(ctx, obj, opts)
 	return args.Error(0)
 }
 
@@ -440,10 +426,7 @@ func TestCheckResAuth(t *testing.T) {
 
 	mockClient := &MockClient{}
 	operator := &ODLMOperator{
-		Client:   fake.NewClientBuilder().Build(),
-		Reader:   mockClient, // Using the same mock for Reader
-		Config:   &rest.Config{},
-		Recorder: record.NewFakeRecorder(10),
+		Client: mockClient,
 	}
 
 	namespace := "test-namespace"
@@ -452,7 +435,7 @@ func TestCheckResAuth(t *testing.T) {
 	verb := "get"
 
 	// Test when SubjectAccessReview is allowed
-	mockClient.On("Create", ctx, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+	mockClient.mock.On("Create", ctx, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 		sar := args.Get(1).(*authorizationv1.SubjectAccessReview)
 		sar.Status.Allowed = true
 	})
@@ -462,7 +445,8 @@ func TestCheckResAuth(t *testing.T) {
 	}
 
 	// Test when SubjectAccessReview is not allowed
-	mockClient.On("Create", ctx, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+	mockClient.mock.ExpectedCalls = nil
+	mockClient.mock.On("Create", ctx, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 		sar := args.Get(1).(*authorizationv1.SubjectAccessReview)
 		sar.Status.Allowed = false
 	})
@@ -472,7 +456,8 @@ func TestCheckResAuth(t *testing.T) {
 	}
 
 	// Test when Create returns an error
-	mockClient.On("Create", ctx, mock.Anything, mock.Anything).Return(fmt.Errorf("create error"))
+	mockClient.mock.ExpectedCalls = nil
+	mockClient.mock.On("Create", ctx, mock.Anything, mock.Anything).Return(fmt.Errorf("create error"))
 
 	if operator.CheckResAuth(ctx, namespace, group, resource, verb) {
 		t.Errorf("Expected CheckResAuth to return false, but got true")
