@@ -84,7 +84,7 @@ OPERATOR_IMAGE_NAME ?= odlm
 # Current Operator bundle image name
 BUNDLE_IMAGE_NAME ?= odlm-operator-bundle
 # Current Operator version
-OPERATOR_VERSION ?= 4.3.8
+OPERATOR_VERSION ?= 4.3.9
 
 # Kind cluster name
 KIND_CLUSTER_NAME ?= "odlm"
