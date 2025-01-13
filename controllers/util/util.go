@@ -97,6 +97,15 @@ func GetWatchNamespace() string {
 	return ns
 }
 
+// GetNoOLM returns boolean NoOLM enabled
+func GetNoOLM() string {
+	enabled, found := os.LookupEnv("NO_OLM")
+	if !found {
+		return "false"
+	}
+	return enabled
+}
+
 // GetInstallScope returns the scope of the installation
 func GetInstallScope() string {
 	ns, found := os.LookupEnv("INSTALL_SCOPE")
