@@ -114,18 +114,18 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 
 	// Remove finalizer when DeletionTimestamp none zero
 	if !requestInstance.ObjectMeta.DeletionTimestamp.IsZero() {
-
+		//TODO determine if necessary
 		// Check and clean up the subscriptions
-		err := r.checkFinalizer(ctx, requestInstance)
-		if err != nil {
-			klog.Errorf("failed to clean up the subscriptions for OperandRequest %s: %v", req.NamespacedName.String(), err)
-			return ctrl.Result{}, err
-		}
+		// err := r.checkFinalizer(ctx, requestInstance)
+		// if err != nil {
+		// 	klog.Errorf("failed to clean up the subscriptions for OperandRequest %s: %v", req.NamespacedName.String(), err)
+		// 	return ctrl.Result{}, err
+		// }
 
 		originalReq := requestInstance.DeepCopy()
 		// Update finalizer to allow delete CR
 		if requestInstance.RemoveFinalizer() {
-			err = r.Patch(ctx, requestInstance, client.MergeFrom(originalReq))
+			err := r.Patch(ctx, requestInstance, client.MergeFrom(originalReq))
 			if err != nil {
 				klog.Errorf("failed to remove finalizer for OperandRequest %s: %v", req.NamespacedName.String(), err)
 				return ctrl.Result{}, client.IgnoreNotFound(err)
