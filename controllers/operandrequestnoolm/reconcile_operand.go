@@ -147,37 +147,28 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 			var deployment *appsv1.Deployment
 
 			//TODO need to translate this if block to look for deployments and not CSVs
-			if opdRegistry.UserManaged {
-				csvList, err := r.GetClusterServiceVersionListFromPackage(ctx, opdRegistry.PackageName, opdRegistry.Namespace)
-				if err != nil {
-					merr.Add(err)
-					requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
-					continue
-				}
-				csv = csvList[0]
-			} else {
-				csv, err = r.GetClusterServiceVersion(ctx, sub)
-				// If can't get CSV, requeue the request
-				if err != nil {
-					merr.Add(err)
-					requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
-					continue
-				}
+			deploymentList, err := r.GetDeploymentListFromPackage(ctx, opdRegistry.PackageName, opdRegistry.Namespace)
+			if err != nil {
+				merr.Add(err)
+				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
+				continue
 			}
+			deployment = deploymentList[0]
+
 			//TODO change this block to deal with an empty list of deployments instead of csvs
-			if csv == nil {
-				klog.Warningf("ClusterServiceVersion for the Subscription %s in the namespace %s is not ready yet, retry", operatorName, namespace)
+			if deployment == nil {
+				klog.Warningf("Deployment for %s in the namespace %s is not ready yet, retry", operatorName, namespace)
 				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorInstalling, "", &r.Mutex)
 				continue
 			}
 
 			// TODO determine if we need to reimagine this function for noolm use, do we want odlm cleaning up extra deployments? How should ODLM know the difference between "good" and "bad" deployments?
 			//otherwise get rid of it
-			if err := r.DeleteRedundantCSV(ctx, csv.Name, csv.Namespace, registryKey.Namespace, opdRegistry.PackageName); err != nil {
-				merr.Add(errors.Wrapf(err, "failed to delete the redundant ClusterServiceVersion %s in the namespace %s", csv.Name, csv.Namespace))
-				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
-				continue
-			}
+			// if err := r.DeleteRedundantCSV(ctx, csv.Name, csv.Namespace, registryKey.Namespace, opdRegistry.PackageName); err != nil {
+			// 	merr.Add(errors.Wrapf(err, "failed to delete the redundant ClusterServiceVersion %s in the namespace %s", csv.Name, csv.Namespace))
+			// 	requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
+			// 	continue
+			// }
 
 			//TODO git rid of this section
 			// if !opdRegistry.UserManaged {
@@ -192,7 +183,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 			// }
 
 			//TODO update to deployment name
-			klog.V(3).Info("Generating customresource base on ClusterServiceVersion: ", csv.GetName())
+			klog.V(3).Info("Generating customresource base on Deployment: ", deployment.GetName())
 			requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorRunning, "", &r.Mutex)
 
 			// Merge and Generate CR
@@ -220,7 +211,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 				}
 
 			} else {
-				err = r.reconcileCRwithRequest(ctx, requestInstance, operand, types.NamespacedName{Name: requestInstance.Name, Namespace: requestInstance.Namespace}, i, csv.Namespace, &r.Mutex)
+				err = r.reconcileCRwithRequest(ctx, requestInstance, operand, types.NamespacedName{Name: requestInstance.Name, Namespace: requestInstance.Namespace}, i, deployment.Namespace, &r.Mutex)
 				if err != nil {
 					merr.Add(err)
 					requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceFailed, &r.Mutex)
@@ -274,7 +265,7 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 	}
 
 	//TODO change this to deployment, make sure GetAnnotations works for deployments the same way
-	almExamples := csv.GetAnnotations()["alm-examples"]
+	almExamples := deployment.GetAnnotations()["alm-examples"]
 
 	// Convert CR template string to slice
 	var almExampleList []interface{}
@@ -331,7 +322,7 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 
 		if !foundInConfig {
 			//TODO change to deployment
-			klog.Warningf("%v in the alm-example doesn't exist in the OperandConfig for %v", crFromALM.GetKind(), csv.GetName())
+			klog.Warningf("%v in the alm-example doesn't exist in the OperandConfig for %v", crFromALM.GetKind(), deployment.GetName())
 			continue
 		}
 
@@ -376,7 +367,7 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 	for cr, found := range foundMap {
 		if !found {
 			//TODO change to deployment
-			klog.Warningf("Custom resource %v doesn't exist in the alm-example of %v", cr, csv.GetName())
+			klog.Warningf("Custom resource %v doesn't exist in the alm-example of %v", cr, deployment.GetName())
 		}
 	}
 
