@@ -89,7 +89,7 @@ OPERATOR_VERSION ?= 4.3.9
 # Kind cluster name
 KIND_CLUSTER_NAME ?= "odlm"
 # Operator image tag for test
-OPERATOR_TEST_TAG ?= nolm-controller2
+OPERATOR_TEST_TAG ?= nolm-controller3
 
 # Options for 'bundle-build'
 ifneq ($(origin CHANNELS), undefined)

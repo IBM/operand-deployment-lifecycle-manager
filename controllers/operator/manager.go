@@ -587,7 +587,7 @@ func (m *ODLMOperator) GetDeploymentListFromPackage(ctx context.Context, name, n
 
 	if err := m.Reader.List(ctx, deploymentList, opts...); err != nil {
 		if apierrors.IsNotFound(err) || len(deploymentList.Items) == 0 {
-			klog.V(3).Infof("No Deployment found")
+			klog.V(1).Infof("No Deployment found")
 			return nil, nil
 		}
 		return nil, errors.Wrapf(err, "failed to list Deployments")
@@ -607,11 +607,11 @@ func (m *ODLMOperator) GetDeploymentListFromPackage(ctx context.Context, name, n
 		if !strings.Contains(deployment.Annotations["operatorframework.io/properties"], annotation) {
 			continue
 		}
-		klog.V(3).Infof("Get Deployment %s in the namespace %s", deployment.Name, deploymentNamespace)
+		klog.V(1).Infof("Get Deployment %s in the namespace %s", deployment.Name, deploymentNamespace)
 		deployments = append(deployments, &deployment)
 	}
 
-	klog.V(3).Infof("Get %v Deployment in the namespace %s", len(deployments), deploymentNamespace)
+	klog.V(1).Infof("Get %v Deployment in the namespace %s", len(deployments), deploymentNamespace)
 	return deployments, nil
 }
 
