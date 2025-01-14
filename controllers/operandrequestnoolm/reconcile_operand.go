@@ -93,7 +93,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 
 			operatorName := opdRegistry.Name
 
-			klog.V(3).Info("Looking for deployment for the operator: ", operatorName)
+			klog.V(1).Info("Looking for deployment for the operator: ", operatorName)
 
 			// Looking for the CSV
 			namespace := r.GetOperatorNamespace(opdRegistry.InstallMode, opdRegistry.Namespace)
