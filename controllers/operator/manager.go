@@ -611,7 +611,7 @@ func (m *ODLMOperator) GetDeploymentListFromPackage(ctx context.Context, name, n
 		deployments = append(deployments, &deployment)
 	}
 
-	klog.V(1).Infof("Get %v Deployment in the namespace %s", len(deployments), deploymentNamespace)
+	klog.V(1).Infof("Get %v / %v Deployment in the namespace %s", len(deployments), len(deploymentList.Items), deploymentNamespace)
 	return deployments, nil
 }
 
