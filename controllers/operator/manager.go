@@ -600,10 +600,11 @@ func (m *ODLMOperator) GetDeploymentListFromPackage(ctx context.Context, name, n
 		if deployment.Annotations == nil {
 			continue
 		}
-		if _, ok := deployment.Annotations["operatorframework.io/properties"]; !ok {
-			continue
-		}
+		// if _, ok := deployment.Annotations["operatorframework.io/properties"]; !ok {
+		// 	continue
+		// }
 		annotation := fmt.Sprintf("\"packageName\":\"%s\"", packageName)
+		klog.V(1).Infof("Get Deployment %s with package name %s", deployment.Name, packageName)
 		if !strings.Contains(deployment.Annotations["operatorframework.io/properties"], annotation) {
 			continue
 		}
