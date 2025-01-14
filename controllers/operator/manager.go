@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"sort"
 	"strings"
 
@@ -958,4 +959,39 @@ func (m *ODLMOperator) GetValueRefFromObject(ctx context.Context, instanceType, 
 
 	klog.V(2).Infof("Get value %s from %s %s/%s", sanitizedString, objKind, obj.GetNamespace(), obj.GetName())
 	return sanitizedString, nil
+}
+
+// ObjectIsUpdatedWithException checks if the object is updated except for the ODLMWatchedLabel and ODLMReferenceAnnotation
+func (m *ODLMOperator) ObjectIsUpdatedWithException(oldObj, newObj *client.Object) bool {
+	oldObject := *oldObj
+	newObject := *newObj
+
+	// Check if labels are the same except for ODLMWatchedLabel
+	oldLabels := oldObject.GetLabels()
+	newLabels := newObject.GetLabels()
+	if oldLabels != nil && newLabels != nil {
+		delete(oldLabels, constant.ODLMWatchedLabel)
+		delete(newLabels, constant.ODLMWatchedLabel)
+	}
+	if !reflect.DeepEqual(oldLabels, newLabels) {
+		return true
+	}
+
+	// Check if annotations are the same except for ODLMReferenceAnnotation
+	oldAnnotations := oldObject.GetAnnotations()
+	newAnnotations := newObject.GetAnnotations()
+	if oldAnnotations != nil && newAnnotations != nil {
+		delete(oldAnnotations, constant.ODLMReferenceAnnotation)
+		delete(newAnnotations, constant.ODLMReferenceAnnotation)
+	}
+	if !reflect.DeepEqual(oldAnnotations, newAnnotations) {
+		return true
+	}
+
+	// Check if other parts of the object are unchanged
+	oldObject.SetLabels(nil)
+	oldObject.SetAnnotations(nil)
+	newObject.SetLabels(nil)
+	newObject.SetAnnotations(nil)
+	return !reflect.DeepEqual(oldObject, newObject)
 }
