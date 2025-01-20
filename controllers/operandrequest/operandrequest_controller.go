@@ -376,6 +376,10 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 			return false
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
+			// If the object is not updated except the ODLMWatchedLabel label or ODLMReferenceAnnotation annotation, return false
+			if !r.ObjectIsUpdatedWithException(&e.ObjectOld, &e.ObjectNew) {
+				return false
+			}
 			labels := e.ObjectNew.GetLabels()
 			if labels != nil {
 				if labelValue, ok := labels[constant.ODLMWatchedLabel]; ok && labelValue == "true" {

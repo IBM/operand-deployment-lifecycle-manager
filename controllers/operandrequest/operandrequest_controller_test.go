@@ -325,6 +325,13 @@ var _ = Describe("OperandRequest controller", func() {
 				return err
 			}, testutil.Timeout, testutil.Interval).Should(Succeed())
 
+			By("Checking the status of first OperandRequest")
+			Eventually(func() operatorv1alpha1.ClusterPhase {
+				requestInstance1 := &operatorv1alpha1.OperandRequest{}
+				Expect(k8sClient.Get(ctx, requestKey1, requestInstance1)).Should(Succeed())
+				return requestInstance1.Status.Phase
+			}, testutil.Timeout, testutil.Interval).Should(Equal(operatorv1alpha1.ClusterPhaseRunning))
+
 			By("Disabling the jaeger operator from first OperandRequest")
 			requestInstance1 := &operatorv1alpha1.OperandRequest{}
 			Expect(k8sClient.Get(ctx, requestKey1, requestInstance1)).Should(Succeed())
@@ -337,6 +344,13 @@ var _ = Describe("OperandRequest controller", func() {
 				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "my-jaeger", Namespace: registryNamespaceName}, jaegerCR)
 				return err
 			}, testutil.Timeout, testutil.Interval).Should(Succeed())
+
+			By("Checking the status of first OperandRequest after updating the Operand")
+			Eventually(func() operatorv1alpha1.ClusterPhase {
+				requestInstance1 := &operatorv1alpha1.OperandRequest{}
+				Expect(k8sClient.Get(ctx, requestKey1, requestInstance1)).Should(Succeed())
+				return requestInstance1.Status.Phase
+			}, testutil.Timeout, testutil.Interval).Should(Equal(operatorv1alpha1.ClusterPhaseRunning))
 
 			By("Disabling the jaeger operator from second OperandRequest")
 			requestInstance2 := &operatorv1alpha1.OperandRequest{}
@@ -351,6 +365,32 @@ var _ = Describe("OperandRequest controller", func() {
 				return err != nil && errors.IsNotFound(err)
 			}, testutil.Timeout, testutil.Interval).Should(BeTrue())
 
+			By("Checking jaeger k8s resource has been deleted")
+			Eventually(func() bool {
+				jaegerConfigMap := &corev1.ConfigMap{}
+				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "jaeger-configmap", Namespace: registryNamespaceName}, jaegerConfigMap)
+				return err != nil && errors.IsNotFound(err)
+			}, testutil.Timeout, testutil.Interval).Should(BeTrue())
+			Eventually(func() bool {
+				jaegerConfigMap := &corev1.ConfigMap{}
+				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "jaeger-configmap-reference", Namespace: registryNamespaceName}, jaegerConfigMap)
+				return err != nil && errors.IsNotFound(err)
+			}, testutil.Timeout, testutil.Interval).Should(BeTrue())
+
+			By("Checking jaeger operators have been deleted")
+			Eventually(func() bool {
+				jaegerCSV := &olmv1alpha1.ClusterServiceVersion{}
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: "jaeger-csv.v0.0.1", Namespace: operatorNamespaceName}, jaegerCSV)
+				return err != nil && errors.IsNotFound(err)
+			}, testutil.Timeout, testutil.Interval).Should(BeTrue())
+
+			By("Checking the status of second OperandRequest after updating the Operand")
+			Eventually(func() operatorv1alpha1.ClusterPhase {
+				requestInstance2 := &operatorv1alpha1.OperandRequest{}
+				Expect(k8sClient.Get(ctx, requestKey2, requestInstance2)).Should(Succeed())
+				return requestInstance2.Status.Phase
+			}, testutil.Timeout, testutil.Interval).Should(Equal(operatorv1alpha1.ClusterPhaseRunning))
+
 			By("Deleting the first OperandRequest")
 			Expect(k8sClient.Delete(ctx, request1)).Should(Succeed())
 
@@ -364,25 +404,7 @@ var _ = Describe("OperandRequest controller", func() {
 			By("Deleting the second OperandRequest")
 			Expect(k8sClient.Delete(ctx, request2)).Should(Succeed())
 
-			By("Checking the k8s resource has been deleted")
-			Eventually(func() bool {
-				jaegerConfigMap := &corev1.ConfigMap{}
-				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "jaeger-configmap", Namespace: registryNamespaceName}, jaegerConfigMap)
-				return err != nil && errors.IsNotFound(err)
-			}, testutil.Timeout, testutil.Interval).Should(BeTrue())
-			Eventually(func() bool {
-				jaegerConfigMap := &corev1.ConfigMap{}
-				err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: "jaeger-configmap-reference", Namespace: registryNamespaceName}, jaegerConfigMap)
-				return err != nil && errors.IsNotFound(err)
-			}, testutil.Timeout, testutil.Interval).Should(BeTrue())
-
-			By("Checking operators have been deleted")
-			Eventually(func() bool {
-				jaegerCSV := &olmv1alpha1.ClusterServiceVersion{}
-				err := k8sClient.Get(ctx, types.NamespacedName{Name: "jaeger-csv.v0.0.1", Namespace: operatorNamespaceName}, jaegerCSV)
-				return err != nil && errors.IsNotFound(err)
-			}, testutil.Timeout, testutil.Interval).Should(BeTrue())
-
+			By("Checking the mongodb-atlas operator has been deleted")
 			Eventually(func() bool {
 				mongodbCSV := &olmv1alpha1.ClusterServiceVersion{}
 				err := k8sClient.Get(ctx, types.NamespacedName{Name: "mongodb-atlas-kubernetes-csv.v0.0.1", Namespace: operatorNamespaceName}, mongodbCSV)

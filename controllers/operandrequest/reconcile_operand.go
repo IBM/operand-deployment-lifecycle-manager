@@ -576,7 +576,7 @@ func (r *Reconciler) reconcileK8sResource(ctx context.Context, res operatorv1alp
 					return err
 				}
 			} else {
-				klog.V(2).Infof("Skip the k8s resource %s/%s which is not created by ODLM", res.Kind, res.Name)
+				klog.V(2).Infof("Skip the k8s resource %s %s/%s whose force field is false", res.Kind, k8sResNs, res.Name)
 			}
 		}
 	} else {

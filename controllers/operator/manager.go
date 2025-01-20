@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"sort"
 	"strings"
 
@@ -859,7 +860,7 @@ func (m *ODLMOperator) ParseObjectRef(ctx context.Context, obj *util.ObjectRef, 
 
 func (m *ODLMOperator) GetValueRefFromConfigMap(ctx context.Context, instanceType, instanceName, instanceNs, cmName, cmNs, configMapKey string) (string, error) {
 	cm := &corev1.ConfigMap{}
-	if err := m.Client.Get(ctx, types.NamespacedName{Name: cmName, Namespace: cmNs}, cm); err != nil {
+	if err := m.Reader.Get(ctx, types.NamespacedName{Name: cmName, Namespace: cmNs}, cm); err != nil {
 		if apierrors.IsNotFound(err) {
 			klog.V(2).Infof("Configmap %s/%s is not found", cmNs, cmName)
 			return "", nil
@@ -891,7 +892,7 @@ func (m *ODLMOperator) GetValueRefFromConfigMap(ctx context.Context, instanceTyp
 
 func (m *ODLMOperator) GetValueRefFromSecret(ctx context.Context, instanceType, instanceName, instanceNs, secretName, secretNs, secretKey string) (string, error) {
 	secret := &corev1.Secret{}
-	if err := m.Client.Get(ctx, types.NamespacedName{Name: secretName, Namespace: secretNs}, secret); err != nil {
+	if err := m.Reader.Get(ctx, types.NamespacedName{Name: secretName, Namespace: secretNs}, secret); err != nil {
 		if apierrors.IsNotFound(err) {
 			klog.V(3).Infof("Secret %s/%s is not found", secretNs, secretName)
 			return "", nil
@@ -958,4 +959,39 @@ func (m *ODLMOperator) GetValueRefFromObject(ctx context.Context, instanceType, 
 
 	klog.V(2).Infof("Get value %s from %s %s/%s", sanitizedString, objKind, obj.GetNamespace(), obj.GetName())
 	return sanitizedString, nil
+}
+
+// ObjectIsUpdatedWithException checks if the object is updated except for the ODLMWatchedLabel and ODLMReferenceAnnotation
+func (m *ODLMOperator) ObjectIsUpdatedWithException(oldObj, newObj *client.Object) bool {
+	oldObject := *oldObj
+	newObject := *newObj
+
+	// Check if labels are the same except for ODLMWatchedLabel
+	oldLabels := oldObject.GetLabels()
+	newLabels := newObject.GetLabels()
+	if oldLabels != nil && newLabels != nil {
+		delete(oldLabels, constant.ODLMWatchedLabel)
+		delete(newLabels, constant.ODLMWatchedLabel)
+	}
+	if !reflect.DeepEqual(oldLabels, newLabels) {
+		return true
+	}
+
+	// Check if annotations are the same except for ODLMReferenceAnnotation
+	oldAnnotations := oldObject.GetAnnotations()
+	newAnnotations := newObject.GetAnnotations()
+	if oldAnnotations != nil && newAnnotations != nil {
+		delete(oldAnnotations, constant.ODLMReferenceAnnotation)
+		delete(newAnnotations, constant.ODLMReferenceAnnotation)
+	}
+	if !reflect.DeepEqual(oldAnnotations, newAnnotations) {
+		return true
+	}
+
+	// Check if other parts of the object are unchanged
+	oldObject.SetLabels(nil)
+	oldObject.SetAnnotations(nil)
+	newObject.SetLabels(nil)
+	newObject.SetAnnotations(nil)
+	return !reflect.DeepEqual(oldObject, newObject)
 }

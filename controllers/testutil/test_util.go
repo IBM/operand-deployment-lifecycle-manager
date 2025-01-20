@@ -200,7 +200,7 @@ func OperandConfigObj(name, namespace string) *apiv1alpha1.OperandConfig {
 									}
 								}`),
 							},
-							Force: false,
+							Force: true,
 						},
 					},
 				},
