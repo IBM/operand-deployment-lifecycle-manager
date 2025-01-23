@@ -200,8 +200,9 @@ spec:
               key: namespaces
               name: namespace-scope
               optional: true
+        # this might be remove in non-olm env
         - name: OPERATOR_CONDITION_NAME
-          value: operand-deployment-lifecycle-manager.v4.3.8
+          value: operand-deployment-lifecycle-manager.v4.3.9
         - name: NO_OLM
           value: "true"
         image: {{ .Values.operatorImage }}
