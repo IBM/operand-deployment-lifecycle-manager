@@ -1,0 +1,2583 @@
+apiVersion: operator.ibm.com/v1alpha1
+kind: OperandRegistry
+metadata:
+  annotations:
+    excluded-catalogsource: certified-operators,community-operators,redhat-marketplace,ibm-cp-automation-foundation-catalog,operatorhubio-catalog
+    status-monitored-services: ibm-idp-config-ui-operator,ibm-mongodb-operator,ibm-im-operator
+    version: 4.9.0
+  labels:
+    operator.ibm.com/managedByCsOperator: "true"
+  name: common-service
+  namespace: {{ .Values.operatorNamespace }}
+spec:
+  operators:
+  - channel: v3.23
+    installMode: no-op
+    installPlanApproval: Automatic
+    name: ibm-licensing-operator
+    namespace: {{ .Values.servicesNamespace }}
+    packageName: ibm-licensing-operator-app
+    scope: public
+  - channel: v3.23
+    installMode: no-op
+    installPlanApproval: Automatic
+    name: ibm-mongodb-operator
+    namespace: {{ .Values.servicesNamespace }}
+    packageName: ibm-mongodb-operator-app
+  - channel: v3.23
+    installMode: no-op
+    installPlanApproval: Automatic
+    name: ibm-cert-manager-operator
+    namespace: {{ .Values.servicesNamespace }}
+    packageName: ibm-cert-manager-operator
+    scope: public
+  - channel: v3.23
+    installMode: no-op
+    installPlanApproval: Automatic
+    name: ibm-iam-operator
+    namespace: {{ .Values.servicesNamespace }}
+    packageName: ibm-iam-operator
+    scope: public
+  - channel: v3.23
+    installMode: no-op
+    installPlanApproval: Automatic
+    name: ibm-healthcheck-operator
+    namespace: {{ .Values.servicesNamespace }}
+    packageName: ibm-healthcheck-operator-app
+    scope: public
+  - channel: v3.23
+    installMode: no-op
+    installPlanApproval: Automatic
+    name: ibm-commonui-operator
+    namespace: {{ .Values.servicesNamespace }}
+    packageName: ibm-commonui-operator-app
+    scope: public
+  - channel: v3.23
+    installMode: no-op
+    installPlanApproval: Automatic
+    name: ibm-management-ingress-operator
+    namespace: {{ .Values.servicesNamespace }}
+    packageName: ibm-management-ingress-operator-app
+    scope: public
+  - channel: v3.23
+    installMode: no-op
+    installPlanApproval: Automatic
+    name: ibm-ingress-nginx-operator
+    namespace: {{ .Values.servicesNamespace }}
+    packageName: ibm-ingress-nginx-operator-app
+    scope: public
+  - channel: v3.23
+    installMode: no-op
+    installPlanApproval: Automatic
+    name: ibm-auditlogging-operator
+    namespace: {{ .Values.servicesNamespace }}
+    packageName: ibm-auditlogging-operator-app
+    scope: public
+  - channel: v3.23
+    installMode: no-op
+    installPlanApproval: Automatic
+    name: ibm-platform-api-operator
+    namespace: {{ .Values.servicesNamespace }}
+    packageName: ibm-platform-api-operator-app
+    scope: public
+  - channel: v3.23
+    installMode: no-op
+    installPlanApproval: Automatic
+    name: ibm-monitoring-grafana-operator
+    namespace: {{ .Values.servicesNamespace }}
+    packageName: ibm-monitoring-grafana-operator-app
+    scope: public
+  - channel: v3.23
+    installMode: no-op
+    installPlanApproval: Automatic
+    name: ibm-zen-operator
+    namespace: {{ .Values.servicesNamespace }}
+    packageName: ibm-zen-operator
+    scope: public
+  - channel: v3.23
+    installMode: no-op
+    installPlanApproval: Automatic
+    name: ibm-zen-cpp-operator
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: zen-cpp-operator
+    scope: public
+  - channel: v1.0
+    installPlanApproval: Automatic
+    name: ibm-user-management-operator
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-user-management-operator
+    scope: public
+  - channel: v1.3
+    installPlanApproval: Automatic
+    name: ibm-websphere-liberty
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-websphere-liberty
+    scope: public
+  - channel: v1.2
+    installPlanApproval: Automatic
+    name: ibm-redis-cp-operator
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-redis-cp
+    scope: public
+  - channel: v4.8
+    installPlanApproval: Automatic
+    name: ibm-im-operator
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-iam-operator
+    scope: public
+  - channel: v4.2
+    installMode: no-op
+    installPlanApproval: Automatic
+    name: ibm-im-mongodb-operator
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-mongodb-operator-app
+  - channel: v3
+    installPlanApproval: Automatic
+    name: ibm-events-operator
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-events-operator
+    scope: public
+  - channel: v6.0
+    installPlanApproval: Automatic
+    name: ibm-platformui-operator
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-zen-operator
+    scope: public
+  - channel: v4.5
+    installPlanApproval: Automatic
+    name: ibm-idp-config-ui-operator
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-commonui-operator-app
+    scope: public
+  - channel: stable
+    installPlanApproval: Automatic
+    name: cloud-native-postgresql
+    namespace: {{ .Values.operatorNamespace }}
+    operatorConfig: cloud-native-postgresql-operator-config
+    packageName: cloud-native-postgresql
+    scope: public
+  - channel: stable
+    installMode: no-op
+    installPlanApproval: Automatic
+    name: internal-use-only-edb
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: cloud-native-postgresql
+    scope: public
+  - channel: table-v1.22
+    installPlanApproval: Automatic
+    name: cloud-native-postgresql-v1.22
+    namespace: {{ .Values.operatorNamespace }}
+    operatorConfig: cloud-native-postgresql-operator-config
+    packageName: cloud-native-postgresql
+    scope: public
+  - channel: alpha
+    installPlanApproval: Automatic
+    name: ibm-user-data-services-operator
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-user-data-services-operator
+    scope: public
+  - channel: v3
+    installPlanApproval: Automatic
+    name: ibm-bts-operator
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-bts-operator
+    scope: public
+  - channel: v3.34
+    installPlanApproval: Automatic
+    name: ibm-bts-operator-v3.34
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-bts-operator
+    scope: public
+  - channel: v3.35
+    installPlanApproval: Automatic
+    name: ibm-bts-operator-v3.35
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-bts-operator
+    scope: public
+  - channel: v1.3
+    installPlanApproval: Automatic
+    name: ibm-automation-flink
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-automation-flink
+    scope: public
+  - channel: v1.3
+    installPlanApproval: Automatic
+    name: ibm-automation-elastic
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-automation-elastic
+    scope: public
+  - channel: v1.1
+    installPlanApproval: Automatic
+    name: ibm-elasticsearch-operator
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-elasticsearch-operator
+    scope: public
+  - channel: v2.0
+    installPlanApproval: Automatic
+    name: ibm-opencontent-flink
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-opencontent-flink
+    scope: public
+  - channel: v4.0
+    installPlanApproval: Automatic
+    name: ibm-im-mongodb-operator-v4.0
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-mongodb-operator-app
+  - channel: v4.1
+    installPlanApproval: Automatic
+    name: ibm-im-mongodb-operator-v4.1
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-mongodb-operator-app
+  - channel: v4.2
+    installPlanApproval: Automatic
+    name: ibm-im-mongodb-operator-v4.2
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-mongodb-operator-app
+  - channel: v4.0
+    installPlanApproval: Automatic
+    name: ibm-im-operator-v4.0
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-iam-operator
+    scope: public
+  - channel: v4.1
+    installPlanApproval: Automatic
+    name: ibm-im-operator-v4.1
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-iam-operator
+    scope: public
+  - channel: v4.2
+    installPlanApproval: Automatic
+    name: ibm-im-operator-v4.2
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-iam-operator
+    scope: public
+  - channel: v4.3
+    installPlanApproval: Automatic
+    name: ibm-im-operator-v4.3
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-iam-operator
+    scope: public
+  - channel: v4.4
+    installPlanApproval: Automatic
+    name: ibm-im-operator-v4.4
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-iam-operator
+    scope: public
+  - channel: v4.5
+    installPlanApproval: Automatic
+    name: ibm-im-operator-v4.5
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-iam-operator
+    scope: public
+  - channel: v4.6
+    installPlanApproval: Automatic
+    name: ibm-im-operator-v4.6
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-iam-operator
+    scope: public
+  - channel: v4.7
+    installPlanApproval: Automatic
+    name: ibm-im-operator-v4.7
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-iam-operator
+    scope: public
+  - channel: v4.8
+    installPlanApproval: Automatic
+    name: ibm-im-operator-v4.8
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-iam-operator
+    scope: public
+  - channel: v4.0
+    installPlanApproval: Automatic
+    name: ibm-idp-config-ui-operator-v4.0
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-commonui-operator-app
+    scope: public
+  - channel: v4.1
+    installPlanApproval: Automatic
+    name: ibm-idp-config-ui-operator-v4.1
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-commonui-operator-app
+    scope: public
+  - channel: v4.2
+    installPlanApproval: Automatic
+    name: ibm-idp-config-ui-operator-v4.2
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-commonui-operator-app
+    scope: public
+  - channel: v4.3
+    installPlanApproval: Automatic
+    name: ibm-idp-config-ui-operator-v4.3
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-commonui-operator-app
+    scope: public
+  - channel: v4.4
+    installPlanApproval: Automatic
+    name: ibm-idp-config-ui-operator-v4.4
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-commonui-operator-app
+    scope: public
+  - channel: v4.5
+    installPlanApproval: Automatic
+    name: ibm-idp-config-ui-operator-v4.5
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-commonui-operator-app
+    scope: public
+  - channel: v4.0
+    installPlanApproval: Automatic
+    name: ibm-platformui-operator-v4.0
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-zen-operator
+    scope: public
+  - channel: v4.1
+    installPlanApproval: Automatic
+    name: ibm-platformui-operator-v4.1
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-zen-operator
+    scope: public
+  - channel: v4.2
+    installPlanApproval: Automatic
+    name: ibm-platformui-operator-v4.2
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-zen-operator
+    scope: public
+  - channel: v4.3
+    installPlanApproval: Automatic
+    name: ibm-platformui-operator-v4.3
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-zen-operator
+    scope: public
+  - channel: v4.4
+    installPlanApproval: Automatic
+    name: ibm-platformui-operator-v4.4
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-zen-operator
+    scope: public
+  - channel: v6.0
+    installPlanApproval: Automatic
+    name: ibm-platformui-operator-v6.0
+    namespace: {{ .Values.operatorNamespace }}
+    packageName: ibm-zen-operator
+    scope: public
+  - channel: stable-v24
+    fallbackChannels:
+    - stable-v22
+    installPlanApproval: Automatic
+    name: keycloak-operator
+    namespace: {{ .Values.servicesNamespace }}
+    packageName: rhbk-operator
+    scope: public
+  - channel: stable
+    fallbackChannels:
+    - stable-v1.22
+    installPlanApproval: Automatic
+    name: edb-keycloak
+    namespace: {{ .Values.operatorNamespace }}
+    operatorConfig: cloud-native-postgresql-operator-config
+    packageName: cloud-native-postgresql
+    scope: public
+  - channel: stable
+    installPlanApproval: Automatic
+    name: common-service-postgresql
+    namespace: {{ .Values.operatorNamespace }}
+    operatorConfig: cloud-native-postgresql-operator-config
+    packageName: cloud-native-postgresql
+    scope: public
+
+---
+
+apiVersion: operator.ibm.com/v1alpha1
+kind: OperandConfig
+metadata:
+  annotations:
+    version: 4.9.0
+  labels:
+    operator.ibm.com/managedByCsOperator: "true"
+  name: common-service
+  namespace: {{ .Values.operatorNamespace }}
+spec:
+  services:
+  - name: ibm-licensing-operator
+    spec:
+      operandBindInfo: {}
+  - name: ibm-mongodb-operator
+    spec:
+      mongoDB:
+        metrics:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 350Mi
+            requests:
+              cpu: 100m
+              ephemeral-storage: 256Mi
+              memory: 300Mi
+        replicas: 1
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 640Mi
+          requests:
+            cpu: 500m
+            ephemeral-storage: 256Mi
+            memory: 640Mi
+      operandRequest: {}
+  - name: ibm-im-mongodb-operator
+    spec:
+      mongoDB:
+        metrics:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 350Mi
+            requests:
+              cpu: 100m
+              ephemeral-storage: 256Mi
+              memory: 300Mi
+        replicas: 1
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 640Mi
+          requests:
+            cpu: 500m
+            ephemeral-storage: 256Mi
+            memory: 640Mi
+      operandRequest: {}
+  - name: ibm-im-operator
+    spec:
+      authentication:
+        authService:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 1090Mi
+            requests:
+              cpu: 600m
+              ephemeral-storage: 256Mi
+              memory: 650Mi
+        clientRegistration:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 50Mi
+            requests:
+              cpu: 20m
+              ephemeral-storage: 256Mi
+              memory: 50Mi
+        config:
+          onPremMultipleDeploy: true
+        identityManager:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 410Mi
+            requests:
+              cpu: 260m
+              ephemeral-storage: 256Mi
+              memory: 240Mi
+        identityProvider:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 420Mi
+            requests:
+              cpu: 570m
+              ephemeral-storage: 256Mi
+              memory: 250Mi
+        replicas: 1
+      operandBindInfo:
+        operand: ibm-im-operator
+  - name: ibm-iam-operator
+    spec:
+      authentication:
+        auditService:
+          resources:
+            limits:
+              cpu: 20m
+              memory: 40Mi
+            requests:
+              cpu: 10m
+              ephemeral-storage: 256Mi
+              memory: 20Mi
+        authService:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 1090Mi
+            requests:
+              cpu: 600m
+              ephemeral-storage: 256Mi
+              memory: 650Mi
+        clientRegistration:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 50Mi
+            requests:
+              cpu: 20m
+              ephemeral-storage: 256Mi
+              memory: 50Mi
+        config:
+          onPremMultipleDeploy: true
+        identityManager:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 410Mi
+            requests:
+              cpu: 260m
+              ephemeral-storage: 256Mi
+              memory: 240Mi
+        identityProvider:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 420Mi
+            requests:
+              cpu: 570m
+              ephemeral-storage: 256Mi
+              memory: 250Mi
+        replicas: 1
+      oidcclientwatcher:
+        replicas: 1
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 256Mi
+          requests:
+            cpu: 20m
+            ephemeral-storage: 256Mi
+            memory: 34Mi
+      operandBindInfo: {}
+      operandRequest: {}
+      pap:
+        auditService:
+          resources:
+            limits:
+              cpu: 20m
+              memory: 40Mi
+            requests:
+              cpu: 10m
+              ephemeral-storage: 256Mi
+              memory: 20Mi
+        papService:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 380Mi
+            requests:
+              cpu: 30m
+              ephemeral-storage: 256Mi
+              memory: 190Mi
+        replicas: 1
+      policycontroller:
+        replicas: 1
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 60Mi
+          requests:
+            cpu: 20m
+            ephemeral-storage: 256Mi
+            memory: 30Mi
+      policydecision:
+        auditService:
+          resources:
+            limits:
+              cpu: 20m
+              memory: 40Mi
+            requests:
+              cpu: 10m
+              ephemeral-storage: 256Mi
+              memory: 20Mi
+        replicas: 1
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 50Mi
+          requests:
+            cpu: 70m
+            ephemeral-storage: 256Mi
+            memory: 30Mi
+      secretwatcher:
+        replicas: 1
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 145Mi
+          requests:
+            cpu: 20m
+            ephemeral-storage: 256Mi
+            memory: 40Mi
+      securityonboarding:
+        iamOnboarding:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 1024Mi
+            requests:
+              cpu: 20m
+              ephemeral-storage: 256Mi
+              memory: 64Mi
+        replicas: 1
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 50Mi
+          requests:
+            cpu: 20m
+            ephemeral-storage: 256Mi
+            memory: 50Mi
+  - name: ibm-healthcheck-operator
+    spec:
+      healthService:
+        healthService:
+          replicas: 1
+          resources:
+            limits:
+              cpu: 200m
+              memory: 100Mi
+            requests:
+              cpu: 20m
+              ephemeral-storage: 256Mi
+              memory: 100Mi
+        memcached:
+          replicas: 1
+          resources:
+            limits:
+              cpu: 200m
+              memory: 100Mi
+            requests:
+              cpu: 20m
+              ephemeral-storage: 256Mi
+              memory: 50Mi
+      mustgatherConfig: {}
+      mustgatherService: {}
+  - name: ibm-commonui-operator
+    spec:
+      commonWebUI:
+        replicas: 1
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 440Mi
+          requests:
+            cpu: 130m
+            ephemeral-storage: 256Mi
+            memory: 256Mi
+      navconfiguration: {}
+      operandRequest: {}
+      switcheritem: {}
+  - name: ibm-idp-config-ui-operator
+    spec:
+      commonWebUI:
+        replicas: 1
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 440Mi
+          requests:
+            cpu: 130m
+            ephemeral-storage: 256Mi
+            memory: 256Mi
+      navconfiguration: {}
+      switcheritem: {}
+  - name: ibm-cert-manager-operator
+    spec:
+      certManager:
+        certManagerCAInjector:
+          resources:
+            limits:
+              cpu: 100m
+              memory: 520Mi
+            requests:
+              cpu: 20m
+              ephemeral-storage: 256Mi
+              memory: 410Mi
+        certManagerController:
+          resources:
+            limits:
+              cpu: 80m
+              memory: 530Mi
+            requests:
+              cpu: 20m
+              ephemeral-storage: 256Mi
+              memory: 230Mi
+        certManagerWebhook:
+          resources:
+            limits:
+              cpu: 60m
+              memory: 100Mi
+            requests:
+              cpu: 30m
+              ephemeral-storage: 256Mi
+              memory: 40Mi
+  - name: ibm-management-ingress-operator
+    spec:
+      managementIngress:
+        replicas: 1
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 170Mi
+          requests:
+            cpu: 70m
+            ephemeral-storage: 256Mi
+            memory: 70Mi
+      operandBindInfo: {}
+      operandRequest: {}
+  - name: ibm-ingress-nginx-operator
+    spec:
+      nginxIngress:
+        defaultBackend:
+          replicas: 1
+          resources:
+            limits:
+              cpu: 20m
+              memory: 50Mi
+            requests:
+              cpu: 10m
+              ephemeral-storage: 256Mi
+              memory: 20Mi
+        ingress:
+          replicas: 1
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 350Mi
+            requests:
+              cpu: 100m
+              ephemeral-storage: 256Mi
+              memory: 110Mi
+        kubectl:
+          resources:
+            limits:
+              cpu: 30m
+              memory: 150Mi
+            requests:
+              cpu: 30m
+              ephemeral-storage: 256Mi
+              memory: 150Mi
+  - name: ibm-auditlogging-operator
+    spec:
+      auditLogging:
+        fluentd:
+          resources:
+            limits:
+              cpu: 50m
+              memory: 150Mi
+            requests:
+              cpu: 20m
+              ephemeral-storage: 256Mi
+              memory: 20Mi
+      operandBindInfo: {}
+      operandRequest: {}
+  - name: ibm-platform-api-operator
+    spec:
+      operandRequest: {}
+      platformApi:
+        auditService:
+          resources:
+            limits:
+              cpu: 25m
+              memory: 50Mi
+            requests:
+              cpu: 20m
+              ephemeral-storage: 256Mi
+              memory: 30Mi
+        platformApi:
+          resources:
+            limits:
+              cpu: 25m
+              memory: 50Mi
+            requests:
+              cpu: 20m
+              ephemeral-storage: 256Mi
+              memory: 30Mi
+        replicas: 1
+  - name: ibm-monitoring-grafana-operator
+    spec:
+      grafana:
+        dashboardConfig:
+          resources:
+            limits:
+              cpu: 20m
+              memory: 80Mi
+            requests:
+              cpu: 20m
+              ephemeral-storage: 256Mi
+              memory: 30Mi
+        grafanaConfig:
+          resources:
+            limits:
+              cpu: 150m
+              memory: 120Mi
+            requests:
+              cpu: 20m
+              ephemeral-storage: 256Mi
+              memory: 40Mi
+        routerConfig:
+          resources:
+            limits:
+              cpu: 50m
+              memory: 50Mi
+            requests:
+              cpu: 20m
+              ephemeral-storage: 256Mi
+              memory: 20Mi
+      operandRequest: {}
+  - name: ibm-user-data-services-operator
+    spec:
+      operandBindInfo: {}
+      operandRequest: {}
+  - name: cloud-native-postgresql
+    resources:
+    - apiVersion: batch/v1
+      data:
+        spec:
+          activeDeadlineSeconds: 600
+          backoffLimit: 5
+          template:
+            metadata:
+              annotations:
+                productID: 068a62892a1e4db39641342e592daa25
+                productMetric: FREE
+                productName: IBM Cloud Platform Common Services
+            spec:
+              affinity:
+                nodeAffinity:
+                  requiredDuringSchedulingIgnoredDuringExecution:
+                    nodeSelectorTerms:
+                    - matchExpressions:
+                      - key: kubernetes.io/arch
+                        operator: In
+                        values:
+                        - amd64
+                        - ppc64le
+                        - s390x
+              containers:
+              - args:
+                - |
+                  kubectl delete pods -l app.kubernetes.io/name=cloud-native-postgresql
+                  kubectl annotate secret postgresql-operator-controller-manager-config ibm-license-key-applied="EDB Database with IBM License Key"
+                command:
+                - bash
+                - -c
+                image:
+                  templatingValueFrom:
+                    default:
+                      configMapKeyRef:
+                        key: edb-postgres-license-provider-image
+                        name: cloud-native-postgresql-image-list
+                        namespace: {{ .Values.operatorNamespace }}
+                      required: true
+                name: restart-edb-pod
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 512Mi
+                  requests:
+                    cpu: 100m
+                    memory: 50Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+                  privileged: false
+                  readOnlyRootFilesystem: false
+              hostIPC: false
+              hostNetwork: false
+              hostPID: false
+              imagePullSecrets:
+              - name: ibm-entitlement-key
+              initContainers:
+              - command:
+                - bash
+                - -c
+                - |
+                  cat << EOF | kubectl apply -f -
+                  apiVersion: v1
+                  kind: Secret
+                  type: Opaque
+                  metadata:
+                    name: postgresql-operator-controller-manager-config
+                  data:
+                    EDB_LICENSE_KEY: $(base64 /license_keys/edb/EDB_LICENSE_KEY | tr -d '\n')
+                  EOF
+                image:
+                  templatingValueFrom:
+                    default:
+                      configMapKeyRef:
+                        key: edb-postgres-license-provider-image
+                        name: cloud-native-postgresql-image-list
+                        namespace: {{ .Values.operatorNamespace }}
+                      required: true
+                name: edb-license
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 512Mi
+                  requests:
+                    cpu: 100m
+                    memory: 50Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+                  privileged: false
+                  readOnlyRootFilesystem: false
+              restartPolicy: OnFailure
+              securityContext:
+                runAsNonRoot: true
+              serviceAccountName: edb-license-sa
+      force: true
+      kind: Job
+      name: create-postgres-license-config
+      namespace: {{ .Values.operatorNamespace }}
+    - apiVersion: v1
+      force: true
+      kind: ServiceAccount
+      name: edb-license-sa
+      namespace: {{ .Values.operatorNamespace }}
+    - apiVersion: rbac.authorization.k8s.io/v1
+      data:
+        rules:
+        - apiGroups:
+          - ""
+          resources:
+          - pods
+          - secrets
+          verbs:
+          - create
+          - update
+          - patch
+          - get
+          - list
+          - delete
+          - watch
+      force: true
+      kind: Role
+      name: edb-license-role
+      namespace: {{ .Values.operatorNamespace }}
+    - apiVersion: rbac.authorization.k8s.io/v1
+      data:
+        roleRef:
+          apiGroup: rbac.authorization.k8s.io
+          kind: Role
+          name: edb-license-role
+        subjects:
+        - kind: ServiceAccount
+          name: edb-license-sa
+      force: true
+      kind: RoleBinding
+      name: edb-license-rolebinding
+      namespace: {{ .Values.operatorNamespace }}
+  - name: cloud-native-postgresql-v1.22
+    resources:
+    - apiVersion: batch/v1
+      data:
+        spec:
+          activeDeadlineSeconds: 600
+          backoffLimit: 5
+          template:
+            metadata:
+              annotations:
+                productID: 068a62892a1e4db39641342e592daa25
+                productMetric: FREE
+                productName: IBM Cloud Platform Common Services
+            spec:
+              affinity:
+                nodeAffinity:
+                  requiredDuringSchedulingIgnoredDuringExecution:
+                    nodeSelectorTerms:
+                    - matchExpressions:
+                      - key: kubernetes.io/arch
+                        operator: In
+                        values:
+                        - amd64
+                        - ppc64le
+                        - s390x
+              containers:
+              - args:
+                - |
+                  kubectl delete pods -l app.kubernetes.io/name=cloud-native-postgresql
+                  kubectl annotate secret postgresql-operator-controller-manager-config ibm-license-key-applied="EDB Database with IBM License Key"
+                command:
+                - bash
+                - -c
+                image:
+                  templatingValueFrom:
+                    default:
+                      configMapKeyRef:
+                        key: edb-postgres-license-provider-image
+                        name: cloud-native-postgresql-image-list
+                        namespace: {{ .Values.operatorNamespace }}
+                      required: true
+                name: restart-edb-pod
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 512Mi
+                  requests:
+                    cpu: 100m
+                    memory: 50Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+                  privileged: false
+                  readOnlyRootFilesystem: false
+              hostIPC: false
+              hostNetwork: false
+              hostPID: false
+              imagePullSecrets:
+              - name: ibm-entitlement-key
+              initContainers:
+              - command:
+                - bash
+                - -c
+                - |
+                  cat << EOF | kubectl apply -f -
+                  apiVersion: v1
+                  kind: Secret
+                  type: Opaque
+                  metadata:
+                    name: postgresql-operator-controller-manager-config
+                  data:
+                    EDB_LICENSE_KEY: $(base64 /license_keys/edb/EDB_LICENSE_KEY | tr -d '\n')
+                  EOF
+                image:
+                  templatingValueFrom:
+                    default:
+                      configMapKeyRef:
+                        key: edb-postgres-license-provider-image
+                        name: cloud-native-postgresql-image-list
+                        namespace: {{ .Values.operatorNamespace }}
+                      required: true
+                name: edb-license
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 512Mi
+                  requests:
+                    cpu: 100m
+                    memory: 50Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+                  privileged: false
+                  readOnlyRootFilesystem: false
+              restartPolicy: OnFailure
+              securityContext:
+                runAsNonRoot: true
+              serviceAccountName: edb-license-sa
+      force: true
+      kind: Job
+      name: create-postgres-license-config
+      namespace: {{ .Values.operatorNamespace }}
+    - apiVersion: v1
+      force: true
+      kind: ServiceAccount
+      name: edb-license-sa
+      namespace: {{ .Values.operatorNamespace }}
+    - apiVersion: rbac.authorization.k8s.io/v1
+      data:
+        rules:
+        - apiGroups:
+          - ""
+          resources:
+          - pods
+          - secrets
+          verbs:
+          - create
+          - update
+          - patch
+          - get
+          - list
+          - delete
+          - watch
+      force: true
+      kind: Role
+      name: edb-license-role
+      namespace: {{ .Values.operatorNamespace }}
+    - apiVersion: rbac.authorization.k8s.io/v1
+      data:
+        roleRef:
+          apiGroup: rbac.authorization.k8s.io
+          kind: Role
+          name: edb-license-role
+        subjects:
+        - kind: ServiceAccount
+          name: edb-license-sa
+      force: true
+      kind: RoleBinding
+      name: edb-license-rolebinding
+      namespace: {{ .Values.operatorNamespace }}
+  - name: ibm-bts-operator
+    spec:
+      operandRequest:
+        requests:
+        - operands:
+          - name: ibm-im-operator
+          registry: common-service
+  - name: ibm-bts-operator-v3.34
+    spec:
+      operandRequest:
+        requests:
+        - operands:
+          - name: ibm-im-operator
+          registry: common-service
+  - name: ibm-bts-operator-v3.35
+    spec:
+      operandRequest:
+        requests:
+        - operands:
+          - name: ibm-im-operator
+          registry: common-service
+  - name: ibm-zen-operator
+    spec:
+      operandBindInfo: {}
+  - name: ibm-platformui-operator
+    spec:
+      operandBindInfo: {}
+  - name: ibm-im-mongodb-operator-v4.0
+    spec:
+      mongoDB:
+        metrics:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 350Mi
+            requests:
+              cpu: 100m
+              ephemeral-storage: 256Mi
+              memory: 300Mi
+        replicas: 1
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 640Mi
+          requests:
+            cpu: 500m
+            ephemeral-storage: 256Mi
+            memory: 640Mi
+      operandRequest: {}
+  - name: ibm-im-mongodb-operator-v4.1
+    spec:
+      mongoDB:
+        metrics:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 350Mi
+            requests:
+              cpu: 100m
+              ephemeral-storage: 256Mi
+              memory: 300Mi
+        replicas: 1
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 640Mi
+          requests:
+            cpu: 500m
+            ephemeral-storage: 256Mi
+            memory: 640Mi
+      operandRequest: {}
+  - name: ibm-im-mongodb-operator-v4.2
+    spec:
+      mongoDB:
+        metrics:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 350Mi
+            requests:
+              cpu: 100m
+              ephemeral-storage: 256Mi
+              memory: 300Mi
+        replicas: 1
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 640Mi
+          requests:
+            cpu: 500m
+            ephemeral-storage: 256Mi
+            memory: 640Mi
+      operandRequest: {}
+  - name: ibm-im-operator-v4.0
+    spec:
+      authentication:
+        authService:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 1090Mi
+            requests:
+              cpu: 600m
+              ephemeral-storage: 256Mi
+              memory: 650Mi
+        clientRegistration:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 50Mi
+            requests:
+              cpu: 20m
+              ephemeral-storage: 256Mi
+              memory: 50Mi
+        config:
+          onPremMultipleDeploy: true
+        identityManager:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 410Mi
+            requests:
+              cpu: 260m
+              ephemeral-storage: 256Mi
+              memory: 240Mi
+        identityProvider:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 420Mi
+            requests:
+              cpu: 570m
+              ephemeral-storage: 256Mi
+              memory: 250Mi
+        replicas: 1
+      operandBindInfo:
+        operand: ibm-im-operator
+      operandRequest:
+        requests:
+        - operands:
+          - name: ibm-im-mongodb-operator-v4.0
+          - name: ibm-idp-config-ui-operator-v4.0
+          registry: common-service
+  - name: ibm-im-operator-v4.1
+    spec:
+      authentication:
+        authService:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 1090Mi
+            requests:
+              cpu: 600m
+              ephemeral-storage: 256Mi
+              memory: 650Mi
+        clientRegistration:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 50Mi
+            requests:
+              cpu: 20m
+              ephemeral-storage: 256Mi
+              memory: 50Mi
+        config:
+          onPremMultipleDeploy: true
+        identityManager:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 410Mi
+            requests:
+              cpu: 260m
+              ephemeral-storage: 256Mi
+              memory: 240Mi
+        identityProvider:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 420Mi
+            requests:
+              cpu: 570m
+              ephemeral-storage: 256Mi
+              memory: 250Mi
+        replicas: 1
+      operandBindInfo:
+        operand: ibm-im-operator
+      operandRequest:
+        requests:
+        - operands:
+          - name: ibm-im-mongodb-operator-v4.1
+          - name: ibm-idp-config-ui-operator-v4.1
+          registry: common-service
+  - name: ibm-im-operator-v4.2
+    spec:
+      authentication:
+        authService:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 1090Mi
+            requests:
+              cpu: 600m
+              ephemeral-storage: 256Mi
+              memory: 650Mi
+        clientRegistration:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 50Mi
+            requests:
+              cpu: 20m
+              ephemeral-storage: 256Mi
+              memory: 50Mi
+        config:
+          onPremMultipleDeploy: true
+        identityManager:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 410Mi
+            requests:
+              cpu: 260m
+              ephemeral-storage: 256Mi
+              memory: 240Mi
+        identityProvider:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 420Mi
+            requests:
+              cpu: 570m
+              ephemeral-storage: 256Mi
+              memory: 250Mi
+        replicas: 1
+      operandBindInfo:
+        operand: ibm-im-operator
+      operandRequest:
+        requests:
+        - operands:
+          - name: ibm-im-mongodb-operator-v4.2
+          - name: ibm-idp-config-ui-operator-v4.2
+          registry: common-service
+  - name: ibm-im-operator-v4.3
+    spec:
+      authentication:
+        authService:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 1090Mi
+            requests:
+              cpu: 600m
+              ephemeral-storage: 256Mi
+              memory: 650Mi
+        clientRegistration:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 50Mi
+            requests:
+              cpu: 20m
+              ephemeral-storage: 256Mi
+              memory: 50Mi
+        config:
+          onPremMultipleDeploy: true
+        identityManager:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 410Mi
+            requests:
+              cpu: 260m
+              ephemeral-storage: 256Mi
+              memory: 240Mi
+        identityProvider:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 420Mi
+            requests:
+              cpu: 570m
+              ephemeral-storage: 256Mi
+              memory: 250Mi
+        replicas: 1
+      operandBindInfo:
+        operand: ibm-im-operator
+      operandRequest:
+        requests:
+        - operands:
+          - name: ibm-im-mongodb-operator-v4.2
+          - name: ibm-idp-config-ui-operator-v4.3
+          registry: common-service
+  - name: ibm-im-operator-v4.4
+    spec:
+      authentication:
+        authService:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 1090Mi
+            requests:
+              cpu: 600m
+              ephemeral-storage: 256Mi
+              memory: 650Mi
+        clientRegistration:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 50Mi
+            requests:
+              cpu: 20m
+              ephemeral-storage: 256Mi
+              memory: 50Mi
+        config:
+          onPremMultipleDeploy: true
+        identityManager:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 410Mi
+            requests:
+              cpu: 260m
+              ephemeral-storage: 256Mi
+              memory: 240Mi
+        identityProvider:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 420Mi
+            requests:
+              cpu: 570m
+              ephemeral-storage: 256Mi
+              memory: 250Mi
+        replicas: 1
+      operandBindInfo:
+        operand: ibm-im-operator
+      operandRequest:
+        requests:
+        - operands:
+          - name: ibm-im-mongodb-operator-v4.2
+          - name: ibm-idp-config-ui-operator-v4.3
+          registry: common-service
+  - name: ibm-im-operator-v4.5
+    spec:
+      authentication:
+        authService:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 1090Mi
+            requests:
+              cpu: 600m
+              ephemeral-storage: 256Mi
+              memory: 650Mi
+        clientRegistration:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 50Mi
+            requests:
+              cpu: 20m
+              ephemeral-storage: 256Mi
+              memory: 50Mi
+        config:
+          onPremMultipleDeploy: true
+        identityManager:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 410Mi
+            requests:
+              cpu: 260m
+              ephemeral-storage: 256Mi
+              memory: 240Mi
+        identityProvider:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 420Mi
+            requests:
+              cpu: 570m
+              ephemeral-storage: 256Mi
+              memory: 250Mi
+        replicas: 1
+      operandBindInfo:
+        operand: ibm-im-operator
+  - name: ibm-im-operator-v4.6
+    spec:
+      authentication:
+        authService:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 1090Mi
+            requests:
+              cpu: 600m
+              ephemeral-storage: 256Mi
+              memory: 650Mi
+        clientRegistration:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 50Mi
+            requests:
+              cpu: 20m
+              ephemeral-storage: 256Mi
+              memory: 50Mi
+        config:
+          onPremMultipleDeploy: true
+        identityManager:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 410Mi
+            requests:
+              cpu: 260m
+              ephemeral-storage: 256Mi
+              memory: 240Mi
+        identityProvider:
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 420Mi
+            requests:
+              cpu: 570m
+              ephemeral-storage: 256Mi
+              memory: 250Mi
+        replicas: 1
+      operandBindInfo:
+        operand: ibm-im-operator
+  - name: ibm-im-operator-v4.7
+    spec:
+      authentication:
+        config:
+          onPremMultipleDeploy: true
+      operandBindInfo:
+        operand: ibm-im-operator
+  - name: ibm-im-operator-v4.8
+    spec:
+      authentication:
+        config:
+          onPremMultipleDeploy: true
+      operandBindInfo:
+        operand: ibm-im-operator
+  - name: ibm-user-management-operator
+    resources:
+    - apiVersion: operator.ibm.com/v1alpha1
+      force: true
+      kind: AccountIAM
+      labels:
+        app.kubernetes.io/created-by: ibm-user-management-operator
+        app.kubernetes.io/instance: accountiam-sample
+        app.kubernetes.io/managed-by: kustomize
+        app.kubernetes.io/name: accountiam
+        app.kubernetes.io/part-of: ibm-user-management-operator
+      name: accountiam-sample
+    - apiVersion: operator.ibm.com/v1alpha1
+      data:
+        spec:
+          bindings:
+            public-account-iam-config-dev:
+              configmap: account-iam-env-configmap-dev
+            public-bootstrap-creds:
+              secret: user-mgmt-bootstrap
+            public-ibmcloudca-secret:
+              secret: ibmcloud-cluster-ca-secret
+            public-mcsp-integration-details:
+              secret: mcsp-im-integration-details
+          description: Binding information that should be accessible to User Management
+            adopters
+          operand: ibm-user-management-operator
+          registry: common-service
+          registryNamespace: {{ .Values.servicesNamespace }}
+      force: true
+      kind: OperandBindInfo
+      name: ibm-user-mgmt-bindinfo
+  - name: ibm-idp-config-ui-operator-v4.0
+    spec:
+      commonWebUI:
+        replicas: 1
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 440Mi
+          requests:
+            cpu: 130m
+            ephemeral-storage: 256Mi
+            memory: 256Mi
+      navconfiguration: {}
+      switcheritem: {}
+  - name: ibm-idp-config-ui-operator-v4.1
+    spec:
+      commonWebUI:
+        replicas: 1
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 440Mi
+          requests:
+            cpu: 130m
+            ephemeral-storage: 256Mi
+            memory: 256Mi
+      navconfiguration: {}
+      switcheritem: {}
+  - name: ibm-idp-config-ui-operator-v4.2
+    spec:
+      commonWebUI:
+        replicas: 1
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 440Mi
+          requests:
+            cpu: 130m
+            ephemeral-storage: 256Mi
+            memory: 256Mi
+      navconfiguration: {}
+      switcheritem: {}
+  - name: ibm-idp-config-ui-operator-v4.3
+    spec:
+      commonWebUI:
+        replicas: 1
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 440Mi
+          requests:
+            cpu: 130m
+            ephemeral-storage: 256Mi
+            memory: 256Mi
+      navconfiguration: {}
+      switcheritem: {}
+  - name: ibm-idp-config-ui-operator-v4.4
+    spec:
+      commonWebUI:
+        replicas: 1
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 440Mi
+          requests:
+            cpu: 130m
+            ephemeral-storage: 256Mi
+            memory: 256Mi
+      navconfiguration: {}
+      switcheritem: {}
+  - name: ibm-idp-config-ui-operator-v4.5
+    spec:
+      commonWebUI:
+        replicas: 1
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 440Mi
+          requests:
+            cpu: 130m
+            ephemeral-storage: 256Mi
+            memory: 256Mi
+      navconfiguration: {}
+      switcheritem: {}
+  - name: ibm-platformui-operator-v4.0
+    spec:
+      operandBindInfo: {}
+  - name: ibm-platformui-operator-v4.1
+    spec:
+      operandBindInfo: {}
+  - name: ibm-platformui-operator-v4.2
+    spec:
+      operandBindInfo: {}
+  - name: ibm-platformui-operator-v4.3
+    spec:
+      operandBindInfo: {}
+  - name: ibm-platformui-operator-v4.4
+    spec:
+      operandBindInfo: {}
+  - name: ibm-platformui-operator-v6.0
+    spec:
+      operandBindInfo: {}
+  - name: keycloak-operator
+    resources:
+    - apiVersion: operator.ibm.com/v1alpha1
+      data:
+        spec:
+          requests:
+          - operands:
+            - name: edb-keycloak
+            registry: common-service
+            registryNamespace: {{ .Values.servicesNamespace }}
+      force: true
+      kind: OperandRequest
+      name: edb-keycloak-request
+    - apiVersion: operator.ibm.com/v1alpha1
+      data:
+        spec:
+          bindings:
+            public-cs-keycloak-route:
+              configmap: cs-keycloak-route
+            public-cs-keycloak-service:
+              configmap: cs-keycloak-service
+            public-keycloak-tls-secret:
+              secret: cs-keycloak-tls-secret
+          description: Binding information that should be accessible to Keycloak adopters
+          operand: keycloak-operator
+          registry: common-service
+          registryNamespace: {{ .Values.servicesNamespace }}
+      force: true
+      kind: OperandBindInfo
+      name: keycloak-bindinfo
+    - apiVersion: v1
+      data:
+        data:
+          cs-keycloak-entrypoint.sh: |
+            #!/usr/bin/env bash
+            CA_DIR=/mnt/trust-ca
+            TRUSTSTORE_DIR=/mnt/truststore
+            echo "Building the truststore file ..."
+            cp /etc/pki/java/cacerts ${TRUSTSTORE_DIR}/keycloak-truststore.jks
+            chmod +w ${TRUSTSTORE_DIR}/keycloak-truststore.jks
+            echo "Importing default service account certificates ..."
+            index=0
+            while read -r line; do
+              if [ "$line" = "-----BEGIN CERTIFICATE-----" ]; then
+                echo "$line" > ${TRUSTSTORE_DIR}/temp_cert.pem
+              elif [ "$line" = "-----END CERTIFICATE-----" ]; then
+                echo "$line" >> ${TRUSTSTORE_DIR}/temp_cert.pem
+                let "index++"
+                echo "Importing service account certificate entry number ${index} ..."
+                keytool -importcert -alias "serviceaccount-ca-crt_$index" -file ${TRUSTSTORE_DIR}/temp_cert.pem -keystore ${TRUSTSTORE_DIR}/keycloak-truststore.jks -storepass changeit -noprompt
+                rm -f ${TRUSTSTORE_DIR}/temp_cert.pem
+              else
+                echo "$line" >> ${TRUSTSTORE_DIR}/temp_cert.pem
+              fi
+            done < /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+            for cert in $(ls ${CA_DIR}); do
+              echo "Importing ${cert} into the truststore file ..."
+              keytool -importcert -file ${CA_DIR}/${cert} -keystore ${TRUSTSTORE_DIR}/keycloak-truststore.jks -storepass changeit -alias ${cert} -noprompt
+            done
+            echo "Truststore file built, starting Keycloak ..."
+            "/opt/keycloak/bin/kc.sh" "$@" --spi-truststore-file-file=${TRUSTSTORE_DIR}/keycloak-truststore.jks --spi-truststore-file-password=changeit --spi-truststore-file-hostname-verification-policy=WILDCARD
+      force: true
+      kind: ConfigMap
+      name: cs-keycloak-entrypoint
+    - annotations:
+        service.beta.openshift.io/serving-cert-secret-name: cpfs-opcon-cs-keycloak-tls-secret
+      apiVersion: v1
+      data:
+        spec:
+          internalTrafficPolicy: Cluster
+          ipFamilies:
+          - IPv4
+          ipFamilyPolicy: SingleStack
+          ports:
+          - name: https
+            port: 8443
+            protocol: TCP
+            targetPort: 8443
+          selector:
+            app: keycloak
+            app.kubernetes.io/instance: cs-keycloak
+            app.kubernetes.io/managed-by: keycloak-operator
+          sessionAffinity: None
+          type: ClusterIP
+      force: true
+      kind: Service
+      labels:
+        app: keycloak
+        app.kubernetes.io/instance: cs-keycloak
+        app.kubernetes.io/managed-by: keycloak-operator
+      name: cpfs-opcon-cs-keycloak-service
+    - apiVersion: v1
+      data:
+        stringData:
+          ca.crt:
+            templatingValueFrom:
+              configMapKeyRef:
+                key: service-ca.crt
+                name: openshift-service-ca.crt
+              required: true
+          tls.crt:
+            templatingValueFrom:
+              required: true
+              secretKeyRef:
+                key: tls.crt
+                name: cpfs-opcon-cs-keycloak-tls-secret
+          tls.key:
+            templatingValueFrom:
+              required: true
+              secretKeyRef:
+                key: tls.key
+                name: cpfs-opcon-cs-keycloak-tls-secret
+        type: kubernetes.io/tls
+      force: true
+      kind: Secret
+      labels:
+        operator.ibm.com/opreq-control: "true"
+        operator.ibm.com/watched-by-cert-manager: ""
+      name: cs-keycloak-tls-secret
+    - apiVersion: route.openshift.io/v1
+      data:
+        spec:
+          host:
+            templatingValueFrom:
+              configMapKeyRef:
+                key: keycloak_route_name
+                name: ibm-cpp-config
+          port:
+            targetPort: 8443
+          tls:
+            caCertificate:
+              templatingValueFrom:
+                secretKeyRef:
+                  key: ca.crt
+                  name: keycloak-custom-tls-secret
+            certificate:
+              templatingValueFrom:
+                secretKeyRef:
+                  key: tls.crt
+                  name: keycloak-custom-tls-secret
+            destinationCACertificate:
+              templatingValueFrom:
+                required: true
+                secretKeyRef:
+                  key: ca.crt
+                  name: cs-keycloak-tls-secret
+            key:
+              templatingValueFrom:
+                secretKeyRef:
+                  key: tls.key
+                  name: keycloak-custom-tls-secret
+            termination: reencrypt
+          to:
+            kind: Service
+            name: cpfs-opcon-cs-keycloak-service
+          wildcardPolicy: None
+      force: true
+      kind: Route
+      name: keycloak
+    - apiVersion: k8s.keycloak.org/v2alpha1
+      data:
+        spec:
+          db:
+            host: keycloak-edb-cluster-rw
+            passwordSecret:
+              key: password
+              name: keycloak-edb-cluster-app
+            usernameSecret:
+              key: username
+              name: keycloak-edb-cluster-app
+            vendor: postgres
+          features:
+            enabled:
+            - token-exchange
+          hostname:
+            hostname:
+              templatingValueFrom:
+                objectRef:
+                  apiVersion: route.openshift.io/v1
+                  kind: Route
+                  name: keycloak
+                  path: .spec.host
+                required: true
+          http:
+            tlsSecret: cs-keycloak-tls-secret
+          ingress:
+            enabled: false
+          instances: 1
+          unsupported:
+            podTemplate:
+              metadata:
+                annotations:
+                  cloudpakThemesVersion:
+                    templatingValueFrom:
+                      objectRef:
+                        apiVersion: v1
+                        kind: ConfigMap
+                        name: cs-keycloak-theme
+                        path: .metadata.annotations.themesVersion
+                      required: true
+              spec:
+                affinity:
+                  nodeAffinity:
+                    requiredDuringSchedulingIgnoredDuringExecution:
+                      nodeSelectorTerms:
+                      - matchExpressions:
+                        - key: kubernetes.io/arch
+                          operator: In
+                          values:
+                          - amd64
+                          - ppc64le
+                          - s390x
+                containers:
+                - command:
+                  - /bin/sh
+                  - /mnt/startup/cs-keycloak-entrypoint.sh
+                  resources:
+                    limits:
+                      cpu: 1000m
+                      ephemeral-storage: 512Mi
+                      memory: 1Gi
+                    requests:
+                      cpu: 1000m
+                      ephemeral-storage: 256Mi
+                      memory: 1Gi
+                  volumeMounts:
+                  - mountPath: /mnt/truststore
+                    name: truststore-volume
+                  - mountPath: /mnt/startup
+                    name: startup-volume
+                  - mountPath: /mnt/trust-ca
+                    name: trust-ca-volume
+                  - mountPath: /opt/keycloak/providers
+                    name: cs-keycloak-theme
+                volumes:
+                - emptyDir:
+                    sizeLimit: 2Mi
+                  name: truststore-volume
+                - configMap:
+                    name: cs-keycloak-entrypoint
+                  name: startup-volume
+                - configMap:
+                    name: cs-keycloak-ca-certs
+                    optional: true
+                  name: trust-ca-volume
+                - configMap:
+                    items:
+                    - key: cloudpak-theme.jar
+                      path: cloudpak-theme.jar
+                    name: cs-keycloak-theme
+                  name: cs-keycloak-theme
+      force: true
+      kind: Keycloak
+      name: cs-keycloak
+    - apiVersion: v1
+      data:
+        data:
+          BACKEND_SERVICE:
+            templatingValueFrom:
+              objectRef:
+                apiVersion: route.openshift.io/v1
+                kind: Route
+                name: keycloak
+                path: .spec.to.name
+              required: true
+          HOSTNAME:
+            templatingValueFrom:
+              objectRef:
+                apiVersion: route.openshift.io/v1
+                kind: Route
+                name: keycloak
+                path: https://+.spec.host
+              required: true
+          TERMINATION:
+            templatingValueFrom:
+              objectRef:
+                apiVersion: route.openshift.io/v1
+                kind: Route
+                name: keycloak
+                path: .spec.tls.termination
+              required: true
+      force: true
+      kind: ConfigMap
+      name: cs-keycloak-route
+    - apiVersion: v1
+      data:
+        data:
+          CLUSTER_IP:
+            templatingValueFrom:
+              objectRef:
+                apiVersion: v1
+                kind: Service
+                name: cpfs-opcon-cs-keycloak-service
+                path: .spec.clusterIP
+              required: true
+          PORT:
+            templatingValueFrom:
+              objectRef:
+                apiVersion: v1
+                kind: Service
+                name: cpfs-opcon-cs-keycloak-service
+                path: .spec.ports[0].port
+              required: true
+          SERVICE_ENDPOINT:
+            templatingValueFrom:
+              objectRef:
+                apiVersion: v1
+                kind: Service
+                name: cpfs-opcon-cs-keycloak-service
+                path: https://+.metadata.name+.+.metadata.namespace+.+svc:+.spec.ports[0].port
+          SERVICE_NAME:
+            templatingValueFrom:
+              objectRef:
+                apiVersion: v1
+                kind: Service
+                name: cpfs-opcon-cs-keycloak-service
+                path: .metadata.name
+              required: true
+          SERVICE_NAMESPACE: {{ .Values.servicesNamespace }}
+      force: true
+      kind: ConfigMap
+      name: cs-keycloak-service
+    - apiVersion: k8s.keycloak.org/v2alpha1
+      data:
+        spec:
+          keycloakCRName: cs-keycloak
+          realm:
+            accountTheme: cloudpak
+            adminTheme: cloudpak
+            displayName: IBM Cloud Pak
+            displayNameHtml: <div class="kc-logo-text"><span>IBM Cloud Pak</span></div>
+            emailTheme: cloudpak
+            enabled: true
+            id: cloudpak
+            internationalizationEnabled: true
+            loginTheme: cloudpak
+            passwordPolicy: length(15) and notUsername(undefined) and notEmail(undefined)
+            realm: cloudpak
+            rememberMe: true
+            ssoSessionIdleTimeout: 43200
+            ssoSessionMaxLifespan: 43200
+            supportedLocales:
+            - en
+            - de
+            - es
+            - fr
+            - it
+            - ja
+            - ko
+            - pt_BR
+            - zh_CN
+            - zh_TW
+      force: true
+      kind: KeycloakRealmImport
+      name: cs-cloudpak-realm
+      ownerReferences:
+      - apiVersion: k8s.keycloak.org/v2alpha1
+        controller: false
+        kind: Keycloak
+        name: cs-keycloak
+  - name: edb-keycloak
+    resources:
+    - apiVersion: batch/v1
+      data:
+        spec:
+          activeDeadlineSeconds: 600
+          backoffLimit: 5
+          template:
+            metadata:
+              annotations:
+                productID: 068a62892a1e4db39641342e592daa25
+                productMetric: FREE
+                productName: IBM Cloud Platform Common Services
+            spec:
+              affinity:
+                nodeAffinity:
+                  requiredDuringSchedulingIgnoredDuringExecution:
+                    nodeSelectorTerms:
+                    - matchExpressions:
+                      - key: kubernetes.io/arch
+                        operator: In
+                        values:
+                        - amd64
+                        - ppc64le
+                        - s390x
+              containers:
+              - args:
+                - |
+                  kubectl delete pods -l app.kubernetes.io/name=cloud-native-postgresql
+                  kubectl annotate secret postgresql-operator-controller-manager-config ibm-license-key-applied="EDB Database with IBM License Key"
+                command:
+                - bash
+                - -c
+                image:
+                  templatingValueFrom:
+                    default:
+                      configMapKeyRef:
+                        key: edb-postgres-license-provider-image
+                        name: cloud-native-postgresql-image-list
+                        namespace: {{ .Values.operatorNamespace }}
+                      required: true
+                name: restart-edb-pod
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 512Mi
+                  requests:
+                    cpu: 100m
+                    memory: 50Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+                  privileged: false
+                  readOnlyRootFilesystem: false
+              hostIPC: false
+              hostNetwork: false
+              hostPID: false
+              imagePullSecrets:
+              - name: ibm-entitlement-key
+              initContainers:
+              - command:
+                - bash
+                - -c
+                - |
+                  cat << EOF | kubectl apply -f -
+                  apiVersion: v1
+                  kind: Secret
+                  type: Opaque
+                  metadata:
+                    name: postgresql-operator-controller-manager-config
+                  data:
+                    EDB_LICENSE_KEY: $(base64 /license_keys/edb/EDB_LICENSE_KEY | tr -d '\n')
+                  EOF
+                image:
+                  templatingValueFrom:
+                    default:
+                      configMapKeyRef:
+                        key: edb-postgres-license-provider-image
+                        name: cloud-native-postgresql-image-list
+                        namespace: {{ .Values.operatorNamespace }}
+                      required: true
+                name: edb-license
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 512Mi
+                  requests:
+                    cpu: 100m
+                    memory: 50Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+                  privileged: false
+                  readOnlyRootFilesystem: false
+              restartPolicy: OnFailure
+              securityContext:
+                runAsNonRoot: true
+              serviceAccountName: edb-license-sa
+      force: true
+      kind: Job
+      name: create-postgres-license-config
+      namespace: {{ .Values.operatorNamespace }}
+    - apiVersion: v1
+      force: true
+      kind: ServiceAccount
+      name: edb-license-sa
+      namespace: {{ .Values.operatorNamespace }}
+    - apiVersion: rbac.authorization.k8s.io/v1
+      data:
+        rules:
+        - apiGroups:
+          - ""
+          resources:
+          - pods
+          - secrets
+          verbs:
+          - create
+          - update
+          - patch
+          - get
+          - list
+          - delete
+          - watch
+      force: true
+      kind: Role
+      name: edb-license-role
+      namespace: {{ .Values.operatorNamespace }}
+    - apiVersion: rbac.authorization.k8s.io/v1
+      data:
+        roleRef:
+          apiGroup: rbac.authorization.k8s.io
+          kind: Role
+          name: edb-license-role
+        subjects:
+        - kind: ServiceAccount
+          name: edb-license-sa
+      force: true
+      kind: RoleBinding
+      name: edb-license-rolebinding
+      namespace: {{ .Values.operatorNamespace }}
+    - annotations:
+        k8s.enterprisedb.io/addons: '["velero"]'
+        k8s.enterprisedb.io/snapshotAllowColdBackupOnPrimary: enabled
+        productID: 068a62892a1e4db39641342e592daa25
+        productMetric: FREE
+        productName: IBM Cloud Platform Common Services
+      apiVersion: postgresql.k8s.enterprisedb.io/v1
+      data:
+        spec:
+          bootstrap:
+            initdb:
+              database: keycloak
+              owner: app
+          description:
+            templatingValueFrom:
+              objectRef:
+                apiVersion: v1
+                kind: Secret
+                name: postgresql-operator-controller-manager-config
+                namespace: {{ .Values.operatorNamespace }}
+                path: .metadata.annotations.ibm-license-key-applied
+              required: true
+          enableSuperuserAccess: true
+          imageName:
+            templatingValueFrom:
+              configMapKeyRef:
+                key: edb-keycloak-operand-image
+                name: ibm-cpp-config
+              default:
+                configMapKeyRef:
+                  key: ibm-postgresql-14-operand-image
+                  name: cloud-native-postgresql-image-list
+                  namespace: {{ .Values.operatorNamespace }}
+                required: true
+          imagePullSecrets:
+          - name: ibm-entitlement-key
+          inheritedMetadata:
+            annotations:
+              backup.velero.io/backup-volumes: pgdata,pg-wal
+            labels:
+              foundationservices.cloudpak.ibm.com: keycloak
+          instances: 1
+          logLevel: info
+          primaryUpdateMethod: switchover
+          primaryUpdateStrategy: unsupervised
+          replicationSlots:
+            highAvailability:
+              enabled: false
+          resources:
+            limits:
+              cpu: 200m
+              memory: 512Mi
+            requests:
+              cpu: 200m
+              memory: 512Mi
+          storage:
+            size: 1Gi
+          walStorage:
+            size: 1Gi
+      force: true
+      kind: Cluster
+      labels:
+        foundationservices.cloudpak.ibm.com: keycloak
+      name: keycloak-edb-cluster
+  - name: common-service-postgresql
+    resources:
+    - apiVersion: operator.ibm.com/v1alpha1
+      data:
+        spec:
+          requests:
+          - operands:
+            - name: cloud-native-postgresql-v1.22
+            registry: common-service
+            registryNamespace: {{ .Values.servicesNamespace }}
+      force: true
+      kind: OperandRequest
+      name: postgresql-operator-request
+    - apiVersion: cert-manager.io/v1
+      data:
+        spec:
+          commonName: streaming_replica
+          duration: 2160h0m0s
+          issuerRef:
+            kind: Issuer
+            name: cs-ca-issuer
+          renewBefore: 720h0m0s
+          secretName: common-service-db-replica-tls-secret
+          secretTemplate:
+            labels:
+              k8s.enterprisedb.io/reload: ""
+          usages:
+          - client auth
+      force: true
+      kind: Certificate
+      labels:
+        app.kubernetes.io/component: common-service-db-replica-tls-cert
+        component: common-service-db-replica-tls-cert
+      name: common-service-db-replica-tls-cert
+    - apiVersion: cert-manager.io/v1
+      data:
+        spec:
+          dnsNames:
+          - common-service-db
+          - common-service-db.{{ .Values.servicesNamespace }}
+          - common-service-db.{{ .Values.servicesNamespace }}.svc
+          - common-service-db-r
+          - common-service-db-r.{{ .Values.servicesNamespace }}
+          - common-service-db-r.{{ .Values.servicesNamespace }}.svc
+          - common-service-db-ro
+          - common-service-db-ro.{{ .Values.servicesNamespace }}
+          - common-service-db-ro.{{ .Values.servicesNamespace }}.svc
+          - common-service-db-rw
+          - common-service-db-rw.{{ .Values.servicesNamespace }}
+          - common-service-db-rw.{{ .Values.servicesNamespace }}.svc
+          duration: 8760h0m0s
+          issuerRef:
+            kind: Issuer
+            name: cs-ca-issuer
+          renewBefore: 720h0m0s
+          secretName: common-service-db-tls-secret
+          secretTemplate:
+            labels:
+              k8s.enterprisedb.io/reload: ""
+          usages:
+          - server auth
+      force: true
+      kind: Certificate
+      labels:
+        app.kubernetes.io/component: common-service-db-tls-cert
+        component: common-service-db-tls-cert
+      name: common-service-db-tls-cert
+    - apiVersion: cert-manager.io/v1
+      data:
+        spec:
+          commonName: im_user
+          duration: 2160h0m0s
+          issuerRef:
+            kind: Issuer
+            name: cs-ca-issuer
+          renewBefore: 720h0m0s
+          secretName: common-service-db-im-tls-secret
+          secretTemplate:
+            labels:
+              app.kubernetes.io/instance: common-service-db-im-tls-secret
+              app.kubernetes.io/name: common-service-db-im-tls-secret
+          usages:
+          - client auth
+      force: true
+      kind: Certificate
+      name: common-service-db-im-tls-cert
+    - apiVersion: cert-manager.io/v1
+      data:
+        spec:
+          commonName: zen_user
+          duration: 2160h0m0s
+          issuerRef:
+            kind: Issuer
+            name: cs-ca-issuer
+          renewBefore: 720h0m0s
+          secretName: common-service-db-zen-tls-secret
+          secretTemplate:
+            labels:
+              app.kubernetes.io/instance: common-service-db-zen-tls-secret
+              app.kubernetes.io/name: common-service-db-zen-tls-secret
+          usages:
+          - client auth
+      force: true
+      kind: Certificate
+      name: common-service-db-zen-tls-cert
+    - apiVersion: operator.ibm.com/v1alpha1
+      data:
+        spec:
+          bindings:
+            private-superuser-db:
+              secret: common-service-db-superuser
+            protected-cloudpak-db:
+              secret: common-service-db-app
+            protected-im-db:
+              configmap: common-service-db-im
+              secret: common-service-db-im-tls-secret
+            protected-zen-db:
+              configmap: common-service-db-zen
+              secret: common-service-db-zen-tls-secret
+          description: Binding information that should be accessible to Common Service
+            Postgresql Adopters
+          operand: common-service-postgresql
+          registry: common-service
+          registryNamespace: {{ .Values.servicesNamespace }}
+      force: true
+      kind: OperandBindInfo
+      name: common-service-postgresql-bindinfo
+    - annotations:
+        k8s.enterprisedb.io/addons: '["velero"]'
+        k8s.enterprisedb.io/snapshotAllowColdBackupOnPrimary: enabled
+        productID: 068a62892a1e4db39641342e592daa25
+        productMetric: FREE
+        productName: IBM Cloud Platform Common Services
+      apiVersion: postgresql.k8s.enterprisedb.io/v1
+      data:
+        spec:
+          affinity:
+            additionalPodAntiAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+              - podAffinityTerm:
+                  labelSelector:
+                    matchExpressions:
+                    - key: k8s.enterprisedb.io/cluster
+                      operator: In
+                      values:
+                      - common-service-db
+                  topologyKey: kubernetes.io/hostname
+                weight: 50
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                - matchExpressions:
+                  - key: kubernetes.io/arch
+                    operator: In
+                    values:
+                    - amd64
+                    - ppc64le
+                    - s390x
+            podAntiAffinityType: preferred
+            topologyKey: topology.kubernetes.io/zone
+          bootstrap:
+            initdb:
+              dataChecksums: true
+              database: cloudpak
+              owner: cpadmin
+              postInitApplicationSQL:
+              - CREATE USER im_user
+              - CREATE DATABASE im OWNER im_user
+              - GRANT ALL PRIVILEGES ON DATABASE im TO im_user
+              - CREATE USER zen_user
+              - CREATE DATABASE zen OWNER zen_user
+              - GRANT ALL PRIVILEGES ON DATABASE zen TO zen_user
+          certificates:
+            clientCASecret: cs-ca-certificate-secret
+            replicationTLSSecret: common-service-db-replica-tls-secret
+            serverCASecret: cs-ca-certificate-secret
+            serverTLSSecret: common-service-db-tls-secret
+          description:
+            templatingValueFrom:
+              objectRef:
+                apiVersion: v1
+                kind: Secret
+                name: postgresql-operator-controller-manager-config
+                namespace: {{ .Values.operatorNamespace }}
+                path: .metadata.annotations.ibm-license-key-applied
+              required: true
+          enableSuperuserAccess: true
+          imageName:
+            templatingValueFrom:
+              default:
+                configMapKeyRef:
+                  key: ibm-postgresql-16-operand-image
+                  name: cloud-native-postgresql-image-list
+                  namespace: {{ .Values.operatorNamespace }}
+                required: true
+          imagePullSecrets:
+          - name: ibm-entitlement-key
+          inheritedMetadata:
+            labels:
+              foundationservices.cloudpak.ibm.com: cs-db
+          instances: 1
+          logLevel: info
+          postgresql:
+            parameters:
+              max_connections: "400"
+            pg_hba:
+            - hostssl cloudpak cpadmin all cert
+            - hostssl im im_user all cert
+            - hostssl zen zen_user all cert
+          primaryUpdateMethod: switchover
+          primaryUpdateStrategy: unsupervised
+          replicationSlots:
+            highAvailability:
+              enabled: true
+          resources:
+            limits:
+              cpu: 200m
+              ephemeral-storage: 512Mi
+              memory: 512Mi
+            requests:
+              cpu: 75m
+              ephemeral-storage: 128Mi
+              memory: 256Mi
+          startDelay: 120
+          stopDelay: 90
+          storage:
+            resizeInUseVolumes: true
+            size: 10Gi
+          topologySpreadConstraints:
+          - maxSkew: 1
+            topologyKey: topology.kubernetes.io/zone
+            whenUnsatisfiable: ScheduleAnyway
+          - maxSkew: 1
+            topologyKey: topology.kubernetes.io/region
+            whenUnsatisfiable: ScheduleAnyway
+          walStorage:
+            resizeInUseVolumes: true
+            size: 10Gi
+      force: true
+      kind: Cluster
+      labels:
+        foundationservices.cloudpak.ibm.com: cs-db
+      name: common-service-db
+    - apiVersion: v1
+      data:
+        data:
+          DATABASE_CA_CERT: ca.crt
+          DATABASE_CLIENT_CERT: tls.crt
+          DATABASE_CLIENT_KEY: tls.key
+          DATABASE_NAME: zen
+          DATABASE_PORT:
+            templatingValueFrom:
+              objectRef:
+                apiVersion: v1
+                kind: Service
+                name: common-service-db-rw
+                path: .spec.ports[0].port
+              required: true
+          DATABASE_R_ENDPOINT:
+            templatingValueFrom:
+              objectRef:
+                apiVersion: v1
+                kind: Service
+                name: common-service-db-r
+                path: .metadata.name+.+.metadata.namespace+.+svc
+              required: true
+          DATABASE_RW_ENDPOINT:
+            templatingValueFrom:
+              objectRef:
+                apiVersion: v1
+                kind: Service
+                name: common-service-db-rw
+                path: .metadata.name+.+.metadata.namespace+.+svc
+              required: true
+          DATABASE_USER: zen_user
+          IS_EMBEDDED: "true"
+      force: true
+      kind: ConfigMap
+      name: common-service-db-zen
+    - apiVersion: v1
+      data:
+        data:
+          DATABASE_CA_CERT: ca.crt
+          DATABASE_CLIENT_CERT: tls.crt
+          DATABASE_CLIENT_KEY: tls.key
+          DATABASE_NAME: im
+          DATABASE_PORT:
+            templatingValueFrom:
+              objectRef:
+                apiVersion: v1
+                kind: Service
+                name: common-service-db-rw
+                path: .spec.ports[0].port
+              required: true
+          DATABASE_R_ENDPOINT:
+            templatingValueFrom:
+              objectRef:
+                apiVersion: v1
+                kind: Service
+                name: common-service-db-r
+                path: .metadata.name+.+.metadata.namespace+.+svc
+              required: true
+          DATABASE_RW_ENDPOINT:
+            templatingValueFrom:
+              objectRef:
+                apiVersion: v1
+                kind: Service
+                name: common-service-db-rw
+                path: .metadata.name+.+.metadata.namespace+.+svc
+              required: true
+          DATABASE_USER: im_user
+          IS_EMBEDDED: "true"
+      force: true
+      kind: ConfigMap
+      name: common-service-db-im

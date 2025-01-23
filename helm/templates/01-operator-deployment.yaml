@@ -5,6 +5,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     productName: IBM_Cloud_Platform_Common_Services
   name: operand-deployment-lifecycle-manager
+  namespace: {{ .Values.operatorNamespace }}
 spec:
   progressDeadlineSeconds: 600
   replicas: 1
