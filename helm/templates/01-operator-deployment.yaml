@@ -207,7 +207,6 @@ spec:
           value: "true"
         image: {{ .Values.operatorImage }}
         imagePullPolicy: IfNotPresent
-        imagePullSecret: {{ .Values.imagePullSecret }}
         livenessProbe:
           failureThreshold: 10
           httpGet:
@@ -249,6 +248,8 @@ spec:
             type: RuntimeDefault
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
+      imagePullSecrets:
+        - name: {{ .Values.imagePullSecret }}
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       schedulerName: default-scheduler
