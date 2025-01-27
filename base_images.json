@@ -37,13 +37,13 @@
     "sourceImage": "ubi9-minimal",
     "sourceTag": "9.5-1736404155",
     "destImage": "node-v20-ubi9-minimal",
-    "nodeVersion": "20.18.1"
+    "nodeVersion": "20.18.2"
   },
   {
     "imageType": "node",
     "sourceImage": "ubi9-minimal",
     "sourceTag": "9.5-1736404155",
     "destImage": "node-v22-ubi9-minimal",
-    "nodeVersion": "22.13.0"
+    "nodeVersion": "22.13.1"
   }
 ]
