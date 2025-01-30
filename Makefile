@@ -65,7 +65,7 @@ else
 endif
 
 # Default image repo
-QUAY_REGISTRY ?= quay.io/opencloudio
+QUAY_REGISTRY ?= quay.io/luzarragaben
 
 ifeq ($(BUILD_LOCALLY),0)
 ARTIFACTORYA_REGISTRY ?= "docker-na-public.artifactory.swg-devops.com/hyc-cloud-private-integration-docker-local/ibmcom"
@@ -89,7 +89,7 @@ OPERATOR_VERSION ?= 4.3.9
 # Kind cluster name
 KIND_CLUSTER_NAME ?= "odlm"
 # Operator image tag for test
-OPERATOR_TEST_TAG ?= dev-test
+OPERATOR_TEST_TAG ?= nolm-controller3
 
 # Options for 'bundle-build'
 ifneq ($(origin CHANNELS), undefined)

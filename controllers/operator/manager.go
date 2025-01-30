@@ -28,6 +28,7 @@ import (
 	operatorsv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
 	"github.com/pkg/errors"
 	"golang.org/x/mod/semver"
+	appsv1 "k8s.io/api/apps/v1"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -573,6 +574,47 @@ func (m *ODLMOperator) GetClusterServiceVersionListFromPackage(ctx context.Conte
 
 	klog.V(3).Infof("Get %v ClusterServiceVersions in the namespace %s", len(csvs), csvNamespace)
 	return csvs, nil
+}
+
+func (m *ODLMOperator) GetDeploymentListFromPackage(ctx context.Context, name, namespace string) ([]*appsv1.Deployment, error) {
+	packageName := name
+	deploymentNamespace := namespace
+
+	deploymentList := &appsv1.DeploymentList{}
+
+	opts := []client.ListOption{
+		client.InNamespace(deploymentNamespace),
+	}
+
+	if err := m.Reader.List(ctx, deploymentList, opts...); err != nil {
+		if apierrors.IsNotFound(err) || len(deploymentList.Items) == 0 {
+			klog.V(1).Infof("No Deployment found")
+			return nil, nil
+		}
+		return nil, errors.Wrapf(err, "failed to list Deployments")
+	}
+
+	var deployments []*appsv1.Deployment
+	// filter deploymentList to find one(s) that contain packageName
+	for _, v := range deploymentList.Items {
+		deployment := v
+		if deployment.Annotations == nil {
+			continue
+		}
+		// if _, ok := deployment.Annotations["operatorframework.io/properties"]; !ok {
+		// 	continue
+		// }
+		// annotation := fmt.Sprintf("\"packageName\":\"%s\"", packageName)
+		klog.V(1).Infof("Get Deployment %s with package name %s", deployment.Name, packageName)
+		if !strings.Contains(deployment.Annotations["packageName"], packageName) {
+			continue
+		}
+		klog.V(1).Infof("Get Deployment %s in the namespace %s", deployment.Name, deploymentNamespace)
+		deployments = append(deployments, &deployment)
+	}
+
+	klog.V(1).Infof("Get %v / %v Deployment in the namespace %s", len(deployments), len(deploymentList.Items), deploymentNamespace)
+	return deployments, nil
 }
 
 func (m *ODLMOperator) DeleteRedundantCSV(ctx context.Context, csvName, operatorNs, serviceNs, packageName string) error {
