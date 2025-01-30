@@ -438,17 +438,17 @@ func (r *Reconciler) uninstallOperatorsAndOperands(ctx context.Context, operandN
 		return nil
 	}
 
-	if csvList, err := r.GetClusterServiceVersionList(ctx, sub); err != nil {
-		// If can't get CSV, requeue the request
+	if deploymentList, err := r.GetDeploymentListFromPackage(ctx, op.PackageName, op.Namespace); err != nil {
+		// If can't get deployment, requeue the request
 		return err
-	} else if csvList != nil {
-		klog.Infof("Found %d ClusterServiceVersions for Subscription %s/%s", len(csvList), sub.Namespace, sub.Name)
+	} else if deploymentList != nil {
+		klog.Infof("Found %d Deployment for package %s/%s", len(deploymentList), op.Name, namespace)
 		if uninstallOperand {
-			klog.V(2).Infof("Deleting all the Custom Resources for CSV, Namespace: %s, Name: %s", csvList[0].Namespace, csvList[0].Name)
-			if err := r.deleteAllCustomResource(ctx, csvList[0], requestInstance, configInstance, operandName, configInstance.Namespace); err != nil {
+			klog.V(2).Infof("Deleting all the Custom Resources for Deployment, Namespace: %s, Name: %s", deploymentList[0].Namespace, deploymentList[0].Name)
+			if err := r.deleteAllCustomResource(ctx, deploymentList[0], requestInstance, configInstance, operandName, configInstance.Namespace); err != nil {
 				return err
 			}
-			klog.V(2).Infof("Deleting all the k8s Resources for CSV, Namespace: %s, Name: %s", csvList[0].Namespace, csvList[0].Name)
+			klog.V(2).Infof("Deleting all the k8s Resources for Deployment, Namespace: %s, Name: %s", deploymentList[0].Namespace, deploymentList[0].Name)
 			if err := r.deleteAllK8sResource(ctx, configInstance, operandName, configInstance.Namespace); err != nil {
 				return err
 			}
@@ -460,13 +460,14 @@ func (r *Reconciler) uninstallOperatorsAndOperands(ctx context.Context, operandN
 			}
 
 			klog.V(3).Info("Set Deleting Condition in the operandRequest")
-			requestInstance.SetDeletingCondition(csvList[0].Name, operatorv1alpha1.ResourceTypeCsv, corev1.ConditionTrue, &r.Mutex)
+			//TODO replace the resource types set in these setdeletingcondition functions
+			requestInstance.SetDeletingCondition(deploymentList[0].Name, operatorv1alpha1.ResourceTypeCsv, corev1.ConditionTrue, &r.Mutex)
 
-			for _, csv := range csvList {
-				klog.V(1).Infof("Deleting the ClusterServiceVersion, Namespace: %s, Name: %s", csv.Namespace, csv.Name)
-				if err := r.Delete(ctx, csv); err != nil {
-					requestInstance.SetDeletingCondition(csv.Name, operatorv1alpha1.ResourceTypeCsv, corev1.ConditionFalse, &r.Mutex)
-					return errors.Wrapf(err, "failed to delete the ClusterServiceVersion %s/%s", csv.Namespace, csv.Name)
+			for _, deployment := range deploymentList {
+				klog.V(1).Infof("Deleting the deployment, Namespace: %s, Name: %s", deployment.Namespace, deployment.Name)
+				if err := r.Delete(ctx, deployment); err != nil {
+					requestInstance.SetDeletingCondition(deployment.Name, operatorv1alpha1.ResourceTypeCsv, corev1.ConditionFalse, &r.Mutex)
+					return errors.Wrapf(err, "failed to delete the deployment %s/%s", deployment.Namespace, deployment.Name)
 				}
 			}
 		}
