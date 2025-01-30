@@ -1,5 +1,5 @@
 imagePullPrefix: icr.io
-imagePullSecret: ibm-entilement-key
+imagePullSecret: ibm-entitlement-key
 
 # Note there are no leading or trailing /'s
 imageRegistryNamespaceOperator: cpopen
