@@ -27,7 +27,6 @@ import (
 	"sync"
 	"time"
 
-	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	authorizationv1 "k8s.io/api/authorization/v1"
@@ -589,7 +588,7 @@ func (r *Reconciler) reconcileK8sResource(ctx context.Context, res operatorv1alp
 }
 
 // deleteAllCustomResource remove custom resource base on OperandConfig and CSV alm-examples
-func (r *Reconciler) deleteAllCustomResource(ctx context.Context, csv *olmv1alpha1.ClusterServiceVersion, requestInstance *operatorv1alpha1.OperandRequest, csc *operatorv1alpha1.OperandConfig, operandName, namespace string) error {
+func (r *Reconciler) deleteAllCustomResource(ctx context.Context, deployment *appsv1.Deployment, requestInstance *operatorv1alpha1.OperandRequest, csc *operatorv1alpha1.OperandConfig, operandName, namespace string) error {
 
 	customeResourceMap := make(map[string]operatorv1alpha1.OperandCRMember)
 	for _, member := range requestInstance.Status.Members {
@@ -645,7 +644,7 @@ func (r *Reconciler) deleteAllCustomResource(ctx context.Context, csv *olmv1alph
 	if service == nil {
 		return nil
 	}
-	almExamples := csv.GetAnnotations()["alm-examples"]
+	almExamples := deployment.GetAnnotations()["alm-examples"]
 	klog.V(2).Info("Delete all the custom resource from Subscription ", service.Name)
 
 	// Create a slice for crTemplates

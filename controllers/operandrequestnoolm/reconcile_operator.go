@@ -526,17 +526,17 @@ func (r *Reconciler) uninstallOperands(ctx context.Context, operandName string, 
 	// ignore the name which triggered reconcile
 	// if list is empty then uninstallOperand = true
 
-	if csvList, err := r.GetClusterServiceVersionListFromPackage(ctx, op.PackageName, namespace); err != nil {
-		// If can't get CSV, requeue the request
+	if deploymentList, err := r.GetDeploymentListFromPackage(ctx, op.PackageName, op.Namespace); err != nil {
+		// If can't get deployment, requeue the request
 		return err
-	} else if csvList != nil {
-		klog.Infof("Found %d ClusterServiceVersions for package %s/%s", len(csvList), op.Name, namespace)
+	} else if deploymentList != nil {
+		klog.Infof("Found %d Deployment for package %s/%s", len(deploymentList), op.Name, namespace)
 		if uninstallOperand {
-			klog.V(2).Infof("Deleting all the Custom Resources for CSV, Namespace: %s, Name: %s", csvList[0].Namespace, csvList[0].Name)
-			if err := r.deleteAllCustomResource(ctx, csvList[0], requestInstance, configInstance, operandName, configInstance.Namespace); err != nil {
+			klog.V(2).Infof("Deleting all the Custom Resources for Deployment, Namespace: %s, Name: %s", deploymentList[0].Namespace, deploymentList[0].Name)
+			if err := r.deleteAllCustomResource(ctx, deploymentList[0], requestInstance, configInstance, operandName, configInstance.Namespace); err != nil {
 				return err
 			}
-			klog.V(2).Infof("Deleting all the k8s Resources for CSV, Namespace: %s, Name: %s", csvList[0].Namespace, csvList[0].Name)
+			klog.V(2).Infof("Deleting all the k8s Resources for Deployment, Namespace: %s, Name: %s", deploymentList[0].Namespace, deploymentList[0].Name)
 			if err := r.deleteAllK8sResource(ctx, configInstance, operandName, configInstance.Namespace); err != nil {
 				return err
 			}
