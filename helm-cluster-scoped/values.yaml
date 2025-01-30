@@ -9,4 +9,4 @@ imageRegistryNamespaceOperand: cpopen/cpfs
 # following are examples, not required:
 operatorNamespace: ibm-common-services
 servicesNamespace: service
-operatorImage: quay.io/luzarragaben/odlm:nolm-controller3 # will update later
+operatorImage: odlm 

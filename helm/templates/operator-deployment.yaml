@@ -205,7 +205,7 @@ spec:
           value: operand-deployment-lifecycle-manager.v4.3.9
         - name: NO_OLM
           value: "true"
-        image: {{ .Values.operatorImage }}
+        image: {{ .Values.imagePullPrefix}}/{{ .Values.imageRegistryNamespaceOperator}}/{{ .Values.operatorImage }}:latest
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 10
