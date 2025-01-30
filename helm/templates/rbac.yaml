@@ -218,3 +218,4 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: operand-deployment-lifecycle-manager
+  namespace: {{ .Values.operatorNamespace }}

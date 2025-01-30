@@ -196,10 +196,9 @@ spec:
               fieldPath: metadata.namespace
         - name: WATCH_NAMESPACE
           valueFrom:
-            configMapKeyRef:
-              key: namespaces
-              name: namespace-scope
-              optional: true
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
         # this might be remove in non-olm env
         - name: OPERATOR_CONDITION_NAME
           value: operand-deployment-lifecycle-manager.v4.3.9
