@@ -1,0 +1,221 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: operand-deployment-lifecycle-manager
+  namespace: {{ .Values.operatorNamespace }}
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  - namespaces
+  - secrets
+  - services
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - '*'
+  resources:
+  - '*'
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - k8s.keycloak.org
+  resources:
+  - keycloakrealmimports
+  - keycloaks
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - operator.ibm.com
+  resources:
+  - operandbindinfos
+  - operandbindinfos/finalizers
+  - operandbindinfos/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - operator.ibm.com
+  resources:
+  - operandconfigs
+  - operandconfigs/finalizers
+  - operandconfigs/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - operator.ibm.com
+  resources:
+  - operandregistries
+  - operandregistries/finalizers
+  - operandregistries/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - operator.ibm.com
+  resources:
+  - operandrequests
+  - operandrequests/finalizers
+  - operandrequests/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - operator.ibm.com
+  resources:
+  - operatorconfigs
+  - operatorconfigs/finalizers
+  - operatorconfigs/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - operators.coreos.com
+  resources:
+  - clusterserviceversions
+  - subscriptions
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - operators.coreos.com
+  resources:
+  - installplans
+  - operatorgroups
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - packages.operators.coreos.com
+  resources:
+  - packagemanifests
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - route.openshift.io
+  resources:
+  - routes
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: operand-deployment-lifecycle-manager
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: operand-deployment-lifecycle-manager
+subjects:
+- kind: ServiceAccount
+  name: operand-deployment-lifecycle-manager
+  namespace: {{ .Values.operatorNamespace }}
+---
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: operand-deployment-lifecycle-manager
+  namespace: {{ .Values.operatorNamespace }}
+
+---
+### role only for olm
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: operand-deployment-lifecycle-manager.v4.3.9
+  namespace: {{ .Values.operatorNamespace }}
+rules:
+- apiGroups:
+  - operators.coreos.com
+  resourceNames:
+  - operand-deployment-lifecycle-manager.v4.3.9
+  resources:
+  - operatorconditions
+  verbs:
+  - get
+  - update
+  - patch
+
+---
+### rolebinding only for olm
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: operand-deployment-lifecycle-manager.v4.3.9
+  namespace: {{ .Values.operatorNamespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: operand-deployment-lifecycle-manager.v4.3.9
+subjects:
+- kind: ServiceAccount
+  name: operand-deployment-lifecycle-manager
+  namespace: {{ .Values.operatorNamespace }}

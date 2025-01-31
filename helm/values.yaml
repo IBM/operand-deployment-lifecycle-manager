@@ -1,0 +1,12 @@
+imagePullPrefix: icr.io
+imagePullSecret: ibm-entitlement-key
+
+# Note there are no leading or trailing /'s
+imageRegistryNamespaceOperator: cpopen
+imageRegistryNamespaceOperand: cpopen/cpfs
+
+# other configuration you think you might need for your operator
+# following are examples, not required:
+operatorNamespace: ibm-common-services
+servicesNamespace: service
+operatorImage: odlm
