@@ -26,7 +26,6 @@ import (
 	"time"
 
 	gset "github.com/deckarep/golang-set"
-	olmv1 "github.com/operator-framework/api/pkg/operators/v1"
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/pkg/errors"
 	authorizationv1 "k8s.io/api/authorization/v1"
@@ -56,9 +55,8 @@ type Reconciler struct {
 	Mutex    sync.Mutex
 }
 type clusterObjects struct {
-	namespace     *corev1.Namespace
-	operatorGroup *olmv1.OperatorGroup
-	subscription  *olmv1alpha1.Subscription
+	namespace *corev1.Namespace
+	configmap *corev1.ConfigMap
 }
 
 //+kubebuilder:rbac:groups=operator.ibm.com,resources=certmanagers;auditloggings,verbs=get;delete
@@ -114,13 +112,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 
 	// Remove finalizer when DeletionTimestamp none zero
 	if !requestInstance.ObjectMeta.DeletionTimestamp.IsZero() {
-		//TODO determine if necessary
-		// Check and clean up the subscriptions
-		// err := r.checkFinalizer(ctx, requestInstance)
-		// if err != nil {
-		// 	klog.Errorf("failed to clean up the subscriptions for OperandRequest %s: %v", req.NamespacedName.String(), err)
-		// 	return ctrl.Result{}, err
-		// }
+		//Checkfinalizers calls the delete function, not necessarily subscription based
+		//Check and clean up the operands
+		err := r.checkFinalizer(ctx, requestInstance)
+		if err != nil {
+			klog.Errorf("failed to clean up the operands for OperandRequest %s: %v", req.NamespacedName.String(), err)
+			return ctrl.Result{}, err
+		}
 
 		originalReq := requestInstance.DeepCopy()
 		// Update finalizer to allow delete CR
@@ -163,12 +161,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{Requeue: true}, err
 	}
 
-	// TODO remove this section
+	// TODO this section is likely where we need to put in opreq cleanup logic.
+	//Many of the cleanup functions are run through reconcileoperator as of 1/31/25
 	// Reconcile Operators
-	// if err := r.reconcileOperator(ctx, requestInstance); err != nil {
-	// 	klog.Errorf("failed to reconcile Operators for OperandRequest %s: %v", req.NamespacedName.String(), err)
-	// 	return ctrl.Result{}, err
-	// }
+	if err := r.reconcileOperator(ctx, requestInstance); err != nil {
+		klog.Errorf("failed to reconcile Operators for OperandRequest %s: %v", req.NamespacedName.String(), err)
+		return ctrl.Result{}, err
+	}
 
 	// Reconcile Operands
 	if merr := r.reconcileOperand(ctx, requestInstance); len(merr.Errors) != 0 {
@@ -176,6 +175,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, merr
 	}
 
+	//TODO update this block to check deployments and their operands instead
 	// Check if all csv deploy succeed
 	if requestInstance.Status.Phase != operatorv1alpha1.ClusterPhaseRunning {
 		klog.V(2).Info("Waiting for all operators and operands to be deployed successfully ...")

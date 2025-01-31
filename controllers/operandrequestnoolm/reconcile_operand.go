@@ -97,55 +97,8 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 			// Looking for the CSV
 			namespace := r.GetOperatorNamespace(opdRegistry.InstallMode, opdRegistry.Namespace)
 
-			//TODO remove this section
-			// sub, err := r.GetSubscription(ctx, operatorName, namespace, registryInstance.Namespace, opdRegistry.PackageName)
-			// if err != nil {
-			// 	merr.Add(errors.Wrapf(err, "failed to get the Subscription %s in the namespace %s and %s", operatorName, namespace, registryInstance.Namespace))
-			// 	return merr
-			// }
-
-			// if !opdRegistry.UserManaged {
-			// 	if sub == nil {
-			// 		klog.Warningf("There is no Subscription %s or %s in the namespace %s and %s", operatorName, opdRegistry.PackageName, namespace, registryInstance.Namespace)
-			// 		continue
-			// 	}
-
-			// 	if _, ok := sub.Labels[constant.OpreqLabel]; !ok {
-			// 		// Subscription existing and not managed by OperandRequest controller
-			// 		klog.Warningf("Subscription %s in the namespace %s isn't created by ODLM", sub.Name, sub.Namespace)
-			// 	}
-
-			// 	// It the installplan is not created yet, ODLM will try later
-			// 	if sub.Status.Install == nil || sub.Status.InstallPlanRef.Name == "" {
-			// 		klog.Warningf("The Installplan for Subscription %s is not ready. Will check it again", sub.Name)
-			// 		requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorInstalling, "", &r.Mutex)
-			// 		continue
-			// 	}
-
-			// 	// If the installplan is deleted after is completed, ODLM won't block the CR update.
-			// 	ipName := sub.Status.InstallPlanRef.Name
-			// 	ipNamespace := sub.Namespace
-			// 	ip := &olmv1alpha1.InstallPlan{}
-			// 	ipKey := types.NamespacedName{
-			// 		Name:      ipName,
-			// 		Namespace: ipNamespace,
-			// 	}
-			// 	if err := r.Client.Get(ctx, ipKey, ip); err != nil {
-			// 		if !apierrors.IsNotFound(err) {
-			// 			merr.Add(errors.Wrapf(err, "failed to get Installplan"))
-			// 		}
-			// 	} else if ip.Status.Phase == olmv1alpha1.InstallPlanPhaseFailed {
-			// 		klog.Errorf("installplan %s/%s is failed", ipNamespace, ipName)
-			// 		requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
-			// 		continue
-			// 	}
-
-			// }
-
-			//var csv *olmv1alpha1.ClusterServiceVersion
 			var deployment *appsv1.Deployment
 
-			//TODO need to translate this if block to look for deployments and not CSVs
 			deploymentList, err := r.GetDeploymentListFromPackage(ctx, opdRegistry.PackageName, opdRegistry.Namespace)
 			if err != nil {
 				merr.Add(err)
@@ -154,7 +107,6 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 			}
 			deployment = deploymentList[0]
 
-			//TODO change this block to deal with an empty list of deployments instead of csvs
 			if deployment == nil {
 				klog.Warningf("Deployment for %s in the namespace %s is not ready yet, retry", operatorName, namespace)
 				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorInstalling, "", &r.Mutex)
@@ -169,19 +121,6 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 			// 	continue
 			// }
 
-			//TODO git rid of this section
-			// if !opdRegistry.UserManaged {
-			// 	// find the OperandRequest which has the same operator's channel or fallback channels as existing subscription.
-			// 	// ODLM will only reconcile Operand based on OperandConfig for this OperandRequest
-			// 	channels := []string{opdRegistry.Channel}
-			// 	if channels = append(channels, opdRegistry.FallbackChannels...); !util.Contains(channels, sub.Spec.Channel) {
-			// 		klog.Infof("Subscription %s in the namespace %s is NOT managed by %s/%s, Skip reconciling Operands", sub.Name, sub.Namespace, requestInstance.Namespace, requestInstance.Name)
-			// 		requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
-			// 		continue
-			// 	}
-			// }
-
-			//TODO update to deployment name
 			klog.V(3).Info("Generating customresource base on Deployment: ", deployment.GetName())
 			requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorRunning, "", &r.Mutex)
 
@@ -195,7 +134,6 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 						klog.V(2).Infof("There is no service: %s from the OperandConfig instance: %s/%s, Skip reconciling Operands", operand.Name, registryKey.Namespace, req.Registry)
 						continue
 					}
-					//TODO pass through deployment values here
 					err = r.reconcileCRwithConfig(ctx, opdConfig, configInstance.Name, configInstance.Namespace, deployment, requestInstance, operand.Name, deployment.Namespace, &r.Mutex)
 					if err != nil {
 						merr.Add(err)
@@ -263,7 +201,6 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 		}
 	}
 
-	//TODO change this to deployment, make sure GetAnnotations works for deployments the same way
 	almExamples := deployment.GetAnnotations()["alm-examples"]
 
 	// Convert CR template string to slice
@@ -320,7 +257,6 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 		}
 
 		if !foundInConfig {
-			//TODO change to deployment
 			klog.Warningf("%v in the alm-example doesn't exist in the OperandConfig for %v", crFromALM.GetKind(), deployment.GetName())
 			continue
 		}
@@ -365,7 +301,6 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 
 	for cr, found := range foundMap {
 		if !found {
-			//TODO change to deployment
 			klog.Warningf("Custom resource %v doesn't exist in the alm-example of %v", cr, deployment.GetName())
 		}
 	}

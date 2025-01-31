@@ -131,6 +131,8 @@ const (
 	ResourceTypeCsv             ResourceType = "csv"
 	ResourceTypeOperator        ResourceType = "operator"
 	ResourceTypeOperand         ResourceType = "operands"
+	ResourceTypeConfigmap       ResourceType = "configmap"
+	ResourceTypeDeployment      ResourceType = "deployment"
 )
 
 // Condition represents the current state of the Request Service.
