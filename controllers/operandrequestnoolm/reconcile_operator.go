@@ -233,7 +233,7 @@ func (r *Reconciler) reconcileOpReqCM(ctx context.Context, requestInstance *oper
 			requestInstance.SetNoConflictOperatorCondition(operand.Name, operatorv1alpha1.ResourceTypeSub, corev1.ConditionTrue, mu)
 		}
 	} else {
-		// Subscription existing and not managed by OperandRequest controller
+		// Operator existing and not managed by OperandRequest controller
 		klog.V(1).Infof("Configmap %s in namespace %s isn't created by ODLM. Ignore update/delete it.", cm.Name, cm.Namespace)
 	}
 	return nil

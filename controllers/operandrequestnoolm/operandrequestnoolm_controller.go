@@ -161,8 +161,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{Requeue: true}, err
 	}
 
-	// TODO this section is likely where we need to put in opreq cleanup logic.
-	//Many of the cleanup functions are run through reconcileoperator as of 1/31/25
+	//Many of the cleanup functions are run through reconcileoperator as of 1.31.25
+	//technically nothing is done to the operator deployment as of this writing (1.31.25)
 	// Reconcile Operators
 	if err := r.reconcileOperator(ctx, requestInstance); err != nil {
 		klog.Errorf("failed to reconcile Operators for OperandRequest %s: %v", req.NamespacedName.String(), err)
@@ -246,20 +246,7 @@ func (r *Reconciler) checkFinalizer(ctx context.Context, requestInstance *operat
 	for _, m := range requestInstance.Status.Members {
 		remainingOperands.Add(m.Name)
 	}
-	// TODO: update to check OperandRequest status to see if member is user managed or not
-	// existingSub := &olmv1alpha1.SubscriptionList{}
-
-	// opts := []client.ListOption{
-	// 	client.MatchingLabels(map[string]string{constant.OpreqLabel: "true"}),
-	// }
-
-	// if err := r.Client.List(ctx, existingSub, opts...); err != nil {
-	// 	return err
-	// }
-	// if len(existingSub.Items) == 0 {
-	// 	return nil
-	// }
-	// Delete all the subscriptions that created by current request
+	// Delete all the operands and configmaps that created by current request
 	if err := r.absentOperatorsAndOperands(ctx, requestInstance, &remainingOperands); err != nil {
 		return err
 	}
