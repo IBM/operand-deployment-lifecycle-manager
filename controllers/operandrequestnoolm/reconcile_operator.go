@@ -211,6 +211,7 @@ func (r *Reconciler) reconcileOpReqCM(ctx context.Context, requestInstance *oper
 		cm.Annotations[registryKey.Namespace+"."+registryKey.Name+"/config"] = "true"
 		cm.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/request"] = opt.Channel
 		cm.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/operatorNamespace"] = namespace
+		cm.Labels["operator.ibm.com/watched-by-odlm"] = "true"
 
 		if opt.InstallMode == operatorv1alpha1.InstallModeNoop {
 			requestInstance.SetNoSuitableRegistryCondition(registryKey.String(), opt.Name+" is in maintenance status", operatorv1alpha1.ResourceTypeOperandRegistry, corev1.ConditionTrue, &r.Mutex)
