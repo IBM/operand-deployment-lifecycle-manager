@@ -26,7 +26,6 @@ import (
 	"time"
 
 	gset "github.com/deckarep/golang-set"
-	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/pkg/errors"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -382,14 +381,15 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(options).
 		For(&operatorv1alpha1.OperandRequest{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
-		Watches(&source.Kind{Type: &olmv1alpha1.Subscription{}}, handler.EnqueueRequestsFromMapFunc(r.getSubToRequestMapper()), builder.WithPredicates(predicate.Funcs{
+		Watches(&source.Kind{Type: &corev1.ConfigMap{}}, handler.EnqueueRequestsFromMapFunc(r.getReferenceToRequestMapper()), builder.WithPredicates(predicate.Funcs{
 			UpdateFunc: func(e event.UpdateEvent) bool {
-				oldObject := e.ObjectOld.(*olmv1alpha1.Subscription)
-				newObject := e.ObjectNew.(*olmv1alpha1.Subscription)
+				oldObject := e.ObjectOld.(*corev1.ConfigMap)
+				newObject := e.ObjectNew.(*corev1.ConfigMap)
 				if oldObject.Labels != nil && oldObject.Labels[constant.OpreqLabel] == "true" {
-					statusToggle := (oldObject.Status.InstalledCSV != "" && newObject.Status.InstalledCSV != "" && oldObject.Status.InstalledCSV != newObject.Status.InstalledCSV)
+					// statusToggle := (oldObject.Status.InstalledCSV != "" && newObject.Status.InstalledCSV != "" && oldObject.Status.InstalledCSV != newObject.Status.InstalledCSV)
 					metadataToggle := !reflect.DeepEqual(oldObject.Annotations, newObject.Annotations)
-					return statusToggle || metadataToggle
+					// return statusToggle || metadataToggle
+					return metadataToggle
 				}
 				return false
 			},
