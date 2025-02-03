@@ -472,6 +472,7 @@ func (r *Reconciler) absentOperatorsAndOperands(ctx context.Context, requestInst
 			go func() {
 				defer wg.Done()
 				op, _ := r.GetOperandFromRegistryNoOLM(ctx, registryInstance, fmt.Sprintf("%v", o))
+				klog.V(1).Info("op to check in absentOperatorsandOperands: ", op.Name, " o: ", fmt.Sprintf("%v", o))
 				if op == nil {
 					klog.Warningf("Operand %s not found", fmt.Sprintf("%v", o))
 				}
@@ -520,7 +521,7 @@ func (r *Reconciler) getNeedDeletedOperands(requestInstance *operatorv1alpha1.Op
 	if requestInstance.DeletionTimestamp.IsZero() {
 		for _, req := range requestInstance.Spec.Requests {
 			for _, op := range req.Operands {
-				klog.V(1).Info("Add current operand in getNeedDeletedOperands %s", op.Name)
+				klog.V(1).Info("Add current operand in getNeedDeletedOperands ", op.Name)
 				currentOperands.Add(op.Name)
 			}
 		}
