@@ -211,6 +211,7 @@ func (r *Reconciler) reconcileOpReqCM(ctx context.Context, requestInstance *oper
 		cm.Annotations[registryKey.Namespace+"."+registryKey.Name+"/config"] = "true"
 		cm.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/request"] = opt.Channel
 		cm.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/operatorNamespace"] = namespace
+		cm.Annotations["packageName"] = opt.PackageName
 		cm.Labels["operator.ibm.com/watched-by-odlm"] = "true"
 
 		if opt.InstallMode == operatorv1alpha1.InstallModeNoop {
@@ -509,7 +510,7 @@ func (r *Reconciler) absentOperatorsAndOperands(ctx context.Context, requestInst
 }
 
 func (r *Reconciler) getNeedDeletedOperands(requestInstance *operatorv1alpha1.OperandRequest) gset.Set {
-	klog.V(3).Info("Getting the operator need to be delete")
+	klog.V(1).Info("Getting the operator need to be delete")
 	deployedOperands := gset.NewSet()
 	for _, req := range requestInstance.Status.Members {
 		deployedOperands.Add(req.Name)
@@ -519,6 +520,7 @@ func (r *Reconciler) getNeedDeletedOperands(requestInstance *operatorv1alpha1.Op
 	if requestInstance.DeletionTimestamp.IsZero() {
 		for _, req := range requestInstance.Spec.Requests {
 			for _, op := range req.Operands {
+				klog.V(1).Info("Add current operand in getNeedDeletedOperands %s", op.Name)
 				currentOperands.Add(op.Name)
 			}
 		}

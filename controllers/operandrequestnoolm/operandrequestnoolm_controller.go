@@ -243,6 +243,7 @@ func (r *Reconciler) checkFinalizer(ctx context.Context, requestInstance *operat
 	klog.V(1).Infof("Deleting OperandRequest %s in the namespace %s", requestInstance.Name, requestInstance.Namespace)
 	remainingOperands := gset.NewSet()
 	for _, m := range requestInstance.Status.Members {
+		klog.V(1).Infof("Operand %s added to deletion list", m.Name)
 		remainingOperands.Add(m.Name)
 	}
 	// Delete all the operands and configmaps that created by current request
