@@ -307,7 +307,7 @@ func (r *Reconciler) updateOpReqCM(ctx context.Context, cr *operatorv1alpha1.Ope
 func (r *Reconciler) uninstallOperatorsAndOperands(ctx context.Context, operandName string, requestInstance *operatorv1alpha1.OperandRequest, registryInstance *operatorv1alpha1.OperandRegistry, configInstance *operatorv1alpha1.OperandConfig) error {
 	// No error handling for un-installation step in case Catalog has been deleted
 	op, _ := r.GetOperandFromRegistryNoOLM(ctx, registryInstance, operandName)
-	klog.V(1).Info("op to check in uninstallOperatorsAndOperands: ", op.Name, " o: ", fmt.Sprintf("%v", operandName))
+	// klog.V(1).Info("op to check in uninstallOperatorsAndOperands: ", op.Name, " o: ", fmt.Sprintf("%v", operandName))
 	if op == nil {
 		klog.Warningf("Operand %s not found", operandName)
 		return nil
@@ -317,9 +317,9 @@ func (r *Reconciler) uninstallOperatorsAndOperands(ctx context.Context, operandN
 
 	//Assuing we can still use op as a parameter, we should be able to get the deployment with ease
 	deploy, err := r.GetDeployment(ctx, operandName, namespace, registryInstance.Namespace, op.PackageName)
-	klog.V(1).Info("deployment in uninstallOperatorsAndOperands: ", deploy.Name)
+	// klog.V(1).Info("deployment in uninstallOperatorsAndOperands: ", deploy.Name)
 	if deploy == nil && err == nil {
-		klog.V(1).Infof("There is no Deployment called %s or using package name %s in the namespace %s and %s", operandName, op.PackageName, namespace, registryInstance.Namespace)
+		klog.V(3).Infof("There is no Deployment called %s or using package name %s in the namespace %s and %s", operandName, op.PackageName, namespace, registryInstance.Namespace)
 		return nil
 	} else if err != nil {
 		klog.Errorf("Failed to get Deployment called %s or using package name %s in the namespace %s and %s", operandName, op.PackageName, namespace, registryInstance.Namespace)
@@ -328,22 +328,22 @@ func (r *Reconciler) uninstallOperatorsAndOperands(ctx context.Context, operandN
 
 	if deploy.Labels == nil {
 		// Subscription existing and not managed by OperandRequest controller
-		klog.V(1).Infof("Deployment %s in the namespace %s isn't created by ODLM", deploy.Name, deploy.Namespace)
+		klog.V(2).Infof("Deployment %s in the namespace %s isn't created by ODLM", deploy.Name, deploy.Namespace)
 		return nil
 	}
 
 	// if _, ok := deploy.Labels[constant.OpreqLabel]; !ok {
 	// 	if !op.UserManaged {
-	// 		klog.V(1).Infof("Deployment %s in the namespace %s isn't created by ODLM and isn't user managed", deploy.Name, deploy.Namespace)
+	// 		klog.V(2).Infof("Deployment %s in the namespace %s isn't created by ODLM and isn't user managed", deploy.Name, deploy.Namespace)
 	// 		return nil
 	// 	}
 	// }
 
 	cm, err := r.GetOpReqCM(ctx, op.Name, deploy.Namespace, registryInstance.Namespace, op.PackageName)
-	klog.V(1).Info("Configmap tracking operand:  ", cm.Name)
+	// klog.V(1).Info("Configmap tracking operand:  ", cm.Name)
 	if cm != nil && err == nil {
 		uninstallOperator, uninstallOperand := checkOpReqCMAnnotationsForUninstall(requestInstance.ObjectMeta.Name, requestInstance.ObjectMeta.Namespace, op.Name, op.InstallMode, cm)
-		klog.V(1).Info("uinstall operator:  ", uninstallOperator, " uninstall operand: ", uninstallOperand)
+		// klog.V(1).Info("uinstall operator:  ", uninstallOperator, " uninstall operand: ", uninstallOperand)
 		if !uninstallOperand && !uninstallOperator {
 			if err = r.updateOpReqCM(ctx, requestInstance, cm); err != nil {
 				requestInstance.SetMemberStatus(op.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
@@ -476,7 +476,7 @@ func (r *Reconciler) absentOperatorsAndOperands(ctx context.Context, requestInst
 			go func() {
 				defer wg.Done()
 				op, _ := r.GetOperandFromRegistryNoOLM(ctx, registryInstance, fmt.Sprintf("%v", o))
-				klog.V(1).Info("op to check in absentOperatorsandOperands: ", op.Name, " o: ", fmt.Sprintf("%v", o))
+				// klog.V(1).Info("op to check in absentOperatorsandOperands: ", op.Name, " o: ", fmt.Sprintf("%v", o))
 				if op == nil {
 					klog.Warningf("Operand %s not found", fmt.Sprintf("%v", o))
 				}
@@ -500,7 +500,7 @@ func (r *Reconciler) absentOperatorsAndOperands(ctx context.Context, requestInst
 				requestInstance.RemoveServiceStatus(fmt.Sprintf("%v", o), &r.Mutex)
 				(*remainingOperands).Remove(o)
 				remainingOp.Remove(o)
-				klog.V(1).Info("op removed: ", op.Name, " o: ", fmt.Sprintf("%v", o))
+				// klog.V(1).Info("op removed: ", op.Name, " o: ", fmt.Sprintf("%v", o))
 			}()
 		}
 		timeout := util.WaitTimeout(&wg, constant.DefaultSubDeleteTimeout)
@@ -516,7 +516,7 @@ func (r *Reconciler) absentOperatorsAndOperands(ctx context.Context, requestInst
 }
 
 func (r *Reconciler) getNeedDeletedOperands(requestInstance *operatorv1alpha1.OperandRequest) gset.Set {
-	klog.V(1).Info("Getting the operator need to be delete")
+	klog.V(3).Info("Getting the operator need to be delete")
 	deployedOperands := gset.NewSet()
 	for _, req := range requestInstance.Status.Members {
 		deployedOperands.Add(req.Name)
@@ -526,7 +526,7 @@ func (r *Reconciler) getNeedDeletedOperands(requestInstance *operatorv1alpha1.Op
 	if requestInstance.DeletionTimestamp.IsZero() {
 		for _, req := range requestInstance.Spec.Requests {
 			for _, op := range req.Operands {
-				klog.V(1).Info("Add current operand in getNeedDeletedOperands ", op.Name)
+				// klog.V(1).Info("Add current operand in getNeedDeletedOperands ", op.Name)
 				currentOperands.Add(op.Name)
 			}
 		}
@@ -580,7 +580,7 @@ func (r *Reconciler) generateClusterObjects(o *operatorv1alpha1.Operator, regist
 	}
 
 	cm.SetGroupVersionKind(schema.GroupVersionKind{Group: corev1.SchemeGroupVersion.Group, Kind: "Configmap", Version: corev1.SchemeGroupVersion.Version})
-	klog.V(1).Info("Generating Configmap:  ", o.PackageName, " in the Namespace: ", namespace)
+	klog.V(2).Info("Generating tracking Configmap:  ", o.PackageName, " in the Namespace: ", namespace)
 	co.configmap = cm
 	return co
 }
@@ -610,7 +610,7 @@ func checkOpReqCMAnnotationsForUninstall(reqName, reqNs, opName, installMode str
 	uninstallOperator := true
 	uninstallOperand := true
 
-	klog.V(1).Info("checking cm for operand:  ", opName)
+	klog.V(2).Info("Checking tracking configmap for uninstall for operand: ", opName)
 	delete(cm.Annotations, reqNs+"."+reqName+"."+opName+"/request")
 	delete(cm.Annotations, reqNs+"."+reqName+"."+opName+"/operatorNamespace")
 
