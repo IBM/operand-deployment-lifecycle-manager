@@ -360,6 +360,12 @@ func (r *Reconciler) uninstallOperatorsAndOperands(ctx context.Context, operandN
 		} else if deploymentList != nil {
 			klog.Infof("Found %d Deployment for package %s/%s", len(deploymentList), op.Name, namespace)
 			if uninstallOperand {
+				// delete the configmap
+				klog.V(1).Infof("Deleting the Configmap %s/%s", cm.Namespace, cm.Name)
+				if err := r.deleteOpReqCM(ctx, requestInstance, cm); err != nil {
+					return err
+				}
+
 				klog.V(1).Infof("Deleting all the Custom Resources for Deployment, Namespace: %s, Name: %s", deploymentList[0].Namespace, deploymentList[0].Name)
 				if err := r.deleteAllCustomResource(ctx, deploymentList[0], requestInstance, configInstance, operandName, configInstance.Namespace); err != nil {
 					return err
