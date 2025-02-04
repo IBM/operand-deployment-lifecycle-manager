@@ -307,6 +307,7 @@ func (r *Reconciler) updateOpReqCM(ctx context.Context, cr *operatorv1alpha1.Ope
 func (r *Reconciler) uninstallOperatorsAndOperands(ctx context.Context, operandName string, requestInstance *operatorv1alpha1.OperandRequest, registryInstance *operatorv1alpha1.OperandRegistry, configInstance *operatorv1alpha1.OperandConfig) error {
 	// No error handling for un-installation step in case Catalog has been deleted
 	op, _ := r.GetOperandFromRegistryNoOLM(ctx, registryInstance, operandName)
+	klog.V(1).Info("op to check in uninstallOperatorsAndOperands: ", op.Name, " o: ", fmt.Sprintf("%v", operandName))
 	if op == nil {
 		klog.Warningf("Operand %s not found", operandName)
 		return nil
@@ -316,8 +317,9 @@ func (r *Reconciler) uninstallOperatorsAndOperands(ctx context.Context, operandN
 
 	//Assuing we can still use op as a parameter, we should be able to get the deployment with ease
 	deploy, err := r.GetDeployment(ctx, operandName, namespace, registryInstance.Namespace, op.PackageName)
+	klog.V(1).Info("deployment in uninstallOperatorsAndOperands: ", deploy.Name)
 	if deploy == nil && err == nil {
-		klog.V(3).Infof("There is no Deployment called %s or using package name %s in the namespace %s and %s", operandName, op.PackageName, namespace, registryInstance.Namespace)
+		klog.V(1).Infof("There is no Deployment called %s or using package name %s in the namespace %s and %s", operandName, op.PackageName, namespace, registryInstance.Namespace)
 		return nil
 	} else if err != nil {
 		klog.Errorf("Failed to get Deployment called %s or using package name %s in the namespace %s and %s", operandName, op.PackageName, namespace, registryInstance.Namespace)
@@ -326,13 +328,13 @@ func (r *Reconciler) uninstallOperatorsAndOperands(ctx context.Context, operandN
 
 	if deploy.Labels == nil {
 		// Subscription existing and not managed by OperandRequest controller
-		klog.V(2).Infof("Deployment %s in the namespace %s isn't created by ODLM", deploy.Name, deploy.Namespace)
+		klog.V(1).Infof("Deployment %s in the namespace %s isn't created by ODLM", deploy.Name, deploy.Namespace)
 		return nil
 	}
 
 	if _, ok := deploy.Labels[constant.OpreqLabel]; !ok {
 		if !op.UserManaged {
-			klog.V(2).Infof("Deployment %s in the namespace %s isn't created by ODLM and isn't user managed", deploy.Name, deploy.Namespace)
+			klog.V(1).Infof("Deployment %s in the namespace %s isn't created by ODLM and isn't user managed", deploy.Name, deploy.Namespace)
 			return nil
 		}
 	}
@@ -356,11 +358,11 @@ func (r *Reconciler) uninstallOperatorsAndOperands(ctx context.Context, operandN
 		} else if deploymentList != nil {
 			klog.Infof("Found %d Deployment for package %s/%s", len(deploymentList), op.Name, namespace)
 			if uninstallOperand {
-				klog.V(2).Infof("Deleting all the Custom Resources for Deployment, Namespace: %s, Name: %s", deploymentList[0].Namespace, deploymentList[0].Name)
+				klog.V(1).Infof("Deleting all the Custom Resources for Deployment, Namespace: %s, Name: %s", deploymentList[0].Namespace, deploymentList[0].Name)
 				if err := r.deleteAllCustomResource(ctx, deploymentList[0], requestInstance, configInstance, operandName, configInstance.Namespace); err != nil {
 					return err
 				}
-				klog.V(2).Infof("Deleting all the k8s Resources for Deployment, Namespace: %s, Name: %s", deploymentList[0].Namespace, deploymentList[0].Name)
+				klog.V(1).Infof("Deleting all the k8s Resources for Deployment, Namespace: %s, Name: %s", deploymentList[0].Namespace, deploymentList[0].Name)
 				if err := r.deleteAllK8sResource(ctx, configInstance, operandName, configInstance.Namespace); err != nil {
 					return err
 				}
@@ -496,6 +498,7 @@ func (r *Reconciler) absentOperatorsAndOperands(ctx context.Context, requestInst
 				requestInstance.RemoveServiceStatus(fmt.Sprintf("%v", o), &r.Mutex)
 				(*remainingOperands).Remove(o)
 				remainingOp.Remove(o)
+				klog.V(1).Info("op removed: ", op.Name, " o: ", fmt.Sprintf("%v", o))
 			}()
 		}
 		timeout := util.WaitTimeout(&wg, constant.DefaultSubDeleteTimeout)
