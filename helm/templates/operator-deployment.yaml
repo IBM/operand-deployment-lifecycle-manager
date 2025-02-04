@@ -156,7 +156,7 @@ spec:
         # olm.operatorNamespace: cs-op
         # olm.skipRange: '>=1.2.0 <4.3.8'
         # olm.targetNamespaces: cs-op
-        operatorframework.io/properties: '{"properties":[{"type":"olm.gvk","value":{"group":"operator.ibm.com","kind":"OperandBindInfo","version":"v1alpha1"}},{"type":"olm.gvk","value":{"group":"operator.ibm.com","kind":"OperandConfig","version":"v1alpha1"}},{"type":"olm.gvk","value":{"group":"operator.ibm.com","kind":"OperandRegistry","version":"v1alpha1"}},{"type":"olm.gvk","value":{"group":"operator.ibm.com","kind":"OperandRequest","version":"v1alpha1"}},{"type":"olm.gvk","value":{"group":"operator.ibm.com","kind":"OperatorConfig","version":"v1alpha1"}},{"type":"olm.package","value":{"packageName":"ibm-odlm","version":"4.3.8"}}]}'
+        operatorframework.io/properties: '{"properties":[{"type":"olm.gvk","value":{"group":"operator.ibm.com","kind":"OperandBindInfo","version":"v1alpha1"}},{"type":"olm.gvk","value":{"group":"operator.ibm.com","kind":"OperandConfig","version":"v1alpha1"}},{"type":"olm.gvk","value":{"group":"operator.ibm.com","kind":"OperandRegistry","version":"v1alpha1"}},{"type":"olm.gvk","value":{"group":"operator.ibm.com","kind":"OperandRequest","version":"v1alpha1"}},{"type":"olm.gvk","value":{"group":"operator.ibm.com","kind":"OperatorConfig","version":"v1alpha1"}},{"type":"olm.package","value":{"packageName":"ibm-odlm","version":"4.4.0"}}]}'
         operators.openshift.io/infrastructure-features: '["disconnected"]'
         operators.operatorframework.io/builder: operator-sdk-v1.32.0
         operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
@@ -201,7 +201,7 @@ spec:
               name: namespace-scope
               optional: true
         - name: OPERATOR_CONDITION_NAME
-          value: operand-deployment-lifecycle-manager.v4.3.9
+          value: operand-deployment-lifecycle-manager.v4.4.0
         - name: NO_OLM
           value: "true"
         image: {{ .Values.imagePullPrefix}}/{{ .Values.imageRegistryNamespaceOperator}}/{{ .Values.operatorImage }}:{{ .Values.operatorVersion }}
