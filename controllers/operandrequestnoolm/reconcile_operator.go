@@ -340,8 +340,10 @@ func (r *Reconciler) uninstallOperatorsAndOperands(ctx context.Context, operandN
 	// }
 
 	cm, err := r.GetOpReqCM(ctx, op.Name, deploy.Namespace, registryInstance.Namespace, op.PackageName)
+	klog.V(1).Info("Configmap tracking operand:  ", cm.Name)
 	if cm != nil && err == nil {
 		uninstallOperator, uninstallOperand := checkOpReqCMAnnotationsForUninstall(requestInstance.ObjectMeta.Name, requestInstance.ObjectMeta.Namespace, op.Name, op.InstallMode, cm)
+		klog.V(1).Info("uinstall operator:  ", uninstallOperator, " uninstall operand: ", uninstallOperand)
 		if !uninstallOperand && !uninstallOperator {
 			if err = r.updateOpReqCM(ctx, requestInstance, cm); err != nil {
 				requestInstance.SetMemberStatus(op.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
@@ -538,7 +540,8 @@ func (r *Reconciler) generateClusterObjects(o *operatorv1alpha1.Operator, regist
 	klog.V(3).Info("Generating Cluster Objects")
 	co := &clusterObjects{}
 	labels := map[string]string{
-		constant.OpreqLabel: "true",
+		constant.OpreqLabel:                "true",
+		"operator.ibm.com/watched-by-odlm": "true",
 	}
 
 	klog.V(3).Info("Generating Namespace: ", o.Namespace)
@@ -562,6 +565,7 @@ func (r *Reconciler) generateClusterObjects(o *operatorv1alpha1.Operator, regist
 		registryKey.Namespace + "." + registryKey.Name + "/config":                         "true",
 		requestKey.Namespace + "." + requestKey.Name + "." + o.Name + "/request":           o.Channel,
 		requestKey.Namespace + "." + requestKey.Name + "." + o.Name + "/operatorNamespace": namespace,
+		"packageName": o.PackageName,
 	}
 
 	//CM object
@@ -576,7 +580,7 @@ func (r *Reconciler) generateClusterObjects(o *operatorv1alpha1.Operator, regist
 	}
 
 	cm.SetGroupVersionKind(schema.GroupVersionKind{Group: corev1.SchemeGroupVersion.Group, Kind: "Configmap", Version: corev1.SchemeGroupVersion.Version})
-	klog.V(3).Info("Generating Configmap:  ", o.PackageName, " in the Namespace: ", namespace)
+	klog.V(1).Info("Generating Configmap:  ", o.PackageName, " in the Namespace: ", namespace)
 	co.configmap = cm
 	return co
 }
@@ -606,6 +610,7 @@ func checkOpReqCMAnnotationsForUninstall(reqName, reqNs, opName, installMode str
 	uninstallOperator := true
 	uninstallOperand := true
 
+	klog.V(1).Info("checking cm for operand:  ", opName)
 	delete(cm.Annotations, reqNs+"."+reqName+"."+opName+"/request")
 	delete(cm.Annotations, reqNs+"."+reqName+"."+opName+"/operatorNamespace")
 
