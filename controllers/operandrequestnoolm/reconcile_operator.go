@@ -332,12 +332,12 @@ func (r *Reconciler) uninstallOperatorsAndOperands(ctx context.Context, operandN
 		return nil
 	}
 
-	if _, ok := deploy.Labels[constant.OpreqLabel]; !ok {
-		if !op.UserManaged {
-			klog.V(1).Infof("Deployment %s in the namespace %s isn't created by ODLM and isn't user managed", deploy.Name, deploy.Namespace)
-			return nil
-		}
-	}
+	// if _, ok := deploy.Labels[constant.OpreqLabel]; !ok {
+	// 	if !op.UserManaged {
+	// 		klog.V(1).Infof("Deployment %s in the namespace %s isn't created by ODLM and isn't user managed", deploy.Name, deploy.Namespace)
+	// 		return nil
+	// 	}
+	// }
 
 	cm, err := r.GetOpReqCM(ctx, op.Name, deploy.Namespace, registryInstance.Namespace, op.PackageName)
 	if cm != nil && err == nil {
