@@ -26,8 +26,6 @@ import (
 	"time"
 
 	gset "github.com/deckarep/golang-set"
-	olmv1 "github.com/operator-framework/api/pkg/operators/v1"
-	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/pkg/errors"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -56,9 +54,8 @@ type Reconciler struct {
 	Mutex    sync.Mutex
 }
 type clusterObjects struct {
-	namespace     *corev1.Namespace
-	operatorGroup *olmv1.OperatorGroup
-	subscription  *olmv1alpha1.Subscription
+	namespace *corev1.Namespace
+	configmap *corev1.ConfigMap
 }
 
 //+kubebuilder:rbac:groups=operator.ibm.com,resources=certmanagers;auditloggings,verbs=get;delete
@@ -114,13 +111,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 
 	// Remove finalizer when DeletionTimestamp none zero
 	if !requestInstance.ObjectMeta.DeletionTimestamp.IsZero() {
-		//TODO determine if necessary
-		// Check and clean up the subscriptions
-		// err := r.checkFinalizer(ctx, requestInstance)
-		// if err != nil {
-		// 	klog.Errorf("failed to clean up the subscriptions for OperandRequest %s: %v", req.NamespacedName.String(), err)
-		// 	return ctrl.Result{}, err
-		// }
+		//Checkfinalizers calls the delete function, not necessarily subscription based
+		//Check and clean up the operands
+		err := r.checkFinalizer(ctx, requestInstance)
+		if err != nil {
+			klog.Errorf("failed to clean up the operands for OperandRequest %s: %v", req.NamespacedName.String(), err)
+			return ctrl.Result{}, err
+		}
 
 		originalReq := requestInstance.DeepCopy()
 		// Update finalizer to allow delete CR
@@ -163,12 +160,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{Requeue: true}, err
 	}
 
-	// TODO remove this section
+	//Many of the cleanup functions are run through reconcileoperator as of 1.31.25
+	//technically nothing is done to the operator deployment as of this writing (1.31.25)
 	// Reconcile Operators
-	// if err := r.reconcileOperator(ctx, requestInstance); err != nil {
-	// 	klog.Errorf("failed to reconcile Operators for OperandRequest %s: %v", req.NamespacedName.String(), err)
-	// 	return ctrl.Result{}, err
-	// }
+	if err := r.reconcileOperator(ctx, requestInstance); err != nil {
+		klog.Errorf("failed to reconcile Operators for OperandRequest %s: %v", req.NamespacedName.String(), err)
+		return ctrl.Result{}, err
+	}
 
 	// Reconcile Operands
 	if merr := r.reconcileOperand(ctx, requestInstance); len(merr.Errors) != 0 {
@@ -176,6 +174,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, merr
 	}
 
+	//TODO update this block to check deployments and their operands instead
 	// Check if all csv deploy succeed
 	if requestInstance.Status.Phase != operatorv1alpha1.ClusterPhaseRunning {
 		klog.V(2).Info("Waiting for all operators and operands to be deployed successfully ...")
@@ -244,22 +243,10 @@ func (r *Reconciler) checkFinalizer(ctx context.Context, requestInstance *operat
 	klog.V(1).Infof("Deleting OperandRequest %s in the namespace %s", requestInstance.Name, requestInstance.Namespace)
 	remainingOperands := gset.NewSet()
 	for _, m := range requestInstance.Status.Members {
+		klog.V(3).Infof("Operand %s added to deletion list", m.Name)
 		remainingOperands.Add(m.Name)
 	}
-	// TODO: update to check OperandRequest status to see if member is user managed or not
-	// existingSub := &olmv1alpha1.SubscriptionList{}
-
-	// opts := []client.ListOption{
-	// 	client.MatchingLabels(map[string]string{constant.OpreqLabel: "true"}),
-	// }
-
-	// if err := r.Client.List(ctx, existingSub, opts...); err != nil {
-	// 	return err
-	// }
-	// if len(existingSub.Items) == 0 {
-	// 	return nil
-	// }
-	// Delete all the subscriptions that created by current request
+	// Delete all the operands and configmaps that created by current request
 	if err := r.absentOperatorsAndOperands(ctx, requestInstance, &remainingOperands); err != nil {
 		return err
 	}
@@ -395,14 +382,15 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(options).
 		For(&operatorv1alpha1.OperandRequest{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
-		Watches(&source.Kind{Type: &olmv1alpha1.Subscription{}}, handler.EnqueueRequestsFromMapFunc(r.getSubToRequestMapper()), builder.WithPredicates(predicate.Funcs{
+		Watches(&source.Kind{Type: &corev1.ConfigMap{}}, handler.EnqueueRequestsFromMapFunc(r.getReferenceToRequestMapper()), builder.WithPredicates(predicate.Funcs{
 			UpdateFunc: func(e event.UpdateEvent) bool {
-				oldObject := e.ObjectOld.(*olmv1alpha1.Subscription)
-				newObject := e.ObjectNew.(*olmv1alpha1.Subscription)
+				oldObject := e.ObjectOld.(*corev1.ConfigMap)
+				newObject := e.ObjectNew.(*corev1.ConfigMap)
 				if oldObject.Labels != nil && oldObject.Labels[constant.OpreqLabel] == "true" {
-					statusToggle := (oldObject.Status.InstalledCSV != "" && newObject.Status.InstalledCSV != "" && oldObject.Status.InstalledCSV != newObject.Status.InstalledCSV)
+					// statusToggle := (oldObject.Status.InstalledCSV != "" && newObject.Status.InstalledCSV != "" && oldObject.Status.InstalledCSV != newObject.Status.InstalledCSV)
 					metadataToggle := !reflect.DeepEqual(oldObject.Annotations, newObject.Annotations)
-					return statusToggle || metadataToggle
+					// return statusToggle || metadataToggle
+					return metadataToggle
 				}
 				return false
 			},
