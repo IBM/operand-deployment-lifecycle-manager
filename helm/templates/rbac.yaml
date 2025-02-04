@@ -190,13 +190,13 @@ metadata:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: operand-deployment-lifecycle-manager.v4.3.9
+  name: operand-deployment-lifecycle-manager.v4.4.0
   namespace: {{ .Values.operatorNamespace }}
 rules:
 - apiGroups:
   - operators.coreos.com
   resourceNames:
-  - operand-deployment-lifecycle-manager.v4.3.9
+  - operand-deployment-lifecycle-manager.v4.4.0
   resources:
   - operatorconditions
   verbs:
@@ -209,12 +209,12 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: operand-deployment-lifecycle-manager.v4.3.9
+  name: operand-deployment-lifecycle-manager.v4.4.0
   namespace: {{ .Values.operatorNamespace }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: operand-deployment-lifecycle-manager.v4.3.9
+  name: operand-deployment-lifecycle-manager.v4.4.0
 subjects:
 - kind: ServiceAccount
   name: operand-deployment-lifecycle-manager
