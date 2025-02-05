@@ -332,6 +332,7 @@ func (r *Reconciler) uninstallOperatorsAndOperands(ctx context.Context, operandN
 		return nil
 	}
 
+	// Commented out the check as the deployment is not created by ODLM
 	// if _, ok := deploy.Labels[constant.OpreqLabel]; !ok {
 	// 	if !op.UserManaged {
 	// 		klog.V(2).Infof("Deployment %s in the namespace %s isn't created by ODLM and isn't user managed", deploy.Name, deploy.Namespace)
@@ -369,25 +370,33 @@ func (r *Reconciler) uninstallOperatorsAndOperands(ctx context.Context, operandN
 					return err
 				}
 			}
-			//TODO should odlm delete deployments or should that be handled by helm?
-			// if uninstallOperator {
-			// 	if r.checkUninstallLabel(cm) {
-			// 		klog.V(1).Infof("Operator %s has label operator.ibm.com/opreq-do-not-uninstall. Skip the uninstall", op.Name)
-			// 		return nil
-			// 	}
+			// TODO should odlm delete deployments or should that be handled by helm?
+			// Keep this part for OperandRequest Configmap deletion
+			if uninstallOperator {
+				if r.checkUninstallLabel(cm) {
+					klog.V(1).Infof("Operator %s has label operator.ibm.com/opreq-do-not-uninstall. Skip the uninstall", op.Name)
+					return nil
+				}
 
-			// 	klog.V(3).Info("Set Deleting Condition in the operandRequest")
-			// 	//TODO replace the resource types set in these setdeletingcondition functions
-			// 	requestInstance.SetDeletingCondition(deploymentList[0].Name, operatorv1alpha1.ResourceTypeDeployment, corev1.ConditionTrue, &r.Mutex)
+				// Delete the OperandRequest Configmap
+				klog.V(1).Infof("Deleting the Configmap %s/%s", cm.Namespace, cm.Name)
+				if err := r.deleteOpReqCM(ctx, requestInstance, cm); err != nil {
+					return err
+				}
 
-			// 	for _, deployment := range deploymentList {
-			// 		klog.V(1).Infof("Deleting the deployment, Namespace: %s, Name: %s", deployment.Namespace, deployment.Name)
-			// 		if err := r.Delete(ctx, deployment); err != nil {
-			// 			requestInstance.SetDeletingCondition(deployment.Name, operatorv1alpha1.ResourceTypeDeployment, corev1.ConditionFalse, &r.Mutex)
-			// 			return errors.Wrapf(err, "failed to delete the deployment %s/%s", deployment.Namespace, deployment.Name)
-			// 		}
-			// 	}
-			// }
+				// Commented out the deployment would be not deleted here
+				// klog.V(3).Info("Set Deleting Condition in the operandRequest")
+				// //TODO replace the resource types set in these setdeletingcondition functions
+				// requestInstance.SetDeletingCondition(deploymentList[0].Name, operatorv1alpha1.ResourceTypeDeployment, corev1.ConditionTrue, &r.Mutex)
+
+				// for _, deployment := range deploymentList {
+				// 	klog.V(1).Infof("Deleting the deployment, Namespace: %s, Name: %s", deployment.Namespace, deployment.Name)
+				// 	if err := r.Delete(ctx, deployment); err != nil {
+				// 		requestInstance.SetDeletingCondition(deployment.Name, operatorv1alpha1.ResourceTypeDeployment, corev1.ConditionFalse, &r.Mutex)
+				// 		return errors.Wrapf(err, "failed to delete the deployment %s/%s", deployment.Namespace, deployment.Name)
+				// 	}
+				// }
+			}
 		}
 	} else if err != nil {
 		klog.Errorf("Failed to get Configmap called %s or using package name %s in the namespace %s and %s", operandName, op.PackageName, namespace, registryInstance.Namespace)
