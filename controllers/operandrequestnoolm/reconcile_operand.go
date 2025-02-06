@@ -536,6 +536,8 @@ func (r *Reconciler) deleteAllCustomResource(ctx context.Context, deployment *ap
 		}
 	}
 
+	klog.Infof("33-33 customeResourceMap: %v", customeResourceMap)
+
 	merr := &util.MultiErr{}
 	var (
 		wg sync.WaitGroup
@@ -843,7 +845,7 @@ func (r *Reconciler) deleteCustomResource(ctx context.Context, existingCR unstru
 		klog.V(3).Infof("There is no custom resource: %s from custom resource definition: %s", name, kind)
 	} else {
 		if r.CheckLabel(crShouldBeDeleted, map[string]string{constant.OpreqLabel: "true"}) && !r.CheckLabel(crShouldBeDeleted, map[string]string{constant.NotUninstallLabel: "true"}) {
-			klog.V(3).Infof("Deleting custom resource: %s from custom resource definition: %s", name, kind)
+			klog.Infof("34-34 Deleting custom resource: %s from custom resource definition: %s", name, kind)
 			err := r.Delete(ctx, &crShouldBeDeleted)
 			if err != nil && !apierrors.IsNotFound(err) {
 				return errors.Wrapf(err, "failed to delete custom resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
