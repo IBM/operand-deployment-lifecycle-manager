@@ -155,7 +155,7 @@ func (r *Reconciler) reconcileOpReqCM(ctx context.Context, requestInstance *oper
 
 	// Check configmap if exist
 	namespace := r.GetOperatorNamespace(opt.InstallMode, opt.Namespace)
-	cm, err := r.GetOpReqCM(ctx, opt.Name, namespace, registryInstance.Namespace)
+	cm, err := r.GetOpReqCM(ctx, opt.PackageName, namespace, registryInstance.Namespace)
 
 	if cm == nil && err == nil {
 		if opt.InstallMode == operatorv1alpha1.InstallModeNoop {
@@ -306,7 +306,6 @@ func (r *Reconciler) updateOpReqCM(ctx context.Context, cr *operatorv1alpha1.Ope
 func (r *Reconciler) uninstallOperatorsAndOperands(ctx context.Context, operandName string, requestInstance *operatorv1alpha1.OperandRequest, registryInstance *operatorv1alpha1.OperandRegistry, configInstance *operatorv1alpha1.OperandConfig) error {
 	// No error handling for un-installation step in case Catalog has been deleted
 	op, _ := r.GetOperandFromRegistryNoOLM(ctx, registryInstance, operandName)
-	// klog.V(1).Info("op to check in uninstallOperatorsAndOperands: ", op.Name, " o: ", fmt.Sprintf("%v", operandName))
 	if op == nil {
 		klog.Warningf("Operand %s not found", operandName)
 		return nil
@@ -315,93 +314,67 @@ func (r *Reconciler) uninstallOperatorsAndOperands(ctx context.Context, operandN
 	namespace := r.GetOperatorNamespace(op.InstallMode, op.Namespace)
 
 	//Assuing we can still use op as a parameter, we should be able to get the deployment with ease
-	deploy, err := r.GetDeployment(ctx, operandName, namespace, registryInstance.Namespace, op.PackageName)
-	// klog.V(1).Info("deployment in uninstallOperatorsAndOperands: ", deploy.Name)
-	if deploy == nil && err == nil {
-		klog.V(3).Infof("There is no Deployment called %s or using package name %s in the namespace %s and %s", operandName, op.PackageName, namespace, registryInstance.Namespace)
-		return nil
-	} else if err != nil {
-		klog.Errorf("Failed to get Deployment called %s or using package name %s in the namespace %s and %s", operandName, op.PackageName, namespace, registryInstance.Namespace)
+	if deploymentList, err := r.GetDeploymentListFromPackage(ctx, op.PackageName, op.Namespace); err != nil {
+		// If can't get deployment, requeue the request
 		return err
-	}
+	} else if deploymentList != nil {
 
-	if deploy.Labels == nil {
-		// Subscription existing and not managed by OperandRequest controller
-		klog.V(2).Infof("Deployment %s in the namespace %s isn't created by ODLM", deploy.Name, deploy.Namespace)
-		return nil
-	}
+		if deploymentList[0].Labels == nil {
+			// Deployment existing and not managed by OperandRequest controller
+			klog.V(2).Infof("Deployment %s in the namespace %s isn't created by ODLM", deploymentList[0].Name, deploymentList[0].Namespace)
+			return nil
+		}
 
-	// Commented out the check as the deployment is not created by ODLM
-	// if _, ok := deploy.Labels[constant.OpreqLabel]; !ok {
-	// 	if !op.UserManaged {
-	// 		klog.V(2).Infof("Deployment %s in the namespace %s isn't created by ODLM and isn't user managed", deploy.Name, deploy.Namespace)
-	// 		return nil
-	// 	}
-	// }
-
-	cm, err := r.GetOpReqCM(ctx, op.Name, deploy.Namespace, registryInstance.Namespace)
-	// klog.V(1).Info("Configmap tracking operand:  ", cm.Name)
-	if cm != nil && err == nil {
-		uninstallOperator, uninstallOperand := checkOpReqCMAnnotationsForUninstall(requestInstance.ObjectMeta.Name, requestInstance.ObjectMeta.Namespace, op.Name, op.InstallMode, cm)
-		// klog.V(1).Info("uinstall operator:  ", uninstallOperator, " uninstall operand: ", uninstallOperand)
-		if !uninstallOperand && !uninstallOperator {
+		cm, err := r.GetOpReqCM(ctx, op.PackageName, deploymentList[0].Namespace, registryInstance.Namespace)
+		if cm != nil && err == nil {
+			uninstallOperator, uninstallOperand := checkOpReqCMAnnotationsForUninstall(requestInstance.ObjectMeta.Name, requestInstance.ObjectMeta.Namespace, op.Name, op.InstallMode, cm)
+			// Updated the Configmap for the OperandRequest
 			if err = r.updateOpReqCM(ctx, requestInstance, cm); err != nil {
 				requestInstance.SetMemberStatus(op.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
 				return err
 			}
-			requestInstance.SetMemberStatus(op.Name, operatorv1alpha1.OperatorUpdating, "", &r.Mutex)
+			if !uninstallOperand && !uninstallOperator {
+				requestInstance.SetMemberStatus(op.Name, operatorv1alpha1.OperatorUpdating, "", &r.Mutex)
 
-			klog.V(1).Infof("No deletion, operator %s/%s and its operands are still requested by other OperandRequests", cm.Namespace, cm.Name)
-			return nil
-		}
-		if deploymentList, err := r.GetDeploymentListFromPackage(ctx, op.PackageName, op.Namespace); err != nil {
-			// If can't get deployment, requeue the request
+				klog.V(1).Infof("No deletion, operator %s/%s and its operands are still requested by other OperandRequests", cm.Namespace, cm.Name)
+				return nil
+			}
+			if deploymentList, err := r.GetDeploymentListFromPackage(ctx, op.PackageName, op.Namespace); err != nil {
+				// If can't get deployment, requeue the request
+				return err
+			} else if deploymentList != nil {
+				klog.Infof("Found %d Deployment for package %s/%s", len(deploymentList), op.Name, namespace)
+				if uninstallOperand {
+
+					klog.V(1).Infof("Deleting all the Custom Resources for Deployment, Namespace: %s, Name: %s", deploymentList[0].Namespace, deploymentList[0].Name)
+					if err := r.deleteAllCustomResource(ctx, deploymentList[0], requestInstance, configInstance, operandName, configInstance.Namespace); err != nil {
+						return err
+					}
+					klog.V(1).Infof("Deleting all the k8s Resources for Deployment, Namespace: %s, Name: %s", deploymentList[0].Namespace, deploymentList[0].Name)
+					if err := r.deleteAllK8sResource(ctx, configInstance, operandName, configInstance.Namespace); err != nil {
+						return err
+					}
+				}
+				// TODO should odlm delete deployments or should that be handled by helm?
+				// Keep this part for OperandRequest Configmap deletion
+				if uninstallOperator {
+					if r.checkUninstallLabel(cm) {
+						klog.V(1).Infof("Operator %s has label operator.ibm.com/opreq-do-not-uninstall. Skip the uninstall", op.Name)
+						return nil
+					}
+
+					// Delete the OperandRequest Configmap
+					klog.V(1).Infof("101010 Deleting the Configmap %s/%s", cm.Namespace, cm.Name)
+					if err := r.deleteOpReqCM(ctx, requestInstance, cm); err != nil {
+						return err
+					}
+				}
+			}
+		} else if err != nil {
+			klog.Errorf("Failed to get Configmap called %s or using package name %s in the namespace %s and %s", operandName, op.PackageName, namespace, registryInstance.Namespace)
 			return err
-		} else if deploymentList != nil {
-			klog.Infof("Found %d Deployment for package %s/%s", len(deploymentList), op.Name, namespace)
-			if uninstallOperand {
-				klog.V(1).Infof("Deleting all the Custom Resources for Deployment, Namespace: %s, Name: %s", deploymentList[0].Namespace, deploymentList[0].Name)
-				if err := r.deleteAllCustomResource(ctx, deploymentList[0], requestInstance, configInstance, operandName, configInstance.Namespace); err != nil {
-					return err
-				}
-				klog.V(1).Infof("Deleting all the k8s Resources for Deployment, Namespace: %s, Name: %s", deploymentList[0].Namespace, deploymentList[0].Name)
-				if err := r.deleteAllK8sResource(ctx, configInstance, operandName, configInstance.Namespace); err != nil {
-					return err
-				}
-			}
-			// TODO should odlm delete deployments or should that be handled by helm?
-			// Keep this part for OperandRequest Configmap deletion
-			if uninstallOperator {
-				if r.checkUninstallLabel(cm) {
-					klog.V(1).Infof("Operator %s has label operator.ibm.com/opreq-do-not-uninstall. Skip the uninstall", op.Name)
-					return nil
-				}
-
-				// Delete the OperandRequest Configmap
-				klog.V(1).Infof("Deleting the Configmap %s/%s", cm.Namespace, cm.Name)
-				if err := r.deleteOpReqCM(ctx, requestInstance, cm); err != nil {
-					return err
-				}
-
-				// Commented out the deployment would be not deleted here
-				// klog.V(3).Info("Set Deleting Condition in the operandRequest")
-				// //TODO replace the resource types set in these setdeletingcondition functions
-				// requestInstance.SetDeletingCondition(deploymentList[0].Name, operatorv1alpha1.ResourceTypeDeployment, corev1.ConditionTrue, &r.Mutex)
-
-				// for _, deployment := range deploymentList {
-				// 	klog.V(1).Infof("Deleting the deployment, Namespace: %s, Name: %s", deployment.Namespace, deployment.Name)
-				// 	if err := r.Delete(ctx, deployment); err != nil {
-				// 		requestInstance.SetDeletingCondition(deployment.Name, operatorv1alpha1.ResourceTypeDeployment, corev1.ConditionFalse, &r.Mutex)
-				// 		return errors.Wrapf(err, "failed to delete the deployment %s/%s", deployment.Namespace, deployment.Name)
-				// 	}
-				// }
-			}
 		}
-	} else if err != nil {
-		klog.Errorf("Failed to get Configmap called %s or using package name %s in the namespace %s and %s", operandName, op.PackageName, namespace, registryInstance.Namespace)
-		return err
 	}
-
 	return nil
 }
 
@@ -484,7 +457,6 @@ func (r *Reconciler) absentOperatorsAndOperands(ctx context.Context, requestInst
 			go func() {
 				defer wg.Done()
 				op, _ := r.GetOperandFromRegistryNoOLM(ctx, registryInstance, fmt.Sprintf("%v", o))
-				// klog.V(1).Info("op to check in absentOperatorsandOperands: ", op.Name, " o: ", fmt.Sprintf("%v", o))
 				if op == nil {
 					klog.Warningf("Operand %s not found", fmt.Sprintf("%v", o))
 				}
@@ -619,7 +591,6 @@ func checkOpReqCMAnnotationsForUninstall(reqName, reqNs, opName, installMode str
 	uninstallOperator := true
 	uninstallOperand := true
 
-	klog.V(2).Info("Checking tracking configmap for uninstall for operand: ", opName)
 	delete(cm.Annotations, reqNs+"."+reqName+"."+opName+"/request")
 	delete(cm.Annotations, reqNs+"."+reqName+"."+opName+"/operatorNamespace")
 
@@ -658,6 +629,5 @@ func checkOpReqCMAnnotationsForUninstall(reqName, reqNs, opName, installMode str
 	if (!uninstallOperator && installMode == operatorv1alpha1.InstallModeNoop) || (uninstallOperator && len(opreqNsSlice) != 0) || util.Contains(operatorNameSlice, opName) {
 		uninstallOperand = false
 	}
-
 	return uninstallOperator, uninstallOperand
 }

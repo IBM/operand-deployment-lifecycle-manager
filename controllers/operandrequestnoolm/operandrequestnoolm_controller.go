@@ -140,14 +140,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 
 	klog.V(1).Infof("Reconciling OperandRequest: %s", req.NamespacedName)
 	// Update labels for the request
-	klog.Infof("11-11 print out labels for requestInstance: %v", requestInstance.Labels)
 	if requestInstance.UpdateLabels() {
 		if err := r.Patch(ctx, requestInstance, client.MergeFrom(originalInstance)); err != nil {
 			klog.Errorf("failed to update the labels for OperandRequest %s: %v", req.NamespacedName.String(), err)
 			return ctrl.Result{}, err
 		}
 	}
-	klog.Infof("11-11 after, print out labels for requestInstance: %v", requestInstance.Labels)
 
 	// Initialize the status for OperandRequest instance
 	if !requestInstance.InitRequestStatus(&r.Mutex) {
@@ -155,14 +153,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	}
 
 	// Add finalizer to the instance
-	klog.Infof("12-12 print out finalizers for requestInstance: %v", requestInstance.Finalizers)
 	if isAdded, err := r.addFinalizer(ctx, requestInstance); err != nil {
 		klog.Errorf("failed to add finalizer for OperandRequest %s: %v", req.NamespacedName.String(), err)
 		return ctrl.Result{}, err
 	} else if !isAdded {
 		return ctrl.Result{Requeue: true}, err
 	}
-	klog.Infof("12-12 after, print out finalizers for requestInstance: %v", requestInstance.Finalizers)
 
 	//Many of the cleanup functions are run through reconcileoperator as of 1.31.25
 	//technically nothing is done to the operator deployment as of this writing (1.31.25)
