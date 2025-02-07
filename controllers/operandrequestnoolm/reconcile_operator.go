@@ -155,7 +155,7 @@ func (r *Reconciler) reconcileOpReqCM(ctx context.Context, requestInstance *oper
 
 	// Check configmap if exist
 	namespace := r.GetOperatorNamespace(opt.InstallMode, opt.Namespace)
-	cm, err := r.GetOpReqCM(ctx, opt.Name, namespace, registryInstance.Namespace, opt.PackageName)
+	cm, err := r.GetOpReqCM(ctx, opt.Name, namespace, registryInstance.Namespace)
 
 	if cm == nil && err == nil {
 		if opt.InstallMode == operatorv1alpha1.InstallModeNoop {
@@ -212,7 +212,6 @@ func (r *Reconciler) reconcileOpReqCM(ctx context.Context, requestInstance *oper
 		cm.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/request"] = opt.Channel
 		cm.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/operatorNamespace"] = namespace
 		cm.Annotations["packageName"] = opt.PackageName
-		cm.Labels["operator.ibm.com/watched-by-odlm"] = "true"
 
 		if opt.InstallMode == operatorv1alpha1.InstallModeNoop {
 			requestInstance.SetNoSuitableRegistryCondition(registryKey.String(), opt.Name+" is in maintenance status", operatorv1alpha1.ResourceTypeOperandRegistry, corev1.ConditionTrue, &r.Mutex)
@@ -259,7 +258,7 @@ func (r *Reconciler) createOpReqCM(ctx context.Context, cr *operatorv1alpha1.Ope
 		}
 	}
 
-	// Create CM
+	// Create OperandRequest CM
 	klog.V(2).Info("Creating the Configmap: " + opt.Name)
 
 	cm := co.configmap
@@ -340,7 +339,7 @@ func (r *Reconciler) uninstallOperatorsAndOperands(ctx context.Context, operandN
 	// 	}
 	// }
 
-	cm, err := r.GetOpReqCM(ctx, op.Name, deploy.Namespace, registryInstance.Namespace, op.PackageName)
+	cm, err := r.GetOpReqCM(ctx, op.Name, deploy.Namespace, registryInstance.Namespace)
 	// klog.V(1).Info("Configmap tracking operand:  ", cm.Name)
 	if cm != nil && err == nil {
 		uninstallOperator, uninstallOperand := checkOpReqCMAnnotationsForUninstall(requestInstance.ObjectMeta.Name, requestInstance.ObjectMeta.Namespace, op.Name, op.InstallMode, cm)
@@ -549,8 +548,9 @@ func (r *Reconciler) generateClusterObjects(o *operatorv1alpha1.Operator, regist
 	klog.V(3).Info("Generating Cluster Objects")
 	co := &clusterObjects{}
 	labels := map[string]string{
-		constant.OpreqLabel:                "true",
-		"operator.ibm.com/watched-by-odlm": "true",
+		constant.OpreqLabel:        "true",
+		constant.ODLMWatchedLabel:  "true",
+		constant.OpreqTrackerLabel: "true",
 	}
 
 	klog.V(3).Info("Generating Namespace: ", o.Namespace)
@@ -580,7 +580,7 @@ func (r *Reconciler) generateClusterObjects(o *operatorv1alpha1.Operator, regist
 	//CM object
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        o.PackageName,
+			Name:        "opreq-" + o.PackageName,
 			Namespace:   namespace,
 			Labels:      labels,
 			Annotations: annotations,

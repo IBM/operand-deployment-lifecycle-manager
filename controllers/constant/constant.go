@@ -28,8 +28,11 @@ const (
 	//NotUninstallLabel is the label used to prevent subscription/CR from uninstall
 	NotUninstallLabel string = "operator.ibm.com/opreq-do-not-uninstall"
 
-	//OpreqLabel is the label used to label the subscription/CR managed by ODLM
+	//OpreqLabel is the label used to label the Subscription/CR/Configmap managed by ODLM
 	OpreqLabel string = "operator.ibm.com/opreq-control"
+
+	//OpreqTrackerLabel is the label used to label the OperandRequest Configmap managed by ODLM
+	OpreqTrackerLabel string = "operator.ibm.com/operand-request-tracker"
 
 	//InternalOpreqLabel is the label used label the OperandRequest internally created by ODLM
 	OperandOnlyLabel string = "operator.ibm.com/operand-only"
