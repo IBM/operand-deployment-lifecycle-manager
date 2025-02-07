@@ -268,31 +268,6 @@ func (r *Reconciler) getRegistryToRequestMapper() handler.MapFunc {
 	}
 }
 
-// Commented out code that was not in use
-// func (r *Reconciler) getSubToRequestMapper() handler.MapFunc {
-// 	return func(object client.Object) []ctrl.Request {
-// 		reg, _ := regexp.Compile(`^(.*)\.(.*)\.(.*)\/request`)
-// 		annotations := object.GetAnnotations()
-// 		var reqName, reqNamespace string
-// 		for annotation := range annotations {
-// 			if reg.MatchString(annotation) {
-// 				annotationSlices := strings.Split(annotation, ".")
-// 				reqNamespace = annotationSlices[0]
-// 				reqName = annotationSlices[1]
-// 			}
-// 		}
-// 		if reqNamespace == "" || reqName == "" {
-// 			return []ctrl.Request{}
-// 		}
-// 		return []ctrl.Request{
-// 			{NamespacedName: types.NamespacedName{
-// 				Name:      reqName,
-// 				Namespace: reqNamespace,
-// 			}},
-// 		}
-// 	}
-// }
-
 func (r *Reconciler) getConfigToRequestMapper() handler.MapFunc {
 	ctx := context.Background()
 	return func(object client.Object) []ctrl.Request {

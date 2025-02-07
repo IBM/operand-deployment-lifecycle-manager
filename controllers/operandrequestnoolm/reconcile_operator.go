@@ -364,7 +364,6 @@ func (r *Reconciler) uninstallOperatorsAndOperands(ctx context.Context, operandN
 					}
 
 					// Delete the OperandRequest Configmap
-					klog.V(1).Infof("101010 Deleting the Configmap %s/%s", cm.Namespace, cm.Name)
 					if err := r.deleteOpReqCM(ctx, requestInstance, cm); err != nil {
 						return err
 					}
