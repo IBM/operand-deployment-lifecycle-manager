@@ -462,67 +462,26 @@ func (m *ODLMOperator) GetSubscription(ctx context.Context, name, operatorNs, se
 	return &subCandidates[0], nil
 }
 
-// GetDeployment gets Deployment by name and package name
-func (m *ODLMOperator) GetDeployment(ctx context.Context, name, operatorNs, servicesNs, packageName string) (*appsv1.Deployment, error) {
-	klog.V(3).Infof("Fetch Deployment %s (package name: %s) in operatorNamespace %s and servicesNamespace %s", name, packageName, operatorNs, servicesNs)
+func (m *ODLMOperator) GetOpReqCM(ctx context.Context, operatorName, operatorNs, servicesNs string) (*corev1.ConfigMap, error) {
+	klog.V(3).Infof("Fetch tracking configmap %s in operatorNamespace %s and servicesNamespace %s", operatorName, operatorNs, servicesNs)
 
-	tenantScope := make(map[string]struct{})
-	for _, ns := range []string{operatorNs, servicesNs} {
-		tenantScope[ns] = struct{}{}
-	}
-
-	var depCandidates []appsv1.Deployment
-	for ns := range tenantScope {
-		depList := &appsv1.DeploymentList{}
-		if err := m.Client.List(ctx, depList, &client.ListOptions{
-			Namespace: ns,
-		}); err != nil {
-			return nil, err
-		}
-
-		for _, dep := range depList.Items {
-			if dep.Name == name || dep.Annotations["packageName"] == packageName {
-				depCandidates = append(depCandidates, dep)
-			}
-		}
-	}
-
-	if len(depCandidates) == 0 {
-		return nil, nil
-	}
-
-	if len(depCandidates) > 1 {
-		return nil, fmt.Errorf("there are multiple deployments using package %v", packageName)
-	}
-
-	return &depCandidates[0], nil
-}
-
-func (m *ODLMOperator) GetOpReqCM(ctx context.Context, name, operatorNs, servicesNs, packageName string) (*corev1.ConfigMap, error) {
-	klog.V(3).Infof("Fetch tracking configmap %s in operatorNamespace %s and servicesNamespace %s", name, operatorNs, servicesNs)
-
-	tenantScope := make(map[string]struct{})
-	for _, ns := range []string{operatorNs, servicesNs} {
-		tenantScope[ns] = struct{}{}
+	tenantScope := []string{operatorNs}
+	if operatorNs != servicesNs {
+		tenantScope = append(tenantScope, servicesNs)
 	}
 
 	var cmCandidates []corev1.ConfigMap
-	for ns := range tenantScope {
+	for _, ns := range tenantScope {
 		cmList := &corev1.ConfigMapList{}
-		if err := m.Client.List(ctx, cmList, &client.ListOptions{
-			Namespace: ns,
-		}); err != nil {
+		if err := m.Client.List(ctx, cmList, &client.ListOptions{Namespace: ns}); err != nil {
 			return nil, err
 		}
 
-		// for _, sub := range subList.Items {
-		// 	if sub.Name == name || sub.Spec.Package == packageName {
-		// 		subCandidates = append(subCandidates, sub)
-		// 	}
-		// }
 		for _, cm := range cmList.Items {
-			if cm.Name == packageName {
-				cmCandidates = append(cmCandidates, cm)
+			if cm.Annotations != nil {
+				if pkg, exists := cm.Annotations["packageName"]; exists && pkg == operatorName {
+					cmCandidates = append(cmCandidates, cm)
+				}
 			}
 		}
 	}
@@ -532,7 +491,7 @@ func (m *ODLMOperator) GetOpReqCM(ctx context.Context, name, operatorNs, service
 	}
 
 	if len(cmCandidates) > 1 {
-		return nil, fmt.Errorf("there are multiple subscriptions using package %v", packageName)
+		return nil, fmt.Errorf("there are multiple Configmaps using package %v", operatorName)
 	}
 
 	return &cmCandidates[0], nil

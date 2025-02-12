@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -109,6 +108,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		}
 	}()
 
+	// Get start to delete the OperandRequest
 	// Remove finalizer when DeletionTimestamp none zero
 	if !requestInstance.ObjectMeta.DeletionTimestamp.IsZero() {
 		//Checkfinalizers calls the delete function, not necessarily subscription based
@@ -265,30 +265,6 @@ func (r *Reconciler) getRegistryToRequestMapper() handler.MapFunc {
 			requests = append(requests, req)
 		}
 		return requests
-	}
-}
-
-func (r *Reconciler) getSubToRequestMapper() handler.MapFunc {
-	return func(object client.Object) []ctrl.Request {
-		reg, _ := regexp.Compile(`^(.*)\.(.*)\.(.*)\/request`)
-		annotations := object.GetAnnotations()
-		var reqName, reqNamespace string
-		for annotation := range annotations {
-			if reg.MatchString(annotation) {
-				annotationSlices := strings.Split(annotation, ".")
-				reqNamespace = annotationSlices[0]
-				reqName = annotationSlices[1]
-			}
-		}
-		if reqNamespace == "" || reqName == "" {
-			return []ctrl.Request{}
-		}
-		return []ctrl.Request{
-			{NamespacedName: types.NamespacedName{
-				Name:      reqName,
-				Namespace: reqNamespace,
-			}},
-		}
 	}
 }
 
