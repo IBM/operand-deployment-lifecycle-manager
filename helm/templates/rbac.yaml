@@ -3,6 +3,8 @@ kind: Role
 metadata:
   name: operand-deployment-lifecycle-manager
   namespace: {{ .Values.global.operatorNamespace }}
+  labels:
+    component-id: {{ .Chart.Name }}
 rules:
 - apiGroups:
   - ""
@@ -170,6 +172,8 @@ kind: RoleBinding
 metadata:
   name: operand-deployment-lifecycle-manager
   namespace: {{ .Values.global.operatorNamespace }}
+  labels:
+    component-id: {{ .Chart.Name }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -185,6 +189,8 @@ kind: ServiceAccount
 metadata:
   name: operand-deployment-lifecycle-manager
   namespace: {{ .Values.global.operatorNamespace }}
+  labels:
+    component-id: {{ .Chart.Name }}
 
 ---
 ### role only for olm
@@ -193,6 +199,8 @@ kind: Role
 metadata:
   name: operand-deployment-lifecycle-manager.v4.4.0
   namespace: {{ .Values.global.operatorNamespace }}
+  labels:
+    component-id: {{ .Chart.Name }}
 rules:
 - apiGroups:
   - operators.coreos.com
@@ -212,6 +220,8 @@ kind: RoleBinding
 metadata:
   name: operand-deployment-lifecycle-manager.v4.4.0
   namespace: {{ .Values.global.operatorNamespace }}
+  labels:
+    component-id: {{ .Chart.Name }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role

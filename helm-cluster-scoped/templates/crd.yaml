@@ -9,6 +9,8 @@ metadata:
   #   app.kubernetes.io/managed-by: operand-deployment-lifecycle-manager
   #   app.kubernetes.io/name: operand-deployment-lifecycle-manager
   name: operandbindinfos.operator.ibm.com
+  labels:
+    component-id: {{ .Chart.Name }}
 spec:
   group: operator.ibm.com
   names:
@@ -174,6 +176,8 @@ metadata:
   #   app.kubernetes.io/managed-by: operand-deployment-lifecycle-manager
   #   app.kubernetes.io/name: operand-deployment-lifecycle-manager
   name: operandconfigs.operator.ibm.com
+  labels:
+    component-id: {{ .Chart.Name }}
 spec:
   group: operator.ibm.com
   names:
@@ -473,6 +477,8 @@ metadata:
   #   app.kubernetes.io/managed-by: operand-deployment-lifecycle-manager
   #   app.kubernetes.io/name: operand-deployment-lifecycle-manager
   name: operandregistries.operator.ibm.com
+  labels:
+    component-id: {{ .Chart.Name }}
 spec:
   group: operator.ibm.com
   names:
@@ -2635,6 +2641,8 @@ metadata:
   #   app.kubernetes.io/managed-by: operand-deployment-lifecycle-manager
   #   app.kubernetes.io/name: operand-deployment-lifecycle-manager
   name: operandrequests.operator.ibm.com
+  labels:
+    component-id: {{ .Chart.Name }}
 spec:
   group: operator.ibm.com
   names:
@@ -2965,6 +2973,8 @@ metadata:
   #   app.kubernetes.io/managed-by: operand-deployment-lifecycle-manager
   #   app.kubernetes.io/name: operand-deployment-lifecycle-manager
   name: operatorconfigs.operator.ibm.com
+  labels:
+    component-id: {{ .Chart.Name }}
 spec:
   group: operator.ibm.com
   names:
