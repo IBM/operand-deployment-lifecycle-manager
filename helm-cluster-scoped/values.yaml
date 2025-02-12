@@ -2,8 +2,9 @@
 # imagePullSecret: ibm-entitlement-key
 
 # Note there are no leading or trailing /'s
-imageRegistryNamespaceOperator: cpopen
-imageRegistryNamespaceOperand: cpopen/cpfs
+cpfs:
+  imageRegistryNamespaceOperator: cpopen
+  imageRegistryNamespaceOperand: cpopen/cpfs
 
 # other configuration you think you might need for your operator
 # following are examples, not required:
