@@ -27,6 +27,7 @@ import (
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // Operator defines the desired state of Operators.
+// +kubebuilder:pruning:PreserveUnknownFields
 type Operator struct {
 	// A unique name for the operator whose operand may be deployed.
 	Name string `json:"name"`
@@ -40,6 +41,7 @@ type Operator struct {
 	// Valid values are:
 	// - "namespace" (default): operator is deployed in namespace of OperandRegistry;
 	// - "cluster": operator is deployed in "openshift-operators" namespace;
+	// - "no-op": operator is not supported to be fresh deployed;
 	// +optional
 	InstallMode string `json:"installMode,omitempty"`
 	// The namespace in which operator should be deployed when InstallMode is empty or set to "namespace".
@@ -56,6 +58,9 @@ type Operator struct {
 	PackageName string `json:"packageName"`
 	// Name of the channel to track.
 	Channel string `json:"channel"`
+	// List of channels to fallback when the main channel is not available.
+	// +optional
+	FallbackChannels []string `json:"fallbackChannels,omitempty"`
 	// Description of a common service.
 	// +optional
 	Description string `json:"description,omitempty"`
@@ -71,12 +76,11 @@ type Operator struct {
 	// SubscriptionConfig is used to override operator configuration.
 	// +optional
 	SubscriptionConfig *olmv1alpha1.SubscriptionConfig `json:"subscriptionConfig,omitempty"`
-	// SupportStatus is used to indicate the support status for services.
-	// Valid values are:
-	// - "continuous" (default): operator is supported to be fresh deployed via OperandRequest from scratch
-	// - "maintained" operator is not supported to be fresh deployed via OperandRequest, only upgrade and deletion are allowed
+	// OperatorConfig is the name of the OperatorConfig
 	// +optional
-	SupportStatus string `json:"supportStatus,omitempty"`
+	OperatorConfig string `json:"operatorConfig,omitempty"`
+	// UserManaged is a flag to indicate whether operator is managed by user
+	UserManaged bool `json:"userManaged,omitempty"`
 }
 
 // +kubebuilder:validation:Enum=public;private
@@ -96,13 +100,8 @@ const (
 	InstallModeCluster string = "cluster"
 	// InstallModeNamespace means install the operator in one namespace mode.
 	InstallModeNamespace string = "namespace"
-)
-
-const (
-	// MaintainedSupportStatus means NOT supporting fresh deployment for the operator
-	MaintainedSupportStatus string = "maintained"
-	// ContinuousSupportStatus means supporting fresh deployment for the operator
-	ContinuousSupportStatus string = "continuous"
+	// InstallModeNoop means not create the subscription for the operator
+	InstallModeNoop string = "no-op"
 )
 
 // OperandRegistrySpec defines the desired state of OperandRegistry.
@@ -154,13 +153,14 @@ type ReconcileRequest struct {
 // +kubebuilder:printcolumn:name="Created At",type=string,JSONPath=.metadata.creationTimestamp
 // +operator-sdk:csv:customresourcedefinitions:displayName="OperandRegistry"
 
-// OperandRegistry is the Schema for the operandregistries API.
+// OperandRegistry is the Schema for the operandregistries API. Documentation For additional details regarding install parameters check https://ibm.biz/icpfs39install. License By installing this product you accept the license terms https://ibm.biz/icpfs39license
 type OperandRegistry struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// +kubebuilder:pruning:PreserveUnknownFields
-	Spec   OperandRegistrySpec   `json:"spec,omitempty"`
+	Spec OperandRegistrySpec `json:"spec,omitempty"`
+	// +kubebuilder:pruning:PreserveUnknownFields
 	Status OperandRegistryStatus `json:"status,omitempty"`
 }
 

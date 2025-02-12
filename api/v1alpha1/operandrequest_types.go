@@ -29,6 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -62,7 +63,7 @@ type Operand struct {
 	Name string `json:"name"`
 	// The bindings section is used to specify names of secret and/or configmap.
 	// +optional
-	Bindings map[string]SecretConfigmap `json:"bindings,omitempty"`
+	Bindings map[string]Bindable `json:"bindings,omitempty"`
 	// Kind is used when users want to deploy multiple custom resources.
 	// Kind identifies the kind of the custom resource.
 	// +optional
@@ -106,6 +107,7 @@ const (
 	ConditionNotFound   ConditionType = "NotFound"
 	ConditionOutofScope ConditionType = "OutofScope"
 	ConditionReady      ConditionType = "Ready"
+	ConditionNoConflict ConditionType = "NoConflict"
 
 	OperatorReady      OperatorPhase = "Ready for Deployment"
 	OperatorRunning    OperatorPhase = "Running"
@@ -129,6 +131,8 @@ const (
 	ResourceTypeCsv             ResourceType = "csv"
 	ResourceTypeOperator        ResourceType = "operator"
 	ResourceTypeOperand         ResourceType = "operands"
+	ResourceTypeConfigmap       ResourceType = "configmap"
+	ResourceTypeDeployment      ResourceType = "deployment"
 )
 
 // Condition represents the current state of the Request Service.
@@ -167,11 +171,11 @@ type OperandStatus struct { //Top level CR status ie the CR created by ODLM
 	APIVersion string `json:"apiVersion,omitempty"`
 	Namespace  string `json:"namespace,omitempty"`
 	Kind       string `json:"kind,omitempty"`
-	// Type string `json:"type,omitempty"`
-	Status string `json:"status,omitempty"`
-	// LastTransitionTime string `json:"lastTransitionTime,omitempty"` //might need to change the variable type
+	Status     string `json:"status,omitempty"`
 	// Message string `json:"message,omitempty"`
 	ManagedResources []ResourceStatus `json:"managedResources,omitempty"`
+	// Type string `json:"type,omitempty"`
+	// LastTransitionTime string `json:"lastTransitionTime,omitempty"` //might need to change the variable type
 }
 
 type ServiceStatus struct { //Top level service status
@@ -243,13 +247,14 @@ type MemberStatus struct {
 // +kubebuilder:printcolumn:name="Created At",type=string,JSONPath=.metadata.creationTimestamp
 // +operator-sdk:csv:customresourcedefinitions:displayName="OperandRequest"
 
-// OperandRequest is the Schema for the operandrequests API.
+// OperandRequest is the Schema for the operandrequests API. Documentation For additional details regarding install parameters check https://ibm.biz/icpfs39install. License By installing this product you accept the license terms https://ibm.biz/icpfs39license
 type OperandRequest struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// +kubebuilder:pruning:PreserveUnknownFields
-	Spec   OperandRequestSpec   `json:"spec,omitempty"`
+	Spec OperandRequestSpec `json:"spec,omitempty"`
+	// +kubebuilder:pruning:PreserveUnknownFields
 	Status OperandRequestStatus `json:"status,omitempty"`
 }
 
@@ -315,6 +320,14 @@ func (r *OperandRequest) SetNotFoundOperandRegistryCondition(name string, rt Res
 	mu.Lock()
 	defer mu.Unlock()
 	c := newCondition(ConditionNotFound, cs, "Not found "+string(rt), "Not found operandRegistry "+string(rt))
+	r.setCondition(*c)
+}
+
+// SetNoConflictOperatorCondition creates a NoConflictCondition when an operator channel does not conflict with others.
+func (r *OperandRequest) SetNoConflictOperatorCondition(name string, rt ResourceType, cs corev1.ConditionStatus, mu sync.Locker) {
+	mu.Lock()
+	defer mu.Unlock()
+	c := newCondition(ConditionNoConflict, cs, "No channel conflict on "+string(rt), "No channel conflict on "+string(rt)+" "+name+" in the scope")
 	r.setCondition(*c)
 }
 
@@ -409,6 +422,24 @@ func (r *OperandRequest) RemoveMemberCRStatus(name, CRName, CRKind string, mu sy
 	}
 }
 
+func (r *OperandRequest) RemoveServiceStatus(operatorName string, mu sync.Locker) {
+	mu.Lock()
+	defer mu.Unlock()
+	pos, s := getServiceStatus(&r.Status, operatorName)
+	if s != nil {
+		r.Status.Services = append(r.Status.Services[:pos], r.Status.Services[pos+1:]...)
+	}
+}
+
+func (r *OperandRequest) RemoveOperandPhase(name string, mu sync.Locker) {
+	mu.Lock()
+	defer mu.Unlock()
+	pos, m := getMemberStatus(&r.Status, name)
+	if m != nil {
+		r.Status.Members[pos].Phase = MemberPhase{}
+	}
+}
+
 func (r *OperandRequest) SetServiceStatus(ctx context.Context, service ServiceStatus, updater client.StatusClient, mu sync.Locker) error {
 	mu.Lock()
 	defer mu.Unlock()
@@ -474,10 +505,10 @@ func (r *OperandRequest) setOperandReadyCondition(operandPhase ServicePhase, nam
 }
 
 // FreshMemberStatus cleanup Member status from the Member status list.
-func (r *OperandRequest) FreshMemberStatus(failedDeletedOperands *gset.Set) {
+func (r *OperandRequest) FreshMemberStatus(remainingOp *gset.Set) {
 	newMembers := []MemberStatus{}
 	for index, m := range r.Status.Members {
-		if foundOperand(r.Spec.Requests, m.Name) || (*failedDeletedOperands).Contains(m.Name) {
+		if foundOperand(r.Spec.Requests, m.Name) || (*remainingOp).Contains(m.Name) {
 			newMembers = append(newMembers, r.Status.Members[index])
 		}
 	}
@@ -602,12 +633,16 @@ func (r *OperandRequest) GetRegistryKey(req Request) types.NamespacedName {
 }
 
 // InitRequestStatus OperandConfig status.
-func (r *OperandRequest) InitRequestStatus() bool {
+func (r *OperandRequest) InitRequestStatus(mu sync.Locker) bool {
 	isInitialized := true
 	if r.Status.Phase == "" {
 		isInitialized = false
-		r.Status.Phase = ClusterPhaseNone
 	}
+	for _, member := range r.Status.Members {
+		klog.V(2).Info("Cleaning the member status for Operand: ", member.Name)
+		r.RemoveOperandPhase(member.Name, mu)
+	}
+	r.Status.Phase = ClusterPhaseNone
 	return isInitialized
 }
 

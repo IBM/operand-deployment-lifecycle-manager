@@ -19,7 +19,7 @@ package e2e
 import (
 	"strings"
 
-	etcdv1beta2 "github.com/coreos/etcd-operator/pkg/apis/etcd/v1beta2"
+	jaegerv1 "github.com/jaegertracing/jaeger-operator/apis/v1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	olmv1 "github.com/operator-framework/api/pkg/operators/v1"
@@ -34,7 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	kbtestutils "sigs.k8s.io/kubebuilder/test/e2e/utils"
 
-	apiv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
+	apiv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/v4/api/v1alpha1"
 )
 
 var (
@@ -70,7 +70,7 @@ func initSuite() {
 	Expect(err).NotTo(HaveOccurred())
 	err = olmv1.AddToScheme(clientgoscheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
-	err = etcdv1beta2.AddToScheme(clientgoscheme.Scheme)
+	err = jaegerv1.AddToScheme(clientgoscheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{

@@ -38,7 +38,7 @@ const (
 	BindInfoFailed    BindInfoPhase = "Failed"
 	BindInfoInit      BindInfoPhase = "Initialized"
 	BindInfoUpdating  BindInfoPhase = "Updating"
-	BindInfoWaiting   BindInfoPhase = "Waiting for Secret and/or Configmap from provider"
+	BindInfoWaiting   BindInfoPhase = "Waiting for Bindable resource from provider. One of: Secret, ConfigMap, Route, or Service"
 )
 
 // OperandBindInfoSpec defines the desired state of OperandBindInfo.
@@ -56,17 +56,52 @@ type OperandBindInfoSpec struct {
 	Description string `json:"description,omitempty"`
 	// The bindings section is used to specify information about the access/configuration data that is to be shared.
 	// +optional
-	Bindings map[string]SecretConfigmap `json:"bindings,omitempty"`
+	Bindings map[string]Bindable `json:"bindings,omitempty"`
 }
 
-// SecretConfigmap is a pair of Secret and/or Configmap.
-type SecretConfigmap struct {
+// Bindable is a Kubernetes resources to be shared from one namespace to another.
+// List of supported resources are Secrets, Configmaps, Services, and Routes.
+// Secrets and Configmaps will be copied such that a new Secret/Configmap with
+// exactly the same data will be created in the target namespace.
+// Services and Routes data will be copied into a configmap in the target
+// namespace.
+type Bindable struct {
 	// The secret identifies an existing secret. if it exists, the ODLM will share to the namespace of the OperandRequest.
 	// +optional
 	Secret string `json:"secret,omitempty"`
 	// The configmap identifies an existing configmap object. if it exists, the ODLM will share to the namespace of the OperandRequest.
 	// +optional
 	Configmap string `json:"configmap,omitempty"`
+	// Route data will be shared by copying it into a configmap which is then
+	// created in the target namespace
+	// +optional
+	Route *Route `json:"route,omitempty"`
+	// Service data will be shared by copying it into a configmap which is then
+	// created in the target namespace
+	// +optional
+	Service *ServiceData `json:"service,omitempty"`
+}
+
+// Route represents the name and data inside an OpenShift route.
+type Route struct {
+	// Name is the name of the OpenShift Route resource
+	// +optional
+	Name string `json:"name"`
+	// Data is a key-value pair where the value is a YAML path to a value in the
+	// OpenShift Route, e.g. .spec.host or .spec.tls.termination
+	// +optional
+	Data map[string]string `json:"data"`
+}
+
+// ServiceData represents the name and data inside an Kubernetes Service.
+type ServiceData struct {
+	// Name is the name of the Kubernetes Service resource
+	// +optional
+	Name string `json:"name"`
+	// Data is a key-value pair where the value is a YAML path to a value in the
+	// Kubernetes Service, e.g. .spec.ports[0]port
+	// +optional
+	Data map[string]string `json:"data"`
 }
 
 // OperandBindInfoStatus defines the observed state of OperandBindInfo.
@@ -83,7 +118,7 @@ type OperandBindInfoStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 
-// OperandBindInfo is the Schema for the operandbindinfoes API.
+// OperandBindInfo is the Schema for the operandbindinfoes API. Documentation For additional details regarding install parameters check https://ibm.biz/icpfs39install. License By installing this product you accept the license terms https://ibm.biz/icpfs39license
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=operandbindinfos,shortName=opbi,scope=Namespaced
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=.metadata.creationTimestamp
@@ -95,7 +130,8 @@ type OperandBindInfo struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// +kubebuilder:pruning:PreserveUnknownFields
-	Spec   OperandBindInfoSpec   `json:"spec,omitempty"`
+	Spec OperandBindInfoSpec `json:"spec,omitempty"`
+	// +kubebuilder:pruning:PreserveUnknownFields
 	Status OperandBindInfoStatus `json:"status,omitempty"`
 }
 

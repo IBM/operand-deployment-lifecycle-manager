@@ -33,7 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
+	"github.com/IBM/operand-deployment-lifecycle-manager/v4/api/v1alpha1"
 )
 
 func createTestNamespace(namespace string) {
@@ -295,8 +295,8 @@ func retrieveOperandConfig(obj client.Object, ns string) error {
 	return nil
 }
 
-// updateEtcdReplicas is used to update an OperandConfig instance
-func updateEtcdReplicas(ns string) error {
+// updateJaegerReplicas is used to update an OperandConfig instance
+func updateJaegerStrategy(ns string) error {
 	fmt.Println("--- UPDATE: OperandConfig Instance")
 	con := &v1alpha1.OperandConfig{}
 	if err := wait.PollImmediate(WaitForRetry, WaitForTimeout, func() (done bool, err error) {
@@ -304,8 +304,10 @@ func updateEtcdReplicas(ns string) error {
 		if err != nil {
 			return false, client.IgnoreNotFound(err)
 		}
-		con.Spec.Services[0].Spec = map[string]runtime.RawExtension{
-			"etcdCluster": {Raw: []byte(`{"size": 3}`)},
+		con.Spec.Services[0].Spec = map[string]v1alpha1.ExtensionWithMarker{
+			"jaeger": {
+				RawExtension: runtime.RawExtension{Raw: []byte(`{"strategy": "allinone"}`)},
+			},
 		}
 		if err := k8sClient.Update(context.TODO(), con); err != nil {
 			fmt.Println("    --- Waiting for OperandConfig instance stable ...")
@@ -361,8 +363,8 @@ func retrieveOperandRegistry(obj client.Object, ns string) error {
 	return nil
 }
 
-// updateEtcdChannel is used to update the channel for the etcd operator
-func updateEtcdChannel(ns string) error {
+// updateJaegerChannel is used to update the channel for the jaeger operator
+func updateJaegerChannel(ns string) error {
 	fmt.Println("--- UPDATE: OperandRegistry Instance")
 	reg := &v1alpha1.OperandRegistry{}
 	if err := wait.PollImmediate(WaitForRetry, WaitForTimeout, func() (done bool, err error) {
@@ -370,7 +372,7 @@ func updateEtcdChannel(ns string) error {
 		if err != nil {
 			return false, client.IgnoreNotFound(err)
 		}
-		reg.Spec.Operators[0].Channel = "clusterwide-alpha"
+		reg.Spec.Operators[0].Channel = "stable"
 		reg.Spec.Operators[0].InstallMode = "cluster"
 		if err := k8sClient.Update(context.TODO(), reg); err != nil {
 			fmt.Println("    --- Waiting for OperandRegistry instance stable ...")
@@ -415,8 +417,8 @@ func checkNameSpaceandOperatorGroup(ns string) error {
 	return nil
 }
 
-// updateJenkinsScope is used to update the channel for the etcd operator
-func updateJenkinsScope(ns string) error {
+// updateMongodbScope is used to update the channel for the Mongodb operator
+func updateMongodbScope(ns string) error {
 	fmt.Println("--- UPDATE: OperandRegistry Instance")
 	reg := &v1alpha1.OperandRegistry{}
 	if err := wait.PollImmediate(WaitForRetry, WaitForTimeout, func() (done bool, err error) {
@@ -488,7 +490,7 @@ func updateOperandBindInfo(ns string) (*v1alpha1.OperandBindInfo, error) {
 			return false, err
 		}
 		secretCm := bi.Spec.Bindings["public"]
-		secretCm.Configmap = "jenkins-second-configmap"
+		secretCm.Configmap = "mongodb-second-configmap"
 		bi.Spec.Bindings["public"] = secretCm
 		if err := k8sClient.Update(context.TODO(), bi); err != nil {
 			fmt.Println("    --- Waiting for OperandBindInfo instance stable ...")
@@ -570,15 +572,15 @@ func retrieveSubscription(name, namespace string) (*olmv1alpha1.Subscription, er
 	return obj, nil
 }
 
-// retrieveJenkins is get a custom resource
-func retrieveJenkins(name, namespace string) (*unstructured.Unstructured, error) {
+// retrieveMongodb is get a custom resource
+func retrieveMongodb(name, namespace string) (*unstructured.Unstructured, error) {
 	obj := &unstructured.Unstructured{}
-	obj.SetGroupVersionKind(schema.GroupVersionKind{Group: "jenkins.io", Version: "v1alpha2", Kind: "Jenkins"})
+	obj.SetGroupVersionKind(schema.GroupVersionKind{Group: "atlas.mongodb.com", Version: "v1", Kind: "AtlasDeployment"})
 	// Get subscription
 	if err := wait.PollImmediate(WaitForRetry, WaitForTimeout, func() (done bool, err error) {
 		if err = k8sClient.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, obj); err != nil {
 			if errors.IsNotFound(err) {
-				fmt.Println("    --- Waiting for custom resource Jenkins created ...")
+				fmt.Println("    --- Waiting for custom resource AtlasDeployment created ...")
 				return false, nil
 			}
 			return false, err
@@ -590,15 +592,15 @@ func retrieveJenkins(name, namespace string) (*unstructured.Unstructured, error)
 	return obj, nil
 }
 
-// retrieveEtcd is get a custom resource
-func retrieveEtcd(name, namespace string) (*unstructured.Unstructured, error) {
+// retrieveJaeger is get a custom resource
+func retrieveJaeger(name, namespace string) (*unstructured.Unstructured, error) {
 	obj := &unstructured.Unstructured{}
-	obj.SetGroupVersionKind(schema.GroupVersionKind{Group: "etcd.database.coreos.com", Version: "v1beta2", Kind: "EtcdCluster"})
+	obj.SetGroupVersionKind(schema.GroupVersionKind{Group: "jaegertracing.io", Version: "v1", Kind: "Jaeger"})
 	// Get subscription
 	if err := wait.PollImmediate(WaitForRetry, WaitForTimeout, func() (done bool, err error) {
 		if err = k8sClient.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, obj); err != nil {
 			if errors.IsNotFound(err) {
-				fmt.Println("    --- Waiting for custom resource EtcdCluster created ...")
+				fmt.Println("    --- Waiting for custom resource Jaeger created ...")
 				return false, nil
 			}
 			return false, err
@@ -620,26 +622,29 @@ func newOperandConfigCR(name, namespace string) *v1alpha1.OperandConfig {
 		Spec: v1alpha1.OperandConfigSpec{
 			Services: []v1alpha1.ConfigService{
 				{
-					Name: "etcd",
-					Spec: map[string]runtime.RawExtension{
-						"etcdCluster": {Raw: []byte(`{"size": 1}`)},
+					Name: "jaeger",
+					Spec: map[string]v1alpha1.ExtensionWithMarker{
+						"jaeger": {
+							RawExtension: runtime.RawExtension{Raw: []byte(`{"strategy": "streaming"}`)}},
 					},
 				},
 				{
-					Name: "jenkins",
-					Spec: map[string]runtime.RawExtension{
-						"jenkins": {Raw: []byte(`{"service":{"port": 8081}}`)},
+					Name: "mongodb-atlas-kubernetes",
+					Spec: map[string]v1alpha1.ExtensionWithMarker{
+						"atlasDeployment": {
+							RawExtension: runtime.RawExtension{Raw: []byte(`{"deploymentSpec":{"name": "test-deployment"}}`)},
+						},
 					},
 					Resources: []v1alpha1.ConfigResource{
 						{
-							Name:       "jenkins-configmap",
+							Name:       "mongodb-configmap",
 							APIVersion: "v1",
 							Kind:       "ConfigMap",
 							Labels: map[string]string{
-								"jenkins": "configmap",
+								"mongodb": "configmap",
 							},
 							Annotations: map[string]string{
-								"jenkins": "configmap",
+								"mongodb": "configmap",
 							},
 							Data: &runtime.RawExtension{
 								Raw: []byte(`{"data": {"port": "8081"}}`),
@@ -647,14 +652,14 @@ func newOperandConfigCR(name, namespace string) *v1alpha1.OperandConfig {
 							Force: false,
 						},
 						{
-							Name:       "jenkins-second-configmap",
+							Name:       "mongodb-second-configmap",
 							APIVersion: "v1",
 							Kind:       "ConfigMap",
 							Labels: map[string]string{
-								"jenkins": "configmap",
+								"mongodb": "configmap",
 							},
 							Annotations: map[string]string{
-								"jenkins": "configmap",
+								"mongodb": "configmap",
 							},
 							Data: &runtime.RawExtension{
 								Raw: []byte(`{"data": {"port": "8080"}}`),
@@ -662,14 +667,14 @@ func newOperandConfigCR(name, namespace string) *v1alpha1.OperandConfig {
 							Force: false,
 						},
 						{
-							Name:       "jenkins-secret",
+							Name:       "mongodb-secret",
 							APIVersion: "v1",
 							Kind:       "Secret",
 							Labels: map[string]string{
-								"jenkins": "secret",
+								"mongodb": "secret",
 							},
 							Annotations: map[string]string{
-								"jenkins": "secret",
+								"mongodb": "secret",
 							},
 							Data: &runtime.RawExtension{
 								Raw: []byte(`{"type": "Opaque", "data": {"password": "UyFCXCpkJHpEc2I9", "username": "YWRtaW4="}}`),
@@ -693,21 +698,21 @@ func newOperandRegistryCR(name, namespace, OperatorNamespace string) *v1alpha1.O
 		Spec: v1alpha1.OperandRegistrySpec{
 			Operators: []v1alpha1.Operator{
 				{
-					Name:            "etcd",
+					Name:            "jaeger",
 					Namespace:       OperatorNamespace,
 					SourceName:      "community-operators",
 					SourceNamespace: "openshift-marketplace",
-					PackageName:     "etcd",
-					Channel:         "singlenamespace-alpha",
+					PackageName:     "jaeger",
+					Channel:         "stable",
 					Scope:           v1alpha1.ScopePublic,
 				},
 				{
-					Name:            "jenkins",
+					Name:            "mongodb-atlas-kubernetes",
 					Namespace:       OperatorNamespace,
 					SourceName:      "community-operators",
 					SourceNamespace: "openshift-marketplace",
-					PackageName:     "jenkins-operator",
-					Channel:         "alpha",
+					PackageName:     "mongodb-atlas-kubernetes",
+					Channel:         "stable",
 				},
 			},
 		},
@@ -724,21 +729,21 @@ func newOperandRegistryCRforKind(name, namespace, OperatorNamespace string) *v1a
 		Spec: v1alpha1.OperandRegistrySpec{
 			Operators: []v1alpha1.Operator{
 				{
-					Name:            "etcd",
+					Name:            "jaeger",
 					Namespace:       OperatorNamespace,
 					SourceName:      "operatorhubio-catalog",
 					SourceNamespace: "olm",
-					PackageName:     "etcd",
-					Channel:         "singlenamespace-alpha",
+					PackageName:     "jaeger",
+					Channel:         "stable",
 					Scope:           v1alpha1.ScopePublic,
 				},
 				{
-					Name:            "jenkins",
+					Name:            "mongodb-atlas-kubernetes",
 					Namespace:       OperatorNamespace,
 					SourceName:      "operatorhubio-catalog",
 					SourceNamespace: "olm",
-					PackageName:     "jenkins-operator",
-					Channel:         "alpha",
+					PackageName:     "mongodb-atlas-kubernetes",
+					Channel:         "stable",
 				},
 			},
 		},
@@ -759,10 +764,10 @@ func newOperandRequestWithoutBindinfo(name, namespace, RegistryNamespace string)
 					RegistryNamespace: RegistryNamespace,
 					Operands: []v1alpha1.Operand{
 						{
-							Name: "etcd",
+							Name: "jaeger",
 						},
 						{
-							Name: "jenkins",
+							Name: "mongodb-atlas-kubernetes",
 						},
 					},
 				},
@@ -785,11 +790,11 @@ func newOperandRequestWithBindinfo(name, namespace, RegistryNamespace string) *v
 					RegistryNamespace: RegistryNamespace,
 					Operands: []v1alpha1.Operand{
 						{
-							Name: "jenkins",
-							Bindings: map[string]v1alpha1.SecretConfigmap{
+							Name: "mongodb-atlas-kubernetes",
+							Bindings: map[string]v1alpha1.Bindable{
 								"public": {
-									Secret:    "jenkins-secret",
-									Configmap: "jenkins-configmap",
+									Secret:    "mongodb-secret",
+									Configmap: "mongodb-configmap",
 								},
 							},
 						},
@@ -808,14 +813,14 @@ func newOperandBindInfoCR(name, namespace, RegistryNamespace string) *v1alpha1.O
 			Namespace: namespace,
 		},
 		Spec: v1alpha1.OperandBindInfoSpec{
-			Operand:           "jenkins",
+			Operand:           "mongodb-atlas-kubernetes",
 			Registry:          OperandRegistryCrName,
 			RegistryNamespace: RegistryNamespace,
 
-			Bindings: map[string]v1alpha1.SecretConfigmap{
+			Bindings: map[string]v1alpha1.Bindable{
 				"public": {
-					Secret:    "jenkins-secret",
-					Configmap: "jenkins-configmap",
+					Secret:    "mongodb-secret",
+					Configmap: "mongodb-configmap",
 				},
 			},
 		},

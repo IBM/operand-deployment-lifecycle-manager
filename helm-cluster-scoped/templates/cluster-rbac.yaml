@@ -1,0 +1,2 @@
+### no cluster rbac for ODLM 
+# if it is v3 -> v4 upgrade we need to add permission to cleanup certmanager, auditlogging and licensing CR

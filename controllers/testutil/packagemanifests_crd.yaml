@@ -1,0 +1,164 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: packagemanifests.packages.operators.coreos.com
+spec:
+  group: packages.operators.coreos.com
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+            status:
+              type: object
+              properties:
+                catalogSource:
+                  type: string
+                catalogSourceDisplayName:
+                  type: string
+                catalogSourcePublisher:
+                  type: string
+                catalogSourceNamespace:
+                  type: string
+                provider:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    url:
+                      type: string
+                packageName:
+                  type: string
+                deprecation:
+                  type: object
+                  properties:
+                    message:
+                      type: string
+                channels:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      currentCSV:
+                        type: string
+                      currentCSVDesc:
+                        type: object
+                        properties:
+                          displayName:
+                            type: string
+                          icon:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                base64data:
+                                  type: string
+                                mediatype:
+                                  type: string
+                          version:
+                            type: object
+                            properties:
+                              version:
+                                type: string
+                          provider:
+                            type: object
+                            properties:
+                              name:
+                                type: string
+                              url:
+                                type: string
+                          annotations:
+                            type: object
+                            additionalProperties:
+                              type: string
+                          keywords:
+                            type: array
+                            items:
+                              type: string
+                          links:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                name:
+                                  type: string
+                                url:
+                                  type: string
+                          maintainers:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                name:
+                                  type: string
+                                email:
+                                  type: string
+                          maturity:
+                            type: string
+                          longDescription:
+                            type: string
+                          installModes:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                type:
+                                  type: string
+                                supported:
+                                  type: boolean
+                          customResourceDefinitions:
+                            type: object
+                          apiServiceDefinitions:
+                            type: object
+                          nativeAPIs:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                group:
+                                  type: string
+                                version:
+                                  type: string
+                                kind:
+                                  type: string
+                          minKubeVersion:
+                            type: string
+                          relatedImages:
+                            type: array
+                            items:
+                              type: string
+                      deprecation:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+                      entries:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                            version:
+                              type: string
+                            deprecation:
+                              type: object
+                              properties:
+                                message:
+                                  type: string
+                defaultChannel:
+                  type: string
+  names:
+    plural: packagemanifests
+    singular: packagemanifest
+    kind: PackageManifest
+    shortNames:
+      - pm
+  scope: Namespaced

@@ -1,0 +1,258 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: Helm
+    productName: IBM_Cloud_Platform_Common_Services
+  name: operand-deployment-lifecycle-manager
+  namespace: {{ .Values.global.operatorNamespace }}
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      name: operand-deployment-lifecycle-manager
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        alm-examples: |-
+          [
+            {
+              "apiVersion": "operator.ibm.com/v1alpha1",
+              "kind": "OperandBindInfo",
+              "metadata": {
+                "labels": {
+                  "app.kubernetes.io/instance": "operand-deployment-lifecycle-manager",
+                  "app.kubernetes.io/managed-by": "operand-deployment-lifecycle-manager",
+                  "app.kubernetes.io/name": "operand-deployment-lifecycle-manager"
+                },
+                "name": "example-service"
+              },
+              "spec": {
+                "bindings": {
+                  "public": {
+                    "configmap": "mongodb-configmap",
+                    "secret": "mongodb-secret"
+                  }
+                },
+                "description": "Binding information that should be accessible to MongoDB adopters",
+                "operand": "mongodb-atlas-kubernetes",
+                "registry": "example-service"
+              }
+            },
+            {
+              "apiVersion": "operator.ibm.com/v1alpha1",
+              "kind": "OperandConfig",
+              "metadata": {
+                "labels": {
+                  "app.kubernetes.io/instance": "operand-deployment-lifecycle-manager",
+                  "app.kubernetes.io/managed-by": "operand-deployment-lifecycle-manager",
+                  "app.kubernetes.io/name": "operand-deployment-lifecycle-manager"
+                },
+                "name": "example-service"
+              },
+              "spec": {
+                "services": [
+                  {
+                    "name": "jaeger",
+                    "spec": {
+                      "jaeger": {
+                        "strategy": "allinone"
+                      }
+                    }
+                  },
+                  {
+                    "name": "mongodb-atlas-kubernetes",
+                    "spec": {
+                      "atlasDeployment": {
+                        "deploymentSpec": {
+                          "name": "test-deployment"
+                        },
+                        "projectRef": {
+                          "name": "my-project"
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "apiVersion": "operator.ibm.com/v1alpha1",
+              "kind": "OperandRegistry",
+              "metadata": {
+                "labels": {
+                  "app.kubernetes.io/instance": "operand-deployment-lifecycle-manager",
+                  "app.kubernetes.io/managed-by": "operand-deployment-lifecycle-manager",
+                  "app.kubernetes.io/name": "operand-deployment-lifecycle-manager"
+                },
+                "name": "example-service"
+              },
+              "spec": {
+                "operators": [
+                  {
+                    "channel": "stable",
+                    "installMode": "cluster",
+                    "name": "jaeger",
+                    "namespace": "default",
+                    "packageName": "jaeger",
+                    "sourceName": "community-operators",
+                    "sourceNamespace": "openshift-marketplace"
+                  },
+                  {
+                    "channel": "stable",
+                    "name": "mongodb-atlas-kubernetes",
+                    "namespace": "default",
+                    "packageName": "mongodb-atlas-kubernetes",
+                    "sourceName": "community-operators",
+                    "sourceNamespace": "openshift-marketplace"
+                  }
+                ]
+              }
+            },
+            {
+              "apiVersion": "operator.ibm.com/v1alpha1",
+              "kind": "OperandRequest",
+              "metadata": {
+                "labels": {
+                  "app.kubernetes.io/instance": "operand-deployment-lifecycle-manager",
+                  "app.kubernetes.io/managed-by": "operand-deployment-lifecycle-manager",
+                  "app.kubernetes.io/name": "operand-deployment-lifecycle-manager"
+                },
+                "name": "example-service"
+              },
+              "spec": {
+                "requests": [
+                  {
+                    "operands": [
+                      {
+                        "name": "jaeger"
+                      },
+                      {
+                        "name": "mongodb-atlas-kubernetes"
+                      }
+                    ],
+                    "registry": "example-service"
+                  }
+                ]
+              }
+            }
+          ]
+        capabilities: Seamless Upgrades
+        categories: Developer Tools, Monitoring, Logging & Tracing, Security
+        certified: "false"
+        containerImage: icr.io/cpopen/odlm@sha256:3076710c9891bfb573ea4744398d02977702e8cf24e9f5151f9607c4dc2f95db
+        createdAt: "2024-09-28T19:55:35Z"
+        description: The Operand Deployment Lifecycle Manager provides a Kubernetes
+          CRD-based API to manage the lifecycle of operands.
+        nss.operator.ibm.com/managed-operators: ibm-odlm
+        # olm.operatorGroup: common-service
+        # olm.operatorNamespace: cs-op
+        # olm.skipRange: '>=1.2.0 <4.3.8'
+        # olm.targetNamespaces: cs-op
+        operatorframework.io/properties: '{"properties":[{"type":"olm.gvk","value":{"group":"operator.ibm.com","kind":"OperandBindInfo","version":"v1alpha1"}},{"type":"olm.gvk","value":{"group":"operator.ibm.com","kind":"OperandConfig","version":"v1alpha1"}},{"type":"olm.gvk","value":{"group":"operator.ibm.com","kind":"OperandRegistry","version":"v1alpha1"}},{"type":"olm.gvk","value":{"group":"operator.ibm.com","kind":"OperandRequest","version":"v1alpha1"}},{"type":"olm.gvk","value":{"group":"operator.ibm.com","kind":"OperatorConfig","version":"v1alpha1"}},{"type":"olm.package","value":{"packageName":"ibm-odlm","version":"4.4.0"}}]}'
+        operators.openshift.io/infrastructure-features: '["disconnected"]'
+        operators.operatorframework.io/builder: operator-sdk-v1.32.0
+        operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
+        productID: 068a62892a1e4db39641342e592daa25
+        productMetric: FREE
+        productName: IBM Cloud Platform Common Services
+        repository: https://github.com/IBM/operand-deployment-lifecycle-manager
+        support: IBM
+      creationTimestamp: null
+      labels:
+        app.kubernetes.io/managed-by: Helm
+        intent: projected
+        name: operand-deployment-lifecycle-manager
+        productName: IBM_Cloud_Platform_Common_Services
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                - amd64
+                - ppc64le
+                - s390x
+      containers:
+      - args:
+        - -v=1
+        command:
+        - /manager
+        env:
+        - name: OPERATOR_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        - name: WATCH_NAMESPACE
+          valueFrom:
+            configMapKeyRef:
+              key: namespaces
+              name: namespace-scope
+              optional: true
+        - name: OPERATOR_CONDITION_NAME
+          value: operand-deployment-lifecycle-manager.v4.4.0
+        - name: NO_OLM
+          value: "true"
+        image: {{ .Values.global.imagePullPrefix }}/{{ .Values.imageRegistryNamespaceOperator }}/odlm:4.4.0
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 10
+          httpGet:
+            path: /readyz
+            port: 8081
+            scheme: HTTP
+          initialDelaySeconds: 120
+          periodSeconds: 60
+          successThreshold: 1
+          timeoutSeconds: 10
+        name: manager
+        readinessProbe:
+          failureThreshold: 10
+          httpGet:
+            path: /healthz
+            port: 8081
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 20
+          successThreshold: 1
+          timeoutSeconds: 3
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 200m
+            ephemeral-storage: 256Mi
+            memory: 200Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      imagePullSecrets:
+        - name: {{ .Values.global.imagePullSecret }}
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: operand-deployment-lifecycle-manager
+      serviceAccountName: operand-deployment-lifecycle-manager
+      terminationGracePeriodSeconds: 10

@@ -24,18 +24,24 @@ import (
 	"strings"
 	"time"
 
+	ocproute "github.com/openshift/api/route/v1"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -44,22 +50,27 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
-	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
-	deploy "github.com/IBM/operand-deployment-lifecycle-manager/controllers/operator"
-	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/util"
+	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/v4/api/v1alpha1"
+	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/constant"
+	deploy "github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operator"
+	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/util"
 )
 
 // Reconciler reconciles a OperandBindInfo object
 type Reconciler struct {
 	*deploy.ODLMOperator
+	Config *rest.Config
 }
 
 var (
 	publicPrefix, _    = regexp.Compile(`^public(.*)$`)
 	privatePrefix, _   = regexp.Compile(`^private(.*)$`)
 	protectedPrefix, _ = regexp.Compile(`^protected(.*)$`)
+	routeGroupVersion  = "route.openshift.io/v1"
+	isRouteAPI         = false
 )
+
+// +kubebuilder:rbac:groups=operator.ibm.com,namespace="placeholder",resources=operandbindinfos;operandbindinfos/status;operandbindinfos/finalizers,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile reads that state of the cluster for a OperandBindInfo object and makes changes based on the state read
 // and what is in the OperandBindInfo.Spec
@@ -87,6 +98,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	}()
 
 	klog.V(1).Infof("Reconciling OperandBindInfo: %s", req.NamespacedName)
+
+	if isRouteAPI {
+		klog.V(2).Info("Route API enabled")
+	} else {
+		klog.Info("Route API disabled")
+	}
 
 	// If the finalizer is added, EnsureFinalizer() will return true. If the finalizer is already there, EnsureFinalizer() will return false
 	if bindInfoInstance.EnsureFinalizer() {
@@ -142,11 +159,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, nil
 	}
 	// Get the operand namespace
-	operandOperator := registryInstance.GetOperator(bindInfoInstance.Spec.Operand)
-	if operandOperator == nil {
-		klog.Errorf("failed to find operator %s in the OperandRegistry %s", bindInfoInstance.Spec.Operand, registryInstance.Name)
+	operandOperator, err := r.GetOperandFromRegistry(ctx, registryInstance, bindInfoInstance.Spec.Operand)
+	if err != nil || operandOperator == nil {
+		klog.Errorf("failed to find operator %s in the OperandRegistry %s: %v", bindInfoInstance.Spec.Operand, registryInstance.Name, err)
 		r.Recorder.Eventf(bindInfoInstance, corev1.EventTypeWarning, "NotFound", "NotFound operator %s in the OperandRegistry %s", bindInfoInstance.Spec.Operand, registryInstance.Name)
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, err
 	}
 	operandNamespace := registryInstance.Namespace
 
@@ -163,6 +180,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 				r.Recorder.Eventf(bindInfoInstance, corev1.EventTypeWarning, "NotFound", "NotFound OperandRequest %s in the namespace %s", bindRequest.Name, bindRequest.Namespace)
 			}
 			merr.Add(err)
+			continue
+		} else if !requestInstance.ObjectMeta.DeletionTimestamp.IsZero() {
+			klog.Warningf("OperandRequest %s/%s is being deleted, skip the OperandBindInfo %s/%s", requestInstance.Namespace, requestInstance.Name, bindInfoInstance.Namespace, bindInfoInstance.Name)
 			continue
 		}
 		// Get binding information from OperandRequest
@@ -194,6 +214,27 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 				continue
 			}
 			requeue = requeue || requeueCm
+
+			if isRouteAPI {
+				// Copy Route data into configmap and share configmap
+				if binding.Route != nil {
+					requeueRoute, err := r.copyRoute(ctx, *binding.Route, "", operandNamespace, bindRequest.Namespace, key, bindInfoInstance, requestInstance)
+					if err != nil {
+						merr.Add(err)
+						continue
+					}
+					requeue = requeue || requeueRoute
+				}
+			}
+			// Copy Service data into configmap and share configmap
+			if binding.Service != nil {
+				requeueService, err := r.copyService(ctx, *binding.Service, "", operandNamespace, bindRequest.Namespace, key, bindInfoInstance, requestInstance)
+				if err != nil {
+					merr.Add(err)
+					continue
+				}
+				requeue = requeue || requeueService
+			}
 		}
 	}
 	if len(merr.Errors) != 0 {
@@ -249,6 +290,7 @@ func (r *Reconciler) copySecret(ctx context.Context, sourceName, targetName, sou
 	}
 	secretLabel[bindInfoInstance.Namespace+"."+bindInfoInstance.Name+"/bindinfo"] = "true"
 	secretLabel[constant.OpbiTypeLabel] = "copy"
+	secretLabel[constant.ODLMWatchedLabel] = "true"
 	secretCopy := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      targetName,
@@ -259,8 +301,8 @@ func (r *Reconciler) copySecret(ctx context.Context, sourceName, targetName, sou
 		Data:       secret.Data,
 		StringData: secret.StringData,
 	}
-	// Set the OperandRequest as the controller of the Secret
-	if err := controllerutil.SetControllerReference(requestInstance, secretCopy, r.Scheme); err != nil {
+	// Set the OperandRequest as the owner of the Secret
+	if err := controllerutil.SetOwnerReference(requestInstance, secretCopy, r.Scheme); err != nil {
 		return false, errors.Wrapf(err, "failed to set OperandRequest %s as the owner of Secret %s", requestInstance.Name, targetName)
 	}
 
@@ -273,7 +315,15 @@ func (r *Reconciler) copySecret(ctx context.Context, sourceName, targetName, sou
 			if err := r.Client.Get(ctx, types.NamespacedName{Namespace: targetNs, Name: targetName}, existingSecret); err != nil {
 				return false, errors.Wrapf(err, "failed to get secret %s/%s", targetNs, targetName)
 			}
-			if needUpdate := compareSecret(secretCopy, existingSecret); needUpdate {
+
+			// Copy the owner reference from the existing secret to the new secret
+			secretCopy.SetOwnerReferences(existingSecret.GetOwnerReferences())
+			// Set the OperandRequest as the owner of the new Secret
+			if err := controllerutil.SetOwnerReference(requestInstance, secretCopy, r.Scheme); err != nil {
+				return false, errors.Wrapf(err, "failed to set OperandRequest %s as the owner of Secret %s", requestInstance.Name, targetName)
+			}
+
+			if needUpdate := util.CompareSecret(secretCopy, existingSecret); needUpdate {
 				podRefreshment = true
 				if err := r.Update(ctx, secretCopy); err != nil {
 					return false, errors.Wrapf(err, "failed to update secret %s/%s", targetNs, targetName)
@@ -289,10 +339,10 @@ func (r *Reconciler) copySecret(ctx context.Context, sourceName, targetName, sou
 		}
 	}
 
-	ensureLabelsForSecret(secret, map[string]string{
-		constant.OpbiNsLabel:   bindInfoInstance.Namespace,
-		constant.OpbiNameLabel: bindInfoInstance.Name,
-		constant.OpbiTypeLabel: "original",
+	util.EnsureLabelsForSecret(secret, map[string]string{
+		bindInfoInstance.Namespace + "." + bindInfoInstance.Name + "/bindinfo": "true",
+		constant.OpbiTypeLabel:    "original",
+		constant.ODLMWatchedLabel: "true",
 	})
 
 	// Update the operand Secret
@@ -342,6 +392,7 @@ func (r *Reconciler) copyConfigmap(ctx context.Context, sourceName, targetName, 
 	}
 	cmLabel[bindInfoInstance.Namespace+"."+bindInfoInstance.Name+"/bindinfo"] = "true"
 	cmLabel[constant.OpbiTypeLabel] = "copy"
+	cmLabel[constant.ODLMWatchedLabel] = "true"
 	cmCopy := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      targetName,
@@ -351,8 +402,8 @@ func (r *Reconciler) copyConfigmap(ctx context.Context, sourceName, targetName, 
 		Data:       cm.Data,
 		BinaryData: cm.BinaryData,
 	}
-	// Set the OperandRequest as the controller of the configmap
-	if err := controllerutil.SetControllerReference(requestInstance, cmCopy, r.Scheme); err != nil {
+	// Set OperandRequest as the owners of the configmap
+	if err := controllerutil.SetOwnerReference(requestInstance, cmCopy, r.Scheme); err != nil {
 		return false, errors.Wrapf(err, "failed to set OperandRequest %s as the owner of ConfigMap %s", requestInstance.Name, sourceName)
 	}
 
@@ -365,7 +416,15 @@ func (r *Reconciler) copyConfigmap(ctx context.Context, sourceName, targetName, 
 			if err := r.Client.Get(ctx, types.NamespacedName{Namespace: targetNs, Name: targetName}, existingCm); err != nil {
 				return false, errors.Wrapf(err, "failed to get ConfigMap %s/%s", targetNs, targetName)
 			}
-			if needUpdate := compareConfigMap(cmCopy, existingCm); needUpdate {
+
+			// Copy the owner reference from the existing secret to the new configmap
+			cmCopy.SetOwnerReferences(existingCm.GetOwnerReferences())
+			// Set the OperandRequest as the owner of the new configmap
+			if err := controllerutil.SetOwnerReference(requestInstance, cmCopy, r.Scheme); err != nil {
+				return false, errors.Wrapf(err, "failed to set OperandRequest %s as the owner of ConfigMap %s", requestInstance.Name, targetName)
+			}
+
+			if needUpdate := util.CompareConfigMap(cmCopy, existingCm); needUpdate {
 				podRefreshment = true
 				if err := r.Update(ctx, cmCopy); err != nil {
 					return false, errors.Wrapf(err, "failed to update ConfigMap %s/%s", targetNs, sourceName)
@@ -383,10 +442,10 @@ func (r *Reconciler) copyConfigmap(ctx context.Context, sourceName, targetName, 
 	}
 
 	// Set the OperandBindInfo label for the ConfigMap
-	ensureLabelsForConfigMap(cm, map[string]string{
-		constant.OpbiNsLabel:   bindInfoInstance.Namespace,
-		constant.OpbiNameLabel: bindInfoInstance.Name,
-		constant.OpbiTypeLabel: "original",
+	util.EnsureLabelsForConfigMap(cm, map[string]string{
+		bindInfoInstance.Namespace + "." + bindInfoInstance.Name + "/bindinfo": "true",
+		constant.OpbiTypeLabel:    "original",
+		constant.ODLMWatchedLabel: "true",
 	})
 
 	// Update the operand Configmap
@@ -396,6 +455,290 @@ func (r *Reconciler) copyConfigmap(ctx context.Context, sourceName, targetName, 
 	klog.V(1).Infof("Configmap %s is copied from the namespace %s to the namespace %s", sourceName, sourceNs, targetNs)
 
 	return false, nil
+}
+
+// copyRoute reads the data map and copies OCP Route data as specified by the
+// field path in the data map values
+func (r *Reconciler) copyRoute(ctx context.Context, route operatorv1alpha1.Route, targetName, sourceNs, targetNs, key string,
+	bindInfoInstance *operatorv1alpha1.OperandBindInfo, requestInstance *operatorv1alpha1.OperandRequest) (requeue bool, err error) {
+	if route.Name == "" || sourceNs == "" || targetNs == "" {
+		return false, nil
+	}
+
+	if route.Name == targetName && sourceNs == targetNs {
+		return false, nil
+	}
+
+	if targetName == "" {
+		if publicPrefix.MatchString(key) {
+			targetName = bindInfoInstance.Name + "-" + route.Name
+		} else {
+			return false, nil
+		}
+	}
+
+	sourceRoute := &ocproute.Route{}
+	if err := r.Client.Get(ctx, types.NamespacedName{Name: route.Name, Namespace: sourceNs}, sourceRoute); err != nil {
+		if apierrors.IsNotFound(err) {
+			klog.V(3).Infof("Route %s/%s is not found", sourceNs, route.Name)
+			r.Recorder.Eventf(bindInfoInstance, corev1.EventTypeNormal, "NotFound", "No Route %s in the namespace %s", route.Name, sourceNs)
+			return true, nil
+		}
+		return false, errors.Wrapf(err, "failed to get Route %s/%s", sourceNs, route.Name)
+	}
+	// Create the ConfigMap to the OperandRequest namespace
+	labels := make(map[string]string)
+	// Copy from the original labels to the target labels
+	for k, v := range sourceRoute.Labels {
+		labels[k] = v
+	}
+	labels[bindInfoInstance.Namespace+"."+bindInfoInstance.Name+"/bindinfo"] = "true"
+	labels[constant.OpbiTypeLabel] = "copy"
+
+	sanitizedData, err := sanitizeOdlmRouteData(route.Data, sourceRoute.Spec)
+	if err != nil {
+		return false, err
+	}
+	cmCopy := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      targetName,
+			Namespace: targetNs,
+			Labels:    labels,
+		},
+		Data: sanitizedData,
+	}
+	// Set the OperandRequest as the controller of the configmap
+	if err := controllerutil.SetControllerReference(requestInstance, cmCopy, r.Scheme); err != nil {
+		return false, errors.Wrapf(err, "failed to set OperandRequest %s as the owner of ConfigMap %s", requestInstance.Name, route.Name)
+	}
+
+	var podRefreshment bool
+	// Create the ConfigMap in the OperandRequest namespace
+	if err := r.Create(ctx, cmCopy); err != nil {
+		if apierrors.IsAlreadyExists(err) {
+			// If already exist, update the ConfigMap
+			existingCm := &corev1.ConfigMap{}
+			if err := r.Client.Get(ctx, types.NamespacedName{Namespace: targetNs, Name: targetName}, existingCm); err != nil {
+				return false, errors.Wrapf(err, "failed to get ConfigMap %s/%s", targetNs, targetName)
+			}
+			if needUpdate := util.CompareConfigMap(cmCopy, existingCm); needUpdate {
+				podRefreshment = true
+				if err := r.Update(ctx, cmCopy); err != nil {
+					return false, errors.Wrapf(err, "failed to update ConfigMap %s/%s", targetNs, route.Name)
+				}
+			}
+		} else {
+			return false, errors.Wrapf(err, "failed to create ConfigMap %s/%s", targetNs, route.Name)
+		}
+	}
+
+	if podRefreshment {
+		if err := r.refreshPods(targetNs, targetName, "configmap"); err != nil {
+			return false, errors.Wrapf(err, "failed to refresh pods mounting ConfigMap %s/%s", targetNs, targetName)
+		}
+	}
+
+	// Set the OperandBindInfo label for the ConfigMap
+	util.EnsureLabelsForRoute(sourceRoute, map[string]string{
+		bindInfoInstance.Namespace + "." + bindInfoInstance.Name + "/bindinfo": "true",
+		constant.OpbiTypeLabel: "original",
+	})
+
+	// Update the operand Configmap
+	if err := r.Update(ctx, sourceRoute); err != nil {
+		return false, errors.Wrapf(err, "failed to update ConfigMap %s/%s", sourceRoute.Namespace, sourceRoute.Name)
+	}
+	klog.V(1).Infof("Route %s is copied from the namespace %s to the namespace %s", route.Name, sourceNs, targetNs)
+
+	return false, nil
+}
+
+// copyRoute reads the data map and copies K8s Service data as specified by the
+// field path in the data map values
+func (r *Reconciler) copyService(ctx context.Context, service operatorv1alpha1.ServiceData, targetName, sourceNs, targetNs, key string,
+	bindInfoInstance *operatorv1alpha1.OperandBindInfo, requestInstance *operatorv1alpha1.OperandRequest) (requeue bool, err error) {
+	if service.Name == "" || sourceNs == "" || targetNs == "" {
+		return false, nil
+	}
+
+	if service.Name == targetName && sourceNs == targetNs {
+		return false, nil
+	}
+
+	if targetName == "" {
+		if publicPrefix.MatchString(key) {
+			targetName = bindInfoInstance.Name + "-" + service.Name
+		} else {
+			return false, nil
+		}
+	}
+
+	sourceService := &corev1.Service{}
+	if err := r.Client.Get(ctx, types.NamespacedName{Name: service.Name, Namespace: sourceNs}, sourceService); err != nil {
+		if apierrors.IsNotFound(err) {
+			klog.V(3).Infof("Route %s/%s is not found", sourceNs, service.Name)
+			r.Recorder.Eventf(bindInfoInstance, corev1.EventTypeNormal, "NotFound", "No Service %s in the namespace %s", service.Name, sourceNs)
+			return true, nil
+		}
+		return false, errors.Wrapf(err, "failed to get Service %s/%s", sourceNs, service.Name)
+	}
+	// Create the ConfigMap to the OperandRequest namespace
+	labels := make(map[string]string)
+	// Copy from the original labels to the target labels
+	for k, v := range sourceService.Labels {
+		labels[k] = v
+	}
+	labels[bindInfoInstance.Namespace+"."+bindInfoInstance.Name+"/bindinfo"] = "true"
+	labels[constant.OpbiTypeLabel] = "copy"
+
+	sanitizedData, err := sanitizeServiceData(service.Data, *sourceService)
+	if err != nil {
+		return false, err
+	}
+	cmCopy := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      targetName,
+			Namespace: targetNs,
+			Labels:    labels,
+		},
+		Data: sanitizedData,
+	}
+	// Set the OperandRequest as the controller of the configmap
+	if err := controllerutil.SetControllerReference(requestInstance, cmCopy, r.Scheme); err != nil {
+		return false, errors.Wrapf(err, "failed to set OperandRequest %s as the owner of ConfigMap %s", requestInstance.Name, service.Name)
+	}
+
+	var podRefreshment bool
+	// Create the ConfigMap in the OperandRequest namespace
+	if err := r.Create(ctx, cmCopy); err != nil {
+		if apierrors.IsAlreadyExists(err) {
+			// If already exist, update the ConfigMap
+			existingCm := &corev1.ConfigMap{}
+			if err := r.Client.Get(ctx, types.NamespacedName{Namespace: targetNs, Name: targetName}, existingCm); err != nil {
+				return false, errors.Wrapf(err, "failed to get ConfigMap %s/%s", targetNs, targetName)
+			}
+			if needUpdate := util.CompareConfigMap(cmCopy, existingCm); needUpdate {
+				podRefreshment = true
+				if err := r.Update(ctx, cmCopy); err != nil {
+					return false, errors.Wrapf(err, "failed to update ConfigMap %s/%s", targetNs, service.Name)
+				}
+			}
+		} else {
+			return false, errors.Wrapf(err, "failed to create ConfigMap %s/%s", targetNs, service.Name)
+		}
+	}
+
+	if podRefreshment {
+		if err := r.refreshPods(targetNs, targetName, "configmap"); err != nil {
+			return false, errors.Wrapf(err, "failed to refresh pods mounting ConfigMap %s/%s", targetNs, targetName)
+		}
+	}
+
+	// Set the OperandBindInfo label for the ConfigMap
+	util.EnsureLabelsForService(sourceService, map[string]string{
+		bindInfoInstance.Namespace + "." + bindInfoInstance.Name + "/bindinfo": "true",
+		constant.OpbiTypeLabel: "original",
+	})
+
+	// Update the operand Configmap
+	if err := r.Update(ctx, sourceService); err != nil {
+		return false, errors.Wrapf(err, "failed to update ConfigMap %s/%s", sourceService.Namespace, sourceService.Name)
+	}
+	klog.V(1).Infof("Service %s is copied from the namespace %s to the namespace %s", service.Name, sourceNs, targetNs)
+
+	return false, nil
+}
+
+// sanitizeOdlmRouteData takes a map, i.e. ODLM's Route.Data, and an OCP Route.Spec,
+// and returns a map ready to be included into a ConfigMap's data. The ODLM's
+// Route.Data is sanitized because the values are YAML path references
+// in map because they correspond to YAML fields in a OCP Route. Ensures that:
+//  1. the field actually exists, otherwise returns an error
+//  2. extracts the value from the OCP Route's field, the value must be a basic
+//     type, which includes: int, float, bool, and strings. Anything else and
+//     an error is returned
+func sanitizeOdlmRouteData(m map[string]string, route ocproute.RouteSpec) (map[string]string, error) {
+	sanitized := make(map[string]string, len(m))
+	for k, v := range m {
+		fields := strings.Split(v, ".")
+		fields = fields[1:]
+		if fields[0] != "spec" {
+			return nil, errors.Errorf("Bindable Route.Data must only reference values from OCP Route.Spec")
+		}
+		fields = fields[1:]
+
+		content, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&route)
+		if err != nil {
+			return nil, err
+		}
+		newUnstr := &unstructured.Unstructured{}
+		newUnstr.SetUnstructuredContent(content)
+
+		trueValue, isExists, err := nestedBasicType(newUnstr.Object, fields...)
+		if err != nil {
+			return nil, err
+		}
+		if !isExists {
+			return nil, errors.Errorf("Bindable Route.Data references a field that does not exist: %s", v)
+		}
+
+		sanitized[k] = trueValue
+	}
+	return sanitized, nil
+}
+
+// sanitizeServiceData takes a map, i.e. ODLM's Service.Data, and a K8s Service object
+// and returns a map ready to be included into a ConfigMap's data. The ODLM's
+// Service.Data is sanitized because the values are YAML fields in a K8s Service.
+// Ensures that:
+//  1. the field actually exists, otherwise returns an error
+//  2. extracts the value from the K8s Service's field, the value will be
+//     stringified
+func sanitizeServiceData(m map[string]string, service corev1.Service) (map[string]string, error) {
+	sanitized := make(map[string]string, len(m))
+	for k, v := range m {
+		trueValue, err := util.SanitizeObjectString(v, service)
+		if err != nil {
+			return nil, err
+		}
+		sanitized[k] = trueValue
+	}
+	return sanitized, nil
+}
+
+// nestedBasicType is a wrapper around the various unstructured.Nested methods
+// used to extract values from nested fields. It takes the same arguments
+// as the Nested methods and returns a string if some basic type value is found.
+// Otherwise the bool and error values from the Nested functions will be
+// returned.
+// Basic types include: string, int64, float64, and bool
+func nestedBasicType(obj map[string]interface{}, fields ...string) (string, bool, error) {
+	typeTest, isExists, err := unstructured.NestedFieldNoCopy(obj, fields...)
+	if err != nil {
+		return "", isExists, err
+	}
+	if !isExists {
+		return "", isExists, err
+	}
+
+	switch fieldType := reflect.TypeOf(typeTest); fieldType.String() {
+	case "string":
+		return unstructured.NestedString(obj, fields...)
+	case "int", "int32", "int64":
+		var value int64
+		value, isExists, err = unstructured.NestedInt64(obj, fields...)
+		return fmt.Sprintf("%d", value), isExists, err
+	case "float32", "float64":
+		var value float64
+		value, isExists, err = unstructured.NestedFloat64(obj, fields...)
+		return fmt.Sprintf("%f", value), isExists, err
+	case "bool":
+		var value bool
+		value, isExists, err = unstructured.NestedBool(obj, fields...)
+		return fmt.Sprintf("%t", value), isExists, err
+	default:
+		return "", false, errors.Errorf("Path reference does not lead to an int, float, bool, or string: .spec.%s", strings.Join(fields, "."))
+	}
 }
 
 func (r *Reconciler) cleanupCopies(ctx context.Context, bindInfoInstance *operatorv1alpha1.OperandBindInfo) error {
@@ -537,11 +880,15 @@ func unique(stringSlice []string) []string {
 func toOpbiRequest() handler.MapFunc {
 	return func(object client.Object) []reconcile.Request {
 		opbiInstance := []reconcile.Request{}
-		lables := object.GetLabels()
-		name, nameOk := lables[constant.OpbiNameLabel]
-		ns, namespaceOK := lables[constant.OpbiNsLabel]
-		if nameOk && namespaceOK {
-			opbiInstance = append(opbiInstance, reconcile.Request{NamespacedName: types.NamespacedName{Name: name, Namespace: ns}})
+		labels := object.GetLabels()
+		reg, _ := regexp.Compile(`^(.*)\.(.*)\/bindinfo`)
+		for annotation := range labels {
+			if reg.MatchString(annotation) {
+				annotationSlices := strings.Split(annotation, ".")
+				bindinfoNamespace := annotationSlices[0]
+				bindinfoName := strings.Split(annotationSlices[1], "/")[0]
+				opbiInstance = append(opbiInstance, reconcile.Request{NamespacedName: types.NamespacedName{Name: bindinfoName, Namespace: bindinfoNamespace}})
+			}
 		}
 		return opbiInstance
 	}
@@ -697,7 +1044,7 @@ func (r *Reconciler) refreshPodsFromDaemonSet(ns, name, resourceType string) err
 
 // SetupWithManager adds OperandBindInfo controller to the manager.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
-	cmSecretPredicates := predicate.Funcs{
+	bindablePredicates := predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
 			labels := e.Object.GetLabels()
 			for labelKey, labelValue := range labels {
@@ -738,17 +1085,41 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 		},
 	}
 
-	return ctrl.NewControllerManagedBy(mgr).
+	options := controller.Options{
+		MaxConcurrentReconciles: r.MaxConcurrentReconciles, // Set the desired value for max concurrent reconciles.
+	}
+
+	var err error
+	if r.Config == nil {
+		r.Config, err = config.GetConfig()
+		if err != nil {
+			klog.Errorf("Failed to get config: %v", err)
+			return err
+		}
+	}
+	dc := discovery.NewDiscoveryClientForConfigOrDie(r.Config)
+	_, apiLists, err := dc.ServerGroupsAndResources()
+	if err != nil {
+		return err
+	}
+	for _, apiList := range apiLists {
+		if apiList.GroupVersion == routeGroupVersion {
+			isRouteAPI = true
+		}
+	}
+
+	controller := ctrl.NewControllerManagedBy(mgr).
+		WithOptions(options).
 		For(&operatorv1alpha1.OperandBindInfo{}).
 		Watches(
 			&source.Kind{Type: &corev1.ConfigMap{}},
 			handler.EnqueueRequestsFromMapFunc(toOpbiRequest()),
-			builder.WithPredicates(cmSecretPredicates),
+			builder.WithPredicates(bindablePredicates),
 		).
 		Watches(
 			&source.Kind{Type: &corev1.Secret{}},
 			handler.EnqueueRequestsFromMapFunc(toOpbiRequest()),
-			builder.WithPredicates(cmSecretPredicates),
+			builder.WithPredicates(bindablePredicates),
 		).
 		Watches(
 			&source.Kind{Type: &operatorv1alpha1.OperandRequest{}},
@@ -759,31 +1130,13 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 			&source.Kind{Type: &operatorv1alpha1.OperandRegistry{}},
 			handler.EnqueueRequestsFromMapFunc(r.getOperandRegistryToRequestMapper(mgr)),
 			builder.WithPredicates(opregPredicates),
-		).Complete(r)
-}
-
-func ensureLabelsForSecret(secret *corev1.Secret, labels map[string]string) {
-	if secret.Labels == nil {
-		secret.Labels = make(map[string]string)
+		)
+	if isRouteAPI {
+		controller.Watches(
+			&source.Kind{Type: &ocproute.Route{}},
+			handler.EnqueueRequestsFromMapFunc(toOpbiRequest()),
+			builder.WithPredicates(bindablePredicates),
+		)
 	}
-	for k, v := range labels {
-		secret.Labels[k] = v
-	}
-}
-
-func ensureLabelsForConfigMap(cm *corev1.ConfigMap, labels map[string]string) {
-	if cm.Labels == nil {
-		cm.Labels = make(map[string]string)
-	}
-	for k, v := range labels {
-		cm.Labels[k] = v
-	}
-}
-
-func compareSecret(secret *corev1.Secret, existingSecret *corev1.Secret) (needUpdate bool) {
-	return !equality.Semantic.DeepEqual(secret.GetLabels(), existingSecret.GetLabels()) || !equality.Semantic.DeepEqual(secret.Type, existingSecret.Type) || !equality.Semantic.DeepEqual(secret.Data, existingSecret.Data) || !equality.Semantic.DeepEqual(secret.StringData, existingSecret.StringData)
-}
-
-func compareConfigMap(configMap *corev1.ConfigMap, existingConfigMap *corev1.ConfigMap) (needUpdate bool) {
-	return !equality.Semantic.DeepEqual(configMap.GetLabels(), existingConfigMap.GetLabels()) || !equality.Semantic.DeepEqual(configMap.Data, existingConfigMap.Data) || !equality.Semantic.DeepEqual(configMap.BinaryData, existingConfigMap.BinaryData)
+	return controller.Complete(r)
 }

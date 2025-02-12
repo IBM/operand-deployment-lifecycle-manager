@@ -27,20 +27,23 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
-	deploy "github.com/IBM/operand-deployment-lifecycle-manager/controllers/operator"
+	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/v4/api/v1alpha1"
+	deploy "github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operator"
 )
 
 // Reconciler reconciles a OperandRegistry object
 type Reconciler struct {
 	*deploy.ODLMOperator
 }
+
+// +kubebuilder:rbac:groups=operator.ibm.com,namespace="placeholder",resources=operandregistries;operandregistries/status;operandregistries/finalizers,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile reads that state of the cluster for a OperandRegistry object and makes changes based on the state read
 // and what is in the OperandRegistry.Spec
@@ -75,7 +78,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	}
 
 	// Summarize instance status
-	if instance.Status.OperatorsStatus == nil || len(instance.Status.OperatorsStatus) == 0 {
+	if len(instance.Status.OperatorsStatus) == 0 {
 		instance.UpdateRegistryPhase(operatorv1alpha1.RegistryReady)
 	} else {
 		instance.UpdateRegistryPhase(operatorv1alpha1.RegistryRunning)
@@ -114,7 +117,11 @@ func (r *Reconciler) updateStatus(ctx context.Context, instance *operatorv1alpha
 
 // SetupWithManager adds OperandRegistry controller to the manager.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+	options := controller.Options{
+		MaxConcurrentReconciles: r.MaxConcurrentReconciles, // Set the desired value for max concurrent reconciles.
+	}
 	return ctrl.NewControllerManagedBy(mgr).
+		WithOptions(options).
 		For(&operatorv1alpha1.OperandRegistry{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Watches(&source.Kind{Type: &operatorv1alpha1.OperandRequest{}}, handler.EnqueueRequestsFromMapFunc(func(a client.Object) []reconcile.Request {
 			or := a.(*operatorv1alpha1.OperandRequest)

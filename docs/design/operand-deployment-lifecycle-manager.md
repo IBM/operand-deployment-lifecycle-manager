@@ -73,7 +73,6 @@ spec:
     sourceNamespace: openshift-marketplace [9]
     installMode: cluster [10]
     installPlanApproval: Manual [11]
-    supportStatus: continuous [12]
 ```
 
 The OperandRegistry Custom Resource (CR) lists OLM Operator information for operands that may be requested for installation and/or access by an application that runs in a namespace. The registry CR specifies:
@@ -87,9 +86,8 @@ The OperandRegistry Custom Resource (CR) lists OLM Operator information for oper
 7. (optional) `scope` is an indicator, either public or private, that dictates whether deployment can be requested from other namespaces (public) or only from the namespace of this OperandRegistry (private). The default value is private.
 8. `sourceName` is the name of the CatalogSource.
 9. `sourceNamespace` is the namespace of the CatalogSource.
-10. (optional) `installMode` is the install mode of the operator, can be either `namespace` (OLM one namespace) or `cluster` (OLM all namespaces). The default value is `namespace`. Operator is deployed in `openshift-operators` namespace when InstallMode is set to `cluster`.
+10. (optional) `installMode` is the install mode of the operator, can be `namespace` (OLM one namespace), `cluster` (OLM all namespaces) or `no-op` (discontinued service). The default value is `namespace`. Operator is deployed in `openshift-operators` namespace when InstallMode is set to `cluster`.
 11. (optional) `installPlanApproval` is the approval mode for emitted installplan. The default value is `Automatic`.
-12. (optional) `supportStatus` is the support status for services. (1) When SupportStatus is `continous`, operator is supported to be fresh deployed via OperandRequest from scratch. (2) When SupportStatus is `maintained`, operator is not supported to be fresh deployed via OperandRequest, only upgrade and deletion are allowed. The default value is `continous`
 
 ## OperandConfig Spec
 

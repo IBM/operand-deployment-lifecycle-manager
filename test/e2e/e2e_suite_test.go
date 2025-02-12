@@ -21,7 +21,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
@@ -30,9 +29,8 @@ import (
 func TestODLME2E(t *testing.T) {
 	RegisterFailHandler(Fail)
 
-	RunSpecsWithDefaultAndCustomReporters(t,
-		"Operand Deployment Lifecycle Manager TestSuite",
-		[]Reporter{printer.NewlineReporter{}})
+	RunSpecs(t,
+		"Operand Deployment Lifecycle Manager TestSuite")
 }
 
 var _ = BeforeSuite(func(done Done) {

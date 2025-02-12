@@ -57,6 +57,8 @@ spec:
             cpu: 200m
             memory: 200Mi
         securityContext:
+          seccompProfile:
+            type: RuntimeDefault
           allowPrivilegeEscalation: false
           capabilities:
             drop:

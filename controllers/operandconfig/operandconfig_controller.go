@@ -27,6 +27,7 @@ import (
 	"github.com/mohae/deepcopy"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -35,22 +36,25 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
-	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
-	deploy "github.com/IBM/operand-deployment-lifecycle-manager/controllers/operator"
-	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/util"
+	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/v4/api/v1alpha1"
+	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/constant"
+	deploy "github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operator"
+	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/util"
 )
 
 // Reconciler reconciles a OperandConfig object
 type Reconciler struct {
 	*deploy.ODLMOperator
 }
+
+//+kubebuilder:rbac:groups=operator.ibm.com,namespace="placeholder",resources=operandconfigs;operandconfigs/status;operandconfigs/finalizers,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile reads that state of the cluster for a OperandConfig object and makes changes based on the state read
 // and what is in the OperandConfig.Spec
@@ -128,9 +132,9 @@ func (r *Reconciler) updateStatus(ctx context.Context, instance *operatorv1alpha
 
 		// Looking for the CSV
 		namespace := r.GetOperatorNamespace(op.InstallMode, op.Namespace)
-		sub, err := r.GetSubscription(ctx, op.Name, namespace, op.PackageName)
+		sub, err := r.GetSubscription(ctx, op.Name, namespace, registryInstance.Namespace, op.PackageName)
 
-		if apierrors.IsNotFound(err) {
+		if sub == nil && err == nil {
 			klog.V(3).Infof("There is no Subscription %s or %s in the namespace %s", op.Name, op.PackageName, namespace)
 			continue
 		}
@@ -331,7 +335,7 @@ func (r *Reconciler) deleteK8sReousce(ctx context.Context, k8sAPIVersion, k8sKin
 	} else {
 		if r.CheckLabel(k8sUnstruct, map[string]string{constant.OpreqLabel: "true"}) {
 			klog.V(3).Infof("Deleting k8s resource -- Kind: %s, NamespacedName: %s/%s", k8sKind, k8sNamespace, k8sName)
-			k8sDeleteError := r.Delete(ctx, &k8sUnstruct)
+			k8sDeleteError := r.Delete(ctx, &k8sUnstruct, client.PropagationPolicy(metav1.DeletePropagationBackground))
 			if k8sDeleteError != nil && !apierrors.IsNotFound(k8sDeleteError) {
 				return errors.Wrapf(k8sDeleteError, "failed to delete k8s resource -- Kind: %s, NamespacedName: %s/%s", k8sKind, k8sNamespace, k8sName)
 			}
@@ -397,7 +401,11 @@ func (r *Reconciler) getRequestToConfigMapper(ctx context.Context) handler.MapFu
 // SetupWithManager adds OperandConfig controller to the manager.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	ctx := context.Background()
+	options := controller.Options{
+		MaxConcurrentReconciles: r.MaxConcurrentReconciles, // Set the desired value for max concurrent reconciles.
+	}
 	return ctrl.NewControllerManagedBy(mgr).
+		WithOptions(options).
 		For(&operatorv1alpha1.OperandConfig{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Watches(&source.Kind{Type: &operatorv1alpha1.OperandRequest{}}, handler.EnqueueRequestsFromMapFunc(r.getRequestToConfigMapper(ctx)), builder.WithPredicates(predicate.Funcs{
 			CreateFunc: func(e event.CreateEvent) bool {

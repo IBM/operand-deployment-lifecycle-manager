@@ -10,11 +10,20 @@ metadata:
     createdAt: "2020-11-12T17:05:48Z"
     description: The Operand Deployment Lifecycle Manager provides a Kubernetes CRD-based
       API to manage the lifecycle of operands.
-    olm.skipRange: '>=1.2.0 <4.0.0'
+    nss.operator.ibm.com/managed-operators: ibm-odlm
+    olm.skipRange: '>=1.2.0 <4.4.0'
+    operators.openshift.io/infrastructure-features: '["disconnected"]'
     operators.operatorframework.io/builder: operator-sdk-v1.2.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v2
     repository: https://github.com/IBM/operand-deployment-lifecycle-manager
     support: IBM
+    features.operators.openshift.io/disconnected: "true"
+    features.operators.openshift.io/fips-compliant: "true"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
   labels:
     operatorframework.io/arch.amd64: supported
     operatorframework.io/arch.ppc64le: supported
@@ -26,7 +35,9 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-    - description: OperandBindInfo is the Schema for the operandbindinfoes API. Documentation For additional details regarding install parameters check https://ibm.biz/icpfs39install. License By installing this product you accept the license terms https://ibm.biz/icpfs39license
+    - description: OperandBindInfo is the Schema for the operandbindinfoes API. Documentation
+        For additional details regarding install parameters check https://ibm.biz/icpfs39install.
+        License By installing this product you accept the license terms https://ibm.biz/icpfs39license
       displayName: OperandBindInfo
       kind: OperandBindInfo
       name: operandbindinfos.operator.ibm.com
@@ -37,7 +48,9 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.phase
       version: v1alpha1
-    - description: OperandConfig is the Schema for the operandconfigs API. Documentation For additional details regarding install parameters check https://ibm.biz/icpfs39install. License By installing this product you accept the license terms https://ibm.biz/icpfs39license
+    - description: OperandConfig is the Schema for the operandconfigs API. Documentation
+        For additional details regarding install parameters check https://ibm.biz/icpfs39install.
+        License By installing this product you accept the license terms https://ibm.biz/icpfs39license
       displayName: OperandConfig
       kind: OperandConfig
       name: operandconfigs.operator.ibm.com
@@ -52,7 +65,9 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.phase
       version: v1alpha1
-    - description: OperandRegistry is the Schema for the operandregistries API. Documentation For additional details regarding install parameters check https://ibm.biz/icpfs39install. License By installing this product you accept the license terms https://ibm.biz/icpfs39license
+    - description: OperandRegistry is the Schema for the operandregistries API. Documentation
+        For additional details regarding install parameters check https://ibm.biz/icpfs39install.
+        License By installing this product you accept the license terms https://ibm.biz/icpfs39license
       displayName: OperandRegistry
       kind: OperandRegistry
       name: operandregistries.operator.ibm.com
@@ -72,7 +87,9 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.phase
       version: v1alpha1
-    - description: OperandRequest is the Schema for the operandrequests API. Documentation For additional details regarding install parameters check https://ibm.biz/icpfs39install. License By installing this product you accept the license terms https://ibm.biz/icpfs39license
+    - description: OperandRequest is the Schema for the operandrequests API. Documentation
+        For additional details regarding install parameters check https://ibm.biz/icpfs39install.
+        License By installing this product you accept the license terms https://ibm.biz/icpfs39license
       displayName: OperandRequest
       kind: OperandRequest
       name: operandrequests.operator.ibm.com
@@ -91,6 +108,13 @@ spec:
         path: phase
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.phase
+      version: v1alpha1
+    - description: OperatorConfig is the Schema for the operatorconfigs API. Documentation
+        For additional details regarding install parameters check https://ibm.biz/icpfs39install.
+        License By installing this product you accept the license terms https://ibm.biz/icpfs39license
+      displayName: OperatorConfig
+      kind: OperatorConfig
+      name: operatorconfigs.operator.ibm.com
       version: v1alpha1
   description: |-
     # Introduction
@@ -465,6 +489,6 @@ spec:
   provider:
     name: IBM
   relatedImages:
-  - image: icr.io/cpopen/odlm
+  - image: icr.io/cpopen/odlm:4.4.0
     name: ODLM_IMAGE
   version: 0.0.0

@@ -28,8 +28,20 @@ const (
 	//NotUninstallLabel is the label used to prevent subscription/CR from uninstall
 	NotUninstallLabel string = "operator.ibm.com/opreq-do-not-uninstall"
 
-	//OpreqLabel is the label used to label the subscription/CR managed by ODLM
+	//OpreqLabel is the label used to label the Subscription/CR/Configmap managed by ODLM
 	OpreqLabel string = "operator.ibm.com/opreq-control"
+
+	//OpreqTrackerLabel is the label used to label the OperandRequest Configmap managed by ODLM
+	OpreqTrackerLabel string = "operator.ibm.com/operand-request-tracker"
+
+	//InternalOpreqLabel is the label used label the OperandRequest internally created by ODLM
+	OperandOnlyLabel string = "operator.ibm.com/operand-only"
+
+	//ODLMReferenceAnnotation is the annotation used to annotate the resources used for ODLM operand value reference
+	ODLMReferenceAnnotation string = "operator.ibm.com/referenced-by-odlm-resource"
+
+	//ODLMWatchedLabel is the label used to label the resources watched by ODLM for value reference
+	ODLMWatchedLabel string = "operator.ibm.com/watched-by-odlm"
 
 	//OpbiNsLabel is the label used to add OperandBindInfo namespace to the secrets/configmaps watched by ODLM
 	OpbiNsLabel string = "operator.ibm.com/watched-by-opbi-with-namespace"
@@ -54,6 +66,12 @@ const (
 
 	//HashedData is the key for checking the checksum of data section
 	HashedData string = "hashedData"
+
+	//HashedData is the key for k8s Resource
+	K8sHashedData string = "operator.ibm.com/operand-depoyment-lifecycle-manager.hashedData"
+
+	//RouteHash is the key for hash value of route
+	RouteHash string = "operator.ibm.com/odlm.route.hashedData"
 
 	//DefaultRequestTimeout is the default timeout for kube request
 	DefaultRequestTimeout = 5 * time.Second
@@ -81,4 +99,10 @@ const (
 
 	//DefaultCSVWaitPeriod is the default period for wait CSV ready
 	DefaultCSVWaitPeriod = 1 * time.Minute
+
+	//DefaultCRRetryNumber is the default maximum number of retry for reconciling a custom resource
+	DefaultCRRetryNumber = 3
+
+	//StatusMonitoredServices is the annotation key for monitored services
+	StatusMonitoredServices = "status-monitored-services"
 )

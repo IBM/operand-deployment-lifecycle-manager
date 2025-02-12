@@ -24,8 +24,8 @@ import (
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"k8s.io/apimachinery/pkg/types"
 
-	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
-	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/testutil"
+	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/v4/api/v1alpha1"
+	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/testutil"
 )
 
 // +kubebuilder:docs-gen:collapse=Imports
@@ -105,52 +105,52 @@ var _ = Describe("OperandRegistry controller", func() {
 			Expect(k8sClient.Create(ctx, request)).Should(Succeed())
 
 			By("Setting status of the Subscriptions")
-			etcdSub := testutil.Subscription("etcd", operatorNamespaceName)
+			jaegerSub := testutil.Subscription("jaeger", operatorNamespaceName)
 			Eventually(func() error {
-				k8sClient.Get(ctx, types.NamespacedName{Name: "etcd", Namespace: operatorNamespaceName}, etcdSub)
-				etcdSub.Status = testutil.SubscriptionStatus("etcd", operatorNamespaceName, "0.0.1")
-				return k8sClient.Status().Update(ctx, etcdSub)
+				k8sClient.Get(ctx, types.NamespacedName{Name: "jaeger", Namespace: operatorNamespaceName}, jaegerSub)
+				jaegerSub.Status = testutil.SubscriptionStatus("jaeger", operatorNamespaceName, "0.0.1")
+				return k8sClient.Status().Update(ctx, jaegerSub)
 			}, timeout, interval).Should(Succeed())
 
-			jenkinsSub := testutil.Subscription("jenkins", operatorNamespaceName)
+			mongodbSub := testutil.Subscription("mongodb-atlas-kubernetes", operatorNamespaceName)
 			Eventually(func() error {
-				k8sClient.Get(ctx, types.NamespacedName{Name: "jenkins", Namespace: operatorNamespaceName}, jenkinsSub)
-				jenkinsSub.Status = testutil.SubscriptionStatus("jenkins", operatorNamespaceName, "0.0.1")
-				return k8sClient.Status().Update(ctx, jenkinsSub)
+				k8sClient.Get(ctx, types.NamespacedName{Name: "mongodb-atlas-kubernetes", Namespace: operatorNamespaceName}, mongodbSub)
+				mongodbSub.Status = testutil.SubscriptionStatus("mongodb-atlas-kubernetes", operatorNamespaceName, "0.0.1")
+				return k8sClient.Status().Update(ctx, mongodbSub)
 			}, timeout, interval).Should(Succeed())
 
 			By("Creating and Setting status of the ClusterServiceVersions")
-			etcdCSV := testutil.ClusterServiceVersion("etcd-csv.v0.0.1", operatorNamespaceName, testutil.EtcdExample)
-			Expect(k8sClient.Create(ctx, etcdCSV)).Should(Succeed())
+			jaegerCSV := testutil.ClusterServiceVersion("jaeger-csv.v0.0.1", "jaeger", operatorNamespaceName, testutil.JaegerExample)
+			Expect(k8sClient.Create(ctx, jaegerCSV)).Should(Succeed())
 			Eventually(func() error {
-				k8sClient.Get(ctx, types.NamespacedName{Name: "etcd-csv.v0.0.1", Namespace: operatorNamespaceName}, etcdCSV)
-				etcdCSV.Status = testutil.ClusterServiceVersionStatus()
-				return k8sClient.Status().Update(ctx, etcdCSV)
+				k8sClient.Get(ctx, types.NamespacedName{Name: "jaeger-csv.v0.0.1", Namespace: operatorNamespaceName}, jaegerCSV)
+				jaegerCSV.Status = testutil.ClusterServiceVersionStatus()
+				return k8sClient.Status().Update(ctx, jaegerCSV)
 			}, timeout, interval).Should(Succeed())
 
-			jenkinsCSV := testutil.ClusterServiceVersion("jenkins-csv.v0.0.1", operatorNamespaceName, testutil.JenkinsExample)
-			Expect(k8sClient.Create(ctx, jenkinsCSV)).Should(Succeed())
+			mongodbCSV := testutil.ClusterServiceVersion("mongodb-atlas-kubernetes-csv.v0.0.1", "mongodb-atlas-kubernetes", operatorNamespaceName, testutil.MongodbExample)
+			Expect(k8sClient.Create(ctx, mongodbCSV)).Should(Succeed())
 			Eventually(func() error {
-				k8sClient.Get(ctx, types.NamespacedName{Name: "jenkins-csv.v0.0.1", Namespace: operatorNamespaceName}, jenkinsCSV)
-				jenkinsCSV.Status = testutil.ClusterServiceVersionStatus()
-				return k8sClient.Status().Update(ctx, jenkinsCSV)
+				k8sClient.Get(ctx, types.NamespacedName{Name: "mongodb-atlas-kubernetes-csv.v0.0.1", Namespace: operatorNamespaceName}, mongodbCSV)
+				mongodbCSV.Status = testutil.ClusterServiceVersionStatus()
+				return k8sClient.Status().Update(ctx, mongodbCSV)
 			}, timeout, interval).Should(Succeed())
 
 			By("Creating and Setting status of the InstallPlan")
-			etcdIP := testutil.InstallPlan("etcd-install-plan", operatorNamespaceName)
-			Expect(k8sClient.Create(ctx, etcdIP)).Should(Succeed())
+			jaegerIP := testutil.InstallPlan("jaeger-install-plan", operatorNamespaceName)
+			Expect(k8sClient.Create(ctx, jaegerIP)).Should(Succeed())
 			Eventually(func() error {
-				k8sClient.Get(ctx, types.NamespacedName{Name: "etcd-install-plan", Namespace: operatorNamespaceName}, etcdIP)
-				etcdIP.Status = testutil.InstallPlanStatus()
-				return k8sClient.Status().Update(ctx, etcdIP)
+				k8sClient.Get(ctx, types.NamespacedName{Name: "jaeger-install-plan", Namespace: operatorNamespaceName}, jaegerIP)
+				jaegerIP.Status = testutil.InstallPlanStatus()
+				return k8sClient.Status().Update(ctx, jaegerIP)
 			}, timeout, interval).Should(Succeed())
 
-			jenkinsIP := testutil.InstallPlan("jenkins-install-plan", operatorNamespaceName)
-			Expect(k8sClient.Create(ctx, jenkinsIP)).Should(Succeed())
+			mongodbIP := testutil.InstallPlan("mongodb-atlas-kubernetes-install-plan", operatorNamespaceName)
+			Expect(k8sClient.Create(ctx, mongodbIP)).Should(Succeed())
 			Eventually(func() error {
-				k8sClient.Get(ctx, types.NamespacedName{Name: "jenkins-install-plan", Namespace: operatorNamespaceName}, jenkinsIP)
-				jenkinsIP.Status = testutil.InstallPlanStatus()
-				return k8sClient.Status().Update(ctx, jenkinsIP)
+				k8sClient.Get(ctx, types.NamespacedName{Name: "mongodb-atlas-kubernetes-install-plan", Namespace: operatorNamespaceName}, mongodbIP)
+				mongodbIP.Status = testutil.InstallPlanStatus()
+				return k8sClient.Status().Update(ctx, mongodbIP)
 			}, timeout, interval).Should(Succeed())
 
 			By("Checking status of the OperandRegistry")
@@ -161,12 +161,12 @@ var _ = Describe("OperandRegistry controller", func() {
 			}, timeout, interval).Should(Equal(operatorv1alpha1.RegistryRunning))
 
 			By("Cleaning up olm resources")
-			Expect(k8sClient.Delete(ctx, etcdSub)).Should(Succeed())
-			Expect(k8sClient.Delete(ctx, jenkinsSub)).Should(Succeed())
-			Expect(k8sClient.Delete(ctx, etcdCSV)).Should(Succeed())
-			Expect(k8sClient.Delete(ctx, jenkinsCSV)).Should(Succeed())
-			Expect(k8sClient.Delete(ctx, etcdIP)).Should(Succeed())
-			Expect(k8sClient.Delete(ctx, jenkinsIP)).Should(Succeed())
+			Expect(k8sClient.Delete(ctx, jaegerSub)).Should(Succeed())
+			Expect(k8sClient.Delete(ctx, mongodbSub)).Should(Succeed())
+			Expect(k8sClient.Delete(ctx, jaegerCSV)).Should(Succeed())
+			Expect(k8sClient.Delete(ctx, mongodbCSV)).Should(Succeed())
+			Expect(k8sClient.Delete(ctx, jaegerIP)).Should(Succeed())
+			Expect(k8sClient.Delete(ctx, mongodbIP)).Should(Succeed())
 		})
 	})
 })

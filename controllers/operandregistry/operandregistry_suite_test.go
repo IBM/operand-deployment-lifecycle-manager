@@ -22,26 +22,26 @@ import (
 	"testing"
 	"time"
 
-	etcdv1beta2 "github.com/coreos/etcd-operator/pkg/apis/etcd/v1beta2"
+	jaegerv1 "github.com/jaegertracing/jaeger-operator/apis/v1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	olmv1 "github.com/operator-framework/api/pkg/operators/v1"
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
+	operatorsv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	nssv1 "github.com/IBM/ibm-namespace-scope-operator/api/v1"
-	apiv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
-	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/operandconfig"
-	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/operandrequest"
-	deploy "github.com/IBM/operand-deployment-lifecycle-manager/controllers/operator"
+	apiv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/v4/api/v1alpha1"
+	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operandconfig"
+	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operandrequest"
+	deploy "github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operator"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -63,9 +63,8 @@ var (
 func TestOperandRegistry(t *testing.T) {
 	RegisterFailHandler(Fail)
 
-	RunSpecsWithDefaultAndCustomReporters(t,
-		"OperandRegistry Controller Suite",
-		[]Reporter{printer.NewlineReporter{}})
+	RunSpecs(t,
+		"OperandRegistry Controller Suite")
 }
 
 var _ = BeforeSuite(func(done Done) {
@@ -92,7 +91,9 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).NotTo(HaveOccurred())
 	err = olmv1.AddToScheme(clientgoscheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
-	err = etcdv1beta2.AddToScheme(clientgoscheme.Scheme)
+	err = jaegerv1.AddToScheme(clientgoscheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+	err = operatorsv1.AddToScheme(clientgoscheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	k8sClient, err = client.New(cfg, client.Options{Scheme: clientgoscheme.Scheme})

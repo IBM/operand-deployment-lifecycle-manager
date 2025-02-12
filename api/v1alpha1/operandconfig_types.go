@@ -31,12 +31,17 @@ type OperandConfigSpec struct {
 	Services []ConfigService `json:"services,omitempty"`
 }
 
+// +kubebuilder:pruning:PreserveUnknownFields
+type ExtensionWithMarker struct {
+	runtime.RawExtension `json:",inline"`
+}
+
 // ConfigService defines the configuration of the service.
 type ConfigService struct {
 	// Name is the subscription name.
 	Name string `json:"name"`
 	// Spec is the configuration map of custom resource.
-	Spec map[string]runtime.RawExtension `json:"spec,omitempty"`
+	Spec map[string]ExtensionWithMarker `json:"spec,omitempty"`
 	// State is a flag to enable or disable service.
 	State string `json:"state,omitempty"`
 	// Resources is used to specify the kubernetes resources that are needed for the service.
@@ -44,6 +49,7 @@ type ConfigService struct {
 	Resources []ConfigResource `json:"resources,omitempty"`
 }
 
+// +kubebuilder:pruning:PreserveUnknownFields
 // ConfigResource defines the resource needed for the service
 type ConfigResource struct {
 	// Name is the resource name.
@@ -70,6 +76,83 @@ type ConfigResource struct {
 	// +nullable
 	// +optional
 	Data *runtime.RawExtension `json:"data,omitempty"`
+	// OwnerReferences is the list of owner references.
+	// +optional
+	OwnerReferences []OwnerReference `json:"ownerReferences,omitempty"`
+	// OptionalFields is the list of fields that could be updated additionally.
+	// +optional
+	OptionalFields []OptionalField `json:"optionalFields,omitempty"`
+}
+
+// +kubebuilder:pruning:PreserveUnknownFields
+// OptionalField defines the optional field for the resource.
+type OptionalField struct {
+	// Path is the json path of the field.
+	Path string `json:"path"`
+	// Operation is the operation of the field.
+	Operation Operation `json:"operation"`
+	// MatchExpressions is the match expression of the field.
+	// +optional
+	MatchExpressions []MatchExpression `json:"matchExpressions,omitempty"`
+	// ValueFrom is the field value from the object
+	// +optional
+	ValueFrom *ValueFrom `json:"valueFrom,omitempty"`
+}
+
+// +kubebuilder:pruning:PreserveUnknownFields
+// MatchExpression defines the match expression of the field.
+type MatchExpression struct {
+	// Key is the key of the field.
+	Key string `json:"key"`
+	// Operator is the operator of the field.
+	Operator ExpressionOperator `json:"operator"`
+	// Values is the values of the field.
+	// +optional
+	Values []string `json:"values,omitempty"`
+	// ObjectRef is the reference of the object.
+	// +optional
+	ObjectRef *ObjectRef `json:"objectRef,omitempty"`
+}
+
+// ObjectRef defines the reference of the object.
+type ObjectRef struct {
+	// APIVersion is the version of the object.
+	APIVersion string `json:"apiVersion"`
+	// Kind is the kind of the object.
+	Kind string `json:"kind"`
+	// Name is the name of the object.
+	Name string `json:"name"`
+	// Namespace is the namespace of the object.
+	// +optional
+	Namespace string `json:"namespace"`
+}
+
+// ValueFrom defines the field value from the object.
+type ValueFrom struct {
+	// Path is the json path of the field.
+	Path string `json:"path"`
+	// ObjectRef is the reference of the object.
+	// +optional
+	ObjectRef *ObjectRef `json:"objectRef,omitempty"`
+}
+
+type OwnerReference struct {
+	// API version of the referent.
+	APIVersion string `json:"apiVersion"`
+	// Kind of the referent.
+	Kind string `json:"kind"`
+	// Name of the referent.
+	Name string `json:"name"`
+	// If true, this reference points to the managing controller.
+	// Default is false.
+	// +optional
+	Controller *bool `json:"controller,omitempty"`
+	// If true, AND if the owner has the "foregroundDeletion" finalizer, then
+	// the owner cannot be deleted from the key-value store until this
+	// reference is removed.
+	// Defaults to false.
+	// +optional
+	BlockOwnerDeletion *bool `json:"blockOwnerDeletion,omitempty"`
 }
 
 // OperandConfigStatus defines the observed state of OperandConfig.
@@ -89,7 +172,7 @@ type CrStatus struct {
 	CrStatus map[string]ServicePhase `json:"customResourceStatus,omitempty"`
 }
 
-// OperandConfig is the Schema for the operandconfigs API.
+// OperandConfig is the Schema for the operandconfigs API. Documentation For additional details regarding install parameters check https://ibm.biz/icpfs39install. License By installing this product you accept the license terms https://ibm.biz/icpfs39license
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=operandconfigs,shortName=opcon,scope=Namespaced
@@ -102,7 +185,8 @@ type OperandConfig struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// +kubebuilder:pruning:PreserveUnknownFields
-	Spec   OperandConfigSpec   `json:"spec,omitempty"`
+	Spec OperandConfigSpec `json:"spec,omitempty"`
+	// +kubebuilder:pruning:PreserveUnknownFields
 	Status OperandConfigStatus `json:"status,omitempty"`
 }
 
@@ -130,6 +214,26 @@ const (
 	ServiceCreating ServicePhase = "Creating"
 	ServiceNotFound ServicePhase = "Not Found"
 	ServiceNone     ServicePhase = ""
+)
+
+// Operation defines the operation of the field.
+type Operation string
+
+// Operation type.
+const (
+	OperationAdd    Operation = "add"
+	OperationRemove Operation = "remove"
+)
+
+// Operator defines the operator type.
+type ExpressionOperator string
+
+// Operator type.
+const (
+	OperatorIn           ExpressionOperator = "In"
+	OperatorNotIn        ExpressionOperator = "NotIn"
+	OperatorExists       ExpressionOperator = "Exists"
+	OperatorDoesNotExist ExpressionOperator = "DoesNotExist"
 )
 
 // GetService obtains the service definition with the operand name.

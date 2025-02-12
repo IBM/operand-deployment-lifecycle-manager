@@ -21,22 +21,23 @@
 PROJECT ?= oceanic-guard-191815
 ZONE    ?= us-east5-c
 CLUSTER ?= bedrock-prow
-NAMESPACESCOPE_VERSION = 1.1.1
+NAMESPACESCOPE_VERSION = 1.17.3
 OLM_API_VERSION = 0.3.8
 
 activate-serviceaccount:
 ifdef GOOGLE_APPLICATION_CREDENTIALS
-	gcloud auth activate-service-account --key-file="$(GOOGLE_APPLICATION_CREDENTIALS)"
+	gcloud auth activate-service-account --key-file="$(GOOGLE_APPLICATION_CREDENTIALS)" || true
 endif
 
 get-cluster-credentials: activate-serviceaccount
-	gcloud container clusters get-credentials "$(CLUSTER)" --project="$(PROJECT)" --zone="$(ZONE)"
+	mkdir -p ~/.kube; cp -v /etc/kubeconfig/config ~/.kube; kubectl config use-context default; kubectl get nodes; echo going forward retiring google cloud
+	
+ifdef GOOGLE_APPLICATION_CREDENTIALS
+	gcloud container clusters get-credentials "$(CLUSTER)" --project="$(PROJECT)" --zone="$(ZONE)" || true
+endif
 
 config-docker: get-cluster-credentials
 	@common/scripts/artifactory_config_docker.sh
-
-config-docker-quay: get-cluster-credentials
-	@common/scripts/quay_config_docker.sh
 
 # find or download operator-sdk
 # download operator-sdk if necessary
@@ -67,37 +68,36 @@ fetch-test-crds:
 	rm -rf api-${OLM_API_VERSION} v${OLM_API_VERSION}.tar.gz ;\
 	}
 	@{ \
-	curl -L -O "https://github.com/horis233/jenkins-operator/archive/v0.3.3.tar.gz" ;\
-	tar -zxf v0.3.3.tar.gz jenkins-operator-0.3.3/deploy/crds && mv jenkins-operator-0.3.3/deploy/crds/jenkins_v1alpha2_jenkins_crd.yaml ${ENVCRDS_DIR}/jenkins_v1alpha2_jenkins_crd.yaml ;\
-	rm -rf jenkins-operator-0.3.3 v0.3.3.tar.gz ;\
+	curl -L -O "https://github.com/mongodb/mongodb-atlas-kubernetes/archive/refs/tags/v1.7.3.tar.gz" ;\
+	tar -zxf v1.7.3.tar.gz mongodb-atlas-kubernetes-1.7.3/deploy/crds && mv mongodb-atlas-kubernetes-1.7.3/deploy/crds/* ${ENVCRDS_DIR} ;\
+	rm -rf mongodb-atlas-kubernetes-1.7.3 v1.7.3.tar.gz ;\
 	}
 	@{ \
-	curl -L -O "https://github.com/horis233/etcd-operator/archive/v0.9.4-crd.tar.gz" ;\
-	tar -zxf v0.9.4-crd.tar.gz etcd-operator-0.9.4-crd/deploy/crds && mv etcd-operator-0.9.4-crd/deploy/crds/etcdclusters.etcd.database.coreos.com.crd.yaml ${ENVCRDS_DIR}/etcdclusters.etcd.database.coreos.com.crd.yaml ;\
-	rm -rf etcd-operator-0.9.4-crd v0.9.4-crd.tar.gz ;\
+	curl -L -O "https://github.com/jaegertracing/jaeger-operator/archive/refs/tags/v1.36.0.tar.gz" ;\
+	tar -zxf v1.36.0.tar.gz jaeger-operator-1.36.0/bundle/manifests && mv jaeger-operator-1.36.0/bundle/manifests/jaegertracing.io_jaegers.yaml ${ENVCRDS_DIR}/jaegertracing.io_jaegers.yaml ;\
+	rm -rf jaeger-operator-1.36.0 v1.36.0.tar.gz ;\
 	}
 	@{ \
 	curl -L -O "https://github.com/IBM/ibm-namespace-scope-operator/archive/v${NAMESPACESCOPE_VERSION}.tar.gz" ;\
 	tar -zxf v${NAMESPACESCOPE_VERSION}.tar.gz ibm-namespace-scope-operator-${NAMESPACESCOPE_VERSION}/bundle/manifests && mv ibm-namespace-scope-operator-${NAMESPACESCOPE_VERSION}/bundle/manifests/operator.ibm.com_namespacescopes.yaml ${ENVCRDS_DIR}/operator.ibm.com_namespacescopes.yaml ;\
 	rm -rf ibm-namespace-scope-operator-${NAMESPACESCOPE_VERSION} v${NAMESPACESCOPE_VERSION}.tar.gz ;\
 	}
+	@{ \
+	cp ./controllers/testutil/packagemanifests_crd.yaml ${ENVCRDS_DIR}/packagemanifests_crd.yaml ;\
+	}
 
 
 CONTROLLER_GEN ?= $(shell pwd)/common/bin/controller-gen
 controller-gen: ## Download controller-gen locally if necessary.
-	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.6.1)
-
-KUSTOMIZE ?= $(shell pwd)/common/bin/kustomize
-kustomize: ## Download kustomize locally if necessary.
-	$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v4@v4.5.4)
+	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.14.0)
 
 KIND ?= $(shell pwd)/common/bin/kind
 kind: ## Download kind locally if necessary.
-	$(call go-get-tool,$(KIND),sigs.k8s.io/kind@v0.10.0)
+	$(call go-get-tool,$(KIND),sigs.k8s.io/kind@v0.17.0)
 
 ENVTEST = $(shell pwd)/common/bin/setup-envtest
 setup-envtest: ## Download envtest-setup locally if necessary.
-	$(call go-get-tool,$(ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest@latest)
+	$(call go-get-tool,$(ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest@7b4325d5a38dff0c7eb9a939d079950eafcc4f7e)
 
 FINDFILES=find . \( -path ./.git -o -path ./.github -o -path ./testcrds \) -prune -o -type f
 XARGS = xargs -0 ${XARGS_FLAGS}

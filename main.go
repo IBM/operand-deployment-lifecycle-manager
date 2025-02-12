@@ -21,6 +21,7 @@ import (
 	"os"
 	"strings"
 
+	ocproute "github.com/openshift/api/route/v1"
 	olmv1 "github.com/operator-framework/api/pkg/operators/v1"
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	operatorsv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
@@ -38,17 +39,19 @@ import (
 	cache "github.com/IBM/controller-filtered-cache/filteredcache"
 	nssv1 "github.com/IBM/ibm-namespace-scope-operator/api/v1"
 
-	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
-	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
-	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/k8sutil"
-	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/namespacescope"
-	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/operandbindinfo"
-	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/operandconfig"
-	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/operandregistry"
-	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/operandrequest"
-	deploy "github.com/IBM/operand-deployment-lifecycle-manager/controllers/operator"
-	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/operatorchecker"
-	"github.com/IBM/operand-deployment-lifecycle-manager/controllers/util"
+	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/v4/api/v1alpha1"
+	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/constant"
+	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/k8sutil"
+	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/namespacescope"
+	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operandbindinfo"
+	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operandconfig"
+	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operandregistry"
+	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operandrequest"
+	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operandrequestnoolm"
+	deploy "github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operator"
+	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operatorchecker"
+	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operatorconfig"
+	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/util"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -64,6 +67,7 @@ func init() {
 
 	utilruntime.Must(operatorv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(operatorsv1.AddToScheme(scheme))
+	utilruntime.Must(ocproute.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -78,16 +82,16 @@ func main() {
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	var stepSize = flag.Int("batch-chunk-size", 1, "batch-chunk-size is used to control at most how many subscriptions will be created concurrently")
+	var stepSize = flag.Int("batch-chunk-size", 3, "batch-chunk-size is used to control at most how many subscriptions will be created concurrently")
 
 	flag.Parse()
 
 	gvkLabelMap := map[schema.GroupVersionKind]cache.Selector{
 		corev1.SchemeGroupVersion.WithKind("Secret"): {
-			LabelSelector: constant.OpbiTypeLabel,
+			LabelSelector: constant.ODLMWatchedLabel,
 		},
 		corev1.SchemeGroupVersion.WithKind("ConfigMap"): {
-			LabelSelector: constant.OpbiTypeLabel,
+			LabelSelector: constant.ODLMWatchedLabel,
 		},
 		appsv1.SchemeGroupVersion.WithKind("Deployment"): {
 			LabelSelector: constant.BindInfoRefreshLabel,
@@ -120,12 +124,23 @@ func main() {
 		klog.Errorf("unable to start manager: %v", err)
 		os.Exit(1)
 	}
-	if err = (&operandrequest.Reconciler{
-		ODLMOperator: deploy.NewODLMOperator(mgr, "OperandRequest"),
-		StepSize:     *stepSize,
-	}).SetupWithManager(mgr); err != nil {
-		klog.Errorf("unable to create controller OperandRequest: %v", err)
-		os.Exit(1)
+	noolm := util.GetNoOLM()
+	if noolm == "true" {
+		if err = (&operandrequestnoolm.Reconciler{
+			ODLMOperator: deploy.NewODLMOperator(mgr, "OperandRequest"),
+			StepSize:     *stepSize,
+		}).SetupWithManager(mgr); err != nil {
+			klog.Errorf("unable to create controller OperandRequestNoOLM: %v", err)
+			os.Exit(1)
+		}
+	} else {
+		if err = (&operandrequest.Reconciler{
+			ODLMOperator: deploy.NewODLMOperator(mgr, "OperandRequest"),
+			StepSize:     *stepSize,
+		}).SetupWithManager(mgr); err != nil {
+			klog.Errorf("unable to create controller OperandRequest: %v", err)
+			os.Exit(1)
+		}
 	}
 	if err = (&operandconfig.Reconciler{
 		ODLMOperator: deploy.NewODLMOperator(mgr, "OperandConfig"),
@@ -163,6 +178,12 @@ func main() {
 				os.Exit(1)
 			}
 		}
+	}
+	if err = (&operatorconfig.Reconciler{
+		ODLMOperator: deploy.NewODLMOperator(mgr, "OperatorConfig"),
+	}).SetupWithManager(mgr); err != nil {
+		klog.Error(err, "unable to create controller", "controller", "OperatorConfig")
+		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder
 

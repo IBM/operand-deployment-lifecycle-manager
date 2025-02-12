@@ -2,7 +2,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.6.1
+    controller-gen.kubebuilder.io/version: v0.14.0
   creationTimestamp: null
   labels:
     app.kubernetes.io/instance: operand-deployment-lifecycle-manager
@@ -35,16 +35,24 @@ spec:
     schema:
       openAPIV3Schema:
         description: OperandBindInfo is the Schema for the operandbindinfoes API.
+          Documentation For additional details regarding install parameters check
+          https://ibm.biz/icpfs39install. License By installing this product you accept
+          the license terms https://ibm.biz/icpfs39license
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -53,17 +61,56 @@ spec:
             properties:
               bindings:
                 additionalProperties:
-                  description: SecretConfigmap is a pair of Secret and/or Configmap.
+                  description: |-
+                    Bindable is a Kubernetes resources to be shared from one namespace to another.
+                    List of supported resources are Secrets, Configmaps, Services, and Routes.
+                    Secrets and Configmaps will be copied such that a new Secret/Configmap with
+                    exactly the same data will be created in the target namespace.
+                    Services and Routes data will be copied into a configmap in the target
+                    namespace.
                   properties:
                     configmap:
                       description: The configmap identifies an existing configmap
                         object. if it exists, the ODLM will share to the namespace
                         of the OperandRequest.
                       type: string
+                    route:
+                      description: |-
+                        Route data will be shared by copying it into a configmap which is then
+                        created in the target namespace
+                      properties:
+                        data:
+                          additionalProperties:
+                            type: string
+                          description: |-
+                            Data is a key-value pair where the value is a YAML path to a value in the
+                            OpenShift Route, e.g. .spec.host or .spec.tls.termination
+                          type: object
+                        name:
+                          description: Name is the name of the OpenShift Route resource
+                          type: string
+                      type: object
                     secret:
                       description: The secret identifies an existing secret. if it
                         exists, the ODLM will share to the namespace of the OperandRequest.
                       type: string
+                    service:
+                      description: |-
+                        Service data will be shared by copying it into a configmap which is then
+                        created in the target namespace
+                      properties:
+                        data:
+                          additionalProperties:
+                            type: string
+                          description: |-
+                            Data is a key-value pair where the value is a YAML path to a value in the
+                            Kubernetes Service, e.g. .spec.ports[0]port
+                          type: object
+                        name:
+                          description: Name is the name of the Kubernetes Service
+                            resource
+                          type: string
+                      type: object
                   type: object
                 description: The bindings section is used to specify information about
                   the access/configuration data that is to be shared.
@@ -71,7 +118,8 @@ spec:
               description:
                 type: string
               operand:
-                description: The deployed service identifies itself with its operand.
+                description: |-
+                  The deployed service identifies itself with its operand.
                   This must match the name in the OperandRegistry in the current namespace.
                 type: string
               registry:
@@ -79,9 +127,9 @@ spec:
                   CR from which this operand deployment is being requested.
                 type: string
               registryNamespace:
-                description: Specifies the namespace in which the OperandRegistry
-                  reside. The default is the current namespace in which the request
-                  is defined.
+                description: |-
+                  Specifies the namespace in which the OperandRegistry reside.
+                  The default is the current namespace in which the request is defined.
                 type: string
             required:
             - operand
@@ -100,6 +148,7 @@ spec:
                   type: string
                 type: array
             type: object
+            x-kubernetes-preserve-unknown-fields: true
         type: object
     served: true
     storage: true
@@ -109,5 +158,5 @@ status:
   acceptedNames:
     kind: ""
     plural: ""
-  conditions: []
-  storedVersions: []
+  conditions: null
+  storedVersions: null

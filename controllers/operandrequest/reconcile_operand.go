@@ -22,17 +22,19 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"reflect"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/pkg/errors"
 	authorizationv1 "k8s.io/api/authorization/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -40,10 +42,12 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"
 	"k8s.io/klog"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/api/v1alpha1"
-	constant "github.com/IBM/operand-deployment-lifecycle-manager/controllers/constant"
-	util "github.com/IBM/operand-deployment-lifecycle-manager/controllers/util"
+	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/v4/api/v1alpha1"
+	constant "github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/constant"
+	util "github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/util"
 )
 
 func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *operatorv1alpha1.OperandRequest) *util.MultiErr {
@@ -68,10 +72,21 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 
 		for i, operand := range req.Operands {
 
-			opdRegistry := registryInstance.GetOperator(operand.Name)
-			if opdRegistry == nil {
+			opdRegistry, err := r.GetOperandFromRegistry(ctx, registryInstance, operand.Name)
+			if err != nil {
+				klog.Warningf("Failed to get the Operand %s from the OperandRegistry %s", operand.Name, registryKey.String())
+				merr.Add(errors.Wrapf(err, "failed to get the Operand %s from the OperandRegistry %s", operand.Name, registryKey.String()))
+				continue
+			} else if opdRegistry == nil {
 				klog.Warningf("Cannot find %s in the OperandRegistry instance %s in the namespace %s ", operand.Name, req.Registry, req.RegistryNamespace)
 				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorNotFound, operatorv1alpha1.ServiceNotFound, &r.Mutex)
+				continue
+			}
+
+			// Set no-op operator to Running status
+			if opdRegistry.InstallMode == operatorv1alpha1.InstallModeNoop {
+				requestInstance.SetNoSuitableRegistryCondition(registryKey.String(), opdRegistry.Name+" is in maintenance status", operatorv1alpha1.ResourceTypeOperandRegistry, corev1.ConditionTrue, &r.Mutex)
+				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorRunning, operatorv1alpha1.ServiceRunning, &r.Mutex)
 				continue
 			}
 
@@ -82,70 +97,68 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 			// Looking for the CSV
 			namespace := r.GetOperatorNamespace(opdRegistry.InstallMode, opdRegistry.Namespace)
 
-			sub, err := r.GetSubscription(ctx, operatorName, namespace, opdRegistry.PackageName)
-
+			sub, err := r.GetSubscription(ctx, operatorName, namespace, registryInstance.Namespace, opdRegistry.PackageName)
 			if err != nil {
-				if apierrors.IsNotFound(err) || sub == nil {
-					klog.Warningf("There is no Subscription %s or %s in the namespace %s", operatorName, opdRegistry.PackageName, namespace)
-					continue
-				}
-				merr.Add(errors.Wrapf(err, "failed to get the Subscription %s in the namespace %s", operatorName, namespace))
+				merr.Add(errors.Wrapf(err, "failed to get the Subscription %s in the namespace %s and %s", operatorName, namespace, registryInstance.Namespace))
 				return merr
 			}
 
-			if _, ok := sub.Labels[constant.OpreqLabel]; !ok {
-				// Subscription existing and not managed by OperandRequest controller
-				klog.Warningf("Subscription %s in the namespace %s isn't created by ODLM", sub.Name, sub.Namespace)
-			}
-
-			// For singleton services, identify latest OperandRegistry/Config version has the priority to reconcile
-			if CheckSingletonServices(operatorName) {
-				// v1IsLarger is true if subscription has larger channel version than the version in OperandRegistry
-				// Skip this operator CR creation because it does not have the latest version in OperandRegistry
-				v1IsLarger, convertErr := util.CompareChannelVersion(sub.Spec.Channel, opdRegistry.Channel)
-				if convertErr != nil {
-					merr.Add(errors.Wrapf(err, "failed to compare channel version for the Subscription %s in the namespace %s", operatorName, namespace))
-					return merr
-				}
-				if v1IsLarger {
-					klog.V(2).Infof("Subscription %s in the namespace %s is managed by other OperandRequest with newer version %s", sub.Name, sub.Namespace, sub.Spec.Channel)
-					requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorRunning, "", &r.Mutex)
+			if !opdRegistry.UserManaged {
+				if sub == nil {
+					klog.Warningf("There is no Subscription %s or %s in the namespace %s and %s", operatorName, opdRegistry.PackageName, namespace, registryInstance.Namespace)
 					continue
 				}
-			}
 
-			// It the installplan is not created yet, ODLM will try later
-			if sub.Status.Install == nil || sub.Status.InstallPlanRef.Name == "" {
-				klog.Warningf("The Installplan for Subscription %s is not ready. Will check it again", sub.Name)
-				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorInstalling, "", &r.Mutex)
-				continue
-			}
-
-			// If the installplan is deleted after is completed, ODLM won't block the CR update.
-			ipName := sub.Status.InstallPlanRef.Name
-			ipNamespace := sub.Namespace
-			ip := &olmv1alpha1.InstallPlan{}
-			ipKey := types.NamespacedName{
-				Name:      ipName,
-				Namespace: ipNamespace,
-			}
-			if err := r.Client.Get(ctx, ipKey, ip); err != nil {
-				if !apierrors.IsNotFound(err) {
-					merr.Add(errors.Wrapf(err, "failed to get Installplan"))
+				if _, ok := sub.Labels[constant.OpreqLabel]; !ok {
+					// Subscription existing and not managed by OperandRequest controller
+					klog.Warningf("Subscription %s in the namespace %s isn't created by ODLM", sub.Name, sub.Namespace)
 				}
-			} else if ip.Status.Phase == olmv1alpha1.InstallPlanPhaseFailed {
-				klog.Errorf("installplan %s/%s is failed", ipNamespace, ipName)
-				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
-				continue
+
+				// It the installplan is not created yet, ODLM will try later
+				if sub.Status.Install == nil || sub.Status.InstallPlanRef.Name == "" {
+					klog.Warningf("The Installplan for Subscription %s is not ready. Will check it again", sub.Name)
+					requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorInstalling, "", &r.Mutex)
+					continue
+				}
+
+				// If the installplan is deleted after is completed, ODLM won't block the CR update.
+				ipName := sub.Status.InstallPlanRef.Name
+				ipNamespace := sub.Namespace
+				ip := &olmv1alpha1.InstallPlan{}
+				ipKey := types.NamespacedName{
+					Name:      ipName,
+					Namespace: ipNamespace,
+				}
+				if err := r.Client.Get(ctx, ipKey, ip); err != nil {
+					if !apierrors.IsNotFound(err) {
+						merr.Add(errors.Wrapf(err, "failed to get Installplan"))
+					}
+				} else if ip.Status.Phase == olmv1alpha1.InstallPlanPhaseFailed {
+					klog.Errorf("installplan %s/%s is failed", ipNamespace, ipName)
+					requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
+					continue
+				}
+
 			}
 
-			csv, err := r.GetClusterServiceVersion(ctx, sub)
+			var csv *olmv1alpha1.ClusterServiceVersion
 
-			// If can't get CSV, requeue the request
-			if err != nil {
-				merr.Add(err)
-				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
-				continue
+			if opdRegistry.UserManaged {
+				csvList, err := r.GetClusterServiceVersionListFromPackage(ctx, opdRegistry.PackageName, opdRegistry.Namespace)
+				if err != nil {
+					merr.Add(err)
+					requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
+					continue
+				}
+				csv = csvList[0]
+			} else {
+				csv, err = r.GetClusterServiceVersion(ctx, sub)
+				// If can't get CSV, requeue the request
+				if err != nil {
+					merr.Add(err)
+					requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
+					continue
+				}
 			}
 
 			if csv == nil {
@@ -154,24 +167,25 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 				continue
 			}
 
-			klog.V(3).Info("Generating customresource base on ClusterServiceVersion: ", csv.GetName())
-			requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorRunning, "", &r.Mutex)
+			if err := r.DeleteRedundantCSV(ctx, csv.Name, csv.Namespace, registryKey.Namespace, opdRegistry.PackageName); err != nil {
+				merr.Add(errors.Wrapf(err, "failed to delete the redundant ClusterServiceVersion %s in the namespace %s", csv.Name, csv.Namespace))
+				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
+				continue
+			}
 
-			// find the OperandRequest which has the same operator's channel version as existing subscription.
-			// ODLM will only reconcile Operand based on OperandConfig for this OperandRequest
-			var requestList []string
-			reg, _ := regexp.Compile(`^(.*)\.(.*)\/request`)
-			for anno, version := range sub.Annotations {
-				if reg.MatchString(anno) && version == sub.Spec.Channel {
-					requestList = append(requestList, anno)
+			if !opdRegistry.UserManaged {
+				// find the OperandRequest which has the same operator's channel or fallback channels as existing subscription.
+				// ODLM will only reconcile Operand based on OperandConfig for this OperandRequest
+				channels := []string{opdRegistry.Channel}
+				if channels = append(channels, opdRegistry.FallbackChannels...); !util.Contains(channels, sub.Spec.Channel) {
+					klog.Infof("Subscription %s in the namespace %s is NOT managed by %s/%s, Skip reconciling Operands", sub.Name, sub.Namespace, requestInstance.Namespace, requestInstance.Name)
+					requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
+					continue
 				}
 			}
 
-			if len(requestList) == 0 || !util.Contains(requestList, requestInstance.Namespace+"."+requestInstance.Name+"/request") {
-				klog.V(2).Infof("Subscription %s in the namespace %s is NOT managed by %s/%s, Skip reconciling Operands", sub.Name, sub.Namespace, requestInstance.Namespace, requestInstance.Name)
-				requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceRunning, &r.Mutex)
-				continue
-			}
+			klog.V(3).Info("Generating customresource base on ClusterServiceVersion: ", csv.GetName())
+			requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorRunning, "", &r.Mutex)
 
 			// Merge and Generate CR
 			if operand.Kind == "" {
@@ -179,11 +193,11 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 				if err == nil {
 					// Check the requested Service Config if exist in specific OperandConfig
 					opdConfig := configInstance.GetService(operand.Name)
-					if opdConfig == nil {
+					if opdConfig == nil && !opdRegistry.UserManaged {
 						klog.V(2).Infof("There is no service: %s from the OperandConfig instance: %s/%s, Skip reconciling Operands", operand.Name, registryKey.Namespace, req.Registry)
 						continue
 					}
-					err = r.reconcileCRwithConfig(ctx, opdConfig, configInstance.Namespace, csv, requestInstance, sub.Namespace, &r.Mutex)
+					err = r.reconcileCRwithConfig(ctx, opdConfig, configInstance.Name, configInstance.Namespace, csv, requestInstance, operand.Name, csv.Namespace, &r.Mutex)
 					if err != nil {
 						merr.Add(err)
 						requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceFailed, &r.Mutex)
@@ -197,7 +211,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 				}
 
 			} else {
-				err = r.reconcileCRwithRequest(ctx, requestInstance, operand, types.NamespacedName{Name: requestInstance.Name, Namespace: requestInstance.Namespace}, i, sub.Namespace, &r.Mutex)
+				err = r.reconcileCRwithRequest(ctx, requestInstance, operand, types.NamespacedName{Name: requestInstance.Name, Namespace: requestInstance.Namespace}, i, csv.Namespace, &r.Mutex)
 				if err != nil {
 					merr.Add(err)
 					requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceFailed, &r.Mutex)
@@ -215,63 +229,35 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 }
 
 // reconcileCRwithConfig merge and create custom resource base on OperandConfig and CSV alm-examples
-func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operatorv1alpha1.ConfigService, namespace string, csv *olmv1alpha1.ClusterServiceVersion, requestInstance *operatorv1alpha1.OperandRequest, operatorNamespace string, mu sync.Locker) error {
+func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operatorv1alpha1.ConfigService, opConfigName, opConfigNs string, csv *olmv1alpha1.ClusterServiceVersion, requestInstance *operatorv1alpha1.OperandRequest, operandName string, operatorNamespace string, mu sync.Locker) error {
 	merr := &util.MultiErr{}
 
 	// Create k8s resources required by service
 	if service.Resources != nil {
-		for _, res := range service.Resources {
-			if res.APIVersion == "" {
-				return fmt.Errorf("The APIVersion of k8s resource is empty for operator " + service.Name)
-			}
-
-			if res.Kind == "" {
-				return fmt.Errorf("The Kind of k8s resource is empty for operator " + service.Name)
-			}
-			if res.Name == "" {
-				return fmt.Errorf("The Name of k8s resource is empty for operator " + service.Name)
-			}
-			var k8sResNs string
-			if res.Namespace == "" {
-				k8sResNs = namespace
-			} else {
-				k8sResNs = res.Namespace
-			}
-
-			var k8sRes unstructured.Unstructured
-			k8sRes.SetAPIVersion(res.APIVersion)
-			k8sRes.SetKind(res.Kind)
-			k8sRes.SetName(res.Name)
-			k8sRes.SetNamespace(k8sResNs)
-
-			verbs := []string{"create", "delete", "get", "update"}
-			if r.checkResAuth(ctx, verbs, k8sRes) {
-				err := r.Client.Get(ctx, types.NamespacedName{
-					Name:      res.Name,
-					Namespace: k8sResNs,
-				}, &k8sRes)
-
-				if err != nil && !apierrors.IsNotFound(err) {
-					merr.Add(errors.Wrapf(err, "failed to get k8s resource %s/%s", k8sResNs, res.Name))
-				} else if apierrors.IsNotFound(err) {
-					if err := r.createK8sResource(ctx, k8sRes, res.Data, res.Labels, res.Annotations); err != nil {
-						merr.Add(err)
-					}
-				} else {
-					if r.CheckLabel(k8sRes, map[string]string{constant.OpreqLabel: "true"}) && res.Force {
-						// Update k8s resource
-						klog.V(3).Info("Found existing k8s resource: " + res.Name)
-						if err := r.updateK8sResource(ctx, k8sRes, res.Data, res.Labels, res.Annotations); err != nil {
-							merr.Add(err)
-						}
-					} else {
-						klog.V(2).Infof("Skip the k8s resource %s/%s which is not created by ODLM", res.Kind, res.Name)
-					}
-				}
-			} else {
-				klog.Infof("ODLM doesn't have enough permission to reconcile k8s resource -- Kind: %s, NamespacedName: %s/%s", res.Kind, k8sResNs, res.Name)
-			}
+		// Get the chunk size
+		var chunkSize int
+		if r.StepSize > 0 {
+			chunkSize = r.StepSize
+		} else {
+			chunkSize = 1
 		}
+		var wg sync.WaitGroup
+		semaphore := make(chan struct{}, chunkSize)
+
+		for i := range service.Resources {
+			wg.Add(1)
+			semaphore <- struct{}{}
+			go func(res operatorv1alpha1.ConfigResource) {
+				defer wg.Done()
+				defer func() { <-semaphore }() // release semaphore
+				err := r.reconcileK8sResourceWithRetries(ctx, res, service.Name, opConfigName, opConfigNs)
+				if err != nil {
+					merr.Add(err)
+				}
+			}(service.Resources[i])
+		}
+
+		wg.Wait()
 
 		if len(merr.Errors) != 0 {
 			return merr
@@ -284,12 +270,28 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 	var almExampleList []interface{}
 	err := json.Unmarshal([]byte(almExamples), &almExampleList)
 	if err != nil {
-		return errors.Wrapf(err, "failed to convert alm-examples in the Subscription %s/%s to slice", namespace, service.Name)
+		return errors.Wrapf(err, "failed to convert alm-examples in the Subscription %s/%s to slice", opConfigNs, service.Name)
 	}
 
 	foundMap := make(map[string]bool)
 	for cr := range service.Spec {
 		foundMap[cr] = false
+	}
+
+	serviceObject, err := util.ObjectToNewUnstructured(service)
+	if err != nil {
+		klog.Errorf("Failed to convert OperandConfig service object %s to unstructured.Unstructured object", service.Name)
+		return err
+	}
+
+	if err := r.ParseValueReferenceInObject(ctx, "spec", serviceObject.Object["spec"], serviceObject.Object, "OperandConfig", opConfigName, opConfigNs); err != nil {
+		klog.Errorf("Failed to parse value reference for service %s: %v", service.Name, err)
+		return err
+	}
+	// cover unstructured.Unstructured object to original OperandConfig object
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(serviceObject.Object, service); err != nil {
+		klog.Errorf("Failed to convert unstructured.Unstructured object to service object %s", service.Name)
+		return err
 	}
 
 	// Merge OperandConfig and ClusterServiceVersion alm-examples
@@ -306,7 +308,7 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 
 		err := r.Client.Get(ctx, types.NamespacedName{
 			Name:      name,
-			Namespace: namespace,
+			Namespace: opConfigNs,
 		}, &crFromALM)
 
 		foundInConfig := false
@@ -321,37 +323,33 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 			klog.Warningf("%v in the alm-example doesn't exist in the OperandConfig for %v", crFromALM.GetKind(), csv.GetName())
 			continue
 		}
+
 		if err != nil && !apierrors.IsNotFound(err) {
-			merr.Add(errors.Wrapf(err, "failed to get the custom resource %s/%s", namespace, name))
+			merr.Add(errors.Wrapf(err, "failed to get the custom resource %s/%s", opConfigNs, name))
 			continue
 		} else if apierrors.IsNotFound(err) {
 			// Create Custom Resource
-			if err := r.compareConfigandExample(ctx, crFromALM, service, namespace); err != nil {
+			if err := r.compareConfigandExample(ctx, crFromALM, service, opConfigNs); err != nil {
 				merr.Add(err)
 				continue
 			}
 		} else {
 			if r.CheckLabel(crFromALM, map[string]string{constant.OpreqLabel: "true"}) {
 				// Update or Delete Custom Resource
-				if err := r.existingCustomResource(ctx, crFromALM, spec.(map[string]interface{}), service, namespace); err != nil {
+				if err := r.existingCustomResource(ctx, crFromALM, spec.(map[string]interface{}), service, opConfigNs); err != nil {
 					merr.Add(err)
 					continue
 				}
-				managedBy, err := r.getManagedBy(crFromALM)
-				if err != nil {
-					return err
-				}
-				statusSpec, err := r.getOperandStatus(crFromALM)
+				statusFromCR, err := r.getOperandStatus(crFromALM)
 				if err != nil {
 					return err
 				}
 				serviceKind := crFromALM.GetKind()
-				if serviceKind != "OperandRequest" && statusSpec.ObjectName != "" {
+				if serviceKind != "OperandRequest" && statusFromCR.ObjectName != "" {
 					var resources []operatorv1alpha1.OperandStatus
-					resources = append(resources, statusSpec)
-					serviceSpec := newServiceStatus(managedBy, operatorNamespace, resources)
-					seterr := requestInstance.SetServiceStatus(ctx, serviceSpec, r.Client, mu)
-					if seterr != nil {
+					resources = append(resources, statusFromCR)
+					serviceStatus := newServiceStatus(operandName, operatorNamespace, resources)
+					if seterr := requestInstance.SetServiceStatus(ctx, serviceStatus, r.Client, mu); seterr != nil {
 						return seterr
 					}
 				}
@@ -381,11 +379,11 @@ func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance
 	var crFromRequest unstructured.Unstructured
 
 	if operand.APIVersion == "" {
-		return fmt.Errorf("The APIVersion of operand is empty for operator " + operand.Name)
+		return fmt.Errorf("the APIVersion of operand is empty for operator %s", operand.Name)
 	}
 
 	if operand.Kind == "" {
-		return fmt.Errorf("The Kind of operand is empty for operator " + operand.Name)
+		return fmt.Errorf("the Kind of operand is empty for operator %s", operand.Name)
 	}
 
 	var name string
@@ -400,6 +398,10 @@ func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance
 	crFromRequest.SetNamespace(requestKey.Namespace)
 	crFromRequest.SetAPIVersion(operand.APIVersion)
 	crFromRequest.SetKind(operand.Kind)
+	// Set the OperandRequest as the owner of the CR from request
+	if err := controllerutil.SetOwnerReference(requestInstance, &crFromRequest, r.Scheme); err != nil {
+		merr.Add(errors.Wrapf(err, "failed to set ownerReference for custom resource %s/%s", requestKey.Namespace, name))
+	}
 
 	err := r.Client.Get(ctx, types.NamespacedName{
 		Name:      name,
@@ -418,22 +420,18 @@ func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance
 		if r.CheckLabel(crFromRequest, map[string]string{constant.OpreqLabel: "true"}) {
 			// Update or Delete Custom resource
 			klog.V(3).Info("Found existing custom resource: " + operand.Kind)
-			if err := r.updateCustomResource(ctx, crFromRequest, requestKey.Namespace, operand.Kind, operand.Spec.Raw, map[string]interface{}{}); err != nil {
+			if err := r.updateCustomResource(ctx, crFromRequest, requestKey.Namespace, operand.Kind, operand.Spec.Raw, map[string]interface{}{}, requestInstance); err != nil {
 				return err
 			}
-			managedBy, err := r.getManagedBy(crFromRequest)
+			statusFromCR, err := r.getOperandStatus(crFromRequest)
 			if err != nil {
 				return err
 			}
-			statusSpec, err := r.getOperandStatus(crFromRequest)
-			if err != nil {
-				return err
-			}
-			if operand.Kind != "OperandRequest" && statusSpec.ObjectName != "" {
+			if operand.Kind != "OperandRequest" && statusFromCR.ObjectName != "" {
 				var resources []operatorv1alpha1.OperandStatus
-				resources = append(resources, statusSpec)
-				serviceSpec := newServiceStatus(managedBy, operatorNamespace, resources)
-				seterr := requestInstance.SetServiceStatus(ctx, serviceSpec, r.Client, mu)
+				resources = append(resources, statusFromCR)
+				serviceStatus := newServiceStatus(operand.Name, operatorNamespace, resources)
+				seterr := requestInstance.SetServiceStatus(ctx, serviceStatus, r.Client, mu)
 				if seterr != nil {
 					return seterr
 				}
@@ -447,38 +445,6 @@ func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance
 		return merr
 	}
 	return nil
-}
-
-func (r *Reconciler) getManagedBy(existingCR unstructured.Unstructured) (string, error) {
-	byteMetadata, err := json.Marshal(existingCR.Object["metadata"])
-	if err != nil {
-		klog.Error(err)
-		return "", err
-	}
-	var rawMetadata map[string]interface{}
-	err = json.Unmarshal(byteMetadata, &rawMetadata)
-	if err != nil {
-		klog.Error(err)
-		return "", err
-	}
-	byteLabels, err := json.Marshal(rawMetadata["labels"])
-	if err != nil {
-		klog.Error(err)
-		return "", err
-	}
-	var parsedLabels map[string]string
-	err = json.Unmarshal(byteLabels, &parsedLabels)
-	if err != nil {
-		klog.Error(err)
-		return "", err
-	}
-	var managedBy string
-	for key, value := range parsedLabels {
-		if key == "app.kubernetes.io/managed-by" {
-			managedBy = value
-		}
-	}
-	return managedBy, nil
 }
 
 func (r *Reconciler) getOperandStatus(existingCR unstructured.Unstructured) (operatorv1alpha1.OperandStatus, error) {
@@ -528,9 +494,95 @@ func newServiceStatus(operatorName string, namespace string, resources []operato
 		}
 	}
 	serviceSpec.Status = status //TODO logic to determine readiness
-	// serviceSpec.LastUpdateTime = time.Now().Format(time.RFC3339)
 	serviceSpec.Resources = resources
 	return serviceSpec
+}
+
+func (r *Reconciler) reconcileK8sResourceWithRetries(ctx context.Context, res operatorv1alpha1.ConfigResource, serviceName, opConfigName, opConfigNs string) error {
+	var err error
+	for i := 0; i < int(constant.DefaultCRRetryNumber); i++ {
+		err = r.reconcileK8sResource(ctx, res, serviceName, opConfigName, opConfigNs)
+		if err == nil {
+			return nil
+		}
+		klog.Errorf("Failed to reconcile k8s resource -- Kind: %s, NamespacedName: %s/%s with error: %v", res.Kind, res.Namespace, res.Name, err)
+		if i < int(constant.DefaultCRRetryNumber)-1 {
+			waitTime := time.Duration((1 << i) * 4 * int(time.Second))
+			klog.Warningf("Retry reconcile k8s resource -- Kind: %s, NamespacedName: %s/%s after waiting %v", res.Kind, res.Namespace, res.Name, waitTime)
+			time.Sleep(waitTime)
+		}
+	}
+	return err
+}
+
+func (r *Reconciler) reconcileK8sResource(ctx context.Context, res operatorv1alpha1.ConfigResource, serviceName, opConfigName, opConfigNs string) error {
+	if res.APIVersion == "" {
+		return fmt.Errorf("the APIVersion of k8s resource is empty for operator %s", serviceName)
+	}
+
+	if res.Kind == "" {
+		return fmt.Errorf("the Kind of k8s resource is empty for operator %s", serviceName)
+	}
+	if res.Name == "" {
+		return fmt.Errorf("the Name of k8s resource is empty for operator %s", serviceName)
+	}
+	var k8sResNs string
+	if res.Namespace == "" {
+		k8sResNs = opConfigNs
+	} else {
+		k8sResNs = res.Namespace
+	}
+
+	resObject, err := util.ObjectToNewUnstructured(&res)
+	if err != nil {
+		klog.Errorf("Failed to convert %s %s/%s object to unstructured.Unstructured object", res.Kind, k8sResNs, res.Name)
+		return err
+	}
+
+	if err := r.ParseValueReferenceInObject(ctx, "data", resObject.Object["data"], resObject.Object, "OperandConfig", opConfigName, opConfigNs); err != nil {
+		klog.Errorf("Failed to parse value reference in resource %s/%s: %v", k8sResNs, res.Name, err)
+		return err
+	}
+	// cover unstructured.Unstructured object to original OperandConfig object
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(resObject.Object, &res); err != nil {
+		klog.Errorf("Failed to convert unstructured.Unstructured object to %s %s/%s object", res.Kind, k8sResNs, res.Name)
+		return err
+	}
+
+	var k8sRes unstructured.Unstructured
+	k8sRes.SetAPIVersion(res.APIVersion)
+	k8sRes.SetKind(res.Kind)
+	k8sRes.SetName(res.Name)
+	k8sRes.SetNamespace(k8sResNs)
+
+	verbs := []string{"create", "delete", "get", "update"}
+	if r.checkResAuth(ctx, verbs, k8sRes) {
+		err := r.Client.Get(ctx, types.NamespacedName{
+			Name:      res.Name,
+			Namespace: k8sResNs,
+		}, &k8sRes)
+
+		if err != nil && !apierrors.IsNotFound(err) {
+			return errors.Wrapf(err, "failed to get k8s resource %s/%s", k8sResNs, res.Name)
+		} else if apierrors.IsNotFound(err) {
+			if err := r.createK8sResource(ctx, k8sRes, res.Data, res.Labels, res.Annotations, &res.OwnerReferences, &res.OptionalFields); err != nil {
+				return err
+			}
+		} else {
+			if res.Force {
+				// Update k8s resource
+				klog.V(3).Info("Found existing k8s resource: " + res.Name)
+				if err := r.updateK8sResource(ctx, k8sRes, res.Data, res.Labels, res.Annotations, &res.OwnerReferences, &res.OptionalFields); err != nil {
+					return err
+				}
+			} else {
+				klog.V(2).Infof("Skip the k8s resource %s %s/%s whose force field is false", res.Kind, k8sResNs, res.Name)
+			}
+		}
+	} else {
+		klog.Infof("ODLM doesn't have enough permission to reconcile k8s resource -- Kind: %s, NamespacedName: %s/%s", res.Kind, k8sResNs, res.Name)
+	}
+	return nil
 }
 
 // deleteAllCustomResource remove custom resource base on OperandConfig and CSV alm-examples
@@ -582,6 +634,7 @@ func (r *Reconciler) deleteAllCustomResource(ctx context.Context, csv *olmv1alph
 	wg.Wait()
 
 	if len(merr.Errors) != 0 {
+		klog.Errorf("Failed to delete custom resource from OperandRequest for operator %s", operandName)
 		return merr
 	}
 
@@ -616,28 +669,35 @@ func (r *Reconciler) deleteAllCustomResource(ctx context.Context, csv *olmv1alph
 
 			// Compare the name of OperandConfig and CRD name
 			if strings.EqualFold(kind, crdName) {
-				err := r.Client.Get(ctx, types.NamespacedName{
-					Name:      name,
-					Namespace: namespace,
-				}, &crTemplate)
-				if err != nil && !apierrors.IsNotFound(err) {
-					merr.Add(err)
-					continue
-				}
-				if apierrors.IsNotFound(err) {
-					klog.V(2).Info("Finish Deleting the CR: " + kind)
-					continue
-				}
-				if r.CheckLabel(crTemplate, map[string]string{constant.OpreqLabel: "true"}) {
-					wg.Add(1)
-					go func() {
-						defer wg.Done()
-						if err := r.deleteCustomResource(ctx, crTemplate, namespace); err != nil {
-							r.Mutex.Lock()
-							defer r.Mutex.Unlock()
-							merr.Add(err)
-						}
-					}()
+				if r.checkResAuth(ctx, []string{"get"}, crTemplate) {
+
+					err := r.Client.Get(ctx, types.NamespacedName{
+						Name:      name,
+						Namespace: namespace,
+					}, &crTemplate)
+					if err != nil && !apierrors.IsNotFound(err) {
+						merr.Add(err)
+						continue
+					}
+					if apierrors.IsNotFound(err) {
+						klog.V(2).Info("Finish Deleting the CR: " + kind)
+						continue
+					}
+					if r.CheckLabel(crTemplate, map[string]string{constant.OpreqLabel: "true"}) {
+						wg.Add(1)
+						go func() {
+							defer wg.Done()
+							if r.checkResAuth(ctx, []string{"delete"}, crTemplate) {
+								if err := r.deleteCustomResource(ctx, crTemplate, namespace); err != nil {
+									r.Mutex.Lock()
+									defer r.Mutex.Unlock()
+									merr.Add(err)
+									return
+								}
+							}
+						}()
+					}
+
 				}
 
 			}
@@ -646,6 +706,7 @@ func (r *Reconciler) deleteAllCustomResource(ctx context.Context, csv *olmv1alph
 	}
 	wg.Wait()
 	if len(merr.Errors) != 0 {
+		klog.Errorf("Failed to delete custom resource from OperandConfig for operator %s", operandName)
 		return merr
 	}
 
@@ -681,7 +742,7 @@ func (r *Reconciler) createCustomResource(ctx context.Context, crTemplate unstru
 
 	r.EnsureLabel(crTemplate, map[string]string{constant.OpreqLabel: "true"})
 
-	// Creat the CR
+	// Create the CR
 	crerr := r.Create(ctx, &crTemplate)
 	if crerr != nil && !apierrors.IsAlreadyExists(crerr) {
 		return errors.Wrap(crerr, "failed to create custom resource")
@@ -716,7 +777,7 @@ func (r *Reconciler) existingCustomResource(ctx context.Context, existingCR unst
 	return nil
 }
 
-func (r *Reconciler) updateCustomResource(ctx context.Context, existingCR unstructured.Unstructured, namespace, crName string, crConfig []byte, configFromALM map[string]interface{}) error {
+func (r *Reconciler) updateCustomResource(ctx context.Context, existingCR unstructured.Unstructured, namespace, crName string, crConfig []byte, configFromALM map[string]interface{}, owners ...metav1.Object) error {
 
 	kind := existingCR.GetKind()
 	apiversion := existingCR.GetAPIVersion()
@@ -744,6 +805,14 @@ func (r *Reconciler) updateCustomResource(ctx context.Context, existingCR unstru
 			return true, nil
 		}
 
+		forceUpdate := false
+		for _, owner := range owners {
+			if err := controllerutil.SetOwnerReference(owner, &existingCR, r.Scheme); err != nil {
+				return false, errors.Wrapf(err, "failed to set ownerReference for custom resource %s/%s", existingCR.GetNamespace(), existingCR.GetName())
+			}
+			forceUpdate = true
+		}
+
 		configFromALMRaw, err := json.Marshal(configFromALM)
 		if err != nil {
 			klog.Error(err)
@@ -768,11 +837,11 @@ func (r *Reconciler) updateCustomResource(ctx context.Context, existingCR unstru
 		// Merge spec from update existing CR and OperandConfig spec
 		updatedCRSpec := util.MergeCR(updatedExistingCRRaw, crConfig)
 
-		CRgeneration := existingCR.GetGeneration()
-
-		if reflect.DeepEqual(existingCR.Object["spec"], updatedCRSpec) {
+		if equality.Semantic.DeepEqual(existingCR.Object["spec"], updatedCRSpec) && !forceUpdate {
 			return true, nil
 		}
+
+		CRgeneration := existingCR.GetGeneration()
 
 		klog.V(2).Infof("updating custom resource with apiversion: %s, kind: %s, %s/%s", apiversion, kind, namespace, name)
 
@@ -846,7 +915,7 @@ func (r *Reconciler) deleteCustomResource(ctx context.Context, existingCR unstru
 				if strings.EqualFold(kind, "OperandRequest") {
 					return true, nil
 				}
-				klog.V(3).Infof("Waiting for CR %s is removed ...", kind)
+				klog.V(3).Infof("Waiting for CR %s to be removed ...", kind)
 				err := r.Client.Get(ctx, types.NamespacedName{
 					Name:      name,
 					Namespace: namespace,
@@ -936,7 +1005,7 @@ func (r *Reconciler) checkCustomResource(ctx context.Context, requestInstance *o
 	return nil
 }
 
-func (r *Reconciler) createK8sResource(ctx context.Context, k8sResTemplate unstructured.Unstructured, k8sResConfig *runtime.RawExtension, newLabels, newAnnotations map[string]string) error {
+func (r *Reconciler) createK8sResource(ctx context.Context, k8sResTemplate unstructured.Unstructured, k8sResConfig *runtime.RawExtension, newLabels, newAnnotations map[string]string, ownerReferences *[]operatorv1alpha1.OwnerReference, optionalFields *[]operatorv1alpha1.OptionalField) error {
 	kind := k8sResTemplate.GetKind()
 	name := k8sResTemplate.GetName()
 	namespace := k8sResTemplate.GetNamespace()
@@ -947,15 +1016,45 @@ func (r *Reconciler) createK8sResource(ctx context.Context, k8sResTemplate unstr
 		if k8sResConfigUnmarshalErr != nil {
 			klog.Errorf("failed to unmarshal k8s Resource Config: %v", k8sResConfigUnmarshalErr)
 		}
-
 		for k, v := range k8sResConfigDecoded {
 			k8sResTemplate.Object[k] = v
 		}
+
+		k8sResConfigBytes, err := json.Marshal(k8sResConfigDecoded)
+		if err != nil {
+			return errors.Wrap(err, "failed to marshal k8sResConfigDecoded")
+		}
+
+		// Caculate the hash number of the new created template
+		_, templateHash := util.CalculateResHashes(nil, k8sResConfigBytes)
+
+		newAnnotations = util.AddHashAnnotation(&k8sResTemplate, constant.K8sHashedData, templateHash, newAnnotations)
+
+		if kind == "Route" {
+			if host, found := k8sResConfigDecoded["spec"].(map[string]interface{})["host"].(string); found {
+				hostHash := util.CalculateHash([]byte(host))
+
+				// if newAnnotations == nil {
+				// 	newAnnotations = make(map[string]string)
+				// }
+				// newAnnotations[constant.RouteHash] = hostHash
+				newAnnotations = util.AddHashAnnotation(&k8sResTemplate, constant.RouteHash, hostHash, newAnnotations)
+
+			} else {
+				klog.Warningf("spec.host not found in Route %s/%s", namespace, name)
+			}
+		}
 	}
 
+	if err := r.ExecuteOptionalFields(ctx, &k8sResTemplate, optionalFields); err != nil {
+		return errors.Wrap(err, "failed to execute optional fields")
+	}
 	r.EnsureLabel(k8sResTemplate, map[string]string{constant.OpreqLabel: "true"})
 	r.EnsureLabel(k8sResTemplate, newLabels)
 	r.EnsureAnnotation(k8sResTemplate, newAnnotations)
+	if err := r.setOwnerReferences(ctx, &k8sResTemplate, ownerReferences); err != nil {
+		return errors.Wrap(err, "failed to set ownerReferences for k8s resource")
+	}
 
 	// Create the k8s resource
 	err := r.Create(ctx, &k8sResTemplate)
@@ -968,70 +1067,48 @@ func (r *Reconciler) createK8sResource(ctx context.Context, k8sResTemplate unstr
 	return nil
 }
 
-func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstructured.Unstructured, k8sResConfig *runtime.RawExtension, newLabels, newAnnotations map[string]string) error {
+func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstructured.Unstructured, k8sResConfig *runtime.RawExtension, newLabels, newAnnotations map[string]string, ownerReferences *[]operatorv1alpha1.OwnerReference, optionalFields *[]operatorv1alpha1.OptionalField) error {
 	kind := existingK8sRes.GetKind()
 	apiversion := existingK8sRes.GetAPIVersion()
 	name := existingK8sRes.GetName()
 	namespace := existingK8sRes.GetNamespace()
+
 	if kind == "Job" {
-		existingK8sRes := unstructured.Unstructured{
-			Object: map[string]interface{}{
-				"apiVersion": apiversion,
-				"kind":       kind,
-			},
+		if err := r.updateK8sJob(ctx, existingK8sRes, k8sResConfig, newLabels, newAnnotations, ownerReferences, optionalFields); err != nil {
+			return errors.Wrap(err, "failed to update Job")
 		}
-
-		err := r.Client.Get(ctx, types.NamespacedName{
-			Name:      name,
-			Namespace: namespace,
-		}, &existingK8sRes)
-
-		if err != nil {
-			return errors.Wrapf(err, "failed to get k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
-		}
-		if !r.CheckLabel(existingK8sRes, map[string]string{constant.OpreqLabel: "true"}) {
-			return nil
-		}
-
-		var existingHashedData string
-		var newHashedData string
-		if existingK8sRes.GetAnnotations() != nil {
-			existingHashedData = existingK8sRes.GetAnnotations()[constant.HashedData]
-		}
-
-		if k8sResConfig != nil {
-			hashedData := sha256.Sum256(k8sResConfig.Raw)
-			newHashedData = hex.EncodeToString(hashedData[:7])
-		}
-
-		if existingHashedData != newHashedData {
-			// create a new template of k8s resource
-			var templatek8sRes unstructured.Unstructured
-			templatek8sRes.SetAPIVersion(apiversion)
-			templatek8sRes.SetKind(kind)
-			templatek8sRes.SetName(name)
-			templatek8sRes.SetNamespace(namespace)
-
-			if newAnnotations == nil {
-				newAnnotations = make(map[string]string)
-			}
-			newAnnotations[constant.HashedData] = newHashedData
-
-			if err := r.deleteK8sResource(ctx, existingK8sRes, namespace); err != nil {
-				return errors.Wrap(err, "failed to update k8s resource")
-			}
-			if err := r.createK8sResource(ctx, templatek8sRes, k8sResConfig, newLabels, newAnnotations); err != nil {
-				return errors.Wrap(err, "failed to update k8s resource")
-			}
-		}
-
 		return nil
 	}
 
-	// Update the k8s res
+	if kind == "Route" {
+		if err := r.updateK8sRoute(ctx, existingK8sRes, k8sResConfig, newLabels, newAnnotations, ownerReferences, optionalFields); err != nil {
+			return errors.Wrap(err, "failed to update Route")
+		}
+
+		// update the annotations of the Route host if the host is changed
+		if k8sResConfig != nil {
+			k8sResConfigDecoded := make(map[string]interface{})
+			if k8sResConfigUnmarshalErr := json.Unmarshal(k8sResConfig.Raw, &k8sResConfigDecoded); k8sResConfigUnmarshalErr != nil {
+				return errors.Wrap(k8sResConfigUnmarshalErr, "failed to unmarshal k8s Resource Config")
+			}
+
+			if host, found := k8sResConfigDecoded["spec"].(map[string]interface{})["host"].(string); found {
+				hostHash := util.CalculateHash([]byte(host))
+
+				if newAnnotations == nil {
+					newAnnotations = make(map[string]string)
+				}
+				newAnnotations[constant.RouteHash] = hostHash
+			} else {
+				klog.Warningf("spec.host not found in Route %s/%s", namespace, name)
+			}
+		}
+	}
+
+	// Update the k8s resource
 	err := wait.PollImmediate(constant.DefaultCRFetchPeriod, constant.DefaultCRFetchTimeout, func() (bool, error) {
 
-		existingK8sRes := unstructured.Unstructured{
+		existingRes := unstructured.Unstructured{
 			Object: map[string]interface{}{
 				"apiVersion": apiversion,
 				"kind":       kind,
@@ -1041,68 +1118,88 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 		err := r.Client.Get(ctx, types.NamespacedName{
 			Name:      name,
 			Namespace: namespace,
-		}, &existingK8sRes)
-
+		}, &existingRes)
 		if err != nil {
 			return false, errors.Wrapf(err, "failed to get k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 		}
 
-		if !r.CheckLabel(existingK8sRes, map[string]string{constant.OpreqLabel: "true"}) {
+		resourceVersion := existingRes.GetResourceVersion()
+
+		if !r.CheckLabel(existingRes, map[string]string{constant.OpreqLabel: "true"}) && (newLabels == nil || newLabels[constant.OpreqLabel] != "true") {
 			return true, nil
 		}
 
-		// isEqual := r.CheckAnnotation(existingK8sRes, newAnnotations) && r.CheckLabel(existingK8sRes, newLabels)
 		if k8sResConfig != nil {
-			k8sResConfigDecoded := make(map[string]interface{})
-			k8sResConfigUnmarshalErr := json.Unmarshal(k8sResConfig.Raw, &k8sResConfigDecoded)
-			if k8sResConfigUnmarshalErr != nil {
-				klog.Errorf("failed to unmarshal k8s Resource Config: %v", k8sResConfigUnmarshalErr)
+
+			// Convert existing k8s resource to string
+			existingResRaw, err := json.Marshal(existingRes.Object)
+			if err != nil {
+				return false, errors.Wrapf(err, "failed to marshal existing k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 			}
 
-			for k, v := range k8sResConfigDecoded {
-				// isEqual = isEqual && reflect.DeepEqual(existingK8sRes.Object[k], v)
-				existingK8sRes.Object[k] = v
+			// Caculate the hash number of the new created template
+			existingHash, templateHash := util.CalculateResHashes(&existingRes, k8sResConfig.Raw)
+
+			// If the hash number of the existing k8s resource is different from the hash number of template, update the k8s resource
+			if existingHash != templateHash {
+				k8sResConfigDecoded := make(map[string]interface{})
+				k8sResConfigUnmarshalErr := json.Unmarshal(k8sResConfig.Raw, &k8sResConfigDecoded)
+				if k8sResConfigUnmarshalErr != nil {
+					klog.Errorf("failed to unmarshal k8s Resource Config: %v", k8sResConfigUnmarshalErr)
+				}
+				for k, v := range k8sResConfigDecoded {
+					existingRes.Object[k] = v
+				}
+				newAnnotations = util.AddHashAnnotation(&existingRes, constant.K8sHashedData, templateHash, newAnnotations)
+
+			} else {
+				// If the hash number are the same, then do the deep merge
+				// Merge the existing CR and the CR from the OperandConfig
+				updatedExistingRes := util.MergeCR(existingResRaw, k8sResConfig.Raw)
+				// Update the existing k8s resource with the merged CR
+				existingRes.Object = updatedExistingRes
 			}
+
+			if err := r.ExecuteOptionalFields(ctx, &existingRes, optionalFields); err != nil {
+				return false, errors.Wrap(err, "failed to execute optional fields")
+			}
+			r.EnsureAnnotation(existingRes, newAnnotations)
+			r.EnsureLabel(existingRes, newLabels)
+			if err := r.setOwnerReferences(ctx, &existingRes, ownerReferences); err != nil {
+				return false, errors.Wrapf(err, "failed to set ownerReferences for k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+			}
+
+			klog.Infof("updating k8s resource with apiversion: %s, kind: %s, %s/%s", apiversion, kind, namespace, name)
+
+			err = r.Update(ctx, &existingRes)
+			if err != nil {
+				return false, errors.Wrapf(err, "failed to update k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+			}
+
+			UpdatedK8sRes := unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": apiversion,
+					"kind":       kind,
+				},
+			}
+
+			err = r.Client.Get(ctx, types.NamespacedName{
+				Name:      name,
+				Namespace: namespace,
+			}, &UpdatedK8sRes)
+
+			if err != nil {
+				return false, errors.Wrapf(err, "failed to get k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+
+			}
+
+			if UpdatedK8sRes.GetResourceVersion() != resourceVersion {
+				klog.Infof("Finish updating the k8s Resource: -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+			} else {
+				klog.Infof("No updates on k8s resource with apiversion: %s, kind: %s, %s/%s", apiversion, kind, namespace, name)
+			}
+
 		}
-
-		CRgeneration := existingK8sRes.GetGeneration()
-
-		// if isEqual {
-		// 	return true, nil
-		// }
-
-		r.EnsureAnnotation(existingK8sRes, newAnnotations)
-		r.EnsureLabel(existingK8sRes, newLabels)
-
-		klog.V(2).Infof("updating k8s resource with apiversion: %s, kind: %s, %s/%s", apiversion, kind, namespace, name)
-
-		err = r.Update(ctx, &existingK8sRes)
-
-		if err != nil {
-			return false, errors.Wrapf(err, "failed to update k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
-		}
-
-		UpdatedK8sRes := unstructured.Unstructured{
-			Object: map[string]interface{}{
-				"apiVersion": apiversion,
-				"kind":       kind,
-			},
-		}
-
-		err = r.Client.Get(ctx, types.NamespacedName{
-			Name:      name,
-			Namespace: namespace,
-		}, &UpdatedK8sRes)
-
-		if err != nil {
-			return false, errors.Wrapf(err, "failed to get k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
-
-		}
-
-		if UpdatedK8sRes.GetGeneration() != CRgeneration {
-			klog.V(2).Infof("Finish updating the k8s Resource: -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
-		}
-
 		return true, nil
 	})
 
@@ -1113,13 +1210,74 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 	return nil
 }
 
-func (r *Reconciler) deleteK8sResource(ctx context.Context, existingK8sRes unstructured.Unstructured, namespace string) error {
+func (r *Reconciler) updateK8sJob(ctx context.Context, existingK8sRes unstructured.Unstructured, k8sResConfig *runtime.RawExtension, newLabels, newAnnotations map[string]string, ownerReferences *[]operatorv1alpha1.OwnerReference, optionalFields *[]operatorv1alpha1.OptionalField) error {
 
 	kind := existingK8sRes.GetKind()
 	apiversion := existingK8sRes.GetAPIVersion()
 	name := existingK8sRes.GetName()
+	namespace := existingK8sRes.GetNamespace()
 
-	k8sResShouldBeDeleted := unstructured.Unstructured{
+	existingRes := unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": apiversion,
+			"kind":       kind,
+		},
+	}
+
+	err := r.Client.Get(ctx, types.NamespacedName{
+		Name:      name,
+		Namespace: namespace,
+	}, &existingRes)
+
+	if err != nil {
+		return errors.Wrapf(err, "failed to get k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+	}
+	if !r.CheckLabel(existingRes, map[string]string{constant.OpreqLabel: "true"}) && (newLabels == nil || newLabels[constant.OpreqLabel] != "true") {
+		return nil
+	}
+
+	var existingHashedData string
+	var newHashedData string
+	if existingRes.GetAnnotations() != nil {
+		existingHashedData = existingRes.GetAnnotations()[constant.HashedData]
+	}
+
+	if k8sResConfig != nil {
+		hashedData := sha256.Sum256(k8sResConfig.Raw)
+		newHashedData = hex.EncodeToString(hashedData[:7])
+	}
+
+	if existingHashedData != newHashedData {
+		// create a new template of k8s resource
+		var templatek8sRes unstructured.Unstructured
+		templatek8sRes.SetAPIVersion(apiversion)
+		templatek8sRes.SetKind(kind)
+		templatek8sRes.SetName(name)
+		templatek8sRes.SetNamespace(namespace)
+
+		if newAnnotations == nil {
+			newAnnotations = make(map[string]string)
+		}
+		newAnnotations[constant.HashedData] = newHashedData
+
+		if err := r.deleteK8sResource(ctx, existingRes, newLabels, namespace); err != nil {
+			return errors.Wrap(err, "failed to update k8s resource")
+		}
+		if err := r.createK8sResource(ctx, templatek8sRes, k8sResConfig, newLabels, newAnnotations, ownerReferences, optionalFields); err != nil {
+			return errors.Wrap(err, "failed to update k8s resource")
+		}
+	}
+	return nil
+}
+
+// update route resource
+func (r *Reconciler) updateK8sRoute(ctx context.Context, existingK8sRes unstructured.Unstructured, k8sResConfig *runtime.RawExtension, newLabels, newAnnotations map[string]string, ownerReferences *[]operatorv1alpha1.OwnerReference, optionalFields *[]operatorv1alpha1.OptionalField) error {
+	kind := existingK8sRes.GetKind()
+	apiversion := existingK8sRes.GetAPIVersion()
+	name := existingK8sRes.GetName()
+	namespace := existingK8sRes.GetNamespace()
+
+	existingRes := unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": apiversion,
 			"kind":       kind,
@@ -1128,37 +1286,46 @@ func (r *Reconciler) deleteK8sResource(ctx context.Context, existingK8sRes unstr
 	err := r.Client.Get(ctx, types.NamespacedName{
 		Name:      name,
 		Namespace: namespace,
-	}, &k8sResShouldBeDeleted)
-	if err != nil && !apierrors.IsNotFound(err) {
+	}, &existingRes)
+
+	if err != nil {
 		return errors.Wrapf(err, "failed to get k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 	}
-	if apierrors.IsNotFound(err) {
-		klog.V(3).Infof("There is no k8s resource: %s from kind: %s", name, kind)
-	} else {
-		if r.CheckLabel(k8sResShouldBeDeleted, map[string]string{constant.OpreqLabel: "true"}) && !r.CheckLabel(k8sResShouldBeDeleted, map[string]string{constant.NotUninstallLabel: "true"}) {
-			klog.V(3).Infof("Deleting k8s resource: %s from kind: %s", name, kind)
-			err := r.Delete(ctx, &k8sResShouldBeDeleted)
-			if err != nil && !apierrors.IsNotFound(err) {
-				return errors.Wrapf(err, "failed to delete k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
-			}
-			err = wait.PollImmediate(constant.DefaultCRDeletePeriod, constant.DefaultCRDeleteTimeout, func() (bool, error) {
-				klog.V(3).Infof("Waiting for k8s resource %s is removed ...", kind)
-				err := r.Client.Get(ctx, types.NamespacedName{
-					Name:      name,
-					Namespace: namespace,
-				}, &existingK8sRes)
-				if apierrors.IsNotFound(err) {
-					return true, nil
+	if !r.CheckLabel(existingRes, map[string]string{constant.OpreqLabel: "true"}) && (newLabels == nil || newLabels[constant.OpreqLabel] != "true") {
+		return nil
+	}
+
+	existingAnnos := existingRes.GetAnnotations()
+	existingHostHash := existingAnnos[constant.RouteHash]
+
+	if k8sResConfig != nil {
+		k8sResConfigDecoded := make(map[string]interface{})
+		k8sResConfigUnmarshalErr := json.Unmarshal(k8sResConfig.Raw, &k8sResConfigDecoded)
+		if k8sResConfigUnmarshalErr != nil {
+			klog.Errorf("failed to unmarshal k8s Resource Config: %v", k8sResConfigUnmarshalErr)
+		}
+
+		// Read the host from the OperandConfig
+		if newHost, found := k8sResConfigDecoded["spec"].(map[string]interface{})["host"].(string); found {
+			newHostHash := util.CalculateHash([]byte(newHost))
+
+			// Only re-create the route if the custom host has been removed
+			if newHost == "" && existingHostHash != newHostHash {
+
+				// create a new template of k8s resource
+				var templatek8sRes unstructured.Unstructured
+				templatek8sRes.SetAPIVersion(apiversion)
+				templatek8sRes.SetKind(kind)
+				templatek8sRes.SetName(name)
+				templatek8sRes.SetNamespace(namespace)
+
+				if err := r.deleteK8sResource(ctx, existingRes, newLabels, namespace); err != nil {
+					return errors.Wrap(err, "failed to delete Route for recreation")
 				}
-				if err != nil {
-					return false, errors.Wrapf(err, "failed to get k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+				if err := r.createK8sResource(ctx, templatek8sRes, k8sResConfig, newLabels, newAnnotations, ownerReferences, optionalFields); err != nil {
+					return errors.Wrap(err, "failed to update k8s resource")
 				}
-				return false, nil
-			})
-			if err != nil {
-				return errors.Wrapf(err, "failed to delete k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 			}
-			klog.V(1).Infof("Finish deleting k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 		}
 	}
 	return nil
@@ -1197,7 +1364,7 @@ func (r *Reconciler) deleteAllK8sResource(ctx context.Context, csc *operatorv1al
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if err := r.deleteK8sResource(ctx, k8sResShouldBeDeleted, k8sNamespace); err != nil {
+			if err := r.deleteK8sResource(ctx, k8sResShouldBeDeleted, k8sRes.Labels, k8sNamespace); err != nil {
 				r.Mutex.Lock()
 				defer r.Mutex.Unlock()
 				merr.Add(err)
@@ -1209,6 +1376,66 @@ func (r *Reconciler) deleteAllK8sResource(ctx context.Context, csc *operatorv1al
 
 	if len(merr.Errors) != 0 {
 		return merr
+	}
+	return nil
+}
+
+func (r *Reconciler) deleteK8sResource(ctx context.Context, existingK8sRes unstructured.Unstructured, newLabels map[string]string, namespace string) error {
+
+	kind := existingK8sRes.GetKind()
+	apiversion := existingK8sRes.GetAPIVersion()
+	name := existingK8sRes.GetName()
+
+	k8sResShouldBeDeleted := unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": apiversion,
+			"kind":       kind,
+		},
+	}
+	err := r.Client.Get(ctx, types.NamespacedName{
+		Name:      name,
+		Namespace: namespace,
+	}, &k8sResShouldBeDeleted)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return errors.Wrapf(err, "failed to get k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+	}
+	if apierrors.IsNotFound(err) {
+		klog.V(3).Infof("There is no k8s resource: %s from kind: %s", name, kind)
+	} else {
+		// If the existing k8s resources has the OpreqLabel and does not have the NotUninstallLabel, delete it
+		// If the OpreqLabel is difined in OperandConfig resource, delete it
+		hasOpreqLabel := r.CheckLabel(k8sResShouldBeDeleted, map[string]string{constant.OpreqLabel: "true"})
+		hasNotUninstallLabel := r.CheckLabel(k8sResShouldBeDeleted, map[string]string{constant.NotUninstallLabel: "true"})
+		opreqLabelInConfig := newLabels != nil && newLabels[constant.OpreqLabel] == "true"
+
+		if (hasOpreqLabel && !hasNotUninstallLabel) || opreqLabelInConfig {
+			klog.V(3).Infof("Deleting k8s resource: %s from kind: %s", name, kind)
+			err := r.Delete(ctx, &k8sResShouldBeDeleted, client.PropagationPolicy(metav1.DeletePropagationBackground))
+			if err != nil && !apierrors.IsNotFound(err) {
+				return errors.Wrapf(err, "failed to delete k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+			}
+			err = wait.PollImmediate(constant.DefaultCRDeletePeriod, constant.DefaultCRDeleteTimeout, func() (bool, error) {
+				if strings.EqualFold(kind, "OperandRequest") {
+					return true, nil
+				}
+				klog.V(3).Infof("Waiting for resource %s to be removed ...", kind)
+				err := r.Client.Get(ctx, types.NamespacedName{
+					Name:      name,
+					Namespace: namespace,
+				}, &existingK8sRes)
+				if apierrors.IsNotFound(err) {
+					return true, nil
+				}
+				if err != nil {
+					return false, errors.Wrapf(err, "failed to get k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+				}
+				return false, nil
+			})
+			if err != nil {
+				return errors.Wrapf(err, "failed to delete k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+			}
+			klog.V(1).Infof("Finish deleting k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
+		}
 	}
 	return nil
 }
@@ -1272,4 +1499,157 @@ func (r *Reconciler) ResourceForKind(gvk schema.GroupVersionKind, namespace stri
 		return nil, err
 	}
 	return &mapping.Resource, nil
+}
+
+func (r *Reconciler) setOwnerReferences(ctx context.Context, controlledRes *unstructured.Unstructured, ownerReferences *[]operatorv1alpha1.OwnerReference) error {
+	if ownerReferences != nil {
+		for _, owner := range *ownerReferences {
+			ownerObj := unstructured.Unstructured{}
+			ownerObj.SetAPIVersion(owner.APIVersion)
+			ownerObj.SetKind(owner.Kind)
+			ownerObj.SetName(owner.Name)
+
+			if err := r.Reader.Get(ctx, types.NamespacedName{
+				Name:      owner.Name,
+				Namespace: controlledRes.GetNamespace(),
+			}, &ownerObj); err != nil {
+				return errors.Wrapf(err, "failed to get owner object -- Kind: %s, NamespacedName: %s/%s", owner.Kind, controlledRes.GetNamespace(), owner.Name)
+			}
+			if owner.Controller != nil && *owner.Controller {
+				if err := controllerutil.SetControllerReference(&ownerObj, controlledRes, r.Scheme); err != nil {
+					return errors.Wrapf(err, "failed to set controller ownerReference for k8s resource -- Kind: %s, NamespacedName: %s/%s", controlledRes.GetKind(), controlledRes.GetNamespace(), controlledRes.GetName())
+				}
+			} else {
+				if err := controllerutil.SetOwnerReference(&ownerObj, controlledRes, r.Scheme); err != nil {
+					return errors.Wrapf(err, "failed to set ownerReference for k8s resource -- Kind: %s, NamespacedName: %s/%s", controlledRes.GetKind(), controlledRes.GetNamespace(), controlledRes.GetName())
+				}
+			}
+			klog.Infof("Set %s with name %s as Owner for k8s resource -- Kind: %s, NamespacedName: %s/%s", owner.Kind, owner.Name, controlledRes.GetKind(), controlledRes.GetNamespace(), controlledRes.GetName())
+		}
+	}
+	return nil
+}
+
+func (r *Reconciler) ExecuteOptionalFields(ctx context.Context, resTemplate *unstructured.Unstructured, optionalFields *[]operatorv1alpha1.OptionalField) error {
+	if optionalFields != nil {
+		for _, field := range *optionalFields {
+			// Find the path from resTemplate
+			if value, err := util.SanitizeObjectString(field.Path, resTemplate.Object); err != nil || value == "" {
+				klog.Warningf("Skipping execute optional field, not find the path %s in the object -- Kind: %s, NamespacedName: %s/%s: %v", field.Path, resTemplate.GetKind(), resTemplate.GetNamespace(), resTemplate.GetName(), err)
+				continue
+			}
+			// Find the match expressions
+			if field.MatchExpressions != nil {
+				if !r.findMatchExpressions(ctx, field.MatchExpressions) {
+					klog.Infof("Skip operation '%s' for optional fields: %v for %s %s/%s", field.Operation, field.Path, resTemplate.GetKind(), resTemplate.GetNamespace(), resTemplate.GetName())
+					continue
+				}
+			}
+			// Do operation
+			switch field.Operation {
+			case operatorv1alpha1.OperationRemove:
+				util.RemoveObjectField(resTemplate.Object, field.Path)
+			// case "Add": # TODO
+			default:
+				klog.Warningf("Invalid operation '%s' in optional fields: %v", field.Operation, field)
+			}
+		}
+	}
+	return nil
+}
+
+func (r *Reconciler) findMatchExpressions(ctx context.Context, matchExpressions []operatorv1alpha1.MatchExpression) bool {
+	isMatch := false
+	for _, matchExpression := range matchExpressions {
+		if matchExpression.Key == "" || matchExpression.Operator == "" || matchExpression.ObjectRef == nil {
+			klog.Warningf("Invalid matchExpression: %v", matchExpression)
+			continue
+		}
+		// find value from the object
+		objRef := &unstructured.Unstructured{}
+		objRef.SetAPIVersion(matchExpression.ObjectRef.APIVersion)
+		objRef.SetKind(matchExpression.ObjectRef.Kind)
+		objRef.SetName(matchExpression.ObjectRef.Name)
+		if err := r.Reader.Get(ctx, types.NamespacedName{
+			Name:      matchExpression.ObjectRef.Name,
+			Namespace: matchExpression.ObjectRef.Namespace,
+		}, objRef); err != nil {
+			klog.Warningf("Failed to get the object %v in match expressions: %v", matchExpression.ObjectRef, err)
+			continue
+		}
+		value, _ := util.SanitizeObjectString(matchExpression.Key, objRef.Object)
+
+		switch matchExpression.Operator {
+		case operatorv1alpha1.OperatorIn:
+			if util.Contains(matchExpression.Values, value) {
+				return true
+			}
+		case operatorv1alpha1.OperatorNotIn:
+			if util.Contains(matchExpression.Values, value) {
+				return false
+			} else {
+				isMatch = true
+			}
+		case operatorv1alpha1.OperatorExists:
+			if value != "" {
+				return true
+			}
+		case operatorv1alpha1.OperatorDoesNotExist:
+			if value != "" {
+				return false
+			} else {
+				isMatch = true
+			}
+		default:
+			klog.Warningf("Invalid operator %s in match expressions: %v", matchExpression.Operator, matchExpression)
+		}
+	}
+
+	return isMatch
+}
+
+func (r *Reconciler) ServiceStatusIsReady(ctx context.Context, requestInstance *operatorv1alpha1.OperandRequest) (bool, error) {
+	requestedServicesSet := make(map[string]struct{})
+	for _, req := range requestInstance.Spec.Requests {
+		registryKey := requestInstance.GetRegistryKey(req)
+		registryInstance, err := r.GetOperandRegistry(ctx, registryKey)
+		if err != nil {
+			klog.Errorf("Failed to get OperandRegistry %s, %v", registryKey, err)
+			return false, err
+		}
+		if registryInstance.Annotations != nil && registryInstance.Annotations[constant.StatusMonitoredServices] != "" {
+			monitoredServices := strings.Split(registryInstance.Annotations[constant.StatusMonitoredServices], ",")
+			for _, operand := range req.Operands {
+				if util.Contains(monitoredServices, operand.Name) {
+					requestedServicesSet[operand.Name] = struct{}{}
+				}
+			}
+		}
+	}
+
+	if len(requestedServicesSet) == 0 {
+		klog.V(2).Infof("No services to be monitored for OperandRequest %s/%s", requestInstance.Namespace, requestInstance.Name)
+		return true, nil
+	}
+
+	if len(requestInstance.Status.Services) == 0 {
+		klog.Infof("Waiting for status.services to be instantiated for OperandRequest %s/%s ...", requestInstance.Namespace, requestInstance.Name)
+		return false, nil
+	}
+	if len(requestedServicesSet) != len(requestInstance.Status.Services) {
+		klog.Infof("Waiting for status of all requested services to be instantiated for OperandRequest %s/%s ...", requestInstance.Namespace, requestInstance.Name)
+		return false, nil
+	}
+
+	serviceStatus := true
+	// wait for the status of the requested services to be ready
+	for _, s := range requestInstance.Status.Services {
+		if _, ok := requestedServicesSet[s.OperatorName]; ok {
+			if s.Status != "Ready" {
+				klog.Infof("Waiting for status of service %s to be Ready for OperandRequest %s/%s ...", s.OperatorName, requestInstance.Namespace, requestInstance.Name)
+				serviceStatus = false
+			}
+		}
+	}
+	return serviceStatus, nil
 }

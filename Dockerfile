@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM golang:1.19.3 as builder
+FROM docker-na-public.artifactory.swg-devops.com/hyc-cloud-private-dockerhub-docker-remote/golang:1.23.2 as builder
 ARG GOARCH
 
 WORKDIR /workspace
@@ -21,7 +21,7 @@ RUN CGO_ENABLED=0 GOOS=linux GO111MODULE=on go build -a -o manager main.go
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
 # FROM gcr.io/distroless/static:nonroot
-FROM docker-na-public.artifactory.swg-devops.com/hyc-cloud-private-edge-docker-local/build-images/ubi8-minimal:latest
+FROM docker-na-public.artifactory.swg-devops.com/hyc-cloud-private-edge-docker-local/build-images/ubi9-minimal:latest
 
 ARG VCS_REF
 ARG VCS_URL
