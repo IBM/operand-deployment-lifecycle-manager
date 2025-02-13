@@ -14,6 +14,7 @@ rules:
   - secrets
   - services
   - serviceaccounts
+  - pods #for EDB
   verbs:
   - create
   - delete
@@ -51,6 +52,8 @@ rules:
   - apps
   resources:
   - deployments
+  - daemonsets
+  - statefulsets
   verbs:
   - create
   - delete
