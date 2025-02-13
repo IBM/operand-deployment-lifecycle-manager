@@ -13,6 +13,8 @@ rules:
   - namespaces
   - secrets
   - services
+  - serviceaccounts
+  - pods #for EDB
   verbs:
   - create
   - delete
@@ -22,9 +24,115 @@ rules:
   - update
   - watch
 - apiGroups:
-  - '*'
+  - postgresql.k8s.enterprisedb.io
   resources:
-  - '*'
+  - clusters
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - roles
+  - rolebindings
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - daemonsets
+  - statefulsets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - certmanager.k8s.io
+  resources:
+  - certificates
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - cert-manager.io
+  resources:
+  - certificates
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - foundation.ibm.com
+  resources:
+  - navconfigurations
+  - navconfigurations/finalizers
+  - navconfigurations/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - operators.ibm.com
+  resources:
+  - commonwebuis
+  # - commonwebuis/finalizers
+  # - commonwebuis/status
+  - switcheritems
+  # - switcheritems/finalizers
+  # - switcheritems/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - operator.ibm.com
+  resources:
+  - authentications
   verbs:
   - create
   - delete
