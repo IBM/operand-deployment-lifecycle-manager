@@ -648,6 +648,12 @@ func (m *ODLMOperator) GetDeploymentListFromPackage(ctx context.Context, name, n
 		deployments = append(deployments, &deployment)
 	}
 
+	if len(deployments) == 0 {
+		// give an error message if no deployment found and return  error
+		klog.Errorf("No Deployment found with package name %s:", packageName)
+		return nil, fmt.Errorf("missing deployment with package name %s, please install the %s first", packageName, packageName)
+	}
+
 	klog.V(1).Infof("Get %v / %v Deployment in the namespace %s", len(deployments), len(deploymentList.Items), deploymentNamespace)
 	return deployments, nil
 }
