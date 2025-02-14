@@ -38,6 +38,7 @@ OPERATOR_SDK_VERSION=v1.32.0
 YQ_VERSION=v4.42.1
 DEFAULT_CHANNEL ?= v$(shell cat ./version/version.go | grep "Version =" | awk '{ print $$3}' | tr -d '"' | cut -d '.' -f1,2)
 CHANNELS ?= $(DEFAULT_CHANNEL)
+OPENSHIFT_VERSIONS ?= v4.12-v4.17
 
 LOCAL_OS := $(shell uname)
 ifeq ($(LOCAL_OS),Linux)
@@ -203,6 +204,8 @@ generate: controller-gen ## Generate code e.g. API etc.
 bundle-manifests: yq
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle \
 	-q --overwrite --version $(OPERATOR_VERSION) $(BUNDLE_METADATA_OPTS)
+	echo "\n  # OpenShift annotations." >> bundle/metadata/annotations.yaml ;\
+	echo "  com.redhat.openshift.versions: $(OPENSHIFT_VERSIONS)" >> bundle/metadata/annotations.yaml ;\
 	$(OPERATOR_SDK) bundle validate ./bundle
 	$(YQ) eval-all -i '.spec.relatedImages |= load("config/manifests/bases/operand-deployment-lifecycle-manager.clusterserviceversion.yaml").spec.relatedImages' bundle/manifests/operand-deployment-lifecycle-manager.clusterserviceversion.yaml
 	@# Need to replace fields this way to avoid changing PROJECT name and CSV file name, which may or may not impact CICD automation
@@ -258,19 +261,19 @@ kind-load-img:
 build-operator-image: $(CONFIG_DOCKER_TARGET) ## Build the operator image.
 	@echo "Building the $(OPERATOR_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
 	@docker build -t $(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) \
-	--build-arg VCS_REF=$(VCS_REF) --build-arg VCS_URL=$(VCS_URL) \
+	--build-arg VCS_REF=$(VCS_REF) --build-arg VCS_URL=$(VCS_URL) --build-arg RELEASE_VERSION=$(RELEASE_VERSION) \
 	--build-arg GOARCH=$(LOCAL_ARCH) -f Dockerfile .
 
 build-operator-dev-image: ## Build the operator dev image.
 	@echo "Building the $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME) docker image..."
 	@docker build -t $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(VERSION) \
-	--build-arg VCS_REF=$(VCS_REF) --build-arg VCS_URL=$(VCS_URL) \
+	--build-arg VCS_REF=$(VCS_REF) --build-arg VCS_URL=$(VCS_URL) --build-arg RELEASE_VERSION=$(RELEASE_VERSION) \
 	--build-arg GOARCH=$(LOCAL_ARCH) -f Dockerfile .
 
 build-test-operator-image: $(CONFIG_DOCKER_TARGET) ## Build the operator test image.
 	@echo "Building the $(OPERATOR_IMAGE_NAME) docker image for testing..."
 	@docker build -t $(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG) \
-	--build-arg VCS_REF=$(VCS_REF) --build-arg VCS_URL=$(VCS_URL) \
+	--build-arg VCS_REF=$(VCS_REF) --build-arg VCS_URL=$(VCS_URL) --build-arg RELEASE_VERSION=$(RELEASE_VERSION) \
 	--build-arg GOARCH=$(LOCAL_ARCH) -f Dockerfile .
 
 ##@ Release
