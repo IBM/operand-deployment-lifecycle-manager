@@ -8,7 +8,11 @@ metadata:
 
 {{- $chartName := .Chart.Name }}
 {{- $operaterNamespace := .Values.global.operatorNamespace }}
-{{- range $i := .Values.global.tetheredNamespace }}
+
+{{- $namespaces := .Values.global.tetheredNamespace | default list -}}
+{{- $namespaces = append $namespaces .Values.global.operatorNamespace -}}
+{{- $namespaces = append $namespaces .Values.global.instanceNamespace -}}
+{{- range $i := $namespaces }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role

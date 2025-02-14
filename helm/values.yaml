@@ -5,6 +5,7 @@
 global:
   tetheredNamespace: [tenant1,tenant2]
   operatorNamespace: operator-ns
+  instanceNamespace: services-ns
 
 # Note there are no leading or trailing /'s
 cpfs:
