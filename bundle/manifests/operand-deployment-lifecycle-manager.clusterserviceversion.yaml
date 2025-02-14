@@ -129,15 +129,8 @@ metadata:
     categories: Developer Tools, Monitoring, Logging & Tracing, Security
     certified: "false"
     containerImage: icr.io/cpopen/odlm:latest
-    createdAt: "2024-09-28T19:55:35Z"
+    createdAt: "2025-02-14T21:16:49Z"
     description: The Operand Deployment Lifecycle Manager provides a Kubernetes CRD-based API to manage the lifecycle of operands.
-    nss.operator.ibm.com/managed-operators: ibm-odlm
-    olm.skipRange: '>=1.2.0 <4.4.0'
-    operators.openshift.io/infrastructure-features: '["disconnected"]'
-    operators.operatorframework.io/builder: operator-sdk-v1.32.0
-    operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
-    repository: https://github.com/IBM/operand-deployment-lifecycle-manager
-    support: IBM
     features.operators.openshift.io/disconnected: "true"
     features.operators.openshift.io/fips-compliant: "true"
     features.operators.openshift.io/proxy-aware: "false"
@@ -145,6 +138,13 @@ metadata:
     features.operators.openshift.io/token-auth-aws: "false"
     features.operators.openshift.io/token-auth-azure: "false"
     features.operators.openshift.io/token-auth-gcp: "false"
+    nss.operator.ibm.com/managed-operators: ibm-odlm
+    olm.skipRange: '>=1.2.0 <4.4.0'
+    operators.openshift.io/infrastructure-features: '["disconnected"]'
+    operators.operatorframework.io/builder: operator-sdk-v1.32.0
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
+    repository: https://github.com/IBM/operand-deployment-lifecycle-manager
+    support: IBM
   labels:
     operatorframework.io/arch.amd64: supported
     operatorframework.io/arch.ppc64le: supported
@@ -649,7 +649,7 @@ spec:
                         valueFrom:
                           fieldRef:
                             fieldPath: metadata.annotations['olm.targetNamespaces']
-                    image: icr.io/cpopen/odlm:latest
+                    image: icr.io/cpopen/odlm:4.4.0
                     imagePullPolicy: IfNotPresent
                     livenessProbe:
                       failureThreshold: 10

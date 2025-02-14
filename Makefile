@@ -66,7 +66,7 @@ else
 endif
 
 # Default image repo
-QUAY_REGISTRY ?= quay.io/luzarragaben
+ICR_REIGSTRY ?= icr.io/cpopen
 
 ifeq ($(BUILD_LOCALLY),0)
 ARTIFACTORYA_REGISTRY ?= "docker-na-public.artifactory.swg-devops.com/hyc-cloud-private-integration-docker-local/ibmcom"
@@ -77,7 +77,7 @@ endif
 ifdef DEV_REGISTRY
 DEV_REGISTRY := $(DEV_REGISTRY)
 else
-DEV_REGISTRY := ${QUAY_REGISTRY}
+DEV_REGISTRY := ${ICR_REIGSTRY}
 endif
 
 # Current Operator image name
@@ -186,11 +186,11 @@ uninstall: manifests kustomize ## Uninstall CRDs from a cluster
 	$(KUSTOMIZE) build config/crd | kubectl delete -f -
 
 deploy: manifests kustomize ## Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-	cd config/manager && $(KUSTOMIZE) edit set image quay.io/opencloudio/odlm=$(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG)
+	cd config/manager && $(KUSTOMIZE) edit set image icr.io/cpopen/odlm=$(ICR_REIGSTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG)
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
 deploy-e2e: kustomize ## Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-	cd config/e2e/manager && $(KUSTOMIZE) edit set image quay.io/opencloudio/odlm=$(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG)
+	cd config/e2e/manager && $(KUSTOMIZE) edit set image icr.io/cpopen/odlm=$(ICR_REIGSTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG)
 	$(KUSTOMIZE) build config/e2e | kubectl apply -f -
 
 ##@ Generate code and manifests
@@ -202,6 +202,7 @@ generate: controller-gen ## Generate code e.g. API etc.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 bundle-manifests: yq
+	cd config/manager && $(KUSTOMIZE) edit set image icr.io/cpopen/odlm=$(ICR_REIGSTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_VERSION)
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle \
 	-q --overwrite --version $(OPERATOR_VERSION) $(BUNDLE_METADATA_OPTS)
 	echo "\n  # OpenShift annotations." >> bundle/metadata/annotations.yaml ;\
@@ -254,7 +255,7 @@ kind-delete:
 
 kind-load-img:
 	@echo Load ODLM images into Kind cluster
-	@${KIND} load docker-image $(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG) --name ${KIND_CLUSTER_NAME} -v 5
+	@${KIND} load docker-image $(ICR_REIGSTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG) --name ${KIND_CLUSTER_NAME} -v 5
 
 ##@ Build
 
@@ -272,7 +273,7 @@ build-operator-dev-image: ## Build the operator dev image.
 
 build-test-operator-image: $(CONFIG_DOCKER_TARGET) ## Build the operator test image.
 	@echo "Building the $(OPERATOR_IMAGE_NAME) docker image for testing..."
-	@docker build -t $(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG) \
+	@docker build -t $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG) \
 	--build-arg VCS_REF=$(VCS_REF) --build-arg VCS_URL=$(VCS_URL) --build-arg RELEASE_VERSION=$(RELEASE_VERSION) \
 	--build-arg GOARCH=$(LOCAL_ARCH) -f Dockerfile .
 
@@ -288,13 +289,13 @@ build-push-image: $(CONFIG_DOCKER_TARGET) build-operator-image  ## Build and pus
 	@docker push $(ARTIFACTORYA_REGISTRY)/$(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION)
 
 build-push-bundle-image: yq
-	@docker build -f bundle.Dockerfile -t $(QUAY_REGISTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) .
+	@docker build -f bundle.Dockerfile -t $(ICR_REIGSTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) .
 	@echo "Pushing the $(BUNDLE_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
-	@docker push $(QUAY_REGISTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION)
+	@docker push $(ICR_REIGSTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION)
 
 build-catalog-source:
-	@opm -u docker index add --bundles $(QUAY_REGISTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) --tag $(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME)-catalog:$(VERSION)
-	@docker push $(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME)-catalog:$(VERSION)
+	@opm -u docker index add --bundles $(ICR_REIGSTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) --tag $(ICR_REIGSTRY)/$(OPERATOR_IMAGE_NAME)-catalog:$(VERSION)
+	@docker push $(ICR_REIGSTRY)/$(OPERATOR_IMAGE_NAME)-catalog:$(VERSION)
 
 build-catalog: build-push-bundle-image build-catalog-source
 
@@ -302,7 +303,7 @@ multiarch-image: $(CONFIG_DOCKER_TARGET) ## Generate multiarch images for operat
 	@MAX_PULLING_RETRY=20 RETRY_INTERVAL=30 common/scripts/multiarch_image.sh $(ARTIFACTORYA_REGISTRY) $(OPERATOR_IMAGE_NAME) $(VERSION) $(RELEASE_VERSION)
 
 run-bundle:
-	$(OPERATOR_SDK) run bundle $(QUAY_REGISTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) --install-mode OwnNamespace
+	$(OPERATOR_SDK) run bundle $(ICR_REIGSTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) --install-mode OwnNamespace
 
 cleanup-bundle:
 	$(OPERATOR_SDK) cleanup ibm-odlm
