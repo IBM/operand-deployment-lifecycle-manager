@@ -3,9 +3,9 @@
 
 # The following global values could be overridden by top-level values
 global:
-  tetheredNamespace: [tenant1,tenant2]
+  tetheredNamespace: []
   operatorNamespace: operator-ns
-  instanceNamespace: services-ns
+  instanceNamespace: 
 
 # Note there are no leading or trailing /'s
 cpfs:
