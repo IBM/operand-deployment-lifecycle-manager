@@ -1,10 +1,28 @@
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
+apiVersion: v1
+kind: ServiceAccount
 metadata:
   name: operand-deployment-lifecycle-manager
   namespace: {{ .Values.global.operatorNamespace }}
   labels:
     component-id: {{ .Chart.Name }}
+
+{{- $chartName := .Chart.Name }}
+{{- $operaterNamespace := .Values.global.operatorNamespace }}
+
+{{- $namespaces := .Values.global.tetheredNamespace | default list -}}
+{{- $namespaces = append $namespaces .Values.global.operatorNamespace -}}
+{{- if .Values.global.instanceNamespace }}
+  {{- $namespaces = append $namespaces .Values.global.instanceNamespace }}
+{{- end }}
+{{- range $i := $namespaces }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: operand-deployment-lifecycle-manager
+  namespace: {{ $i }}
+  labels:
+    component-id: {{ $chartName }}
 rules:
 - apiGroups:
   - ""
@@ -272,16 +290,15 @@ rules:
   - patch
   - update
   - watch
-
 ---
 
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: operand-deployment-lifecycle-manager
-  namespace: {{ .Values.global.operatorNamespace }}
+  namespace: {{ $i }}
   labels:
-    component-id: {{ .Chart.Name }}
+    component-id: {{ $chartName }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -289,26 +306,17 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: operand-deployment-lifecycle-manager
-  namespace: {{ .Values.global.operatorNamespace }}
+  namespace: {{ $operaterNamespace }}
 ---
 
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: operand-deployment-lifecycle-manager
-  namespace: {{ .Values.global.operatorNamespace }}
-  labels:
-    component-id: {{ .Chart.Name }}
-
----
 ### role only for olm
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: operand-deployment-lifecycle-manager.v4.5.0
-  namespace: {{ .Values.global.operatorNamespace }}
+  namespace: {{ $i }}
   labels:
-    component-id: {{ .Chart.Name }}
+    component-id: {{ $chartName }}
 rules:
 - apiGroups:
   - operators.coreos.com
@@ -320,16 +328,15 @@ rules:
   - get
   - update
   - patch
-
 ---
 ### rolebinding only for olm
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: operand-deployment-lifecycle-manager.v4.5.0
-  namespace: {{ .Values.global.operatorNamespace }}
+  namespace: {{ $i }}
   labels:
-    component-id: {{ .Chart.Name }}
+    component-id: {{ $chartName}}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -337,4 +344,5 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: operand-deployment-lifecycle-manager
-  namespace: {{ .Values.global.operatorNamespace }}
+  namespace: {{ $operaterNamespace }}
+{{- end }}
