@@ -128,7 +128,7 @@ metadata:
     capabilities: Seamless Upgrades
     categories: Developer Tools, Monitoring, Logging & Tracing, Security
     certified: "false"
-    containerImage: icr.io/cpopen/odlm:latest
+    containerImage: icr.io/cpopen/odlm:4.4.0
     createdAt: "2025-02-14T21:16:49Z"
     description: The Operand Deployment Lifecycle Manager provides a Kubernetes CRD-based API to manage the lifecycle of operands.
     features.operators.openshift.io/disconnected: "true"
