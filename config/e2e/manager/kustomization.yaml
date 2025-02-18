@@ -3,6 +3,6 @@ resources:
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 images:
-- name: quay.io/opencloudio/odlm
+- name: icr.io/cpopen/odlm
   newName: quay.io/opencloudio/odlm
   newTag: dev-test

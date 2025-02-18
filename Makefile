@@ -66,6 +66,7 @@ else
 endif
 
 # Default image repo
+QUAY_REGISTRY ?= quay.io/opencloudio
 ICR_REIGSTRY ?= icr.io/cpopen
 
 ifeq ($(BUILD_LOCALLY),0)
@@ -77,7 +78,7 @@ endif
 ifdef DEV_REGISTRY
 DEV_REGISTRY := $(DEV_REGISTRY)
 else
-DEV_REGISTRY := ${ICR_REIGSTRY}
+DEV_REGISTRY := ${QUAY_REGISTRY}
 endif
 
 # Current Operator image name
@@ -90,7 +91,7 @@ OPERATOR_VERSION ?= 4.4.0
 # Kind cluster name
 KIND_CLUSTER_NAME ?= "odlm"
 # Operator image tag for test
-OPERATOR_TEST_TAG ?= nolm-controller-cleanup
+OPERATOR_TEST_TAG ?= dev-test
 
 # Options for 'bundle-build'
 ifneq ($(origin CHANNELS), undefined)
@@ -186,11 +187,11 @@ uninstall: manifests kustomize ## Uninstall CRDs from a cluster
 	$(KUSTOMIZE) build config/crd | kubectl delete -f -
 
 deploy: manifests kustomize ## Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-	cd config/manager && $(KUSTOMIZE) edit set image icr.io/cpopen/odlm=$(ICR_REIGSTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG)
+	cd config/manager && $(KUSTOMIZE) edit set image icr.io/cpopen/odlm=$(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG)
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
 deploy-e2e: kustomize ## Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-	cd config/e2e/manager && $(KUSTOMIZE) edit set image icr.io/cpopen/odlm=$(ICR_REIGSTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG)
+	cd config/e2e/manager && $(KUSTOMIZE) edit set image icr.io/cpopen/odlm=$(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG)
 	$(KUSTOMIZE) build config/e2e | kubectl apply -f -
 
 ##@ Generate code and manifests
@@ -255,7 +256,7 @@ kind-delete:
 
 kind-load-img:
 	@echo Load ODLM images into Kind cluster
-	@${KIND} load docker-image $(ICR_REIGSTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG) --name ${KIND_CLUSTER_NAME} -v 5
+	@${KIND} load docker-image $(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG) --name ${KIND_CLUSTER_NAME} -v 5
 
 ##@ Build
 
@@ -303,7 +304,7 @@ multiarch-image: $(CONFIG_DOCKER_TARGET) ## Generate multiarch images for operat
 	@MAX_PULLING_RETRY=20 RETRY_INTERVAL=30 common/scripts/multiarch_image.sh $(ARTIFACTORYA_REGISTRY) $(OPERATOR_IMAGE_NAME) $(VERSION) $(RELEASE_VERSION)
 
 run-bundle:
-	$(OPERATOR_SDK) run bundle $(ICR_REIGSTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) --install-mode OwnNamespace
+	$(OPERATOR_SDK) run bundle $(QUAY_REGISTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) --install-mode OwnNamespace
 
 cleanup-bundle:
 	$(OPERATOR_SDK) cleanup ibm-odlm
