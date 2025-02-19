@@ -38,6 +38,7 @@ OPERATOR_SDK_VERSION=v1.32.0
 YQ_VERSION=v4.42.1
 DEFAULT_CHANNEL ?= v$(shell cat ./version/version.go | grep "Version =" | awk '{ print $$3}' | tr -d '"' | cut -d '.' -f1,2)
 CHANNELS ?= $(DEFAULT_CHANNEL)
+OPENSHIFT_VERSIONS ?= v4.12-v4.17
 
 LOCAL_OS := $(shell uname)
 ifeq ($(LOCAL_OS),Linux)
@@ -65,7 +66,8 @@ else
 endif
 
 # Default image repo
-QUAY_REGISTRY ?= quay.io/luzarragaben
+QUAY_REGISTRY ?= quay.io/opencloudio
+ICR_REIGSTRY ?= icr.io/cpopen
 
 ifeq ($(BUILD_LOCALLY),0)
 ARTIFACTORYA_REGISTRY ?= "docker-na-public.artifactory.swg-devops.com/hyc-cloud-private-integration-docker-local/ibmcom"
@@ -89,7 +91,7 @@ OPERATOR_VERSION ?= 4.4.0
 # Kind cluster name
 KIND_CLUSTER_NAME ?= "odlm"
 # Operator image tag for test
-OPERATOR_TEST_TAG ?= nolm-controller-cleanup
+OPERATOR_TEST_TAG ?= dev-test
 
 # Options for 'bundle-build'
 ifneq ($(origin CHANNELS), undefined)
@@ -185,11 +187,11 @@ uninstall: manifests kustomize ## Uninstall CRDs from a cluster
 	$(KUSTOMIZE) build config/crd | kubectl delete -f -
 
 deploy: manifests kustomize ## Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-	cd config/manager && $(KUSTOMIZE) edit set image quay.io/opencloudio/odlm=$(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG)
+	cd config/manager && $(KUSTOMIZE) edit set image icr.io/cpopen/odlm=$(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG)
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
 deploy-e2e: kustomize ## Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-	cd config/e2e/manager && $(KUSTOMIZE) edit set image quay.io/opencloudio/odlm=$(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG)
+	cd config/e2e/manager && $(KUSTOMIZE) edit set image icr.io/cpopen/odlm=$(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG)
 	$(KUSTOMIZE) build config/e2e | kubectl apply -f -
 
 ##@ Generate code and manifests
@@ -201,8 +203,11 @@ generate: controller-gen ## Generate code e.g. API etc.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 bundle-manifests: yq
+	cd config/manager && $(KUSTOMIZE) edit set image icr.io/cpopen/odlm=$(ICR_REIGSTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_VERSION)
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle \
 	-q --overwrite --version $(OPERATOR_VERSION) $(BUNDLE_METADATA_OPTS)
+	echo "\n  # OpenShift annotations." >> bundle/metadata/annotations.yaml ;\
+	echo "  com.redhat.openshift.versions: $(OPENSHIFT_VERSIONS)" >> bundle/metadata/annotations.yaml ;\
 	$(OPERATOR_SDK) bundle validate ./bundle
 	$(YQ) eval-all -i '.spec.relatedImages |= load("config/manifests/bases/operand-deployment-lifecycle-manager.clusterserviceversion.yaml").spec.relatedImages' bundle/manifests/operand-deployment-lifecycle-manager.clusterserviceversion.yaml
 	@# Need to replace fields this way to avoid changing PROJECT name and CSV file name, which may or may not impact CICD automation
@@ -258,19 +263,19 @@ kind-load-img:
 build-operator-image: $(CONFIG_DOCKER_TARGET) ## Build the operator image.
 	@echo "Building the $(OPERATOR_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
 	@docker build -t $(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) \
-	--build-arg VCS_REF=$(VCS_REF) --build-arg VCS_URL=$(VCS_URL) \
+	--build-arg VCS_REF=$(VCS_REF) --build-arg VCS_URL=$(VCS_URL) --build-arg RELEASE_VERSION=$(RELEASE_VERSION) \
 	--build-arg GOARCH=$(LOCAL_ARCH) -f Dockerfile .
 
 build-operator-dev-image: ## Build the operator dev image.
 	@echo "Building the $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME) docker image..."
 	@docker build -t $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(VERSION) \
-	--build-arg VCS_REF=$(VCS_REF) --build-arg VCS_URL=$(VCS_URL) \
+	--build-arg VCS_REF=$(VCS_REF) --build-arg VCS_URL=$(VCS_URL) --build-arg RELEASE_VERSION=$(RELEASE_VERSION) \
 	--build-arg GOARCH=$(LOCAL_ARCH) -f Dockerfile .
 
 build-test-operator-image: $(CONFIG_DOCKER_TARGET) ## Build the operator test image.
 	@echo "Building the $(OPERATOR_IMAGE_NAME) docker image for testing..."
-	@docker build -t $(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG) \
-	--build-arg VCS_REF=$(VCS_REF) --build-arg VCS_URL=$(VCS_URL) \
+	@docker build -t $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG) \
+	--build-arg VCS_REF=$(VCS_REF) --build-arg VCS_URL=$(VCS_URL) --build-arg RELEASE_VERSION=$(RELEASE_VERSION) \
 	--build-arg GOARCH=$(LOCAL_ARCH) -f Dockerfile .
 
 ##@ Release
@@ -285,13 +290,13 @@ build-push-image: $(CONFIG_DOCKER_TARGET) build-operator-image  ## Build and pus
 	@docker push $(ARTIFACTORYA_REGISTRY)/$(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION)
 
 build-push-bundle-image: yq
-	@docker build -f bundle.Dockerfile -t $(QUAY_REGISTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) .
+	@docker build -f bundle.Dockerfile -t $(ICR_REIGSTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) .
 	@echo "Pushing the $(BUNDLE_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
-	@docker push $(QUAY_REGISTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION)
+	@docker push $(ICR_REIGSTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION)
 
 build-catalog-source:
-	@opm -u docker index add --bundles $(QUAY_REGISTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) --tag $(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME)-catalog:$(VERSION)
-	@docker push $(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME)-catalog:$(VERSION)
+	@opm -u docker index add --bundles $(ICR_REIGSTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) --tag $(ICR_REIGSTRY)/$(OPERATOR_IMAGE_NAME)-catalog:$(VERSION)
+	@docker push $(ICR_REIGSTRY)/$(OPERATOR_IMAGE_NAME)-catalog:$(VERSION)
 
 build-catalog: build-push-bundle-image build-catalog-source
 

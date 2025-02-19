@@ -47,7 +47,7 @@ spec:
         - /manager
         args:
         - -v=2
-        image: quay.io/opencloudio/odlm:latest
+        image: icr.io/cpopen/odlm:latest
         name: manager
         resources:
           limits:

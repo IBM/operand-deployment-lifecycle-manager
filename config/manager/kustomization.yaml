@@ -1,2 +1,8 @@
 resources:
 - manager.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+images:
+- name: icr.io/cpopen/odlm
+  newName: icr.io/cpopen/odlm
+  newTag: 4.4.0
