@@ -4,6 +4,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: Helm
     productName: IBM_Cloud_Platform_Common_Services
+    component-id: {{ .Chart.Name }}
   name: operand-deployment-lifecycle-manager
   namespace: {{ .Values.global.operatorNamespace }}
 spec:
@@ -204,7 +205,7 @@ spec:
           value: operand-deployment-lifecycle-manager.v4.5.0
         - name: NO_OLM
           value: "true"
-        image: {{ .Values.global.imagePullPrefix }}/{{ .Values.imageRegistryNamespaceOperator }}/odlm:4.5.0
+        image: {{ .Values.global.imagePullPrefix }}/{{ .Values.cpfs.imageRegistryNamespaceOperator }}/odlm:4.5.0
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 10

@@ -1,9 +1,16 @@
 # imagePullPrefix: icr.io
 # imagePullSecret: ibm-entitlement-key
 
+# The following global values could be overridden by top-level values
+global:
+  tetheredNamespace: []
+  operatorNamespace: operator-ns
+  instanceNamespace: 
+
 # Note there are no leading or trailing /'s
-imageRegistryNamespaceOperator: cpopen
-imageRegistryNamespaceOperand: cpopen/cpfs
+cpfs:
+  imageRegistryNamespaceOperator: cpopen
+  imageRegistryNamespaceOperand: cpopen/cpfs
 
 # other configuration you think you might need for your operator
 # following are examples, not required:
