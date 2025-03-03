@@ -9,7 +9,7 @@ metadata:
 {{- $chartName := .Chart.Name }}
 {{- $operaterNamespace := .Values.global.operatorNamespace }}
 
-{{- $namespaces := .Values.global.tetheredNamespace | default list -}}
+{{- $namespaces := .Values.global.tetheredNamespaces | default list -}}
 {{- $namespaces = append $namespaces .Values.global.operatorNamespace -}}
 {{- if .Values.global.instanceNamespace }}
   {{- $namespaces = append $namespaces .Values.global.instanceNamespace }}

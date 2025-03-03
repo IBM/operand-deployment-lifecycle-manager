@@ -3,7 +3,7 @@
 
 # The following global values could be overridden by top-level values
 global:
-  tetheredNamespace: []
+  tetheredNamespaces: []
   operatorNamespace: operator-ns
   instanceNamespace: 
 
