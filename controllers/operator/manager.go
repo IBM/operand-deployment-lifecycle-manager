@@ -1100,7 +1100,7 @@ func (m *ODLMOperator) EvaluateExpression(ctx context.Context, expr *util.Logica
 	}
 
 	// Handle logical operators
-	if expr.And != nil && len(expr.And) > 0 {
+	if len(expr.And) > 0 {
 		for _, subExpr := range expr.And {
 			result, err := m.EvaluateExpression(ctx, subExpr, instanceType, instanceName, instanceNs)
 			if err != nil {
@@ -1113,7 +1113,7 @@ func (m *ODLMOperator) EvaluateExpression(ctx context.Context, expr *util.Logica
 		return true, nil
 	}
 
-	if expr.Or != nil && len(expr.Or) > 0 {
+	if len(expr.Or) > 0 {
 		for _, subExpr := range expr.Or {
 			result, err := m.EvaluateExpression(ctx, subExpr, instanceType, instanceName, instanceNs)
 			if err != nil {
