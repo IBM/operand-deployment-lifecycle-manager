@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
@@ -813,84 +814,157 @@ func (m *ODLMOperator) ParseValueReferenceInObject(ctx context.Context, key stri
 
 					// Check for conditional logic
 					if templateRefObj.Conditional != nil {
-
-						// Handle simple equality-based condition
-						var conditionValue string
-						var conditionErr error
-
-						// Get the condition value from the object reference
-						if templateRefObj.Conditional.IfValue != nil && templateRefObj.Conditional.IfValue.ObjectRef != nil {
-							conditionValue, conditionErr = m.ParseObjectRef(ctx, templateRefObj.Conditional.IfValue.ObjectRef, instanceType, instanceName, instanceNs)
-							if conditionErr != nil {
-								klog.Errorf("Failed to get condition value from Object for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, conditionErr)
-								return conditionErr
+						// Handle expression-based condition
+						if templateRefObj.Conditional.Expression != nil {
+							result, err := m.EvaluateExpression(ctx, templateRefObj.Conditional.Expression, instanceType, instanceName, instanceNs)
+							if err != nil {
+								klog.Errorf("Failed to evaluate expression for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
+								return err
 							}
-						}
 
-						if conditionValue == templateRefObj.Conditional.Equals {
-							if templateRefObj.Conditional.Then != nil {
-								if templateRefObj.Conditional.Then.ObjectRef != nil {
-									ref, err := m.ParseObjectRef(ctx, templateRefObj.Conditional.Then.ObjectRef, instanceType, instanceName, instanceNs)
-									if err != nil {
-										klog.Errorf("Failed to get 'then' value from Object for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
-										return err
+							if result {
+								// Use the 'then' branch when the condition is true
+								if templateRefObj.Conditional.Then != nil {
+									if templateRefObj.Conditional.Then.ObjectRef != nil {
+										ref, err := m.ParseObjectRef(ctx, templateRefObj.Conditional.Then.ObjectRef, instanceType, instanceName, instanceNs)
+										if err != nil {
+											klog.Errorf("Failed to get 'then' value from Object for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
+											return err
+										}
+										if ref != "" {
+											valueRef = ref
+										}
+									} else if templateRefObj.Conditional.Then.ConfigMapKeyRef != nil {
+										ref, err := m.ParseConfigMapRef(ctx, templateRefObj.Conditional.Then.ConfigMapKeyRef, instanceType, instanceName, instanceNs)
+										if err != nil {
+											klog.Errorf("Failed to get 'then' value from ConfigMap for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
+											return err
+										}
+										if ref != "" {
+											valueRef = ref
+										}
+									} else if templateRefObj.Conditional.Then.SecretKeyRef != nil {
+										ref, err := m.ParseSecretKeyRef(ctx, templateRefObj.Conditional.Then.SecretKeyRef, instanceType, instanceName, instanceNs)
+										if err != nil {
+											klog.Errorf("Failed to get 'then' value from Secret for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
+											return err
+										}
+										if ref != "" {
+											valueRef = ref
+										}
 									}
-									if ref != "" {
-										valueRef = ref
-									}
-								} else if templateRefObj.Conditional.Then.ConfigMapKeyRef != nil {
-									ref, err := m.ParseConfigMapRef(ctx, templateRefObj.Conditional.Then.ConfigMapKeyRef, instanceType, instanceName, instanceNs)
-									if err != nil {
-										klog.Errorf("Failed to get 'then' value from ConfigMap for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
-										return err
-									}
-									if ref != "" {
-										valueRef = ref
-									}
-								} else if templateRefObj.Conditional.Then.SecretKeyRef != nil {
-									ref, err := m.ParseSecretKeyRef(ctx, templateRefObj.Conditional.Then.SecretKeyRef, instanceType, instanceName, instanceNs)
-									if err != nil {
-										klog.Errorf("Failed to get 'then' value from Secret for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
-										return err
-									}
-									if ref != "" {
-										valueRef = ref
+								}
+							} else {
+								// Use the 'else' branch when the condition is false
+								if templateRefObj.Conditional.Else != nil {
+									if templateRefObj.Conditional.Else.ObjectRef != nil {
+										ref, err := m.ParseObjectRef(ctx, templateRefObj.Conditional.Else.ObjectRef, instanceType, instanceName, instanceNs)
+										if err != nil {
+											klog.Errorf("Failed to get 'else' value from Object for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
+											return err
+										}
+										if ref != "" {
+											valueRef = ref
+										}
+									} else if templateRefObj.Conditional.Else.ConfigMapKeyRef != nil {
+										ref, err := m.ParseConfigMapRef(ctx, templateRefObj.Conditional.Else.ConfigMapKeyRef, instanceType, instanceName, instanceNs)
+										if err != nil {
+											klog.Errorf("Failed to get 'else' value from ConfigMap for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
+											return err
+										}
+										if ref != "" {
+											valueRef = ref
+										}
+									} else if templateRefObj.Conditional.Else.SecretKeyRef != nil {
+										ref, err := m.ParseSecretKeyRef(ctx, templateRefObj.Conditional.Else.SecretKeyRef, instanceType, instanceName, instanceNs)
+										if err != nil {
+											klog.Errorf("Failed to get 'else' value from Secret for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
+											return err
+										}
+										if ref != "" {
+											valueRef = ref
+										}
 									}
 								}
 							}
 						} else {
-							if templateRefObj.Conditional.Else != nil {
-								if templateRefObj.Conditional.Else.ObjectRef != nil {
-									ref, err := m.ParseObjectRef(ctx, templateRefObj.Conditional.Else.ObjectRef, instanceType, instanceName, instanceNs)
-									if err != nil {
-										klog.Errorf("Failed to get 'else' value from Object for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
-										return err
+							// Handle simple equality-based condition
+							var conditionValue string
+							var conditionErr error
+
+							// Get the condition value from the object reference
+							if templateRefObj.Conditional.IfValue != nil && templateRefObj.Conditional.IfValue.ObjectRef != nil {
+								conditionValue, conditionErr = m.ParseObjectRef(ctx, templateRefObj.Conditional.IfValue.ObjectRef, instanceType, instanceName, instanceNs)
+								if conditionErr != nil {
+									klog.Errorf("Failed to get condition value from Object for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, conditionErr)
+									return conditionErr
+								}
+							}
+
+							if conditionValue == templateRefObj.Conditional.Equals {
+								if templateRefObj.Conditional.Then != nil {
+									if templateRefObj.Conditional.Then.ObjectRef != nil {
+										ref, err := m.ParseObjectRef(ctx, templateRefObj.Conditional.Then.ObjectRef, instanceType, instanceName, instanceNs)
+										if err != nil {
+											klog.Errorf("Failed to get 'then' value from Object for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
+											return err
+										}
+										if ref != "" {
+											valueRef = ref
+										}
+									} else if templateRefObj.Conditional.Then.ConfigMapKeyRef != nil {
+										ref, err := m.ParseConfigMapRef(ctx, templateRefObj.Conditional.Then.ConfigMapKeyRef, instanceType, instanceName, instanceNs)
+										if err != nil {
+											klog.Errorf("Failed to get 'then' value from ConfigMap for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
+											return err
+										}
+										if ref != "" {
+											valueRef = ref
+										}
+									} else if templateRefObj.Conditional.Then.SecretKeyRef != nil {
+										ref, err := m.ParseSecretKeyRef(ctx, templateRefObj.Conditional.Then.SecretKeyRef, instanceType, instanceName, instanceNs)
+										if err != nil {
+											klog.Errorf("Failed to get 'then' value from Secret for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
+											return err
+										}
+										if ref != "" {
+											valueRef = ref
+										}
 									}
-									if ref != "" {
-										valueRef = ref
-									}
-								} else if templateRefObj.Conditional.Else.ConfigMapKeyRef != nil {
-									ref, err := m.ParseConfigMapRef(ctx, templateRefObj.Conditional.Else.ConfigMapKeyRef, instanceType, instanceName, instanceNs)
-									if err != nil {
-										klog.Errorf("Failed to get 'else' value from ConfigMap for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
-										return err
-									}
-									if ref != "" {
-										valueRef = ref
-									}
-								} else if templateRefObj.Conditional.Else.SecretKeyRef != nil {
-									ref, err := m.ParseSecretKeyRef(ctx, templateRefObj.Conditional.Else.SecretKeyRef, instanceType, instanceName, instanceNs)
-									if err != nil {
-										klog.Errorf("Failed to get 'else' value from Secret for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
-										return err
-									}
-									if ref != "" {
-										valueRef = ref
+								}
+							} else {
+								if templateRefObj.Conditional.Else != nil {
+									if templateRefObj.Conditional.Else.ObjectRef != nil {
+										ref, err := m.ParseObjectRef(ctx, templateRefObj.Conditional.Else.ObjectRef, instanceType, instanceName, instanceNs)
+										if err != nil {
+											klog.Errorf("Failed to get 'else' value from Object for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
+											return err
+										}
+										if ref != "" {
+											valueRef = ref
+										}
+									} else if templateRefObj.Conditional.Else.ConfigMapKeyRef != nil {
+										ref, err := m.ParseConfigMapRef(ctx, templateRefObj.Conditional.Else.ConfigMapKeyRef, instanceType, instanceName, instanceNs)
+										if err != nil {
+											klog.Errorf("Failed to get 'else' value from ConfigMap for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
+											return err
+										}
+										if ref != "" {
+											valueRef = ref
+										}
+									} else if templateRefObj.Conditional.Else.SecretKeyRef != nil {
+										ref, err := m.ParseSecretKeyRef(ctx, templateRefObj.Conditional.Else.SecretKeyRef, instanceType, instanceName, instanceNs)
+										if err != nil {
+											klog.Errorf("Failed to get 'else' value from Secret for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
+											return err
+										}
+										if ref != "" {
+											valueRef = ref
+										}
 									}
 								}
 							}
 						}
-
 					} else {
 						// Process non-conditional templates
 						// Get the defaultValue from template
@@ -958,6 +1032,126 @@ func (m *ODLMOperator) ParseValueReferenceInObject(ctx context.Context, key stri
 		}
 	}
 	return nil
+}
+
+func (m *ODLMOperator) EvaluateExpression(ctx context.Context, expr *util.LogicalExpression, instanceType, instanceName, instanceNs string) (bool, error) {
+	if expr == nil {
+		return false, errors.New("expression is nil")
+	}
+
+	// Helper function to get comparison values
+	getComparisonValues := func(left, right *util.ValueSource) (string, string, error) {
+		leftVal, err := m.GetValueFromSource(ctx, left, instanceType, instanceName, instanceNs)
+		if err != nil {
+			return "", "", err
+		}
+		rightVal, err := m.GetValueFromSource(ctx, right, instanceType, instanceName, instanceNs)
+		if err != nil {
+			return "", "", err
+		}
+		return leftVal, rightVal, nil
+	}
+
+	// Handle basic comparison operators
+	if expr.Equal != nil {
+		leftVal, rightVal, err := getComparisonValues(expr.Equal.Left, expr.Equal.Right)
+		if err != nil {
+			return false, err
+		}
+		return leftVal == rightVal, nil
+	}
+
+	if expr.NotEqual != nil {
+		leftVal, rightVal, err := getComparisonValues(expr.NotEqual.Left, expr.NotEqual.Right)
+		if err != nil {
+			return false, err
+		}
+		return leftVal != rightVal, nil
+	}
+
+	if expr.GreaterThan != nil {
+		leftVal, rightVal, err := getComparisonValues(expr.GreaterThan.Left, expr.GreaterThan.Right)
+		if err != nil {
+			return false, err
+		}
+
+		leftNum, leftErr := strconv.ParseFloat(strings.TrimSpace(leftVal), 64)
+		rightNum, rightErr := strconv.ParseFloat(strings.TrimSpace(rightVal), 64)
+
+		if leftErr == nil && rightErr == nil {
+			return leftNum > rightNum, nil
+		}
+		return leftVal > rightVal, nil
+	}
+
+	if expr.LessThan != nil {
+		leftVal, rightVal, err := getComparisonValues(expr.LessThan.Left, expr.LessThan.Right)
+		if err != nil {
+			return false, err
+		}
+
+		leftNum, leftErr := strconv.ParseFloat(strings.TrimSpace(leftVal), 64)
+		rightNum, rightErr := strconv.ParseFloat(strings.TrimSpace(rightVal), 64)
+
+		if leftErr == nil && rightErr == nil {
+			return leftNum < rightNum, nil
+		}
+		return leftVal < rightVal, nil
+	}
+
+	// Handle logical operators
+	if expr.And != nil && len(expr.And) > 0 {
+		for _, subExpr := range expr.And {
+			result, err := m.EvaluateExpression(ctx, subExpr, instanceType, instanceName, instanceNs)
+			if err != nil {
+				return false, err
+			}
+			if !result {
+				return false, nil
+			}
+		}
+		return true, nil
+	}
+
+	if expr.Or != nil && len(expr.Or) > 0 {
+		for _, subExpr := range expr.Or {
+			result, err := m.EvaluateExpression(ctx, subExpr, instanceType, instanceName, instanceNs)
+			if err != nil {
+				return false, err
+			}
+			if result {
+				return true, nil
+			}
+		}
+		return false, nil
+	}
+
+	if expr.Not != nil {
+		result, err := m.EvaluateExpression(ctx, expr.Not, instanceType, instanceName, instanceNs)
+		if err != nil {
+			return false, err
+		}
+		return !result, nil
+	}
+
+	// Handle direct value evaluation
+	if expr.Value != nil {
+		val, err := m.GetValueFromSource(ctx, expr.Value, instanceType, instanceName, instanceNs)
+		if err != nil {
+			return false, err
+		}
+		// Handle common boolean string representations
+		switch strings.ToLower(val) {
+		case "true", "1":
+			return true, nil
+		case "false", "0", "":
+			return false, nil
+		default:
+			return val != "", nil
+		}
+	}
+
+	return false, errors.New("invalid expression format")
 }
 
 // GetValueFromSource gets a value from the specified source
