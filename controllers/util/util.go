@@ -45,15 +45,59 @@ type TemplateValueRef struct {
 	Required        bool              `json:"required,omitempty"`
 	Default         *DefaultObjectRef `json:"default,omitempty"`
 	ConfigMapKeyRef *ConfigMapRef     `json:"configMapKeyRef,omitempty"`
-	SecretRef       *SecretRef        `json:"secretKeyRef,omitempty"`
+	SecretKeyRef    *SecretRef        `json:"secretKeyRef,omitempty"`
+	ObjectRef       *ObjectRef        `json:"objectRef,omitempty"`
+	Conditional     *ConditionalRef   `json:"conditional,omitempty"`
 	// RouteRef        *RouteRef         `json:"routePathRef,omitempty"`
-	ObjectRef *ObjectRef `json:"objectRef,omitempty"`
+}
+
+type ConditionalRef struct {
+	// If-else condition
+	IfValue *ValueSource `json:"ifValue,omitempty"`
+	Equals  string       `json:"equals,omitempty"`
+
+	// Expression-based condition
+	Expression *LogicalExpression `json:"expression,omitempty"`
+
+	// Results
+	Then *ValueSource `json:"then,omitempty"`
+	Else *ValueSource `json:"else,omitempty"`
+}
+
+type LogicalExpression struct {
+	// Basic comparison operators
+	Equal       *ValueComparison `json:"equal,omitempty"`
+	NotEqual    *ValueComparison `json:"notEqual,omitempty"`
+	GreaterThan *ValueComparison `json:"greaterThan,omitempty"`
+	LessThan    *ValueComparison `json:"lessThan,omitempty"`
+
+	// Logical operators
+	And []*LogicalExpression `json:"and,omitempty"`
+	Or  []*LogicalExpression `json:"or,omitempty"`
+	Not *LogicalExpression   `json:"not,omitempty"`
+
+	// Simple value reference for direct value evaluation
+	Value *ValueSource `json:"value,omitempty"`
+}
+
+type ValueComparison struct {
+	Left  *ValueSource `json:"left,omitempty"`
+	Right *ValueSource `json:"right,omitempty"`
+}
+
+type ValueSource struct {
+	Literal string `json:"literal,omitempty"`
+
+	// Dynamic references
+	ConfigMapKeyRef *ConfigMapRef `json:"configMapKeyRef,omitempty"`
+	SecretKeyRef    *SecretRef    `json:"secretKeyRef,omitempty"`
+	ObjectRef       *ObjectRef    `json:"objectRef,omitempty"`
 }
 
 type DefaultObjectRef struct {
 	Required        bool          `json:"required,omitempty"`
 	ConfigMapKeyRef *ConfigMapRef `json:"configMapKeyRef,omitempty"`
-	SecretRef       *SecretRef    `json:"secretKeyRef,omitempty"`
+	SecretKeyRef    *SecretRef    `json:"secretKeyRef,omitempty"`
 	// RouteRef        *RouteRef     `json:"routePathRef,omitempty"`
 	ObjectRef    *ObjectRef `json:"objectRef,omitempty"`
 	DefaultValue string     `json:"defaultValue,omitempty"`
