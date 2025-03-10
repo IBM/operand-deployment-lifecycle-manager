@@ -793,245 +793,235 @@ func (m *ODLMOperator) EnsureAnnotation(cr unstructured.Unstructured, annotation
 	cr.SetAnnotations(existingAnnotations)
 }
 
+// ParseValueReferenceInObject processes templates in objects and resolves value references
 func (m *ODLMOperator) ParseValueReferenceInObject(ctx context.Context, key string, object interface{}, finalObject map[string]interface{}, instanceType, instanceName, instanceNs string) error {
-	switch object.(type) {
-	case map[string]interface{}:
-		for subKey, value := range object.(map[string]interface{}) {
-			if subKey == "templatingValueFrom" {
-				valueRef := ""
-				if templateRef, ok := value.(map[string]interface{}); ok {
-					// convert templateRef to TemplateValueRef struct
-					templateRefByte, err := json.Marshal(templateRef)
-					if err != nil {
-						klog.Errorf("Failed to convert templateRef to templatingValueRef struct for %s %s/%s: %v", instanceType, instanceNs, instanceName, err)
-						return err
-					}
-					templateRefObj := &util.TemplateValueRef{}
-					if err := json.Unmarshal(templateRefByte, templateRefObj); err != nil {
-						klog.Errorf("Failed to convert templateRef to templatingValueRef struct for %s %s/%s: %v", instanceType, instanceNs, instanceName, err)
-						return err
-					}
+	switch obj := object.(type) {
+	case map[string]any:
+		return m.processMapObject(ctx, key, obj, finalObject, instanceType, instanceName, instanceNs)
+	case []any:
+		return m.processArrayObject(ctx, key, obj, finalObject, instanceType, instanceName, instanceNs)
+	}
+	return nil
+}
 
-					// Check for conditional logic
-					if templateRefObj.Conditional != nil {
-						// Handle expression-based condition
-						if templateRefObj.Conditional.Expression != nil {
-							result, err := m.EvaluateExpression(ctx, templateRefObj.Conditional.Expression, instanceType, instanceName, instanceNs)
-							if err != nil {
-								klog.Errorf("Failed to evaluate expression for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
-								return err
-							}
+// processMapObject handles map-type objects and checks for templating values
+func (m *ODLMOperator) processMapObject(ctx context.Context, key string, mapObj map[string]interface{}, finalObject map[string]interface{}, instanceType, instanceName, instanceNs string) error {
+	for subKey, value := range mapObj {
+		if subKey == "templatingValueFrom" {
+			valueRef, err := m.processTemplateValue(ctx, value, key, instanceType, instanceName, instanceNs)
+			if err != nil {
+				return err
+			}
+			finalObject[key] = valueRef
+		} else {
+			if finalObject[key] == nil {
+				// Skip if the key doesn't exist in finalObject
+				continue
+			}
 
-							if result {
-								// Use the 'then' branch when the condition is true
-								if templateRefObj.Conditional.Then != nil {
-									if templateRefObj.Conditional.Then.ObjectRef != nil {
-										ref, err := m.ParseObjectRef(ctx, templateRefObj.Conditional.Then.ObjectRef, instanceType, instanceName, instanceNs)
-										if err != nil {
-											klog.Errorf("Failed to get 'then' value from Object for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
-											return err
-										}
-										if ref != "" {
-											valueRef = ref
-										}
-									} else if templateRefObj.Conditional.Then.ConfigMapKeyRef != nil {
-										ref, err := m.ParseConfigMapRef(ctx, templateRefObj.Conditional.Then.ConfigMapKeyRef, instanceType, instanceName, instanceNs)
-										if err != nil {
-											klog.Errorf("Failed to get 'then' value from ConfigMap for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
-											return err
-										}
-										if ref != "" {
-											valueRef = ref
-										}
-									} else if templateRefObj.Conditional.Then.SecretKeyRef != nil {
-										ref, err := m.ParseSecretKeyRef(ctx, templateRefObj.Conditional.Then.SecretKeyRef, instanceType, instanceName, instanceNs)
-										if err != nil {
-											klog.Errorf("Failed to get 'then' value from Secret for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
-											return err
-										}
-										if ref != "" {
-											valueRef = ref
-										}
-									}
-								}
-							} else {
-								// Use the 'else' branch when the condition is false
-								if templateRefObj.Conditional.Else != nil {
-									if templateRefObj.Conditional.Else.ObjectRef != nil {
-										ref, err := m.ParseObjectRef(ctx, templateRefObj.Conditional.Else.ObjectRef, instanceType, instanceName, instanceNs)
-										if err != nil {
-											klog.Errorf("Failed to get 'else' value from Object for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
-											return err
-										}
-										if ref != "" {
-											valueRef = ref
-										}
-									} else if templateRefObj.Conditional.Else.ConfigMapKeyRef != nil {
-										ref, err := m.ParseConfigMapRef(ctx, templateRefObj.Conditional.Else.ConfigMapKeyRef, instanceType, instanceName, instanceNs)
-										if err != nil {
-											klog.Errorf("Failed to get 'else' value from ConfigMap for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
-											return err
-										}
-										if ref != "" {
-											valueRef = ref
-										}
-									} else if templateRefObj.Conditional.Else.SecretKeyRef != nil {
-										ref, err := m.ParseSecretKeyRef(ctx, templateRefObj.Conditional.Else.SecretKeyRef, instanceType, instanceName, instanceNs)
-										if err != nil {
-											klog.Errorf("Failed to get 'else' value from Secret for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
-											return err
-										}
-										if ref != "" {
-											valueRef = ref
-										}
-									}
-								}
-							}
-						} else {
-							// Handle simple equality-based condition
-							var conditionValue string
-							var conditionErr error
-
-							// Get the condition value from the object reference
-							if templateRefObj.Conditional.IfValue != nil && templateRefObj.Conditional.IfValue.ObjectRef != nil {
-								conditionValue, conditionErr = m.ParseObjectRef(ctx, templateRefObj.Conditional.IfValue.ObjectRef, instanceType, instanceName, instanceNs)
-								if conditionErr != nil {
-									klog.Errorf("Failed to get condition value from Object for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, conditionErr)
-									return conditionErr
-								}
-							}
-
-							if conditionValue == templateRefObj.Conditional.Equals {
-								if templateRefObj.Conditional.Then != nil {
-									if templateRefObj.Conditional.Then.ObjectRef != nil {
-										ref, err := m.ParseObjectRef(ctx, templateRefObj.Conditional.Then.ObjectRef, instanceType, instanceName, instanceNs)
-										if err != nil {
-											klog.Errorf("Failed to get 'then' value from Object for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
-											return err
-										}
-										if ref != "" {
-											valueRef = ref
-										}
-									} else if templateRefObj.Conditional.Then.ConfigMapKeyRef != nil {
-										ref, err := m.ParseConfigMapRef(ctx, templateRefObj.Conditional.Then.ConfigMapKeyRef, instanceType, instanceName, instanceNs)
-										if err != nil {
-											klog.Errorf("Failed to get 'then' value from ConfigMap for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
-											return err
-										}
-										if ref != "" {
-											valueRef = ref
-										}
-									} else if templateRefObj.Conditional.Then.SecretKeyRef != nil {
-										ref, err := m.ParseSecretKeyRef(ctx, templateRefObj.Conditional.Then.SecretKeyRef, instanceType, instanceName, instanceNs)
-										if err != nil {
-											klog.Errorf("Failed to get 'then' value from Secret for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
-											return err
-										}
-										if ref != "" {
-											valueRef = ref
-										}
-									}
-								}
-							} else {
-								if templateRefObj.Conditional.Else != nil {
-									if templateRefObj.Conditional.Else.ObjectRef != nil {
-										ref, err := m.ParseObjectRef(ctx, templateRefObj.Conditional.Else.ObjectRef, instanceType, instanceName, instanceNs)
-										if err != nil {
-											klog.Errorf("Failed to get 'else' value from Object for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
-											return err
-										}
-										if ref != "" {
-											valueRef = ref
-										}
-									} else if templateRefObj.Conditional.Else.ConfigMapKeyRef != nil {
-										ref, err := m.ParseConfigMapRef(ctx, templateRefObj.Conditional.Else.ConfigMapKeyRef, instanceType, instanceName, instanceNs)
-										if err != nil {
-											klog.Errorf("Failed to get 'else' value from ConfigMap for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
-											return err
-										}
-										if ref != "" {
-											valueRef = ref
-										}
-									} else if templateRefObj.Conditional.Else.SecretKeyRef != nil {
-										ref, err := m.ParseSecretKeyRef(ctx, templateRefObj.Conditional.Else.SecretKeyRef, instanceType, instanceName, instanceNs)
-										if err != nil {
-											klog.Errorf("Failed to get 'else' value from Secret for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
-											return err
-										}
-										if ref != "" {
-											valueRef = ref
-										}
-									}
-								}
-							}
-						}
-					} else {
-						// Process non-conditional templates
-						// Get the defaultValue from template
-						valueRef, err = m.GetDefaultValueFromTemplate(ctx, templateRefObj, instanceType, instanceName, instanceNs)
-						if err != nil {
-							klog.Errorf("Failed to get default value from template for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
-						}
-
-						// Get the value from the ConfigMap reference
-						if ref, err := m.ParseConfigMapRef(ctx, templateRefObj.ConfigMapKeyRef, instanceType, instanceName, instanceNs); err != nil {
-							klog.Errorf("Failed to get value reference from ConfigMap for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
-							return err
-						} else if ref != "" {
-							valueRef = ref
-						}
-
-						// Get the value from the secret
-						if ref, err := m.ParseSecretKeyRef(ctx, templateRefObj.SecretKeyRef, instanceType, instanceName, instanceNs); err != nil {
-							klog.Errorf("Failed to get value reference from Secret for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
-							return err
-						} else if ref != "" {
-							valueRef = ref
-						}
-
-						// Get the value from the object
-						if ref, err := m.ParseObjectRef(ctx, templateRefObj.ObjectRef, instanceType, instanceName, instanceNs); err != nil {
-							klog.Errorf("Failed to get value reference from Object for %s %s/%s on field %s: %v", instanceType, instanceNs, instanceName, key, err)
-							return err
-						} else if ref != "" {
-							valueRef = ref
-						}
-
-						if valueRef == "" && templateRefObj.Required {
-							return errors.Errorf("Found empty value reference from template for %s %s/%s on field %s, retry in few second", instanceType, instanceNs, instanceName, key)
-						}
-					}
-				}
-				finalObject[key] = valueRef
-			} else {
-				if finalObject[key] == nil {
-					// Skip if the key doesn't exist in finalObject
-					continue
-				}
-
-				switch finalObject[key].(type) {
-				case map[string]interface{}:
-					if err := m.ParseValueReferenceInObject(ctx, subKey, object.(map[string]interface{})[subKey], finalObject[key].(map[string]interface{}), instanceType, instanceName, instanceNs); err != nil {
-						return err
-					}
+			if mapValue, ok := finalObject[key].(map[string]interface{}); ok {
+				if err := m.ParseValueReferenceInObject(ctx, subKey, mapObj[subKey], mapValue, instanceType, instanceName, instanceNs); err != nil {
+					return err
 				}
 			}
 		}
-	case []interface{}:
-		// Process array items
-		if finalArray, ok := finalObject[key].([]interface{}); ok {
-			for i := range finalArray {
-				if mapItem, ok := finalArray[i].(map[string]interface{}); ok {
-					for subKey, value := range mapItem {
-						if err := m.ParseValueReferenceInObject(ctx, subKey, value, mapItem, instanceType, instanceName, instanceNs); err != nil {
-							return err
-						}
+	}
+	return nil
+}
+
+// processArrayObject handles array-type objects
+func (m *ODLMOperator) processArrayObject(ctx context.Context, key string, arrayObj []interface{}, finalObject map[string]interface{}, instanceType, instanceName, instanceNs string) error {
+	if finalArray, ok := finalObject[key].([]interface{}); ok {
+		for i := range finalArray {
+			if mapItem, ok := finalArray[i].(map[string]interface{}); ok {
+				for subKey, value := range mapItem {
+					if err := m.ParseValueReferenceInObject(ctx, subKey, value, mapItem, instanceType, instanceName, instanceNs); err != nil {
+						return err
 					}
 				}
 			}
 		}
 	}
 	return nil
+}
+
+// processTemplateValue converts and processes a template value reference
+func (m *ODLMOperator) processTemplateValue(ctx context.Context, value interface{}, key string, instanceType, instanceName, instanceNs string) (string, error) {
+	valueRef := ""
+
+	templateRef, ok := value.(map[string]interface{})
+	if !ok {
+		return valueRef, nil
+	}
+
+	templateRefObj, err := m.convertToTemplateValueRef(templateRef, instanceType, instanceName, instanceNs)
+	if err != nil {
+		return "", err
+	}
+
+	// Check for conditional logic
+	if templateRefObj.Conditional != nil {
+		return m.processConditionalTemplate(ctx, templateRefObj, key, instanceType, instanceName, instanceNs)
+	} else {
+		// Process non-conditional templates
+		return m.processStandardTemplate(ctx, templateRefObj, key, instanceType, instanceName, instanceNs)
+	}
+}
+
+// convertToTemplateValueRef converts a map to a TemplateValueRef struct
+func (m *ODLMOperator) convertToTemplateValueRef(templateRef map[string]interface{}, instanceType, instanceName, instanceNs string) (*util.TemplateValueRef, error) {
+	templateRefByte, err := json.Marshal(templateRef)
+	if err != nil {
+		klog.Errorf("Failed to convert templateRef to templatingValueRef struct for %s %s/%s: %v",
+			instanceType, instanceNs, instanceName, err)
+		return nil, err
+	}
+
+	templateRefObj := &util.TemplateValueRef{}
+	if err := json.Unmarshal(templateRefByte, templateRefObj); err != nil {
+		klog.Errorf("Failed to convert templateRef to templatingValueRef struct for %s %s/%s: %v",
+			instanceType, instanceNs, instanceName, err)
+		return nil, err
+	}
+
+	return templateRefObj, nil
+}
+
+// processConditionalTemplate handles conditional template evaluation
+func (m *ODLMOperator) processConditionalTemplate(ctx context.Context, templateRefObj *util.TemplateValueRef, key string, instanceType, instanceName, instanceNs string) (string, error) {
+	if templateRefObj.Conditional.Expression != nil {
+		return m.processExpressionCondition(ctx, templateRefObj, key, instanceType, instanceName, instanceNs)
+	} else {
+		return m.processSimpleCondition(ctx, templateRefObj, key, instanceType, instanceName, instanceNs)
+	}
+}
+
+// processExpressionCondition evaluates expression-based conditions
+func (m *ODLMOperator) processExpressionCondition(ctx context.Context, templateRefObj *util.TemplateValueRef, key string, instanceType, instanceName, instanceNs string) (string, error) {
+	result, err := m.EvaluateExpression(ctx, templateRefObj.Conditional.Expression, instanceType, instanceName, instanceNs)
+	if err != nil {
+		klog.Errorf("Failed to evaluate expression for %s %s/%s on field %s: %v",
+			instanceType, instanceNs, instanceName, key, err)
+		return "", err
+	}
+
+	if result {
+		// Use 'then' branch when condition is true
+		return m.getValueFromBranch(ctx, templateRefObj.Conditional.Then, "then", key, instanceType, instanceName, instanceNs)
+	} else {
+		// Use 'else' branch when condition is false
+		return m.getValueFromBranch(ctx, templateRefObj.Conditional.Else, "else", key, instanceType, instanceName, instanceNs)
+	}
+}
+
+// processSimpleCondition evaluates simple equality-based conditions
+func (m *ODLMOperator) processSimpleCondition(ctx context.Context, templateRefObj *util.TemplateValueRef, key string, instanceType, instanceName, instanceNs string) (string, error) {
+	var conditionValue string
+	var conditionErr error
+
+	// Get the condition value from the object reference
+	if templateRefObj.Conditional.IfValue != nil && templateRefObj.Conditional.IfValue.ObjectRef != nil {
+		conditionValue, conditionErr = m.ParseObjectRef(ctx,
+			templateRefObj.Conditional.IfValue.ObjectRef,
+			instanceType, instanceName, instanceNs)
+		if conditionErr != nil {
+			klog.Errorf("Failed to get condition value from Object for %s %s/%s on field %s: %v",
+				instanceType, instanceNs, instanceName, key, conditionErr)
+			return "", conditionErr
+		}
+	}
+
+	if conditionValue == templateRefObj.Conditional.Equals {
+		return m.getValueFromBranch(ctx, templateRefObj.Conditional.Then, "then", key, instanceType, instanceName, instanceNs)
+	} else {
+		return m.getValueFromBranch(ctx, templateRefObj.Conditional.Else, "else", key, instanceType, instanceName, instanceNs)
+	}
+}
+
+// getValueFromBranch retrieves a value from a specific branch (then/else)
+func (m *ODLMOperator) getValueFromBranch(ctx context.Context, branch *util.ValueSource, branchName, key string, instanceType, instanceName, instanceNs string) (string, error) {
+	if branch == nil {
+		return "", nil
+	}
+
+	valueRef := ""
+
+	if branch.ObjectRef != nil {
+		ref, err := m.ParseObjectRef(ctx, branch.ObjectRef, instanceType, instanceName, instanceNs)
+		if err != nil {
+			klog.Errorf("Failed to get '%s' value from Object for %s %s/%s on field %s: %v",
+				branchName, instanceType, instanceNs, instanceName, key, err)
+			return "", err
+		}
+		if ref != "" {
+			valueRef = ref
+		}
+	} else if branch.ConfigMapKeyRef != nil {
+		ref, err := m.ParseConfigMapRef(ctx, branch.ConfigMapKeyRef, instanceType, instanceName, instanceNs)
+		if err != nil {
+			klog.Errorf("Failed to get '%s' value from ConfigMap for %s %s/%s on field %s: %v",
+				branchName, instanceType, instanceNs, instanceName, key, err)
+			return "", err
+		}
+		if ref != "" {
+			valueRef = ref
+		}
+	} else if branch.SecretKeyRef != nil {
+		ref, err := m.ParseSecretKeyRef(ctx, branch.SecretKeyRef, instanceType, instanceName, instanceNs)
+		if err != nil {
+			klog.Errorf("Failed to get '%s' value from Secret for %s %s/%s on field %s: %v",
+				branchName, instanceType, instanceNs, instanceName, key, err)
+			return "", err
+		}
+		if ref != "" {
+			valueRef = ref
+		}
+	}
+
+	return valueRef, nil
+}
+
+// processStandardTemplate handles non-conditional templates
+func (m *ODLMOperator) processStandardTemplate(ctx context.Context, templateRefObj *util.TemplateValueRef, key string, instanceType, instanceName, instanceNs string) (string, error) {
+	valueRef, err := m.GetDefaultValueFromTemplate(ctx, templateRefObj, instanceType, instanceName, instanceNs)
+	if err != nil {
+		klog.Errorf("Failed to get default value from template for %s %s/%s on field %s: %v",
+			instanceType, instanceNs, instanceName, key, err)
+	}
+
+	// Get the value from the ConfigMap reference
+	if ref, err := m.ParseConfigMapRef(ctx, templateRefObj.ConfigMapKeyRef, instanceType, instanceName, instanceNs); err != nil {
+		klog.Errorf("Failed to get value reference from ConfigMap for %s %s/%s on field %s: %v",
+			instanceType, instanceNs, instanceName, key, err)
+		return "", err
+	} else if ref != "" {
+		valueRef = ref
+	}
+
+	// Get the value from the secret
+	if ref, err := m.ParseSecretKeyRef(ctx, templateRefObj.SecretKeyRef, instanceType, instanceName, instanceNs); err != nil {
+		klog.Errorf("Failed to get value reference from Secret for %s %s/%s on field %s: %v",
+			instanceType, instanceNs, instanceName, key, err)
+		return "", err
+	} else if ref != "" {
+		valueRef = ref
+	}
+
+	// Get the value from the object
+	if ref, err := m.ParseObjectRef(ctx, templateRefObj.ObjectRef, instanceType, instanceName, instanceNs); err != nil {
+		klog.Errorf("Failed to get value reference from Object for %s %s/%s on field %s: %v",
+			instanceType, instanceNs, instanceName, key, err)
+		return "", err
+	} else if ref != "" {
+		valueRef = ref
+	}
+
+	if valueRef == "" && templateRefObj.Required {
+		return "", errors.Errorf("Found empty value reference from template for %s %s/%s on field %s, retry in few second",
+			instanceType, instanceNs, instanceName, key)
+	}
+
+	return valueRef, nil
 }
 
 func (m *ODLMOperator) EvaluateExpression(ctx context.Context, expr *util.LogicalExpression, instanceType, instanceName, instanceNs string) (bool, error) {
