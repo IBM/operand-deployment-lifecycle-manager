@@ -28,6 +28,8 @@ import (
 	authorizationv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/util"
 )
 
 func TestChannelCheck(t *testing.T) {
@@ -461,6 +463,328 @@ func TestCheckResAuth(t *testing.T) {
 
 	if operator.CheckResAuth(ctx, namespace, group, resource, verb) {
 		t.Errorf("Expected CheckResAuth to return false, but got true")
+	}
+}
+
+// Define the testOperator at package level, outside any function
+type testOperator struct {
+	*ODLMOperator
+}
+
+func TestEvaluateExpression(t *testing.T) {
+	ctx := context.TODO()
+
+	baseOperator := &ODLMOperator{
+		Client: &MockClient{},
+	}
+	operator := &testOperator{baseOperator}
+
+	type testCase struct {
+		name           string
+		expr           *util.LogicalExpression
+		expectedResult bool
+		expectError    bool
+	}
+
+	tests := []testCase{
+		{
+			name:           "Nil expression",
+			expr:           nil,
+			expectedResult: false,
+			expectError:    true,
+		},
+		{
+			name: "Equal comparison - true",
+			expr: &util.LogicalExpression{
+				Equal: &util.ValueComparison{
+					Left:  &util.ValueSource{Literal: "abc"},
+					Right: &util.ValueSource{Literal: "abc"},
+				},
+			},
+			expectedResult: true,
+			expectError:    false,
+		},
+		{
+			name: "Equal comparison - false",
+			expr: &util.LogicalExpression{
+				Equal: &util.ValueComparison{
+					Left:  &util.ValueSource{Literal: "abc"},
+					Right: &util.ValueSource{Literal: "def"},
+				},
+			},
+			expectedResult: false,
+			expectError:    false,
+		},
+		{
+			name: "NotEqual comparison - true",
+			expr: &util.LogicalExpression{
+				NotEqual: &util.ValueComparison{
+					Left:  &util.ValueSource{Literal: "abc"},
+					Right: &util.ValueSource{Literal: "def"},
+				},
+			},
+			expectedResult: true,
+			expectError:    false,
+		},
+		{
+			name: "NotEqual comparison - false",
+			expr: &util.LogicalExpression{
+				NotEqual: &util.ValueComparison{
+					Left:  &util.ValueSource{Literal: "abc"},
+					Right: &util.ValueSource{Literal: "abc"},
+				},
+			},
+			expectedResult: false,
+			expectError:    false,
+		},
+		{
+			name: "GreaterThan comparison with numbers - true",
+			expr: &util.LogicalExpression{
+				GreaterThan: &util.ValueComparison{
+					Left:  &util.ValueSource{Literal: "42"},
+					Right: &util.ValueSource{Literal: "20"},
+				},
+			},
+			expectedResult: true,
+			expectError:    false,
+		},
+		{
+			name: "GreaterThan comparison with numbers - false",
+			expr: &util.LogicalExpression{
+				GreaterThan: &util.ValueComparison{
+					Left:  &util.ValueSource{Literal: "20"},
+					Right: &util.ValueSource{Literal: "42"},
+				},
+			},
+			expectedResult: false,
+			expectError:    false,
+		},
+		{
+			name: "GreaterThan comparison with strings",
+			expr: &util.LogicalExpression{
+				GreaterThan: &util.ValueComparison{
+					Left:  &util.ValueSource{Literal: "xyz"},
+					Right: &util.ValueSource{Literal: "abc"},
+				},
+			},
+			expectedResult: true,
+			expectError:    false,
+		},
+		{
+			name: "LessThan comparison with numbers - true",
+			expr: &util.LogicalExpression{
+				LessThan: &util.ValueComparison{
+					Left:  &util.ValueSource{Literal: "20"},
+					Right: &util.ValueSource{Literal: "42"},
+				},
+			},
+			expectedResult: true,
+			expectError:    false,
+		},
+		{
+			name: "LessThan comparison with numbers - false",
+			expr: &util.LogicalExpression{
+				LessThan: &util.ValueComparison{
+					Left:  &util.ValueSource{Literal: "42"},
+					Right: &util.ValueSource{Literal: "20"},
+				},
+			},
+			expectedResult: false,
+			expectError:    false,
+		},
+		{
+			name: "LessThan comparison with strings",
+			expr: &util.LogicalExpression{
+				LessThan: &util.ValueComparison{
+					Left:  &util.ValueSource{Literal: "abc"},
+					Right: &util.ValueSource{Literal: "xyz"},
+				},
+			},
+			expectedResult: true,
+			expectError:    false,
+		},
+		{
+			name: "And operator - all true",
+			expr: &util.LogicalExpression{
+				And: []*util.LogicalExpression{
+					{
+						Equal: &util.ValueComparison{
+							Left:  &util.ValueSource{Literal: "abc"},
+							Right: &util.ValueSource{Literal: "abc"},
+						},
+					},
+					{
+						Equal: &util.ValueComparison{
+							Left:  &util.ValueSource{Literal: "def"},
+							Right: &util.ValueSource{Literal: "def"},
+						},
+					},
+				},
+			},
+			expectedResult: true,
+			expectError:    false,
+		},
+		{
+			name: "And operator - one false",
+			expr: &util.LogicalExpression{
+				And: []*util.LogicalExpression{
+					{
+						Equal: &util.ValueComparison{
+							Left:  &util.ValueSource{Literal: "abc"},
+							Right: &util.ValueSource{Literal: "abc"},
+						},
+					},
+					{
+						Equal: &util.ValueComparison{
+							Left:  &util.ValueSource{Literal: "def"},
+							Right: &util.ValueSource{Literal: "xyz"},
+						},
+					},
+				},
+			},
+			expectedResult: false,
+			expectError:    false,
+		},
+		{
+			name: "Or operator - one true",
+			expr: &util.LogicalExpression{
+				Or: []*util.LogicalExpression{
+					{
+						Equal: &util.ValueComparison{
+							Left:  &util.ValueSource{Literal: "abc"},
+							Right: &util.ValueSource{Literal: "def"},
+						},
+					},
+					{
+						Equal: &util.ValueComparison{
+							Left:  &util.ValueSource{Literal: "def"},
+							Right: &util.ValueSource{Literal: "def"},
+						},
+					},
+				},
+			},
+			expectedResult: true,
+			expectError:    false,
+		},
+		{
+			name: "Or operator - all false",
+			expr: &util.LogicalExpression{
+				Or: []*util.LogicalExpression{
+					{
+						Equal: &util.ValueComparison{
+							Left:  &util.ValueSource{Literal: "abc"},
+							Right: &util.ValueSource{Literal: "def"},
+						},
+					},
+					{
+						Equal: &util.ValueComparison{
+							Left:  &util.ValueSource{Literal: "ghi"},
+							Right: &util.ValueSource{Literal: "xyz"},
+						},
+					},
+				},
+			},
+			expectedResult: false,
+			expectError:    false,
+		},
+		{
+			name: "Not operator - true becomes false",
+			expr: &util.LogicalExpression{
+				Not: &util.LogicalExpression{
+					Equal: &util.ValueComparison{
+						Left:  &util.ValueSource{Literal: "abc"},
+						Right: &util.ValueSource{Literal: "abc"},
+					},
+				},
+			},
+			expectedResult: false,
+			expectError:    false,
+		},
+		{
+			name: "Not operator - false becomes true",
+			expr: &util.LogicalExpression{
+				Not: &util.LogicalExpression{
+					Equal: &util.ValueComparison{
+						Left:  &util.ValueSource{Literal: "abc"},
+						Right: &util.ValueSource{Literal: "def"},
+					},
+				},
+			},
+			expectedResult: true,
+			expectError:    false,
+		},
+		{
+			name: "Complex expression - And with Or",
+			expr: &util.LogicalExpression{
+				And: []*util.LogicalExpression{
+					{
+						Equal: &util.ValueComparison{
+							Left:  &util.ValueSource{Literal: "abc"},
+							Right: &util.ValueSource{Literal: "abc"},
+						},
+					},
+					{
+						Or: []*util.LogicalExpression{
+							{
+								Equal: &util.ValueComparison{
+									Left:  &util.ValueSource{Literal: "def"},
+									Right: &util.ValueSource{Literal: "xyz"},
+								},
+							},
+							{
+								Equal: &util.ValueComparison{
+									Left:  &util.ValueSource{Literal: "ghi"},
+									Right: &util.ValueSource{Literal: "ghi"},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedResult: true,
+			expectError:    false,
+		},
+		{
+			name: "Error in GetValueFromSource",
+			expr: &util.LogicalExpression{
+				Equal: &util.ValueComparison{
+					Left: &util.ValueSource{
+						ObjectRef: &util.ObjectRef{
+							Name: "errorObj",
+							Path: "spec.value",
+						},
+					},
+					Right: &util.ValueSource{Literal: "abc"},
+				},
+			},
+			expectedResult: false,
+			expectError:    true,
+		},
+		{
+			name:           "Invalid expression format",
+			expr:           &util.LogicalExpression{},
+			expectedResult: false,
+			expectError:    true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := operator.EvaluateExpression(ctx, tc.expr, "test", "test-name", "test-namespace")
+
+			if tc.expectError {
+				if err == nil {
+					t.Errorf("Expected an error, but got nil")
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error, but got %v", err)
+				}
+				if result != tc.expectedResult {
+					t.Errorf("Expected result %v, but got %v", tc.expectedResult, result)
+				}
+			}
+		})
 	}
 }
 
