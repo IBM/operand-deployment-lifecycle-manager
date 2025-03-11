@@ -799,7 +799,7 @@ func (m *ODLMOperator) ParseValueReferenceInObject(ctx context.Context, key stri
 	case map[string]any:
 		return m.processMapObject(ctx, key, obj, finalObject, instanceType, instanceName, instanceNs)
 	case []any:
-		return m.processArrayObject(ctx, key, obj, finalObject, instanceType, instanceName, instanceNs)
+		return m.processArrayObject(ctx, key, finalObject, instanceType, instanceName, instanceNs)
 	}
 	return nil
 }
@@ -830,7 +830,7 @@ func (m *ODLMOperator) processMapObject(ctx context.Context, key string, mapObj 
 }
 
 // processArrayObject handles array-type objects
-func (m *ODLMOperator) processArrayObject(ctx context.Context, key string, arrayObj []interface{}, finalObject map[string]interface{}, instanceType, instanceName, instanceNs string) error {
+func (m *ODLMOperator) processArrayObject(ctx context.Context, key string, finalObject map[string]interface{}, instanceType, instanceName, instanceNs string) error {
 	if finalArray, ok := finalObject[key].([]interface{}); ok {
 		for i := range finalArray {
 			if mapItem, ok := finalArray[i].(map[string]interface{}); ok {
