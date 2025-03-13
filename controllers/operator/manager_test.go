@@ -28,6 +28,8 @@ import (
 	authorizationv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/util"
 )
 
 func TestChannelCheck(t *testing.T) {
@@ -461,6 +463,552 @@ func TestCheckResAuth(t *testing.T) {
 
 	if operator.CheckResAuth(ctx, namespace, group, resource, verb) {
 		t.Errorf("Expected CheckResAuth to return false, but got true")
+	}
+}
+
+type testOperator struct {
+	*ODLMOperator
+}
+
+func TestEvaluateExpression(t *testing.T) {
+	ctx := context.TODO()
+
+	baseOperator := &ODLMOperator{
+		Client: &MockClient{},
+	}
+	operator := &testOperator{baseOperator}
+
+	type testCase struct {
+		name           string
+		expr           *util.LogicalExpression
+		expectedResult bool
+		expectError    bool
+	}
+
+	tests := []testCase{
+		{
+			name:           "Nil expression",
+			expr:           nil,
+			expectedResult: false,
+			expectError:    true,
+		},
+		{
+			name: "Equal comparison - true",
+			expr: &util.LogicalExpression{
+				Equal: &util.ValueComparison{
+					Left:  &util.ValueSource{Literal: "abc"},
+					Right: &util.ValueSource{Literal: "abc"},
+				},
+			},
+			expectedResult: true,
+			expectError:    false,
+		},
+		{
+			name: "Equal comparison - false",
+			expr: &util.LogicalExpression{
+				Equal: &util.ValueComparison{
+					Left:  &util.ValueSource{Literal: "abc"},
+					Right: &util.ValueSource{Literal: "def"},
+				},
+			},
+			expectedResult: false,
+			expectError:    false,
+		},
+		{
+			name: "NotEqual comparison - true",
+			expr: &util.LogicalExpression{
+				NotEqual: &util.ValueComparison{
+					Left:  &util.ValueSource{Literal: "abc"},
+					Right: &util.ValueSource{Literal: "def"},
+				},
+			},
+			expectedResult: true,
+			expectError:    false,
+		},
+		{
+			name: "NotEqual comparison - false",
+			expr: &util.LogicalExpression{
+				NotEqual: &util.ValueComparison{
+					Left:  &util.ValueSource{Literal: "abc"},
+					Right: &util.ValueSource{Literal: "abc"},
+				},
+			},
+			expectedResult: false,
+			expectError:    false,
+		},
+		{
+			name: "GreaterThan comparison with numbers - true",
+			expr: &util.LogicalExpression{
+				GreaterThan: &util.ValueComparison{
+					Left:  &util.ValueSource{Literal: "42"},
+					Right: &util.ValueSource{Literal: "20"},
+				},
+			},
+			expectedResult: true,
+			expectError:    false,
+		},
+		{
+			name: "GreaterThan comparison with numbers - false",
+			expr: &util.LogicalExpression{
+				GreaterThan: &util.ValueComparison{
+					Left:  &util.ValueSource{Literal: "20"},
+					Right: &util.ValueSource{Literal: "42"},
+				},
+			},
+			expectedResult: false,
+			expectError:    false,
+		},
+		{
+			name: "GreaterThan comparison with strings",
+			expr: &util.LogicalExpression{
+				GreaterThan: &util.ValueComparison{
+					Left:  &util.ValueSource{Literal: "xyz"},
+					Right: &util.ValueSource{Literal: "abc"},
+				},
+			},
+			expectedResult: true,
+			expectError:    false,
+		},
+		{
+			name: "LessThan comparison with numbers - true",
+			expr: &util.LogicalExpression{
+				LessThan: &util.ValueComparison{
+					Left:  &util.ValueSource{Literal: "20"},
+					Right: &util.ValueSource{Literal: "42"},
+				},
+			},
+			expectedResult: true,
+			expectError:    false,
+		},
+		{
+			name: "LessThan comparison with numbers - false",
+			expr: &util.LogicalExpression{
+				LessThan: &util.ValueComparison{
+					Left:  &util.ValueSource{Literal: "42"},
+					Right: &util.ValueSource{Literal: "20"},
+				},
+			},
+			expectedResult: false,
+			expectError:    false,
+		},
+		{
+			name: "LessThan comparison with strings",
+			expr: &util.LogicalExpression{
+				LessThan: &util.ValueComparison{
+					Left:  &util.ValueSource{Literal: "abc"},
+					Right: &util.ValueSource{Literal: "xyz"},
+				},
+			},
+			expectedResult: true,
+			expectError:    false,
+		},
+		{
+			name: "And operator - all true",
+			expr: &util.LogicalExpression{
+				And: []*util.LogicalExpression{
+					{
+						Equal: &util.ValueComparison{
+							Left:  &util.ValueSource{Literal: "abc"},
+							Right: &util.ValueSource{Literal: "abc"},
+						},
+					},
+					{
+						Equal: &util.ValueComparison{
+							Left:  &util.ValueSource{Literal: "def"},
+							Right: &util.ValueSource{Literal: "def"},
+						},
+					},
+				},
+			},
+			expectedResult: true,
+			expectError:    false,
+		},
+		{
+			name: "And operator - one false",
+			expr: &util.LogicalExpression{
+				And: []*util.LogicalExpression{
+					{
+						Equal: &util.ValueComparison{
+							Left:  &util.ValueSource{Literal: "abc"},
+							Right: &util.ValueSource{Literal: "abc"},
+						},
+					},
+					{
+						Equal: &util.ValueComparison{
+							Left:  &util.ValueSource{Literal: "def"},
+							Right: &util.ValueSource{Literal: "xyz"},
+						},
+					},
+				},
+			},
+			expectedResult: false,
+			expectError:    false,
+		},
+		{
+			name: "Or operator - one true",
+			expr: &util.LogicalExpression{
+				Or: []*util.LogicalExpression{
+					{
+						Equal: &util.ValueComparison{
+							Left:  &util.ValueSource{Literal: "abc"},
+							Right: &util.ValueSource{Literal: "def"},
+						},
+					},
+					{
+						Equal: &util.ValueComparison{
+							Left:  &util.ValueSource{Literal: "def"},
+							Right: &util.ValueSource{Literal: "def"},
+						},
+					},
+				},
+			},
+			expectedResult: true,
+			expectError:    false,
+		},
+		{
+			name: "Or operator - all false",
+			expr: &util.LogicalExpression{
+				Or: []*util.LogicalExpression{
+					{
+						Equal: &util.ValueComparison{
+							Left:  &util.ValueSource{Literal: "abc"},
+							Right: &util.ValueSource{Literal: "def"},
+						},
+					},
+					{
+						Equal: &util.ValueComparison{
+							Left:  &util.ValueSource{Literal: "ghi"},
+							Right: &util.ValueSource{Literal: "xyz"},
+						},
+					},
+				},
+			},
+			expectedResult: false,
+			expectError:    false,
+		},
+		{
+			name: "Not operator - true becomes false",
+			expr: &util.LogicalExpression{
+				Not: &util.LogicalExpression{
+					Equal: &util.ValueComparison{
+						Left:  &util.ValueSource{Literal: "abc"},
+						Right: &util.ValueSource{Literal: "abc"},
+					},
+				},
+			},
+			expectedResult: false,
+			expectError:    false,
+		},
+		{
+			name: "Not operator - false becomes true",
+			expr: &util.LogicalExpression{
+				Not: &util.LogicalExpression{
+					Equal: &util.ValueComparison{
+						Left:  &util.ValueSource{Literal: "abc"},
+						Right: &util.ValueSource{Literal: "def"},
+					},
+				},
+			},
+			expectedResult: true,
+			expectError:    false,
+		},
+		{
+			name: "Complex expression - And with Or",
+			expr: &util.LogicalExpression{
+				And: []*util.LogicalExpression{
+					{
+						Equal: &util.ValueComparison{
+							Left:  &util.ValueSource{Literal: "abc"},
+							Right: &util.ValueSource{Literal: "abc"},
+						},
+					},
+					{
+						Or: []*util.LogicalExpression{
+							{
+								Equal: &util.ValueComparison{
+									Left:  &util.ValueSource{Literal: "def"},
+									Right: &util.ValueSource{Literal: "xyz"},
+								},
+							},
+							{
+								Equal: &util.ValueComparison{
+									Left:  &util.ValueSource{Literal: "ghi"},
+									Right: &util.ValueSource{Literal: "ghi"},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedResult: true,
+			expectError:    false,
+		},
+		{
+			name: "Error in GetValueFromSource",
+			expr: &util.LogicalExpression{
+				Equal: &util.ValueComparison{
+					Left: &util.ValueSource{
+						ObjectRef: &util.ObjectRef{
+							Name: "errorObj",
+							Path: "spec.value",
+						},
+					},
+					Right: &util.ValueSource{Literal: "abc"},
+				},
+			},
+			expectedResult: false,
+			expectError:    true,
+		},
+		{
+			name:           "Invalid expression format",
+			expr:           &util.LogicalExpression{},
+			expectedResult: false,
+			expectError:    true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := operator.EvaluateExpression(ctx, tc.expr, "test", "test-name", "test-namespace")
+
+			if tc.expectError {
+				if err == nil {
+					t.Errorf("Expected an error, but got nil")
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error, but got %v", err)
+				}
+				if result != tc.expectedResult {
+					t.Errorf("Expected result %v, but got %v", tc.expectedResult, result)
+				}
+			}
+		})
+	}
+}
+
+func (t *testOperator) ParseObjectRef(ctx context.Context, obj *util.ObjectRef, instanceType, instanceName, instanceNs string) (string, error) {
+	if obj == nil {
+		return "", nil
+	}
+
+	if obj.Name == "testObj" {
+		if obj.Path == "spec.version" {
+			return "1.2.3", nil
+		} else if obj.Path == "spec.enabled" {
+			return "true", nil
+		} else if obj.Path == "spec.disabled" {
+			return "false", nil
+		} else if obj.Path == "spec.empty" {
+			return "", nil
+		}
+	}
+	if obj.Name == "errorObj" {
+		return "", fmt.Errorf("mock error")
+	}
+
+	return "default", nil
+}
+
+func (t *testOperator) ParseConfigMapRef(ctx context.Context, cm *util.ConfigMapRef, instanceType, instanceName, instanceNs string) (string, error) {
+	if cm == nil {
+		return "", nil
+	}
+
+	if cm.Name == "test-cm" {
+		if cm.Key == "test-key" {
+			return "test-key-value", nil
+		}
+	}
+
+	if cm.Name == "error-cm" {
+		return "", fmt.Errorf("mock configmap error: %s", cm.Name)
+	}
+
+	return "mock-config-value", nil
+}
+
+func (t *testOperator) ParseSecretKeyRef(ctx context.Context, secret *util.SecretRef, instanceType, instanceName, instanceNs string) (string, error) {
+	if secret == nil {
+		return "", nil
+	}
+
+	if secret.Name == "test-secret" {
+		if secret.Key == "token" {
+			return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9", nil
+		}
+	}
+
+	if secret.Name == "error-secret" {
+		return "", fmt.Errorf("mock secret error: %s", secret.Name)
+	}
+
+	return "mock-secret-value", nil
+}
+
+func (t *testOperator) GetValueFromSource(ctx context.Context, source *util.ValueSource, instanceType, instanceName, instanceNs string) (string, error) {
+	if source == nil {
+		return "", nil
+	}
+
+	// Return literal values directly
+	if source.Literal != "" {
+		return source.Literal, nil
+	}
+
+	// Use specific object/cm/secret references from the already defined method
+	if source.ObjectRef != nil {
+		return t.ParseObjectRef(ctx, source.ObjectRef, instanceType, instanceName, instanceNs)
+	}
+
+	if source.ConfigMapKeyRef != nil {
+		return t.ParseConfigMapRef(ctx, source.ConfigMapKeyRef, instanceType, instanceName, instanceNs)
+	}
+
+	if source.SecretKeyRef != nil {
+		return t.ParseSecretKeyRef(ctx, source.SecretKeyRef, instanceType, instanceName, instanceNs)
+	}
+
+	return "default", nil
+}
+
+func TestGetValueFromSource(t *testing.T) {
+	ctx := context.TODO()
+
+	baseOperator := &ODLMOperator{
+		Client: &MockClient{},
+	}
+	operator := &testOperator{baseOperator}
+
+	type testCase struct {
+		name           string
+		source         *util.ValueSource
+		expectedResult string
+		expectError    bool
+	}
+
+	tests := []testCase{
+		{
+			name:           "Nil source",
+			source:         nil,
+			expectedResult: "",
+			expectError:    false,
+		},
+		{
+			name: "Literal value",
+			source: &util.ValueSource{
+				Literal: "test-literal",
+			},
+			expectedResult: "test-literal",
+			expectError:    false,
+		},
+		{
+			name: "ConfigMap reference success",
+			source: &util.ValueSource{
+				ConfigMapKeyRef: &util.ConfigMapRef{
+					Name: "test-cm",
+					Key:  "test-key",
+				},
+			},
+			expectedResult: "test-key-value",
+			expectError:    false,
+		},
+		{
+			name: "ConfigMap reference error",
+			source: &util.ValueSource{
+				ConfigMapKeyRef: &util.ConfigMapRef{
+					Name: "error-cm",
+					Key:  "test-key",
+				},
+			},
+			expectedResult: "",
+			expectError:    true,
+		},
+		{
+			name: "Secret reference success",
+			source: &util.ValueSource{
+				SecretKeyRef: &util.SecretRef{
+					Name: "test-secret",
+					Key:  "token",
+				},
+			},
+			expectedResult: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+			expectError:    false,
+		},
+		{
+			name: "Secret reference error",
+			source: &util.ValueSource{
+				SecretKeyRef: &util.SecretRef{
+					Name: "error-secret",
+					Key:  "test-key",
+				},
+			},
+			expectedResult: "",
+			expectError:    true,
+		},
+		{
+			name: "Object reference success",
+			source: &util.ValueSource{
+				ObjectRef: &util.ObjectRef{
+					Name: "testObj",
+					Path: "spec.version",
+				},
+			},
+			expectedResult: "1.2.3",
+			expectError:    false,
+		},
+		{
+			name: "Object reference error",
+			source: &util.ValueSource{
+				ObjectRef: &util.ObjectRef{
+					Name: "errorObj",
+					Path: "spec.value",
+				},
+			},
+			expectedResult: "",
+			expectError:    true,
+		},
+		{
+			name: "Object reference boolean - true",
+			source: &util.ValueSource{
+				ObjectRef: &util.ObjectRef{
+					Name: "testObj",
+					Path: "spec.enabled",
+				},
+			},
+			expectedResult: "true",
+			expectError:    false,
+		},
+		{
+			name: "Object reference boolean - false",
+			source: &util.ValueSource{
+				ObjectRef: &util.ObjectRef{
+					Name: "testObj",
+					Path: "spec.disabled",
+				},
+			},
+			expectedResult: "false",
+			expectError:    false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := operator.GetValueFromSource(ctx, tc.source, "test", "test-name", "test-namespace")
+
+			if tc.expectError {
+				if err == nil {
+					t.Errorf("Expected an error, but got nil")
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error, but got %v", err)
+				}
+				if result != tc.expectedResult {
+					t.Errorf("Expected result %v, but got %v", tc.expectedResult, result)
+				}
+			}
+		})
 	}
 }
 
