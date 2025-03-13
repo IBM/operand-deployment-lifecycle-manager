@@ -114,6 +114,151 @@ OperandConfig defines the individual operand deployment config:
 3. `name` is the name of the operator, which should be the same as the services name in the OperandRegistry and OperandRequest.
 4. `spec` defines a map. Its key is the kind name of the custom resource. Its value is merged to the spec field of custom resource. For more details, you can check the following topic **How does ODLM create the individual operator CR?**
 
+### Dynamic Configuration with Templating
+
+OperandConfig supports a templating system that allows values to be dynamically referenced from various sources rather than hardcoding them in the CR. This enables more flexible configuration management and helps maintain separation between configuration data and its sources.
+
+The templating system uses the `templatingValueFrom` field to reference values from ConfigMaps, Secrets, or other Kubernetes objects. When ODLM processes an OperandConfig, it resolves these references to their actual values before creating the operand resources.
+
+Example with templating for a Jenkins service port:
+
+```yaml
+apiVersion: operator.ibm.com/v1alpha1
+Kind: OperandConfigs
+metadata:
+  name: example-service
+  namespace: example-service-ns
+spec:
+  services:
+  - name: jenkins
+    spec:
+      jenkins:
+        service:
+          port:
+            templatingValueFrom:
+              configMapKeyRef:
+                name: jenkins-config
+                namespace: default  # Optional, defaults to CR namespace
+                key: port
+              required: true 
+```
+In this example, instead of hardcoding the port number, ODLM will look up the value from a ConfigMap named jenkins-config using the key port.
+
+#### Value Source Types
+ODLM supports several types of value sources that can be referenced in your OperandConfig:
+
+1. ConfigMap Reference
+Values can be retrieved from ConfigMaps. This is useful for environment-specific configuration that might change between deployments:
+  ```yaml
+  templatingValueFrom:
+    configMapKeyRef:
+      name: jenkins-config
+      namespace: operator-ns  # Optional
+      key: storage-size
+    required: true
+  ```
+
+2. Secret Reference
+For sensitive data like passwords, tokens, or certificates, values can be securely retrieved from Secrets:
+  ```yaml
+  templatingValueFrom:
+    secretKeyRef:
+      name: jenkins-secrets
+      namespace: operator-ns  # Optional
+      key: storage-password
+    required: true
+  ```
+
+3. Object Reference
+Values can be pulled from any Kubernetes object's fields using JSONPath notation. This is powerful for building dependencies between resources:
+  ```yaml
+  templatingValueFrom:
+    objectRef:
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      name: jenkins-pvc
+      namespace: operator-ns  # Optional
+      path: .spec.resources.requests.storage
+    required: true 
+  ```
+
+4. Default Value
+The `default` field can specify a static value or reference other objects similar to the main templating system. This serves as a fallback when the primary references are not available:
+  ```yaml
+  templatingValueFrom:
+    default:
+      required: true
+      configMapKeyRef:
+        name: defaults
+        key: standard-storage
+    configMapKeyRef:
+      name: global-defaults
+      key: standard-storage
+    secretKeyRef:
+      name: backup-config
+      key: storage-value
+    objectRef:
+      apiVersion: v1
+      kind: PersistentVolume
+      name: reference-pv
+      path: .spec.capacity.storage
+  ```
+  In this example, if none of the primary value sources (configMapKeyRef, secretKeyRef, objectRef) in the main templatingValueFrom provide a value, ODLM will try to resolve values from the default section. It will first check the static defaultValue, then try the Object, Secret, and ConfigMap references in order until it finds a value. This provides multiple layers of fallbacks for your configuration.
+
+#### Conditional Logic
+1. The templating system supports conditional expressions that allow you to define different values based on runtime conditions in your cluster. This enables dynamic configuration that adapts to the environment:
+  ```yaml
+  templatingValueFrom:
+    conditional:
+      expression:
+        equal:  # Other options: notEqual, greaterThan, lessThan
+          left:
+            objectRef:
+              apiVersion: v1
+              kind: ConfigMap
+              name: cluster-info
+              namespace: default
+              path: .data.environment
+          right:
+            literal: "production"
+      then:
+        literal: "50Gi"  # Value if condition is true
+      else:
+        literal: "10Gi"
+  ```
+In this example, if the ConfigMap cluster-info has an environment value of "production", the larger storage size will be used.
+
+2. For more complex scenarios, you can combine multiple conditions using logical operators:
+  ```yaml
+  templatingValueFrom:
+    conditional:
+      expression:
+        and:
+          - equal:
+              left:
+                objectRef:
+                  apiVersion: v1
+                  kind: ConfigMap
+                  name: cluster-info
+                  path: .data.environment
+              right:
+                literal: "production"
+          - greaterThan:
+              left:
+                objectRef:
+                  apiVersion: v1
+                  kind: PersistentVolumeClaim
+                  name: jenkins-pvc
+                  path: .status.capacity.storage
+              right:
+                literal: "5Gi"
+      then:
+        literal: "3"  # replicas value if condition is true
+      else:
+        literal: "1"  # replicas value if condition is false
+  ```
+This example sets the number of replicas to 3 only if the environment is "production" AND the existing PVC capacity is greater than 5Gi.
+
 ### How does Operator create the individual operator CR
 
 Jenkins Operator has one CRD: Jenkins:
