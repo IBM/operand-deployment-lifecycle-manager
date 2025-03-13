@@ -82,7 +82,9 @@ type ValueComparison struct {
 }
 
 type ValueSource struct {
-	Literal string `json:"literal,omitempty"`
+	Literal string                 `json:"literal,omitempty"`
+	Map     map[string]interface{} `json:"map,omitempty"` // Add this for arbitrary key-value pairs
+	Array   []ValueSource          `json:"array,omitempty"`
 
 	// Dynamic references
 	ConfigMapKeyRef *ConfigMapRef `json:"configMapKeyRef,omitempty"`
@@ -94,9 +96,9 @@ type DefaultObjectRef struct {
 	Required        bool          `json:"required,omitempty"`
 	ConfigMapKeyRef *ConfigMapRef `json:"configMapKeyRef,omitempty"`
 	SecretKeyRef    *SecretRef    `json:"secretKeyRef,omitempty"`
+	ObjectRef       *ObjectRef    `json:"objectRef,omitempty"`
+	DefaultValue    string        `json:"defaultValue,omitempty"`
 	// RouteRef        *RouteRef     `json:"routePathRef,omitempty"`
-	ObjectRef    *ObjectRef `json:"objectRef,omitempty"`
-	DefaultValue string     `json:"defaultValue,omitempty"`
 }
 
 type ConfigMapRef struct {
