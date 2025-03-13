@@ -180,9 +180,7 @@ func main() {
 		}
 	}
 	// disable operatorConfig in no-olm environment
-	if noolm == "true" {
-		klog.Infof("disable operatorconfig controller")
-	} else {
+	if noolm != "true" {
 		if err = (&operatorconfig.Reconciler{
 			ODLMOperator: deploy.NewODLMOperator(mgr, "OperatorConfig"),
 		}).SetupWithManager(mgr); err != nil {
