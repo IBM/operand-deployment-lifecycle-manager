@@ -52,10 +52,6 @@ type TemplateValueRef struct {
 }
 
 type ConditionalRef struct {
-	// If-else condition
-	IfValue *ValueSource `json:"ifValue,omitempty"`
-	Equals  string       `json:"equals,omitempty"`
-
 	// Expression-based condition
 	Expression *LogicalExpression `json:"expression,omitempty"`
 

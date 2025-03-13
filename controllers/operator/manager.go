@@ -861,7 +861,10 @@ func (m *ODLMOperator) processTemplateValue(ctx context.Context, value interface
 
 	// Check for conditional logic
 	if templateRefObj.Conditional != nil {
-		return m.processConditionalTemplate(ctx, templateRefObj, key, instanceType, instanceName, instanceNs)
+		if templateRefObj.Conditional.Expression != nil {
+			return m.processExpressionCondition(ctx, templateRefObj, key, instanceType, instanceName, instanceNs)
+		}
+		return "", fmt.Errorf("unsupported conditional type for %s %s/%s on field %s", instanceType, instanceNs, instanceName, key)
 	} else {
 		// Process non-conditional templates
 		return m.processStandardTemplate(ctx, templateRefObj, key, instanceType, instanceName, instanceNs)
@@ -887,15 +890,6 @@ func (m *ODLMOperator) convertToTemplateValueRef(templateRef map[string]interfac
 	return templateRefObj, nil
 }
 
-// processConditionalTemplate handles conditional template evaluation
-func (m *ODLMOperator) processConditionalTemplate(ctx context.Context, templateRefObj *util.TemplateValueRef, key string, instanceType, instanceName, instanceNs string) (string, error) {
-	if templateRefObj.Conditional.Expression != nil {
-		return m.processExpressionCondition(ctx, templateRefObj, key, instanceType, instanceName, instanceNs)
-	} else {
-		return m.processSimpleCondition(ctx, templateRefObj, key, instanceType, instanceName, instanceNs)
-	}
-}
-
 // processExpressionCondition evaluates expression-based conditions
 func (m *ODLMOperator) processExpressionCondition(ctx context.Context, templateRefObj *util.TemplateValueRef, key string, instanceType, instanceName, instanceNs string) (string, error) {
 	result, err := m.EvaluateExpression(ctx, templateRefObj.Conditional.Expression, instanceType, instanceName, instanceNs)
@@ -910,30 +904,6 @@ func (m *ODLMOperator) processExpressionCondition(ctx context.Context, templateR
 		return m.getValueFromBranch(ctx, templateRefObj.Conditional.Then, "then", key, instanceType, instanceName, instanceNs)
 	} else {
 		// Use 'else' branch when condition is false
-		return m.getValueFromBranch(ctx, templateRefObj.Conditional.Else, "else", key, instanceType, instanceName, instanceNs)
-	}
-}
-
-// processSimpleCondition evaluates simple equality-based conditions
-func (m *ODLMOperator) processSimpleCondition(ctx context.Context, templateRefObj *util.TemplateValueRef, key string, instanceType, instanceName, instanceNs string) (string, error) {
-	var conditionValue string
-	var conditionErr error
-
-	// Get the condition value from the object reference
-	if templateRefObj.Conditional.IfValue != nil && templateRefObj.Conditional.IfValue.ObjectRef != nil {
-		conditionValue, conditionErr = m.ParseObjectRef(ctx,
-			templateRefObj.Conditional.IfValue.ObjectRef,
-			instanceType, instanceName, instanceNs)
-		if conditionErr != nil {
-			klog.Errorf("Failed to get condition value from Object for %s %s/%s on field %s: %v",
-				instanceType, instanceNs, instanceName, key, conditionErr)
-			return "", conditionErr
-		}
-	}
-
-	if conditionValue == templateRefObj.Conditional.Equals {
-		return m.getValueFromBranch(ctx, templateRefObj.Conditional.Then, "then", key, instanceType, instanceName, instanceNs)
-	} else {
 		return m.getValueFromBranch(ctx, templateRefObj.Conditional.Else, "else", key, instanceType, instanceName, instanceNs)
 	}
 }
