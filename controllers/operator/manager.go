@@ -812,19 +812,20 @@ func (m *ODLMOperator) processMapObject(ctx context.Context, key string, mapObj 
 			if err != nil {
 				return err
 			}
-			klog.Infof("000000 key is %s and value is %v", key, valueRef)
-			// Check if the returned value is a JSON array string and the field should be an array
-			if strings.HasPrefix(valueRef, "[") && strings.HasSuffix(valueRef, "]") {
-				// Try to unmarshal it as an array
-				var arrayValue []interface{}
-				if err := json.Unmarshal([]byte(valueRef), &arrayValue); err == nil {
-					// Successfully unmarshaled as array, use the array directly
-					finalObject[key] = arrayValue
-					continue
+			if valueRef != "" {
+				// Check if the returned value is a JSON array string and the field should be an array
+				if strings.HasPrefix(valueRef, "[") && strings.HasSuffix(valueRef, "]") {
+					var arrayValue []interface{}
+					if err := json.Unmarshal([]byte(valueRef), &arrayValue); err == nil {
+						finalObject[key] = arrayValue
+						continue
+					}
 				}
-				// If unmarshaling fails, fall through to use the string value
+				finalObject[key] = valueRef
+			} else {
+				klog.V(3).Infof("Empty value reference returned for key %s, deleting key %s from finalObject", key, key)
+				delete(finalObject, key)
 			}
-			finalObject[key] = valueRef
 		} else {
 			if finalObject[key] == nil {
 				// Skip if the key doesn't exist in finalObject
