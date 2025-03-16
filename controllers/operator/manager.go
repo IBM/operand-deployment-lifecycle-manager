@@ -915,47 +915,49 @@ func (m *ODLMOperator) processExpressionCondition(ctx context.Context, templateR
 
 	if result {
 		// Use 'then' branch when condition is true
-		return m.getValueFromBranch(ctx, templateRefObj.Conditional.Then, "then", key, instanceType, instanceName, instanceNs)
+		return m.GetValueFromBranch(ctx, templateRefObj.Conditional.Then, "then", key, instanceType, instanceName, instanceNs)
 	} else {
 		// Use 'else' branch when condition is false
-		return m.getValueFromBranch(ctx, templateRefObj.Conditional.Else, "else", key, instanceType, instanceName, instanceNs)
+		return m.GetValueFromBranch(ctx, templateRefObj.Conditional.Else, "else", key, instanceType, instanceName, instanceNs)
 	}
 }
 
-// getValueFromBranch retrieves a value from a specific branch (then/else)
-func (m *ODLMOperator) getValueFromBranch(ctx context.Context, branch *util.ValueSource, branchName, key string, instanceType, instanceName, instanceNs string) (string, error) {
+// GetValueFromBranch retrieves a value from a specific branch (then/else)
+func (m *ODLMOperator) GetValueFromBranch(ctx context.Context, branch *util.ValueSource, branchName, key string, instanceType, instanceName, instanceNs string) (string, error) {
 	if branch == nil {
 		return "", nil
 	}
 
+	// Handle direct literal value first
 	if branch.Literal != "" {
 		return branch.Literal, nil
 	}
 
+	// Handle array values
 	if len(branch.Array) > 0 {
-		// Create a slice to hold processed values which could be strings or maps
+		// Create a slice to hold processed values
 		var processedValues []interface{}
 
 		// Iterate over the array items
 		for _, item := range branch.Array {
-			// Check if this item has a map structure
-			if len(item.Map) > 0 {
+			if item.Literal != "" {
+				// For literal values in array, add directly
+				processedValues = append(processedValues, item.Literal)
+			} else if len(item.Map) > 0 {
+				// Handle map items
 				resultMap := make(map[string]interface{})
-				// Iterate over the map to process each key-value pair
+
 				for k, v := range item.Map {
-					// Process any dynamic references in map values
 					if valueSourceMap, ok := v.(map[string]interface{}); ok {
 						vsBytes, err := json.Marshal(valueSourceMap)
 						if err != nil {
-							klog.Errorf("Failed to marshal '%s' map value to JSON for %s %s/%s on field %s: %v",
-								branchName, instanceType, instanceNs, instanceName, key, err)
+							klog.Errorf("Failed to marshal map value to JSON: %v", err)
 							return "", err
 						}
 
 						var vs util.ValueSource
 						if err := json.Unmarshal(vsBytes, &vs); err != nil {
-							klog.Errorf("Failed to unmarshal '%s' value to ValueSource for %s %s/%s on field %s: %v",
-								branchName, instanceType, instanceNs, instanceName, key, err)
+							klog.Errorf("Failed to unmarshal to ValueSource: %v", err)
 							return "", err
 						}
 
@@ -970,63 +972,24 @@ func (m *ODLMOperator) getValueFromBranch(ctx context.Context, branch *util.Valu
 				}
 				processedValues = append(processedValues, resultMap)
 			} else {
-				// Standard ValueSource processing
+				// Handle direct reference types in array items
 				val, err := m.GetValueFromSource(ctx, &item, instanceType, instanceName, instanceNs)
 				if err != nil {
-					klog.Errorf("Failed to get '%s' array item value for %s %s/%s on field %s: %v",
-						branchName, instanceType, instanceNs, instanceName, key, err)
 					return "", err
 				}
 				processedValues = append(processedValues, val)
 			}
 		}
 
-		// Marshal the mixed array to JSON
+		// Marshal the array to JSON
 		jsonBytes, err := json.Marshal(processedValues)
 		if err != nil {
-			klog.Errorf("Failed to marshal '%s' array values to JSON for %s %s/%s on field %s: %v",
-				branchName, instanceType, instanceNs, instanceName, key, err)
 			return "", err
 		}
 		return string(jsonBytes), nil
 	}
 
-	// Handle other reference types
-	valueRef := ""
-
-	if branch.ObjectRef != nil {
-		ref, err := m.ParseObjectRef(ctx, branch.ObjectRef, instanceType, instanceName, instanceNs)
-		if err != nil {
-			klog.Errorf("Failed to get '%s' value from Object for %s %s/%s on field %s: %v",
-				branchName, instanceType, instanceNs, instanceName, key, err)
-			return "", err
-		}
-		if ref != "" {
-			valueRef = ref
-		}
-	} else if branch.SecretKeyRef != nil {
-		ref, err := m.ParseSecretKeyRef(ctx, branch.SecretKeyRef, instanceType, instanceName, instanceNs)
-		if err != nil {
-			klog.Errorf("Failed to get '%s' value from Secret for %s %s/%s on field %s: %v",
-				branchName, instanceType, instanceNs, instanceName, key, err)
-			return "", err
-		}
-		if ref != "" {
-			valueRef = ref
-		}
-	} else if branch.ConfigMapKeyRef != nil {
-		ref, err := m.ParseConfigMapRef(ctx, branch.ConfigMapKeyRef, instanceType, instanceName, instanceNs)
-		if err != nil {
-			klog.Errorf("Failed to get '%s' value from ConfigMap for %s %s/%s on field %s: %v",
-				branchName, instanceType, instanceNs, instanceName, key, err)
-			return "", err
-		}
-		if ref != "" {
-			valueRef = ref
-		}
-	}
-
-	return valueRef, nil
+	return m.GetValueFromSource(ctx, branch, instanceType, instanceName, instanceNs)
 }
 
 // processStandardTemplate handles non-conditional templates
