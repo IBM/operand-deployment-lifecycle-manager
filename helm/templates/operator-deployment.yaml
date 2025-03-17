@@ -5,6 +5,9 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     productName: IBM_Cloud_Platform_Common_Services
     component-id: {{ .Chart.Name }}
+    {{- with .Values.cpfs.labels }}
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
   name: operand-deployment-lifecycle-manager
   namespace: {{ .Values.global.operatorNamespace }}
 spec:
@@ -169,7 +172,6 @@ spec:
       creationTimestamp: null
       labels:
         app.kubernetes.io/managed-by: Helm
-        intent: projected
         name: operand-deployment-lifecycle-manager
         productName: IBM_Cloud_Platform_Common_Services
     spec:
@@ -195,17 +197,18 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.namespace
+        {{- $watchNamespaces := .Values.global.tetheredNamespaces | default list -}}
+        {{- if .Values.global.instanceNamespace -}}
+        {{- $watchNamespaces = append $watchNamespaces .Values.global.instanceNamespace -}}
+        {{- end -}}
+        {{- $watchNamespaces = prepend $watchNamespaces .Values.global.operatorNamespace }}
         - name: WATCH_NAMESPACE
-          valueFrom:
-            configMapKeyRef:
-              key: namespaces
-              name: namespace-scope
-              optional: true
+          value: {{ uniq $watchNamespaces | join "," | quote }}
         - name: OPERATOR_CONDITION_NAME
           value: operand-deployment-lifecycle-manager.v4.5.0
         - name: NO_OLM
           value: "true"
-        image: {{ .Values.global.imagePullPrefix }}/{{ .Values.cpfs.imageRegistryNamespaceOperator }}/odlm:4.5.0
+        image: {{ .Values.cpfs.imagePullPrefix | default .Values.global.imagePullPrefix }}/{{ .Values.cpfs.imageRegistryNamespaceOperator }}/odlm:4.5.0
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 10
