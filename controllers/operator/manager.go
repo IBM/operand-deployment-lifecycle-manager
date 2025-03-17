@@ -1167,19 +1167,36 @@ func (m *ODLMOperator) GetValueFromSource(ctx context.Context, source *util.Valu
 
 	// Get value from Object
 	if source.ObjectRef != nil {
-		return m.ParseObjectRef(ctx, source.ObjectRef, instanceType, instanceName, instanceNs)
+		val, err := m.ParseObjectRef(ctx, source.ObjectRef, instanceType, instanceName, instanceNs)
+		if err != nil {
+			return "", err
+		} else if val == "" && source.Required {
+			return "", errors.Errorf("Failed to get required value from source %s, retry in few second", source.ObjectRef.Name)
+		}
+		return val, nil
 	}
 
 	// Get value from Secret
 	if source.SecretKeyRef != nil {
-		return m.ParseSecretKeyRef(ctx, source.SecretKeyRef, instanceType, instanceName, instanceNs)
+		val, err := m.ParseSecretKeyRef(ctx, source.SecretKeyRef, instanceType, instanceName, instanceNs)
+		if err != nil {
+			return "", err
+		} else if val == "" && source.Required {
+			return "", errors.Errorf("Failed to get required value from source %s, retry in few second", source.SecretKeyRef.Name)
+		}
+		return val, nil
 	}
 
 	// Get value from ConfigMap
 	if source.ConfigMapKeyRef != nil {
-		return m.ParseConfigMapRef(ctx, source.ConfigMapKeyRef, instanceType, instanceName, instanceNs)
+		val, err := m.ParseConfigMapRef(ctx, source.ConfigMapKeyRef, instanceType, instanceName, instanceNs)
+		if err != nil {
+			return "", err
+		} else if val == "" && source.Required {
+			return "", errors.Errorf("Failed to get required value from source %s, retry in few second", source.ConfigMapKeyRef.Name)
+		}
+		return val, nil
 	}
-
 	return "", nil
 }
 

@@ -82,9 +82,10 @@ type ValueComparison struct {
 }
 
 type ValueSource struct {
-	Literal string                 `json:"literal,omitempty"`
-	Map     map[string]interface{} `json:"map,omitempty"` // Add this for arbitrary key-value pairs
-	Array   []ValueSource          `json:"array,omitempty"`
+	Literal  string                 `json:"literal,omitempty"`
+	Map      map[string]interface{} `json:"map,omitempty"` // Add this for arbitrary key-value pairs
+	Array    []ValueSource          `json:"array,omitempty"`
+	Required bool                   `json:"required,omitempty"` // Add this line to support required flag
 
 	// Dynamic references
 	ConfigMapKeyRef *ConfigMapRef `json:"configMapKeyRef,omitempty"`

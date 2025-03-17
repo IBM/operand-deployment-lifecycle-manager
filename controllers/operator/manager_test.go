@@ -25,6 +25,7 @@ import (
 
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	operatorsv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/mock"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -807,6 +808,9 @@ func (t *testOperator) ParseObjectRef(ctx context.Context, obj *util.ObjectRef, 
 	if obj.Name == "errorObj" {
 		return "", fmt.Errorf("mock error")
 	}
+	if obj.Name == "nonexistent-obj" {
+		return "", nil
+	}
 
 	return "default", nil
 }
@@ -825,8 +829,11 @@ func (t *testOperator) ParseConfigMapRef(ctx context.Context, cm *util.ConfigMap
 	if cm.Name == "error-cm" {
 		return "", fmt.Errorf("mock configmap error: %s", cm.Name)
 	}
+	if cm.Name == "nonexistent-cm" {
+		return "", nil
+	}
 
-	return "mock-config-value", nil
+	return "", nil
 }
 
 func (t *testOperator) ParseSecretKeyRef(ctx context.Context, secret *util.SecretRef, instanceType, instanceName, instanceNs string) (string, error) {
@@ -843,8 +850,11 @@ func (t *testOperator) ParseSecretKeyRef(ctx context.Context, secret *util.Secre
 	if secret.Name == "error-secret" {
 		return "", fmt.Errorf("mock secret error: %s", secret.Name)
 	}
+	if secret.Name == "nonexistent-secret" {
+		return "", nil
+	}
 
-	return "mock-secret-value", nil
+	return "", nil
 }
 
 func (t *testOperator) GetValueFromSource(ctx context.Context, source *util.ValueSource, instanceType, instanceName, instanceNs string) (string, error) {
@@ -857,20 +867,38 @@ func (t *testOperator) GetValueFromSource(ctx context.Context, source *util.Valu
 		return source.Literal, nil
 	}
 
-	// Use specific object/cm/secret references from the already defined method
+	// Use specific object/cm/secret references
 	if source.ObjectRef != nil {
-		return t.ParseObjectRef(ctx, source.ObjectRef, instanceType, instanceName, instanceNs)
+		val, err := t.ParseObjectRef(ctx, source.ObjectRef, instanceType, instanceName, instanceNs)
+		if err != nil {
+			return "", err
+		} else if val == "" && source.Required {
+			return "", errors.Errorf("Failed to get required value from source, retry in few second")
+		}
+		return val, nil
 	}
 
 	if source.ConfigMapKeyRef != nil {
-		return t.ParseConfigMapRef(ctx, source.ConfigMapKeyRef, instanceType, instanceName, instanceNs)
+		val, err := t.ParseConfigMapRef(ctx, source.ConfigMapKeyRef, instanceType, instanceName, instanceNs)
+		if err != nil {
+			return "", err
+		} else if val == "" && source.Required {
+			return "", errors.Errorf("Failed to get required value from source, retry in few second")
+		}
+		return val, nil
 	}
 
 	if source.SecretKeyRef != nil {
-		return t.ParseSecretKeyRef(ctx, source.SecretKeyRef, instanceType, instanceName, instanceNs)
+		val, err := t.ParseSecretKeyRef(ctx, source.SecretKeyRef, instanceType, instanceName, instanceNs)
+		if err != nil {
+			return "", err
+		} else if val == "" && source.Required {
+			return "", errors.Errorf("Failed to get required value from source, retry in few second")
+		}
+		return val, nil
 	}
 
-	return "default", nil
+	return "", nil
 }
 
 func TestGetValueFromSource(t *testing.T) {
@@ -1133,6 +1161,67 @@ func TestGetValueFromBranch(t *testing.T) {
 			key:            "test-key",
 			expectedResult: `["1.2.3"]`,
 			expectError:    false,
+		},
+		// Add these additional test cases to the tests slice in TestGetValueFromBranch
+		{
+			name: "Required ObjectRef not found",
+			branch: &util.ValueSource{
+				ObjectRef: &util.ObjectRef{
+					Name:       "nonexistent-obj",
+					Path:       "spec.value",
+					APIVersion: "v1",
+					Kind:       "ConfigMap",
+				},
+				Required: true, // Mark as required
+			},
+			branchName:     "test-branch",
+			key:            "test-key",
+			expectedResult: "",
+			expectError:    true, // Should error since required value isn't found
+		},
+		{
+			name: "Required ConfigMapKeyRef not found",
+			branch: &util.ValueSource{
+				ConfigMapKeyRef: &util.ConfigMapRef{
+					Name: "nonexistent-cm",
+					Key:  "test-key",
+				},
+				Required: true, // Mark as required
+			},
+			branchName:     "test-branch",
+			key:            "test-key",
+			expectedResult: "",
+			expectError:    true, // Should error since required value isn't found
+		},
+		{
+			name: "Required SecretKeyRef not found",
+			branch: &util.ValueSource{
+				SecretKeyRef: &util.SecretRef{
+					Name: "nonexistent-secret",
+					Key:  "test-key",
+				},
+				Required: true, // Mark as required
+			},
+			branchName:     "test-branch",
+			key:            "test-key",
+			expectedResult: "",
+			expectError:    true, // Should error since required value isn't found
+		},
+		{
+			name: "Optional ObjectRef not found",
+			branch: &util.ValueSource{
+				ObjectRef: &util.ObjectRef{
+					Name:       "nonexistent-obj",
+					Path:       "spec.value",
+					APIVersion: "v1",
+					Kind:       "ConfigMap",
+				},
+				Required: false, // Not required
+			},
+			branchName:     "test-branch",
+			key:            "test-key",
+			expectedResult: "",
+			expectError:    false, // Should not error even though value isn't found
 		},
 		{
 			name: "Branch with ObjectRef",
