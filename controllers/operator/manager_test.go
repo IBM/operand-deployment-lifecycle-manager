@@ -18,12 +18,14 @@ package operator
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"testing"
 
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	operatorsv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/mock"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -806,6 +808,9 @@ func (t *testOperator) ParseObjectRef(ctx context.Context, obj *util.ObjectRef, 
 	if obj.Name == "errorObj" {
 		return "", fmt.Errorf("mock error")
 	}
+	if obj.Name == "nonexistent-obj" {
+		return "", nil
+	}
 
 	return "default", nil
 }
@@ -824,8 +829,11 @@ func (t *testOperator) ParseConfigMapRef(ctx context.Context, cm *util.ConfigMap
 	if cm.Name == "error-cm" {
 		return "", fmt.Errorf("mock configmap error: %s", cm.Name)
 	}
+	if cm.Name == "nonexistent-cm" {
+		return "", nil
+	}
 
-	return "mock-config-value", nil
+	return "", nil
 }
 
 func (t *testOperator) ParseSecretKeyRef(ctx context.Context, secret *util.SecretRef, instanceType, instanceName, instanceNs string) (string, error) {
@@ -842,8 +850,11 @@ func (t *testOperator) ParseSecretKeyRef(ctx context.Context, secret *util.Secre
 	if secret.Name == "error-secret" {
 		return "", fmt.Errorf("mock secret error: %s", secret.Name)
 	}
+	if secret.Name == "nonexistent-secret" {
+		return "", nil
+	}
 
-	return "mock-secret-value", nil
+	return "", nil
 }
 
 func (t *testOperator) GetValueFromSource(ctx context.Context, source *util.ValueSource, instanceType, instanceName, instanceNs string) (string, error) {
@@ -856,20 +867,38 @@ func (t *testOperator) GetValueFromSource(ctx context.Context, source *util.Valu
 		return source.Literal, nil
 	}
 
-	// Use specific object/cm/secret references from the already defined method
+	// Use specific object/cm/secret references
 	if source.ObjectRef != nil {
-		return t.ParseObjectRef(ctx, source.ObjectRef, instanceType, instanceName, instanceNs)
+		val, err := t.ParseObjectRef(ctx, source.ObjectRef, instanceType, instanceName, instanceNs)
+		if err != nil {
+			return "", err
+		} else if val == "" && source.Required {
+			return "", errors.Errorf("Failed to get required value from source, retry in few second")
+		}
+		return val, nil
 	}
 
 	if source.ConfigMapKeyRef != nil {
-		return t.ParseConfigMapRef(ctx, source.ConfigMapKeyRef, instanceType, instanceName, instanceNs)
+		val, err := t.ParseConfigMapRef(ctx, source.ConfigMapKeyRef, instanceType, instanceName, instanceNs)
+		if err != nil {
+			return "", err
+		} else if val == "" && source.Required {
+			return "", errors.Errorf("Failed to get required value from source, retry in few second")
+		}
+		return val, nil
 	}
 
 	if source.SecretKeyRef != nil {
-		return t.ParseSecretKeyRef(ctx, source.SecretKeyRef, instanceType, instanceName, instanceNs)
+		val, err := t.ParseSecretKeyRef(ctx, source.SecretKeyRef, instanceType, instanceName, instanceNs)
+		if err != nil {
+			return "", err
+		} else if val == "" && source.Required {
+			return "", errors.Errorf("Failed to get required value from source, retry in few second")
+		}
+		return val, nil
 	}
 
-	return "default", nil
+	return "", nil
 }
 
 func TestGetValueFromSource(t *testing.T) {
@@ -1010,6 +1039,347 @@ func TestGetValueFromSource(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGetValueFromBranch(t *testing.T) {
+	ctx := context.TODO()
+
+	baseOperator := &ODLMOperator{
+		Client: &MockClient{},
+	}
+	operator := &testOperator{baseOperator}
+
+	type testCase struct {
+		name           string
+		branch         *util.ValueSource
+		branchName     string
+		key            string
+		expectedResult string
+		expectError    bool
+	}
+
+	tests := []testCase{
+		{
+			name:           "Nil branch",
+			branch:         nil,
+			branchName:     "test-branch",
+			key:            "test-key",
+			expectedResult: "",
+			expectError:    false,
+		},
+		{
+			name: "Branch with literal value",
+			branch: &util.ValueSource{
+				Literal: "test-literal-value",
+			},
+			branchName:     "test-branch",
+			key:            "test-key",
+			expectedResult: "test-literal-value",
+			expectError:    false,
+		},
+		{
+			name: "Branch with array of literal values",
+			branch: &util.ValueSource{
+				Array: []util.ValueSource{
+					{Literal: "value1"},
+					{Literal: "value2"},
+					{Literal: "value3"},
+				},
+			},
+			branchName:     "test-branch",
+			key:            "test-key",
+			expectedResult: `["value1","value2","value3"]`,
+			expectError:    false,
+		},
+		{
+			name: "Branch with array containing map values",
+			branch: &util.ValueSource{
+				Array: []util.ValueSource{
+					{
+						Map: map[string]interface{}{
+							"key1": "value1",
+							"key2": map[string]interface{}{
+								"literal": "nested-value",
+							},
+						},
+					},
+				},
+			},
+			branchName:     "test-branch",
+			key:            "test-key",
+			expectedResult: `[{"key1":"value1","key2":"nested-value"}]`,
+			expectError:    false,
+		},
+		{
+			name: "Branch with array containing map values with reference",
+			branch: &util.ValueSource{
+				Array: []util.ValueSource{
+					{Literal: "value1"},
+					{
+						Map: map[string]interface{}{
+							"hostname": "backend-service",
+							"enabled":  true,
+							"port":     8080,
+						},
+					},
+					{
+						Map: map[string]interface{}{
+							"apikey": map[string]interface{}{
+								"secretKeyRef": map[string]interface{}{
+									"name": "test-secret",
+									"key":  "token",
+								},
+							},
+						},
+					},
+					{
+						ConfigMapKeyRef: &util.ConfigMapRef{
+							Name: "test-cm",
+							Key:  "test-key",
+						},
+					},
+				},
+			},
+			branchName:     "test-branch",
+			key:            "test-key",
+			expectedResult: `["value1",{"enabled":true,"hostname":"backend-service","port":8080},{"apikey":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"},"test-key-value"]`,
+			expectError:    false,
+		},
+		{
+			name: "Branch with array containing reference values",
+			branch: &util.ValueSource{
+				Array: []util.ValueSource{
+					{
+						ObjectRef: &util.ObjectRef{
+							Name: "testObj",
+							Path: "spec.version",
+						},
+					},
+				},
+			},
+			branchName:     "test-branch",
+			key:            "test-key",
+			expectedResult: `["1.2.3"]`,
+			expectError:    false,
+		},
+		// Add these additional test cases to the tests slice in TestGetValueFromBranch
+		{
+			name: "Required ObjectRef not found",
+			branch: &util.ValueSource{
+				ObjectRef: &util.ObjectRef{
+					Name:       "nonexistent-obj",
+					Path:       "spec.value",
+					APIVersion: "v1",
+					Kind:       "ConfigMap",
+				},
+				Required: true, // Mark as required
+			},
+			branchName:     "test-branch",
+			key:            "test-key",
+			expectedResult: "",
+			expectError:    true, // Should error since required value isn't found
+		},
+		{
+			name: "Required ConfigMapKeyRef not found",
+			branch: &util.ValueSource{
+				ConfigMapKeyRef: &util.ConfigMapRef{
+					Name: "nonexistent-cm",
+					Key:  "test-key",
+				},
+				Required: true, // Mark as required
+			},
+			branchName:     "test-branch",
+			key:            "test-key",
+			expectedResult: "",
+			expectError:    true, // Should error since required value isn't found
+		},
+		{
+			name: "Required SecretKeyRef not found",
+			branch: &util.ValueSource{
+				SecretKeyRef: &util.SecretRef{
+					Name: "nonexistent-secret",
+					Key:  "test-key",
+				},
+				Required: true, // Mark as required
+			},
+			branchName:     "test-branch",
+			key:            "test-key",
+			expectedResult: "",
+			expectError:    true, // Should error since required value isn't found
+		},
+		{
+			name: "Optional ObjectRef not found",
+			branch: &util.ValueSource{
+				ObjectRef: &util.ObjectRef{
+					Name:       "nonexistent-obj",
+					Path:       "spec.value",
+					APIVersion: "v1",
+					Kind:       "ConfigMap",
+				},
+				Required: false, // Not required
+			},
+			branchName:     "test-branch",
+			key:            "test-key",
+			expectedResult: "",
+			expectError:    false, // Should not error even though value isn't found
+		},
+		{
+			name: "Branch with ObjectRef",
+			branch: &util.ValueSource{
+				ObjectRef: &util.ObjectRef{
+					Name: "testObj",
+					Path: "spec.version",
+				},
+			},
+			branchName:     "test-branch",
+			key:            "test-key",
+			expectedResult: "1.2.3",
+			expectError:    false,
+		},
+		{
+			name: "Branch with SecretKeyRef",
+			branch: &util.ValueSource{
+				SecretKeyRef: &util.SecretRef{
+					Name: "test-secret",
+					Key:  "token",
+				},
+			},
+			branchName:     "test-branch",
+			key:            "test-key",
+			expectedResult: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+			expectError:    false,
+		},
+		{
+			name: "Branch with ConfigMapKeyRef",
+			branch: &util.ValueSource{
+				ConfigMapKeyRef: &util.ConfigMapRef{
+					Name: "test-cm",
+					Key:  "test-key",
+				},
+			},
+			branchName:     "test-branch",
+			key:            "test-key",
+			expectedResult: "test-key-value",
+			expectError:    false,
+		},
+		{
+			name: "Error in ObjectRef",
+			branch: &util.ValueSource{
+				ObjectRef: &util.ObjectRef{
+					Name: "errorObj",
+					Path: "spec.value",
+				},
+			},
+			branchName:     "test-branch",
+			key:            "test-key",
+			expectedResult: "",
+			expectError:    true,
+		},
+		{
+			name: "Error in SecretKeyRef",
+			branch: &util.ValueSource{
+				SecretKeyRef: &util.SecretRef{
+					Name: "error-secret",
+					Key:  "test-key",
+				},
+			},
+			branchName:     "test-branch",
+			key:            "test-key",
+			expectedResult: "",
+			expectError:    true,
+		},
+		{
+			name: "Error in ConfigMapKeyRef",
+			branch: &util.ValueSource{
+				ConfigMapKeyRef: &util.ConfigMapRef{
+					Name: "error-cm",
+					Key:  "test-key",
+				},
+			},
+			branchName:     "test-branch",
+			key:            "test-key",
+			expectedResult: "",
+			expectError:    true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := operator.GetValueFromBranch(ctx, tc.branch, tc.branchName, tc.key, "test-type", "test-name", "test-namespace")
+
+			if tc.expectError {
+				if err == nil {
+					t.Errorf("Expected an error, but got nil")
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error, but got %v", err)
+				}
+				if result != tc.expectedResult {
+					t.Errorf("Expected result %v, but got %v", tc.expectedResult, result)
+				}
+			}
+		})
+	}
+}
+
+func (t *testOperator) GetValueFromBranch(ctx context.Context, branch *util.ValueSource, branchName, key string, instanceType, instanceName, instanceNs string) (string, error) {
+	if branch == nil {
+		return "", nil
+	}
+
+	if branch.Literal != "" {
+		return branch.Literal, nil
+	}
+
+	if len(branch.Array) > 0 {
+		var processedValues []interface{}
+
+		for _, item := range branch.Array {
+			if item.Literal != "" {
+				processedValues = append(processedValues, item.Literal)
+			} else if len(item.Map) > 0 {
+				resultMap := make(map[string]interface{})
+
+				for k, v := range item.Map {
+					if valueSourceMap, ok := v.(map[string]interface{}); ok {
+						vsBytes, err := json.Marshal(valueSourceMap)
+						if err != nil {
+							return "", err
+						}
+
+						var vs util.ValueSource
+						if err := json.Unmarshal(vsBytes, &vs); err != nil {
+							return "", err
+						}
+
+						resolvedVal, err := t.GetValueFromSource(ctx, &vs, instanceType, instanceName, instanceNs)
+						if err != nil {
+							return "", err
+						}
+						resultMap[k] = resolvedVal
+					} else {
+						resultMap[k] = v
+					}
+				}
+				processedValues = append(processedValues, resultMap)
+			} else {
+				val, err := t.GetValueFromSource(ctx, &item, instanceType, instanceName, instanceNs)
+				if err != nil {
+					return "", err
+				}
+				processedValues = append(processedValues, val)
+			}
+		}
+
+		jsonBytes, err := json.Marshal(processedValues)
+		if err != nil {
+			return "", err
+		}
+		return string(jsonBytes), nil
+	}
+
+	return t.GetValueFromSource(ctx, branch, instanceType, instanceName, instanceNs)
 }
 
 func assertCatalogSourceAndChannel(t *testing.T, catalogSourceName, expectedCatalogSourceName, catalogSourceNs, expectedCatalogSourceNs, availableChannel, expectedAvailableChannel string) {

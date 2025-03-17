@@ -205,6 +205,65 @@ The `default` field can specify a static value or reference other objects simila
   ```
   In this example, if none of the primary value sources (configMapKeyRef, secretKeyRef, objectRef) in the main templatingValueFrom provide a value, ODLM will try to resolve values from the default section. It will first check the static defaultValue, then try the Object, Secret, and ConfigMap references in order until it finds a value. This provides multiple layers of fallbacks for your configuration.
 
+#### Array Support in Templating
+
+ODLM's templating system also supports complex array values, allowing you to define lists of mixed content types. Arrays are particularly useful in conditional branches (`then`/`else`) where you may need to return multiple values or complex structures based on conditions.
+
+Arrays can contain:
+
+1. **Literal values** - Simple string values directly included in the array
+2. **Map structures** - Key-value pairs for complex configuration
+3. **Reference types** - ConfigMap, Secret, and Object references
+
+Here's an example of using arrays in a conditional template:
+
+```yaml
+templatingValueFrom:
+  conditional:
+    expression:
+      equal:
+        left:
+          objectRef:
+            apiVersion: v1
+            kind: ConfigMap
+            name: environment-config
+            path: data.environment
+        right:
+          literal: "production"
+    then:
+      array:
+        - literal: "value1"              # Simple string value
+        - map:                           # Map structure with static values
+            hostname: "backend-service"
+            enabled: true
+            port: 8080
+        - map:                           # Map with dynamic reference
+            apikey: 
+              secretKeyRef:
+                name: api-secrets
+                namespace: default
+                key: api-key
+        - configMapKeyRef:               # Direct ConfigMap reference
+            name: config-values
+            namespace: default
+            key: array-item-2
+    else:
+      literal: "default-value"
+```
+When the condition evaluates to true, ODLM processes this array and returns a JSON array containing all the resolved values:
+
+```yaml
+[
+  "value1",
+  {"hostname":"backend-service","enabled":true,"port":8080},
+  {"apikey":"secret-api-key-value"},
+  "config-value-from-key"
+]
+```
+The resulting array preserves the structure of each item while resolving any reference types to their actual values
+
+Empty values in conditional branches are properly handled - if a condition evaluates to false and no else branch is provided, the corresponding field will be removed from the final configuration rather than being set to an empty value.
+
 #### Conditional Logic
 1. The templating system supports conditional expressions that allow you to define different values based on runtime conditions in your cluster. This enables dynamic configuration that adapts to the environment:
   ```yaml
