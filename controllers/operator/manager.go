@@ -641,11 +641,11 @@ func (m *ODLMOperator) GetDeploymentListFromPackage(ctx context.Context, name, n
 		// 	continue
 		// }
 		// annotation := fmt.Sprintf("\"packageName\":\"%s\"", packageName)
-		klog.V(1).Infof("Get Deployment %s with package name %s", deployment.Name, packageName)
+		klog.V(2).Infof("Check if deployment %s matches package name %s", deployment.Name, packageName)
 		if !strings.Contains(deployment.Annotations["packageName"], packageName) {
 			continue
 		}
-		klog.V(1).Infof("Get Deployment %s in the namespace %s", deployment.Name, deploymentNamespace)
+		klog.V(2).Infof("Deployment %s in the namespace %s matches package name %s.", deployment.Name, deploymentNamespace, packageName)
 		deployments = append(deployments, &deployment)
 	}
 
@@ -655,7 +655,7 @@ func (m *ODLMOperator) GetDeploymentListFromPackage(ctx context.Context, name, n
 		return nil, fmt.Errorf("missing deployment with package name %s, please install the %s first", packageName, packageName)
 	}
 
-	klog.V(1).Infof("Get %v / %v Deployment in the namespace %s", len(deployments), len(deploymentList.Items), deploymentNamespace)
+	klog.V(1).Infof("Found deployment matching package name %s in the namespace %s", packageName, deploymentNamespace)
 	return deployments, nil
 }
 
@@ -704,39 +704,40 @@ func (m *ODLMOperator) GetOperandFromRegistry(ctx context.Context, reg *apiv1alp
 	if opt == nil {
 		return nil, nil
 	}
+	if no_olm := util.GetNoOLM(); no_olm != "true" {
+		// Get excluded CatalogSource from annotation
+		// excluded-catalogsource: catalogsource1, catalogsource2
+		var excludedCatalogSources []string
+		if reg.Annotations != nil && reg.Annotations["excluded-catalogsource"] != "" {
+			excludedCatalogSources = strings.Split(reg.Annotations["excluded-catalogsource"], ",")
+		}
+		// Get catalog used by ODLM itself by check its own subscription
+		labelKey := util.GetFirstNCharacter("ibm-odlm"+"."+util.GetOperatorNamespace(), 63)
+		opts := []client.ListOption{
+			client.MatchingLabels{fmt.Sprintf("operators.coreos.com/%s", labelKey): ""},
+			client.InNamespace(util.GetOperatorNamespace()),
+		}
+		odlmCatalog := ""
+		odlmCatalogNs := ""
+		odlmSubList := &olmv1alpha1.SubscriptionList{}
+		if err := m.Reader.List(ctx, odlmSubList, opts...); err != nil || len(odlmSubList.Items) == 0 {
+			klog.Warningf("No Subscription found for ibm-odlm in the namespace %s", util.GetOperatorNamespace())
+		} else {
+			odlmCatalog = odlmSubList.Items[0].Spec.CatalogSource
+			odlmCatalogNs = odlmSubList.Items[0].Spec.CatalogSourceNamespace
+		}
 
-	// Get excluded CatalogSource from annotation
-	// excluded-catalogsource: catalogsource1, catalogsource2
-	var excludedCatalogSources []string
-	if reg.Annotations != nil && reg.Annotations["excluded-catalogsource"] != "" {
-		excludedCatalogSources = strings.Split(reg.Annotations["excluded-catalogsource"], ",")
-	}
-	// Get catalog used by ODLM itself by check its own subscription
-	labelKey := util.GetFirstNCharacter("ibm-odlm"+"."+util.GetOperatorNamespace(), 63)
-	opts := []client.ListOption{
-		client.MatchingLabels{fmt.Sprintf("operators.coreos.com/%s", labelKey): ""},
-		client.InNamespace(util.GetOperatorNamespace()),
-	}
-	odlmCatalog := ""
-	odlmCatalogNs := ""
-	odlmSubList := &olmv1alpha1.SubscriptionList{}
-	if err := m.Reader.List(ctx, odlmSubList, opts...); err != nil || len(odlmSubList.Items) == 0 {
-		klog.Warningf("No Subscription found for ibm-odlm in the namespace %s", util.GetOperatorNamespace())
-	} else {
-		odlmCatalog = odlmSubList.Items[0].Spec.CatalogSource
-		odlmCatalogNs = odlmSubList.Items[0].Spec.CatalogSourceNamespace
-	}
+		catalogSourceName, catalogSourceNs, channel, err := m.GetCatalogSourceAndChannelFromPackage(ctx, opt.SourceName, opt.SourceNamespace, opt.PackageName, opt.Namespace, opt.Channel, opt.FallbackChannels, reg.Namespace, odlmCatalog, odlmCatalogNs, excludedCatalogSources)
+		if err != nil {
+			return nil, err
+		}
 
-	catalogSourceName, catalogSourceNs, channel, err := m.GetCatalogSourceAndChannelFromPackage(ctx, opt.SourceName, opt.SourceNamespace, opt.PackageName, opt.Namespace, opt.Channel, opt.FallbackChannels, reg.Namespace, odlmCatalog, odlmCatalogNs, excludedCatalogSources)
-	if err != nil {
-		return nil, err
-	}
+		if catalogSourceName == "" || catalogSourceNs == "" {
+			klog.V(2).Infof("no catalogsource found for %v", opt.PackageName)
+		}
 
-	if catalogSourceName == "" || catalogSourceNs == "" {
-		klog.V(2).Infof("no catalogsource found for %v", opt.PackageName)
+		opt.SourceName, opt.SourceNamespace, opt.Channel = catalogSourceName, catalogSourceNs, channel
 	}
-
-	opt.SourceName, opt.SourceNamespace, opt.Channel = catalogSourceName, catalogSourceNs, channel
 
 	return opt, nil
 }
