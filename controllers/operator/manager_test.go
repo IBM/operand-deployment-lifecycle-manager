@@ -1083,6 +1083,41 @@ func TestGetValueFromBranch(t *testing.T) {
 			expectError:    false,
 		},
 		{
+			name: "Branch with array containing map values with reference",
+			branch: &util.ValueSource{
+				Array: []util.ValueSource{
+					{Literal: "value1"},
+					{
+						Map: map[string]interface{}{
+							"hostname": "backend-service",
+							"enabled":  true,
+							"port":     8080,
+						},
+					},
+					{
+						Map: map[string]interface{}{
+							"apikey": map[string]interface{}{
+								"secretKeyRef": map[string]interface{}{
+									"name": "test-secret",
+									"key":  "token",
+								},
+							},
+						},
+					},
+					{
+						ConfigMapKeyRef: &util.ConfigMapRef{
+							Name: "test-cm",
+							Key:  "test-key",
+						},
+					},
+				},
+			},
+			branchName:     "test-branch",
+			key:            "test-key",
+			expectedResult: `["value1",{"enabled":true,"hostname":"backend-service","port":8080},{"apikey":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"},"test-key-value"]`,
+			expectError:    false,
+		},
+		{
 			name: "Branch with array containing reference values",
 			branch: &util.ValueSource{
 				Array: []util.ValueSource{
