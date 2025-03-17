@@ -641,11 +641,11 @@ func (m *ODLMOperator) GetDeploymentListFromPackage(ctx context.Context, name, n
 		// 	continue
 		// }
 		// annotation := fmt.Sprintf("\"packageName\":\"%s\"", packageName)
-		klog.V(1).Infof("Get Deployment %s with package name %s", deployment.Name, packageName)
+		klog.V(2).Infof("Check if deployment %s matches package name %s", deployment.Name, packageName)
 		if !strings.Contains(deployment.Annotations["packageName"], packageName) {
 			continue
 		}
-		klog.V(1).Infof("Get Deployment %s in the namespace %s", deployment.Name, deploymentNamespace)
+		klog.V(2).Infof("Deployment %s in the namespace %s matches package name %s.", deployment.Name, deploymentNamespace, packageName)
 		deployments = append(deployments, &deployment)
 	}
 
@@ -655,7 +655,7 @@ func (m *ODLMOperator) GetDeploymentListFromPackage(ctx context.Context, name, n
 		return nil, fmt.Errorf("missing deployment with package name %s, please install the %s first", packageName, packageName)
 	}
 
-	klog.V(1).Infof("Get %v / %v Deployment in the namespace %s", len(deployments), len(deploymentList.Items), deploymentNamespace)
+	klog.V(1).Infof("Found deployment matching package name %s in the namespace %s", packageName, deploymentNamespace)
 	return deployments, nil
 }
 
