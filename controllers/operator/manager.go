@@ -721,7 +721,20 @@ func (m *ODLMOperator) processMapObject(ctx context.Context, key string, mapObj 
 			if err != nil {
 				return err
 			}
-			finalObject[key] = valueRef
+			if valueRef != "" {
+				// Check if the returned value is a JSON array string and the field should be an array
+				if strings.HasPrefix(valueRef, "[") && strings.HasSuffix(valueRef, "]") {
+					var arrayValue []interface{}
+					if err := json.Unmarshal([]byte(valueRef), &arrayValue); err == nil {
+						finalObject[key] = arrayValue
+						continue
+					}
+				}
+				finalObject[key] = valueRef
+			} else {
+				klog.V(3).Infof("Empty value reference returned for key %s, deleting key %s from finalObject", key, key)
+				delete(finalObject, key)
+			}
 		} else {
 			if finalObject[key] == nil {
 				// Skip if the key doesn't exist in finalObject
@@ -807,57 +820,85 @@ func (m *ODLMOperator) processExpressionCondition(ctx context.Context, templateR
 			instanceType, instanceNs, instanceName, key, err)
 		return "", err
 	}
+	klog.Infof("010101 key %s and result is %v", key, result)
 
 	if result {
 		// Use 'then' branch when condition is true
-		return m.getValueFromBranch(ctx, templateRefObj.Conditional.Then, "then", key, instanceType, instanceName, instanceNs)
+		return m.GetValueFromBranch(ctx, templateRefObj.Conditional.Then, "then", key, instanceType, instanceName, instanceNs)
 	} else {
 		// Use 'else' branch when condition is false
-		return m.getValueFromBranch(ctx, templateRefObj.Conditional.Else, "else", key, instanceType, instanceName, instanceNs)
+		return m.GetValueFromBranch(ctx, templateRefObj.Conditional.Else, "else", key, instanceType, instanceName, instanceNs)
 	}
 }
 
-// getValueFromBranch retrieves a value from a specific branch (then/else)
-func (m *ODLMOperator) getValueFromBranch(ctx context.Context, branch *util.ValueSource, branchName, key string, instanceType, instanceName, instanceNs string) (string, error) {
+// GetValueFromBranch retrieves a value from a specific branch (then/else)
+func (m *ODLMOperator) GetValueFromBranch(ctx context.Context, branch *util.ValueSource, branchName, key string, instanceType, instanceName, instanceNs string) (string, error) {
 	if branch == nil {
 		return "", nil
 	}
 
-	valueRef := ""
-
-	if branch.ObjectRef != nil {
-		ref, err := m.ParseObjectRef(ctx, branch.ObjectRef, instanceType, instanceName, instanceNs)
-		if err != nil {
-			klog.Errorf("Failed to get '%s' value from Object for %s %s/%s on field %s: %v",
-				branchName, instanceType, instanceNs, instanceName, key, err)
-			return "", err
-		}
-		if ref != "" {
-			valueRef = ref
-		}
-	} else if branch.ConfigMapKeyRef != nil {
-		ref, err := m.ParseConfigMapRef(ctx, branch.ConfigMapKeyRef, instanceType, instanceName, instanceNs)
-		if err != nil {
-			klog.Errorf("Failed to get '%s' value from ConfigMap for %s %s/%s on field %s: %v",
-				branchName, instanceType, instanceNs, instanceName, key, err)
-			return "", err
-		}
-		if ref != "" {
-			valueRef = ref
-		}
-	} else if branch.SecretKeyRef != nil {
-		ref, err := m.ParseSecretKeyRef(ctx, branch.SecretKeyRef, instanceType, instanceName, instanceNs)
-		if err != nil {
-			klog.Errorf("Failed to get '%s' value from Secret for %s %s/%s on field %s: %v",
-				branchName, instanceType, instanceNs, instanceName, key, err)
-			return "", err
-		}
-		if ref != "" {
-			valueRef = ref
-		}
+	// Handle direct literal value first
+	if branch.Literal != "" {
+		return branch.Literal, nil
 	}
 
-	return valueRef, nil
+	// Handle array values
+	if len(branch.Array) > 0 {
+		// Create a slice to hold processed values
+		var processedValues []interface{}
+
+		// Iterate over the array items
+		for _, item := range branch.Array {
+			if item.Literal != "" {
+				// For literal values in array, add directly
+				processedValues = append(processedValues, item.Literal)
+			} else if len(item.Map) > 0 {
+				// Handle map items
+				resultMap := make(map[string]interface{})
+
+				for k, v := range item.Map {
+					if valueSourceMap, ok := v.(map[string]interface{}); ok {
+						vsBytes, err := json.Marshal(valueSourceMap)
+						if err != nil {
+							klog.Errorf("Failed to marshal map value to JSON: %v", err)
+							return "", err
+						}
+
+						var vs util.ValueSource
+						if err := json.Unmarshal(vsBytes, &vs); err != nil {
+							klog.Errorf("Failed to unmarshal to ValueSource: %v", err)
+							return "", err
+						}
+
+						resolvedVal, err := m.GetValueFromSource(ctx, &vs, instanceType, instanceName, instanceNs)
+						if err != nil {
+							return "", err
+						}
+						resultMap[k] = resolvedVal
+					} else {
+						resultMap[k] = v
+					}
+				}
+				processedValues = append(processedValues, resultMap)
+			} else {
+				// Handle direct reference types in array items
+				val, err := m.GetValueFromSource(ctx, &item, instanceType, instanceName, instanceNs)
+				if err != nil {
+					return "", err
+				}
+				processedValues = append(processedValues, val)
+			}
+		}
+
+		// Marshal the array to JSON
+		jsonBytes, err := json.Marshal(processedValues)
+		if err != nil {
+			return "", err
+		}
+		return string(jsonBytes), nil
+	}
+
+	return m.GetValueFromSource(ctx, branch, instanceType, instanceName, instanceNs)
 }
 
 // processStandardTemplate handles non-conditional templates
@@ -1033,21 +1074,38 @@ func (m *ODLMOperator) GetValueFromSource(ctx context.Context, source *util.Valu
 		return source.Literal, nil
 	}
 
-	// Get value from ConfigMap
-	if source.ConfigMapKeyRef != nil {
-		return m.ParseConfigMapRef(ctx, source.ConfigMapKeyRef, instanceType, instanceName, instanceNs)
+	// Get value from Object
+	if source.ObjectRef != nil {
+		val, err := m.ParseObjectRef(ctx, source.ObjectRef, instanceType, instanceName, instanceNs)
+		if err != nil {
+			return "", err
+		} else if val == "" && source.Required {
+			return "", errors.Errorf("Failed to get required value from source %s, retry in few second", source.ObjectRef.Name)
+		}
+		return val, nil
 	}
 
 	// Get value from Secret
 	if source.SecretKeyRef != nil {
-		return m.ParseSecretKeyRef(ctx, source.SecretKeyRef, instanceType, instanceName, instanceNs)
+		val, err := m.ParseSecretKeyRef(ctx, source.SecretKeyRef, instanceType, instanceName, instanceNs)
+		if err != nil {
+			return "", err
+		} else if val == "" && source.Required {
+			return "", errors.Errorf("Failed to get required value from source %s, retry in few second", source.SecretKeyRef.Name)
+		}
+		return val, nil
 	}
 
-	// Get value from Object
-	if source.ObjectRef != nil {
-		return m.ParseObjectRef(ctx, source.ObjectRef, instanceType, instanceName, instanceNs)
+	// Get value from ConfigMap
+	if source.ConfigMapKeyRef != nil {
+		val, err := m.ParseConfigMapRef(ctx, source.ConfigMapKeyRef, instanceType, instanceName, instanceNs)
+		if err != nil {
+			return "", err
+		} else if val == "" && source.Required {
+			return "", errors.Errorf("Failed to get required value from source %s, retry in few second", source.ConfigMapKeyRef.Name)
+		}
+		return val, nil
 	}
-
 	return "", nil
 }
 
