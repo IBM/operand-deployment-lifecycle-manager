@@ -622,7 +622,7 @@ func newOperandConfigCR(name, namespace string) *v1alpha1.OperandConfig {
 		Spec: v1alpha1.OperandConfigSpec{
 			Services: []v1alpha1.ConfigService{
 				{
-					Name: "jaeger",
+					Name: "jaeger-config",
 					Spec: map[string]v1alpha1.ExtensionWithMarker{
 						"jaeger": {
 							RawExtension: runtime.RawExtension{Raw: []byte(`{"strategy": "streaming"}`)}},
@@ -700,6 +700,7 @@ func newOperandRegistryCR(name, namespace, OperatorNamespace string) *v1alpha1.O
 				{
 					Name:            "jaeger",
 					Namespace:       OperatorNamespace,
+					ConfigName:      "jaeger-config",
 					SourceName:      "community-operators",
 					SourceNamespace: "openshift-marketplace",
 					PackageName:     "jaeger",
@@ -731,6 +732,7 @@ func newOperandRegistryCRforKind(name, namespace, OperatorNamespace string) *v1a
 				{
 					Name:            "jaeger",
 					Namespace:       OperatorNamespace,
+					ConfigName:      "jaeger-config",
 					SourceName:      "operatorhubio-catalog",
 					SourceNamespace: "olm",
 					PackageName:     "jaeger",
