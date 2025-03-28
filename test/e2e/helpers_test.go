@@ -732,6 +732,7 @@ func newOperandRegistryCRforKind(name, namespace, OperatorNamespace string) *v1a
 				{
 					Name:            "jaeger",
 					Namespace:       OperatorNamespace,
+					ConfigName:      "jaeger-config",
 					SourceName:      "operatorhubio-catalog",
 					SourceNamespace: "olm",
 					PackageName:     "jaeger",
