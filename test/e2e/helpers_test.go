@@ -622,7 +622,7 @@ func newOperandConfigCR(name, namespace string) *v1alpha1.OperandConfig {
 		Spec: v1alpha1.OperandConfigSpec{
 			Services: []v1alpha1.ConfigService{
 				{
-					Name: "jaeger",
+					Name: "jaeger-custmized",
 					Spec: map[string]v1alpha1.ExtensionWithMarker{
 						"jaeger": {
 							RawExtension: runtime.RawExtension{Raw: []byte(`{"strategy": "streaming"}`)}},
@@ -700,6 +700,7 @@ func newOperandRegistryCR(name, namespace, OperatorNamespace string) *v1alpha1.O
 				{
 					Name:            "jaeger",
 					Namespace:       OperatorNamespace,
+					ConfigName:      "keycloak-operator",
 					SourceName:      "community-operators",
 					SourceNamespace: "openshift-marketplace",
 					PackageName:     "jaeger",

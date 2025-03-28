@@ -114,6 +114,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 
 	// Remove finalizer when DeletionTimestamp none zero
 	if !requestInstance.ObjectMeta.DeletionTimestamp.IsZero() {
+		klog.Infof("1111 starting deletion")
 
 		// Check and clean up the subscriptions
 		err := r.checkFinalizer(ctx, requestInstance)
@@ -240,7 +241,7 @@ func (r *Reconciler) addFinalizer(ctx context.Context, cr *operatorv1alpha1.Oper
 }
 
 func (r *Reconciler) checkFinalizer(ctx context.Context, requestInstance *operatorv1alpha1.OperandRequest) error {
-	klog.V(1).Infof("Deleting OperandRequest %s in the namespace %s", requestInstance.Name, requestInstance.Namespace)
+	klog.Infof("2222 Deleting OperandRequest %s in the namespace %s", requestInstance.Name, requestInstance.Namespace)
 	remainingOperands := gset.NewSet()
 	for _, m := range requestInstance.Status.Members {
 		remainingOperands.Add(m.Name)
