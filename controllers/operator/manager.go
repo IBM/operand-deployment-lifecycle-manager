@@ -911,7 +911,6 @@ func (m *ODLMOperator) processExpressionCondition(ctx context.Context, templateR
 			instanceType, instanceNs, instanceName, key, err)
 		return "", err
 	}
-	klog.Infof("010101 key %s and result is %v", key, result)
 
 	if result {
 		// Use 'then' branch when condition is true

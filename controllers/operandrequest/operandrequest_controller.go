@@ -240,7 +240,6 @@ func (r *Reconciler) addFinalizer(ctx context.Context, cr *operatorv1alpha1.Oper
 }
 
 func (r *Reconciler) checkFinalizer(ctx context.Context, requestInstance *operatorv1alpha1.OperandRequest) error {
-	klog.V(1).Infof("Deleting OperandRequest %s in the namespace %s", requestInstance.Name, requestInstance.Namespace)
 	remainingOperands := gset.NewSet()
 	for _, m := range requestInstance.Status.Members {
 		remainingOperands.Add(m.Name)

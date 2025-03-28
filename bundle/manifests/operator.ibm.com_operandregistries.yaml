@@ -67,6 +67,9 @@ spec:
                     channel:
                       description: Name of the channel to track.
                       type: string
+                    configName:
+                      description: Name of service listed in OperandConfig
+                      type: string
                     description:
                       description: Description of a common service.
                       type: string

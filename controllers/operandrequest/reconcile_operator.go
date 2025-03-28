@@ -53,6 +53,7 @@ func (r *Reconciler) reconcileOperator(ctx context.Context, requestInstance *ope
 	for _, m := range requestInstance.Status.Members {
 		remainingOperands.Add(m.Name)
 	}
+
 	// Update request status
 	defer func() {
 		requestInstance.FreshMemberStatus(&remainingOperands)
@@ -230,6 +231,12 @@ func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance 
 		sub.Annotations[registryKey.Namespace+"."+registryKey.Name+"/config"] = "true"
 		sub.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/request"] = opt.Channel
 		sub.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/operatorNamespace"] = namespace
+		// Only add the config annotation if ConfigName is not empty
+		if opt.ConfigName != "" {
+			sub.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/config"] = opt.ConfigName
+		} else {
+			sub.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/config"] = opt.Name
+		}
 
 		if opt.InstallMode == operatorv1alpha1.InstallModeNoop {
 			isMatchedChannel = true
@@ -445,11 +452,11 @@ func (r *Reconciler) uninstallOperatorsAndOperands(ctx context.Context, operandN
 		klog.Infof("Found %d ClusterServiceVersions for Subscription %s/%s", len(csvList), sub.Namespace, sub.Name)
 		if uninstallOperand {
 			klog.V(2).Infof("Deleting all the Custom Resources for CSV, Namespace: %s, Name: %s", csvList[0].Namespace, csvList[0].Name)
-			if err := r.deleteAllCustomResource(ctx, csvList[0], requestInstance, configInstance, operandName, configInstance.Namespace); err != nil {
+			if err := r.deleteAllCustomResource(ctx, csvList[0], requestInstance, configInstance, op.ConfigName, operandName, configInstance.Namespace); err != nil {
 				return err
 			}
 			klog.V(2).Infof("Deleting all the k8s Resources for CSV, Namespace: %s, Name: %s", csvList[0].Namespace, csvList[0].Name)
-			if err := r.deleteAllK8sResource(ctx, configInstance, operandName, configInstance.Namespace); err != nil {
+			if err := r.deleteAllK8sResource(ctx, configInstance, op.ConfigName, operandName, configInstance.Namespace); err != nil {
 				return err
 			}
 		}
@@ -533,11 +540,11 @@ func (r *Reconciler) uninstallOperands(ctx context.Context, operandName string, 
 		klog.Infof("Found %d ClusterServiceVersions for package %s/%s", len(csvList), op.Name, namespace)
 		if uninstallOperand {
 			klog.V(2).Infof("Deleting all the Custom Resources for CSV, Namespace: %s, Name: %s", csvList[0].Namespace, csvList[0].Name)
-			if err := r.deleteAllCustomResource(ctx, csvList[0], requestInstance, configInstance, operandName, configInstance.Namespace); err != nil {
+			if err := r.deleteAllCustomResource(ctx, csvList[0], requestInstance, configInstance, op.ConfigName, operandName, configInstance.Namespace); err != nil {
 				return err
 			}
 			klog.V(2).Infof("Deleting all the k8s Resources for CSV, Namespace: %s, Name: %s", csvList[0].Namespace, csvList[0].Name)
-			if err := r.deleteAllK8sResource(ctx, configInstance, operandName, configInstance.Namespace); err != nil {
+			if err := r.deleteAllK8sResource(ctx, configInstance, op.ConfigName, operandName, configInstance.Namespace); err != nil {
 				return err
 			}
 		}
@@ -613,7 +620,6 @@ func (r *Reconciler) absentOperatorsAndOperands(ctx context.Context, requestInst
 }
 
 func (r *Reconciler) getNeedDeletedOperands(requestInstance *operatorv1alpha1.OperandRequest) gset.Set {
-	klog.V(3).Info("Getting the operator need to be delete")
 	deployedOperands := gset.NewSet()
 	for _, req := range requestInstance.Status.Members {
 		deployedOperands.Add(req.Name)
@@ -739,13 +745,24 @@ func checkSubAnnotationsForUninstall(reqName, reqNs, opName, installMode string,
 	uninstallOperator := true
 	uninstallOperand := true
 
+	// Store the current operator's config name before removing its annotations
+	var currentConfigName string
+	configKey := reqNs + "." + reqName + "." + opName + "/config"
+	if configVal, exists := sub.Annotations[configKey]; exists {
+		currentConfigName = configVal
+	}
+
 	delete(sub.Annotations, reqNs+"."+reqName+"."+opName+"/request")
 	delete(sub.Annotations, reqNs+"."+reqName+"."+opName+"/operatorNamespace")
+	delete(sub.Annotations, configKey)
 
 	var opreqNsSlice []string
 	var operatorNameSlice []string
+	var configNameSlice []string // Track all remaining config names
+
 	namespaceReg, _ := regexp.Compile(`^(.*)\.(.*)\.(.*)\/operatorNamespace`)
 	channelReg, _ := regexp.Compile(`^(.*)\.(.*)\.(.*)\/request`)
+	configReg, _ := regexp.Compile(`^(.*)\.(.*)\.(.*)\/config`)
 
 	for key, value := range sub.Annotations {
 		if namespaceReg.MatchString(key) {
@@ -757,6 +774,10 @@ func checkSubAnnotationsForUninstall(reqName, reqNs, opName, installMode string,
 			keyParts := strings.Split(key, "/")
 			annoPrefix := strings.Split(keyParts[0], ".")
 			operatorNameSlice = append(operatorNameSlice, annoPrefix[len(annoPrefix)-1])
+		}
+		if configReg.MatchString(key) {
+			// Add config name to the list
+			configNameSlice = append(configNameSlice, value)
 		}
 	}
 
@@ -773,8 +794,12 @@ func checkSubAnnotationsForUninstall(reqName, reqNs, opName, installMode string,
 	// When one of following conditions are met, the operand will NOT be uninstalled:
 	// 1. operator is not uninstalled AND intallMode is no-op.
 	// 2. operator is uninstalled AND  at least one other <prefix>/operatorNamespace annotation exists.
-	// 2. remaining <prefix>/request annotation's values contain the same operator name
-	if (!uninstallOperator && installMode == operatorv1alpha1.InstallModeNoop) || (uninstallOperator && len(opreqNsSlice) != 0) || util.Contains(operatorNameSlice, opName) {
+	// 3. remaining <prefix>/request annotation's values contain the same operator name
+	// 4. remaining <prefix>/config annotation's values contain the same configName as this operator
+	if (!uninstallOperator && installMode == operatorv1alpha1.InstallModeNoop) ||
+		(uninstallOperator && len(opreqNsSlice) != 0) ||
+		util.Contains(operatorNameSlice, opName) ||
+		(currentConfigName != "" && util.Contains(configNameSlice, currentConfigName)) {
 		uninstallOperand = false
 	}
 
