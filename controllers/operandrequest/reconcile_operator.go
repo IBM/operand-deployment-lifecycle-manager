@@ -54,7 +54,6 @@ func (r *Reconciler) reconcileOperator(ctx context.Context, requestInstance *ope
 		remainingOperands.Add(m.Name)
 	}
 
-	klog.Infof("3333 Remaining Operands: %v", remainingOperands.ToSlice())
 	// Update request status
 	defer func() {
 		requestInstance.FreshMemberStatus(&remainingOperands)
@@ -453,11 +452,11 @@ func (r *Reconciler) uninstallOperatorsAndOperands(ctx context.Context, operandN
 		klog.Infof("Found %d ClusterServiceVersions for Subscription %s/%s", len(csvList), sub.Namespace, sub.Name)
 		if uninstallOperand {
 			klog.V(2).Infof("Deleting all the Custom Resources for CSV, Namespace: %s, Name: %s", csvList[0].Namespace, csvList[0].Name)
-			if err := r.deleteAllCustomResource(ctx, csvList[0], requestInstance, configInstance, op, operandName, configInstance.Namespace); err != nil {
+			if err := r.deleteAllCustomResource(ctx, csvList[0], requestInstance, configInstance, op.ConfigName, operandName, configInstance.Namespace); err != nil {
 				return err
 			}
 			klog.V(2).Infof("Deleting all the k8s Resources for CSV, Namespace: %s, Name: %s", csvList[0].Namespace, csvList[0].Name)
-			if err := r.deleteAllK8sResource(ctx, configInstance, op, operandName, configInstance.Namespace); err != nil {
+			if err := r.deleteAllK8sResource(ctx, configInstance, op.ConfigName, operandName, configInstance.Namespace); err != nil {
 				return err
 			}
 		}
@@ -541,11 +540,11 @@ func (r *Reconciler) uninstallOperands(ctx context.Context, operandName string, 
 		klog.Infof("Found %d ClusterServiceVersions for package %s/%s", len(csvList), op.Name, namespace)
 		if uninstallOperand {
 			klog.V(2).Infof("Deleting all the Custom Resources for CSV, Namespace: %s, Name: %s", csvList[0].Namespace, csvList[0].Name)
-			if err := r.deleteAllCustomResource(ctx, csvList[0], requestInstance, configInstance, op, operandName, configInstance.Namespace); err != nil {
+			if err := r.deleteAllCustomResource(ctx, csvList[0], requestInstance, configInstance, op.ConfigName, operandName, configInstance.Namespace); err != nil {
 				return err
 			}
 			klog.V(2).Infof("Deleting all the k8s Resources for CSV, Namespace: %s, Name: %s", csvList[0].Namespace, csvList[0].Name)
-			if err := r.deleteAllK8sResource(ctx, configInstance, op, operandName, configInstance.Namespace); err != nil {
+			if err := r.deleteAllK8sResource(ctx, configInstance, op.ConfigName, operandName, configInstance.Namespace); err != nil {
 				return err
 			}
 		}
@@ -576,7 +575,7 @@ func (r *Reconciler) absentOperatorsAndOperands(ctx context.Context, requestInst
 			}
 		}
 		merr := &util.MultiErr{}
-		remainingOp := needDeletedOperands.Clone() //keycloak-operator
+		remainingOp := needDeletedOperands.Clone()
 		for o := range needDeletedOperands.Iter() {
 			var (
 				o = o
@@ -621,13 +620,10 @@ func (r *Reconciler) absentOperatorsAndOperands(ctx context.Context, requestInst
 }
 
 func (r *Reconciler) getNeedDeletedOperands(requestInstance *operatorv1alpha1.OperandRequest) gset.Set {
-	klog.Info("4444 requestInstance name: ", requestInstance.Name)
 	deployedOperands := gset.NewSet()
 	for _, req := range requestInstance.Status.Members {
 		deployedOperands.Add(req.Name)
 	}
-
-	klog.Infof("5555 Deployed Operands: %v", deployedOperands.ToSlice())
 
 	currentOperands := gset.NewSet()
 	if requestInstance.DeletionTimestamp.IsZero() {
@@ -636,11 +632,9 @@ func (r *Reconciler) getNeedDeletedOperands(requestInstance *operatorv1alpha1.Op
 				currentOperands.Add(op.Name)
 			}
 		}
-		klog.Infof("6666 Current Operands: %v", currentOperands.ToSlice())
 	}
 
 	needDeleteOperands := deployedOperands.Difference(currentOperands)
-	klog.Infof("7777 Need Delete Operands: %v", needDeleteOperands.ToSlice())
 	return needDeleteOperands
 }
 

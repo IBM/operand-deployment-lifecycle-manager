@@ -586,7 +586,7 @@ func (r *Reconciler) reconcileK8sResource(ctx context.Context, res operatorv1alp
 }
 
 // deleteAllCustomResource remove custom resource base on OperandConfig and CSV alm-examples
-func (r *Reconciler) deleteAllCustomResource(ctx context.Context, csv *olmv1alpha1.ClusterServiceVersion, requestInstance *operatorv1alpha1.OperandRequest, csc *operatorv1alpha1.OperandConfig, op *operatorv1alpha1.Operator, operandName, namespace string) error {
+func (r *Reconciler) deleteAllCustomResource(ctx context.Context, csv *olmv1alpha1.ClusterServiceVersion, requestInstance *operatorv1alpha1.OperandRequest, csc *operatorv1alpha1.OperandConfig, opConfigName, operandName, namespace string) error {
 
 	customeResourceMap := make(map[string]operatorv1alpha1.OperandCRMember)
 	for _, member := range requestInstance.Status.Members {
@@ -638,7 +638,7 @@ func (r *Reconciler) deleteAllCustomResource(ctx context.Context, csv *olmv1alph
 		return merr
 	}
 
-	service := csc.GetService(operandName, op.ConfigName)
+	service := csc.GetService(operandName, opConfigName)
 	if service == nil {
 		return nil
 	}
@@ -1332,9 +1332,9 @@ func (r *Reconciler) updateK8sRoute(ctx context.Context, existingK8sRes unstruct
 }
 
 // deleteAllK8sResource remove k8s resource base on OperandConfig
-func (r *Reconciler) deleteAllK8sResource(ctx context.Context, csc *operatorv1alpha1.OperandConfig, op *operatorv1alpha1.Operator, operandName, namespace string) error {
+func (r *Reconciler) deleteAllK8sResource(ctx context.Context, csc *operatorv1alpha1.OperandConfig, opConfigName, operandName, namespace string) error {
 
-	service := csc.GetService(operandName, op.ConfigName)
+	service := csc.GetService(operandName, opConfigName)
 	if service == nil {
 		return nil
 	}
