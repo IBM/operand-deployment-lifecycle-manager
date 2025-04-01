@@ -237,7 +237,7 @@ const (
 )
 
 // GetService obtains the service definition with the operand name.
-func (r *OperandConfig) GetService(operandName string, configName string) *ConfigService { // First try to find by configName if it's provided and not empty
+func (r *OperandConfig) GetService(operandName string, configName string) *ConfigService {
 	// First try to find by configName if it's provided
 	if configName != "" {
 		for _, s := range r.Spec.Services {
