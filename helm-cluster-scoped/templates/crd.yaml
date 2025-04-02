@@ -540,6 +540,9 @@ spec:
                     description:
                       description: Description of a common service.
                       type: string
+                    configName:
+                      description: Name of service listed in OperandConfig
+                      type: string
                     fallbackChannels:
                       description: List of channels to fallback when the main channel
                         is not available.
