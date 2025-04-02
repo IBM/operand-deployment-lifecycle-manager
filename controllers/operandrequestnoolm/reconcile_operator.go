@@ -212,6 +212,11 @@ func (r *Reconciler) reconcileOpReqCM(ctx context.Context, requestInstance *oper
 		cm.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/request"] = opt.Channel
 		cm.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/operatorNamespace"] = namespace
 		cm.Annotations["packageName"] = opt.PackageName
+		if opt.ConfigName != "" {
+			cm.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/config"] = opt.ConfigName
+		} else {
+			cm.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/config"] = opt.Name
+		}
 
 		if opt.InstallMode == operatorv1alpha1.InstallModeNoop {
 			requestInstance.SetNoSuitableRegistryCondition(registryKey.String(), opt.Name+" is in maintenance status", operatorv1alpha1.ResourceTypeOperandRegistry, corev1.ConditionTrue, &r.Mutex)
@@ -347,11 +352,11 @@ func (r *Reconciler) uninstallOperatorsAndOperands(ctx context.Context, operandN
 				if uninstallOperand {
 
 					klog.V(1).Infof("Deleting all the Custom Resources for Deployment, Namespace: %s, Name: %s", deploymentList[0].Namespace, deploymentList[0].Name)
-					if err := r.deleteAllCustomResource(ctx, deploymentList[0], requestInstance, configInstance, operandName, configInstance.Namespace); err != nil {
+					if err := r.deleteAllCustomResource(ctx, deploymentList[0], requestInstance, configInstance, op.ConfigName, operandName, configInstance.Namespace); err != nil {
 						return err
 					}
 					klog.V(1).Infof("Deleting all the k8s Resources for Deployment, Namespace: %s, Name: %s", deploymentList[0].Namespace, deploymentList[0].Name)
-					if err := r.deleteAllK8sResource(ctx, configInstance, operandName, configInstance.Namespace); err != nil {
+					if err := r.deleteAllK8sResource(ctx, configInstance, op.ConfigName, operandName, configInstance.Namespace); err != nil {
 						return err
 					}
 				}
@@ -412,11 +417,11 @@ func (r *Reconciler) uninstallOperands(ctx context.Context, operandName string, 
 		klog.Infof("Found %d Deployment for package %s/%s", len(deploymentList), op.Name, namespace)
 		if uninstallOperand {
 			klog.V(2).Infof("Deleting all the Custom Resources for Deployment, Namespace: %s, Name: %s", deploymentList[0].Namespace, deploymentList[0].Name)
-			if err := r.deleteAllCustomResource(ctx, deploymentList[0], requestInstance, configInstance, operandName, configInstance.Namespace); err != nil {
+			if err := r.deleteAllCustomResource(ctx, deploymentList[0], requestInstance, configInstance, op.ConfigName, operandName, configInstance.Namespace); err != nil {
 				return err
 			}
 			klog.V(2).Infof("Deleting all the k8s Resources for Deployment, Namespace: %s, Name: %s", deploymentList[0].Namespace, deploymentList[0].Name)
-			if err := r.deleteAllK8sResource(ctx, configInstance, operandName, configInstance.Namespace); err != nil {
+			if err := r.deleteAllK8sResource(ctx, configInstance, op.ConfigName, operandName, configInstance.Namespace); err != nil {
 				return err
 			}
 		}
@@ -495,7 +500,6 @@ func (r *Reconciler) absentOperatorsAndOperands(ctx context.Context, requestInst
 }
 
 func (r *Reconciler) getNeedDeletedOperands(requestInstance *operatorv1alpha1.OperandRequest) gset.Set {
-	klog.V(3).Info("Getting the operator need to be delete")
 	deployedOperands := gset.NewSet()
 	for _, req := range requestInstance.Status.Members {
 		deployedOperands.Add(req.Name)
@@ -547,6 +551,11 @@ func (r *Reconciler) generateClusterObjects(o *operatorv1alpha1.Operator, regist
 		requestKey.Namespace + "." + requestKey.Name + "." + o.Name + "/operatorNamespace": namespace,
 		"packageName": o.PackageName,
 	}
+	if o.ConfigName != "" {
+		annotations[requestKey.Namespace+"."+requestKey.Name+"."+o.Name+"/config"] = o.ConfigName
+	} else {
+		annotations[requestKey.Namespace+"."+requestKey.Name+"."+o.Name+"/config"] = o.Name
+	}
 
 	//CM object
 	cm := &corev1.ConfigMap{
@@ -590,13 +599,24 @@ func checkOpReqCMAnnotationsForUninstall(reqName, reqNs, opName, installMode str
 	uninstallOperator := true
 	uninstallOperand := true
 
+	// Store the current operator's config name before removing its annotations
+	var currentConfigName string
+	configKey := reqNs + "." + reqName + "." + opName + "/config"
+	if configVal, exists := cm.Annotations[configKey]; exists {
+		currentConfigName = configVal
+	}
+
 	delete(cm.Annotations, reqNs+"."+reqName+"."+opName+"/request")
 	delete(cm.Annotations, reqNs+"."+reqName+"."+opName+"/operatorNamespace")
+	delete(cm.Annotations, configKey)
 
 	var opreqNsSlice []string
 	var operatorNameSlice []string
+	var configNameSlice []string // Track all remaining config names
+
 	namespaceReg, _ := regexp.Compile(`^(.*)\.(.*)\.(.*)\/operatorNamespace`)
 	channelReg, _ := regexp.Compile(`^(.*)\.(.*)\.(.*)\/request`)
+	configReg, _ := regexp.Compile(`^(.*)\.(.*)\.(.*)\/config`)
 
 	for key, value := range cm.Annotations {
 		if namespaceReg.MatchString(key) {
@@ -608,6 +628,10 @@ func checkOpReqCMAnnotationsForUninstall(reqName, reqNs, opName, installMode str
 			keyParts := strings.Split(key, "/")
 			annoPrefix := strings.Split(keyParts[0], ".")
 			operatorNameSlice = append(operatorNameSlice, annoPrefix[len(annoPrefix)-1])
+		}
+		if configReg.MatchString(key) {
+			// Add config name to the list
+			configNameSlice = append(configNameSlice, value)
 		}
 	}
 
@@ -624,8 +648,12 @@ func checkOpReqCMAnnotationsForUninstall(reqName, reqNs, opName, installMode str
 	// When one of following conditions are met, the operand will NOT be uninstalled:
 	// 1. operator is not uninstalled AND intallMode is no-op.
 	// 2. operator is uninstalled AND  at least one other <prefix>/operatorNamespace annotation exists.
-	// 2. remaining <prefix>/request annotation's values contain the same operator name
-	if (!uninstallOperator && installMode == operatorv1alpha1.InstallModeNoop) || (uninstallOperator && len(opreqNsSlice) != 0) || util.Contains(operatorNameSlice, opName) {
+	// 3. remaining <prefix>/request annotation's values contain the same operator name
+	// 4. remaining <prefix>/config annotation's values contain the same configName as this operator
+	if (!uninstallOperator && installMode == operatorv1alpha1.InstallModeNoop) ||
+		(uninstallOperator && len(opreqNsSlice) != 0) ||
+		util.Contains(operatorNameSlice, opName) ||
+		(currentConfigName != "" && util.Contains(configNameSlice, currentConfigName)) {
 		uninstallOperand = false
 	}
 	return uninstallOperator, uninstallOperand

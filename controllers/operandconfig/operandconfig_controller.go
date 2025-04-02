@@ -120,7 +120,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, instance *operatorv1alpha
 
 		op := op
 
-		service := instance.GetService(op.Name)
+		service := instance.GetService(op.Name, op.ConfigName)
 		if service == nil {
 			continue
 		}

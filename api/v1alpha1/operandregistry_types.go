@@ -56,6 +56,8 @@ type Operator struct {
 	TargetNamespaces []string `json:"targetNamespaces,omitempty"`
 	// Name of the package that defines the applications.
 	PackageName string `json:"packageName"`
+	// Name of service listed in OperandConfig
+	ConfigName string `json:"configName,omitempty"`
 	// Name of the channel to track.
 	Channel string `json:"channel"`
 	// List of channels to fallback when the main channel is not available.

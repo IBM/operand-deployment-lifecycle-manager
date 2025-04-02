@@ -61,9 +61,18 @@ spec:
                     channel:
                       description: Name of the channel to track.
                       type: string
+                    configName:
+                      description: Name of service listed in OperandConfig
+                      type: string
                     description:
                       description: Description of a common service.
                       type: string
+                    fallbackChannels:
+                      description: List of channels to fallback when the main channel
+                        is not available.
+                      items:
+                        type: string
+                      type: array
                     installMode:
                       description: 'The install mode of an operator, either namespace
                         or cluster. Valid values are: - "namespace" (default): operator
