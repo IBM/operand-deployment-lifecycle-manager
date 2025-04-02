@@ -48,7 +48,7 @@ spec:
       - command:
         - /manager
         args:
-        - -v=1
+        - -v=2
         env:
         - name: OPERATOR_NAMESPACE
           valueFrom:
