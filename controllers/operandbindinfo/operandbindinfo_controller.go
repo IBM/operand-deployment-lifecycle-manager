@@ -1046,7 +1046,12 @@ func (r *Reconciler) refreshPodsFromDaemonSet(ns, name, resourceType string) err
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	bindablePredicates := predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
-			labels := e.Object.GetLabels()
+			// Make a copy of the labels map to avoid concurrent access issues
+			labels := make(map[string]string)
+			for k, v := range e.Object.GetLabels() {
+				labels[k] = v
+			}
+
 			for labelKey, labelValue := range labels {
 				if labelKey == constant.OpbiTypeLabel {
 					return labelValue == "original"
@@ -1055,7 +1060,12 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 			return false
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			labels := e.ObjectNew.GetLabels()
+			// Make a copy of the labels map to avoid concurrent access issues
+			labels := make(map[string]string)
+			for k, v := range e.ObjectNew.GetLabels() {
+				labels[k] = v
+			}
+
 			for labelKey, labelValue := range labels {
 				if labelKey == constant.OpbiTypeLabel {
 					return labelValue == "original"
