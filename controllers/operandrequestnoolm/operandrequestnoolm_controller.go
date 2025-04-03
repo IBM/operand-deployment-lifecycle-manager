@@ -18,7 +18,6 @@ package operandrequestnoolm
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 	"strings"
 	"sync"
@@ -87,27 +86,30 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 
 	// Always attempt to patch the status after each reconciliation.
 	defer func() {
-		// get the latest instance from the server and check if the status has changed
-		existingInstance := &operatorv1alpha1.OperandRequest{}
-		if err := r.Client.Get(ctx, req.NamespacedName, existingInstance); err != nil && !apierrors.IsNotFound(err) {
-			// Error reading the latest object - requeue the request.
-			reconcileErr = utilerrors.NewAggregate([]error{reconcileErr, fmt.Errorf("error while get latest OperandRequest.Status from server: %v", err)})
-		}
-
-		if reflect.DeepEqual(existingInstance.Status, requestInstance.Status) {
+		// Don't update status for deleted objects
+		if !requestInstance.DeletionTimestamp.IsZero() {
 			return
 		}
 
-		// Update requestInstance's resource version to avoid conflicts
-		requestInstance.ResourceVersion = existingInstance.ResourceVersion
-		if err := r.Client.Status().Patch(ctx, requestInstance, client.MergeFrom(existingInstance)); err != nil && !apierrors.IsNotFound(err) {
-			reconcileErr = utilerrors.NewAggregate([]error{reconcileErr, fmt.Errorf("error while patching OperandRequest.Status: %v", err)})
-		}
-		if reconcileErr != nil {
-			klog.Errorf("failed to patch status for OperandRequest %s: %v", req.NamespacedName.String(), reconcileErr)
+		// Only update if status has changed from the original
+		if !reflect.DeepEqual(originalInstance.Status, requestInstance.Status) {
+			// The controller-runtime client will handle retries with exponential backoff
+			if err := r.Client.Status().Update(ctx, requestInstance); err != nil {
+				if !apierrors.IsConflict(err) {
+					// Only aggregate non-conflict errors
+					reconcileErr = utilerrors.NewAggregate([]error{reconcileErr, err})
+					klog.Errorf("Failed to update status: %v", err)
+				} else {
+					// Log conflicts but don't return an error - the controller will retry anyway
+					klog.V(2).Infof("Status update conflict for %s/%s - will be retried",
+						requestInstance.Namespace, requestInstance.Name)
+				}
+			} else {
+				klog.V(2).Infof("Successfully updated status for %s/%s",
+					requestInstance.Namespace, requestInstance.Name)
+			}
 		}
 	}()
-
 	// Get start to delete the OperandRequest
 	// Remove finalizer when DeletionTimestamp none zero
 	if !requestInstance.ObjectMeta.DeletionTimestamp.IsZero() {

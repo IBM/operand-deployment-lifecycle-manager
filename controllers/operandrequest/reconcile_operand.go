@@ -349,9 +349,7 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 					var resources []operatorv1alpha1.OperandStatus
 					resources = append(resources, statusFromCR)
 					serviceStatus := newServiceStatus(operandName, operatorNamespace, resources)
-					if seterr := requestInstance.SetServiceStatus(ctx, serviceStatus, r.Client, mu); seterr != nil {
-						return seterr
-					}
+					requestInstance.SetServiceStatus(serviceStatus, mu)
 				}
 			} else {
 				klog.V(2).Info("Skip the custom resource not created by ODLM")
@@ -431,10 +429,7 @@ func (r *Reconciler) reconcileCRwithRequest(ctx context.Context, requestInstance
 				var resources []operatorv1alpha1.OperandStatus
 				resources = append(resources, statusFromCR)
 				serviceStatus := newServiceStatus(operand.Name, operatorNamespace, resources)
-				seterr := requestInstance.SetServiceStatus(ctx, serviceStatus, r.Client, mu)
-				if seterr != nil {
-					return seterr
-				}
+				requestInstance.SetServiceStatus(serviceStatus, mu)
 			}
 		} else {
 			klog.V(2).Info("Skip the custom resource not created by ODLM")
