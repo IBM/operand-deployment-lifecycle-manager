@@ -87,6 +87,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	klog.V(2).Infof("DEBUG: Starting reconciliation for OperandRequest: %s/%s", req.Namespace, req.Name)
 	originalInstance := requestInstance.DeepCopy()
 
 	// Always attempt to patch the status after each reconciliation.
@@ -267,6 +268,7 @@ func (r *Reconciler) checkFinalizer(ctx context.Context, requestInstance *operat
 func (r *Reconciler) getRegistryToRequestMapper() handler.MapFunc {
 	ctx := context.Background()
 	return func(object client.Object) []ctrl.Request {
+		klog.V(2).Infof("DEBUG: OperandRequest reconciliation triggered by OperandRegistry: %s/%s", object.GetNamespace(), object.GetName())
 		requestList, _ := r.ListOperandRequestsByRegistry(ctx, types.NamespacedName{Namespace: object.GetNamespace(), Name: object.GetName()})
 
 		requests := []ctrl.Request{}
@@ -281,6 +283,7 @@ func (r *Reconciler) getRegistryToRequestMapper() handler.MapFunc {
 
 func (r *Reconciler) getSubToRequestMapper() handler.MapFunc {
 	return func(object client.Object) []ctrl.Request {
+		klog.V(2).Infof("DEBUG: OperandRequest reconciliation triggered by Subscription: %s/%s", object.GetNamespace(), object.GetName())
 		reg, _ := regexp.Compile(`^(.*)\.(.*)\.(.*)\/request`)
 		annotations := object.GetAnnotations()
 		var reqName, reqNamespace string
@@ -306,6 +309,7 @@ func (r *Reconciler) getSubToRequestMapper() handler.MapFunc {
 func (r *Reconciler) getConfigToRequestMapper() handler.MapFunc {
 	ctx := context.Background()
 	return func(object client.Object) []ctrl.Request {
+		klog.V(2).Infof("DEBUG: OperandRequest reconciliation triggered by OperandConfig: %s/%s", object.GetNamespace(), object.GetName())
 		requestList, _ := r.ListOperandRequestsByConfig(ctx, types.NamespacedName{Namespace: object.GetNamespace(), Name: object.GetName()})
 
 		requests := []ctrl.Request{}
@@ -321,6 +325,7 @@ func (r *Reconciler) getConfigToRequestMapper() handler.MapFunc {
 func (r *Reconciler) getReferenceToRequestMapper() handler.MapFunc {
 	ctx := context.Background()
 	return func(object client.Object) []ctrl.Request {
+		klog.V(2).Infof("DEBUG: OperandRequest reconciliation potentially triggered by referenced object: %s/%s", object.GetNamespace(), object.GetName())
 		annotations := object.GetAnnotations()
 		if annotations == nil {
 			return []ctrl.Request{}
@@ -361,18 +366,23 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	ReferencePredicates := predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
 			labels := e.Object.GetLabels()
+			result := false
 			// only return true when both conditions are met at the same time:
 			// 1. label contain key "constant.ODLMWatchedLabel" and value is true
 			// 2. label does not contain key "constant.OpbiTypeLabel" with value "copy"
 			if labels != nil {
 				if labelValue, ok := labels[constant.ODLMWatchedLabel]; ok && labelValue == "true" {
 					if labelValue, ok := labels[constant.OpbiTypeLabel]; ok && labelValue == "copy" {
-						return false
+						result = false
+					} else {
+						result = true
 					}
-					return true
 				}
 			}
-			return false
+			if result {
+				klog.V(2).Infof("DEBUG: ReferencePredicates CreateFunc passed for: %s/%s", e.Object.GetNamespace(), e.Object.GetName())
+			}
+			return result
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			// If the object is not updated except the ODLMWatchedLabel label or ODLMReferenceAnnotation annotation, return false
@@ -380,15 +390,20 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 				return false
 			}
 			labels := e.ObjectNew.GetLabels()
+			result := false
 			if labels != nil {
 				if labelValue, ok := labels[constant.ODLMWatchedLabel]; ok && labelValue == "true" {
 					if labelValue, ok := labels[constant.OpbiTypeLabel]; ok && labelValue == "copy" {
-						return false
+						result = false
+					} else {
+						result = true
 					}
-					return true
 				}
 			}
-			return false
+			if result {
+				klog.V(2).Infof("DEBUG: ReferencePredicates UpdateFunc passed for: %s/%s", e.ObjectNew.GetNamespace(), e.ObjectNew.GetName())
+			}
+			return result
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			return true
