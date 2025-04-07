@@ -561,7 +561,7 @@ func TestEvaluateExpression(t *testing.T) {
 			expectError:    false,
 		},
 		{
-			name: "GreaterThan comparison with strings",
+			name: "GreaterThan comparison with strings - true",
 			expr: &util.LogicalExpression{
 				GreaterThan: &util.ValueComparison{
 					Left:  &util.ValueSource{Literal: "xyz"},
@@ -594,7 +594,7 @@ func TestEvaluateExpression(t *testing.T) {
 			expectError:    false,
 		},
 		{
-			name: "LessThan comparison with strings",
+			name: "LessThan comparison with strings - true",
 			expr: &util.LogicalExpression{
 				LessThan: &util.ValueComparison{
 					Left:  &util.ValueSource{Literal: "abc"},
@@ -602,6 +602,128 @@ func TestEvaluateExpression(t *testing.T) {
 				},
 			},
 			expectedResult: true,
+			expectError:    false,
+		},
+		// Kubernetes resource quantity tests
+		{
+			name: "GreaterThan comparison with memory quantities - true",
+			expr: &util.LogicalExpression{
+				GreaterThan: &util.ValueComparison{
+					Left:  &util.ValueSource{Literal: "10Gi"},
+					Right: &util.ValueSource{Literal: "2Gi"},
+				},
+			},
+			expectedResult: true,
+			expectError:    false,
+		},
+		{
+			name: "GreaterThan comparison with memory quantities - false",
+			expr: &util.LogicalExpression{
+				GreaterThan: &util.ValueComparison{
+					Left:  &util.ValueSource{Literal: "100Mi"},
+					Right: &util.ValueSource{Literal: "1Gi"},
+				},
+			},
+			expectedResult: false,
+			expectError:    false,
+		},
+		{
+			name: "LessThan comparison with memory quantities - true",
+			expr: &util.LogicalExpression{
+				LessThan: &util.ValueComparison{
+					Left:  &util.ValueSource{Literal: "500Mi"},
+					Right: &util.ValueSource{Literal: "1Gi"},
+				},
+			},
+			expectedResult: true,
+			expectError:    false,
+		},
+		{
+			name: "LessThan comparison with memory quantities - false",
+			expr: &util.LogicalExpression{
+				LessThan: &util.ValueComparison{
+					Left:  &util.ValueSource{Literal: "5Gi"},
+					Right: &util.ValueSource{Literal: "2Gi"},
+				},
+			},
+			expectedResult: false,
+			expectError:    false,
+		},
+		{
+			name: "Equal comparison with CPU quantities",
+			expr: &util.LogicalExpression{
+				Equal: &util.ValueComparison{
+					Left:  &util.ValueSource{Literal: "1000m"},
+					Right: &util.ValueSource{Literal: "1"},
+				},
+			},
+			expectedResult: true,
+			expectError:    false,
+		},
+		{
+			name: "Equal comparison with different unit formats",
+			expr: &util.LogicalExpression{
+				Equal: &util.ValueComparison{
+					Left:  &util.ValueSource{Literal: "1Gi"},
+					Right: &util.ValueSource{Literal: "1024Mi"},
+				},
+			},
+			expectedResult: true,
+			expectError:    false,
+		},
+		{
+			name: "GreaterThan comparison with CPU quantities",
+			expr: &util.LogicalExpression{
+				GreaterThan: &util.ValueComparison{
+					Left:  &util.ValueSource{Literal: "2"},
+					Right: &util.ValueSource{Literal: "1500m"},
+				},
+			},
+			expectedResult: true,
+			expectError:    false,
+		},
+		{
+			name: "GreaterThan comparison with mixed format units",
+			expr: &util.LogicalExpression{
+				GreaterThan: &util.ValueComparison{
+					Left:  &util.ValueSource{Literal: "1Mi"},
+					Right: &util.ValueSource{Literal: "1024Ki"},
+				},
+			},
+			expectedResult: false,
+			expectError:    false,
+		},
+		{
+			name: "Mixed resource types - comparing memory and CPU",
+			expr: &util.LogicalExpression{
+				Equal: &util.ValueComparison{
+					Left:  &util.ValueSource{Literal: "100m"},
+					Right: &util.ValueSource{Literal: "100Mi"},
+				},
+			},
+			expectedResult: false,
+			expectError:    false,
+		},
+		{
+			name: "NotEqual comparison with memory quantities - true",
+			expr: &util.LogicalExpression{
+				NotEqual: &util.ValueComparison{
+					Left:  &util.ValueSource{Literal: "2Gi"},
+					Right: &util.ValueSource{Literal: "1Gi"},
+				},
+			},
+			expectedResult: true,
+			expectError:    false,
+		},
+		{
+			name: "NotEqual comparison with memory quantities - false",
+			expr: &util.LogicalExpression{
+				NotEqual: &util.ValueComparison{
+					Left:  &util.ValueSource{Literal: "1Gi"},
+					Right: &util.ValueSource{Literal: "1024Mi"},
+				},
+			},
+			expectedResult: false,
 			expectError:    false,
 		},
 		{
