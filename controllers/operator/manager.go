@@ -32,6 +32,7 @@ import (
 	authorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -961,13 +962,41 @@ func (m *ODLMOperator) EvaluateExpression(ctx context.Context, expr *util.Logica
 		return leftVal, rightVal, nil
 	}
 
+	// Helper function to compare values with support for Kubernetes resource units
+	compareValues := func(leftVal, rightVal string) (leftIsGreater bool, rightIsEqual bool, rightIsGreater bool, err error) {
+		// Check if both are resource quantities
+		leftQty, leftErr := resource.ParseQuantity(strings.TrimSpace(leftVal))
+		rightQty, rightErr := resource.ParseQuantity(strings.TrimSpace(rightVal))
+
+		// If both are valid Kubernetes quantities, compare their values
+		if leftErr == nil && rightErr == nil {
+			cmp := leftQty.Cmp(rightQty)
+			return cmp > 0, cmp == 0, cmp < 0, nil
+		}
+
+		// Fall back to standard float parsing
+		leftNum, leftFloatErr := strconv.ParseFloat(strings.TrimSpace(leftVal), 64)
+		rightNum, rightFloatErr := strconv.ParseFloat(strings.TrimSpace(rightVal), 64)
+
+		if leftFloatErr == nil && rightFloatErr == nil {
+			return leftNum > rightNum, leftNum == rightNum, leftNum < rightNum, nil
+		}
+
+		// Fall back to string comparison
+		return leftVal > rightVal, leftVal == rightVal, leftVal < rightVal, nil
+	}
+
 	// Handle basic comparison operators
 	if expr.Equal != nil {
 		leftVal, rightVal, err := getComparisonValues(expr.Equal.Left, expr.Equal.Right)
 		if err != nil {
 			return false, err
 		}
-		return leftVal == rightVal, nil
+		_, isEqual, _, err := compareValues(leftVal, rightVal)
+		if err != nil {
+			return false, err
+		}
+		return isEqual, nil
 	}
 
 	if expr.NotEqual != nil {
@@ -975,7 +1004,11 @@ func (m *ODLMOperator) EvaluateExpression(ctx context.Context, expr *util.Logica
 		if err != nil {
 			return false, err
 		}
-		return leftVal != rightVal, nil
+		_, isEqual, _, err := compareValues(leftVal, rightVal)
+		if err != nil {
+			return false, err
+		}
+		return !isEqual, nil
 	}
 
 	if expr.GreaterThan != nil {
@@ -984,13 +1017,11 @@ func (m *ODLMOperator) EvaluateExpression(ctx context.Context, expr *util.Logica
 			return false, err
 		}
 
-		leftNum, leftErr := strconv.ParseFloat(strings.TrimSpace(leftVal), 64)
-		rightNum, rightErr := strconv.ParseFloat(strings.TrimSpace(rightVal), 64)
-
-		if leftErr == nil && rightErr == nil {
-			return leftNum > rightNum, nil
+		leftGreater, _, _, err := compareValues(leftVal, rightVal)
+		if err != nil {
+			return false, err
 		}
-		return leftVal > rightVal, nil
+		return leftGreater, nil
 	}
 
 	if expr.LessThan != nil {
@@ -999,13 +1030,11 @@ func (m *ODLMOperator) EvaluateExpression(ctx context.Context, expr *util.Logica
 			return false, err
 		}
 
-		leftNum, leftErr := strconv.ParseFloat(strings.TrimSpace(leftVal), 64)
-		rightNum, rightErr := strconv.ParseFloat(strings.TrimSpace(rightVal), 64)
-
-		if leftErr == nil && rightErr == nil {
-			return leftNum < rightNum, nil
+		_, _, leftLess, err := compareValues(leftVal, rightVal)
+		if err != nil {
+			return false, err
 		}
-		return leftVal < rightVal, nil
+		return leftLess, nil
 	}
 
 	// Handle logical operators
