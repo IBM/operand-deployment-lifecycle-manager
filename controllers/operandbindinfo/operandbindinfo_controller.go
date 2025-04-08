@@ -274,7 +274,7 @@ func (r *Reconciler) copySecret(ctx context.Context, sourceName, targetName, sou
 	}
 
 	secret := &corev1.Secret{}
-	if err := r.Client.Get(ctx, types.NamespacedName{Name: sourceName, Namespace: sourceNs}, secret); err != nil {
+	if err := r.Reader.Get(ctx, types.NamespacedName{Name: sourceName, Namespace: sourceNs}, secret); err != nil {
 		if apierrors.IsNotFound(err) {
 			klog.V(3).Infof("Secret %s is not found from the namespace %s", sourceName, sourceNs)
 			r.Recorder.Eventf(bindInfoInstance, corev1.EventTypeNormal, "NotFound", "No Secret %s in the namespace %s", sourceName, sourceNs)
@@ -376,7 +376,7 @@ func (r *Reconciler) copyConfigmap(ctx context.Context, sourceName, targetName, 
 	}
 
 	cm := &corev1.ConfigMap{}
-	if err := r.Client.Get(ctx, types.NamespacedName{Name: sourceName, Namespace: sourceNs}, cm); err != nil {
+	if err := r.Reader.Get(ctx, types.NamespacedName{Name: sourceName, Namespace: sourceNs}, cm); err != nil {
 		if apierrors.IsNotFound(err) {
 			klog.V(3).Infof("Configmap %s/%s is not found", sourceNs, sourceName)
 			r.Recorder.Eventf(bindInfoInstance, corev1.EventTypeNormal, "NotFound", "No Configmap %s in the namespace %s", sourceName, sourceNs)
@@ -478,7 +478,7 @@ func (r *Reconciler) copyRoute(ctx context.Context, route operatorv1alpha1.Route
 	}
 
 	sourceRoute := &ocproute.Route{}
-	if err := r.Client.Get(ctx, types.NamespacedName{Name: route.Name, Namespace: sourceNs}, sourceRoute); err != nil {
+	if err := r.Reader.Get(ctx, types.NamespacedName{Name: route.Name, Namespace: sourceNs}, sourceRoute); err != nil {
 		if apierrors.IsNotFound(err) {
 			klog.V(3).Infof("Route %s/%s is not found", sourceNs, route.Name)
 			r.Recorder.Eventf(bindInfoInstance, corev1.EventTypeNormal, "NotFound", "No Route %s in the namespace %s", route.Name, sourceNs)
@@ -574,7 +574,7 @@ func (r *Reconciler) copyService(ctx context.Context, service operatorv1alpha1.S
 	}
 
 	sourceService := &corev1.Service{}
-	if err := r.Client.Get(ctx, types.NamespacedName{Name: service.Name, Namespace: sourceNs}, sourceService); err != nil {
+	if err := r.Reader.Get(ctx, types.NamespacedName{Name: service.Name, Namespace: sourceNs}, sourceService); err != nil {
 		if apierrors.IsNotFound(err) {
 			klog.V(3).Infof("Route %s/%s is not found", sourceNs, service.Name)
 			r.Recorder.Eventf(bindInfoInstance, corev1.EventTypeNormal, "NotFound", "No Service %s in the namespace %s", service.Name, sourceNs)
