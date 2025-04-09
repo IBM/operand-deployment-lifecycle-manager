@@ -877,20 +877,50 @@ func unique(stringSlice []string) []string {
 	return list
 }
 
-func toOpbiRequest() handler.MapFunc {
+func (r *Reconciler) toOpbiRequest() handler.MapFunc {
 	return func(object client.Object) []reconcile.Request {
-		opbiInstance := []reconcile.Request{}
-		labels := object.GetLabels()
+		// Get a complete copy of the object using the Reader
+		var objectInCluster client.Object
+
+		switch v := object.(type) {
+		case *corev1.Secret:
+			objectInCluster = &corev1.Secret{}
+		case *corev1.ConfigMap:
+			objectInCluster = &corev1.ConfigMap{}
+		case *ocproute.Route:
+			objectInCluster = &ocproute.Route{}
+		default:
+			klog.Errorf("Unsupported object type: %T", v)
+			return nil
+		}
+		if err := r.Reader.Get(context.Background(), types.NamespacedName{
+			Name: object.GetName(), Namespace: object.GetNamespace(),
+		}, objectInCluster); err != nil {
+			klog.Errorf("Failed to get object %s/%s: %v", object.GetNamespace(), object.GetName(), err)
+			return nil
+		}
+
+		labels := objectInCluster.GetLabels()
+		// check if the label contains the OperandBindInfo label
+		if labels == nil {
+			klog.V(2).Infof("No labels found in object %s/%s", objectInCluster.GetNamespace(), objectInCluster.GetName())
+			return nil
+		}
+		if _, ok := labels[constant.OpbiTypeLabel]; !ok {
+			klog.V(2).Infof("No OperandBindInfo label found in object %s/%s", objectInCluster.GetNamespace(), objectInCluster.GetName())
+			return nil
+		}
+		opbiInstances := []reconcile.Request{}
 		reg, _ := regexp.Compile(`^(.*)\.(.*)\/bindinfo`)
-		for annotation := range labels {
-			if reg.MatchString(annotation) {
-				annotationSlices := strings.Split(annotation, ".")
-				bindinfoNamespace := annotationSlices[0]
-				bindinfoName := strings.Split(annotationSlices[1], "/")[0]
-				opbiInstance = append(opbiInstance, reconcile.Request{NamespacedName: types.NamespacedName{Name: bindinfoName, Namespace: bindinfoNamespace}})
+		for key := range labels {
+			if reg.MatchString(key) {
+				keySlices := strings.Split(key, ".")
+				bindinfoNamespace := keySlices[0]
+				bindinfoName := strings.Split(keySlices[1], "/")[0]
+				opbiInstances = append(opbiInstances, reconcile.Request{NamespacedName: types.NamespacedName{Name: bindinfoName, Namespace: bindinfoNamespace}})
 			}
 		}
-		return opbiInstance
+		return opbiInstances
 	}
 }
 
@@ -1046,22 +1076,10 @@ func (r *Reconciler) refreshPodsFromDaemonSet(ns, name, resourceType string) err
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	bindablePredicates := predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
-			labels := e.Object.GetLabels()
-			for labelKey, labelValue := range labels {
-				if labelKey == constant.OpbiTypeLabel {
-					return labelValue == "original"
-				}
-			}
-			return false
+			return true
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			labels := e.ObjectNew.GetLabels()
-			for labelKey, labelValue := range labels {
-				if labelKey == constant.OpbiTypeLabel {
-					return labelValue == "original"
-				}
-			}
-			return false
+			return true
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			return true
@@ -1113,12 +1131,12 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&operatorv1alpha1.OperandBindInfo{}).
 		Watches(
 			&source.Kind{Type: &corev1.ConfigMap{}},
-			handler.EnqueueRequestsFromMapFunc(toOpbiRequest()),
+			handler.EnqueueRequestsFromMapFunc(r.toOpbiRequest()),
 			builder.WithPredicates(bindablePredicates),
 		).
 		Watches(
 			&source.Kind{Type: &corev1.Secret{}},
-			handler.EnqueueRequestsFromMapFunc(toOpbiRequest()),
+			handler.EnqueueRequestsFromMapFunc(r.toOpbiRequest()),
 			builder.WithPredicates(bindablePredicates),
 		).
 		Watches(
@@ -1134,7 +1152,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	if isRouteAPI {
 		controller.Watches(
 			&source.Kind{Type: &ocproute.Route{}},
-			handler.EnqueueRequestsFromMapFunc(toOpbiRequest()),
+			handler.EnqueueRequestsFromMapFunc(r.toOpbiRequest()),
 			builder.WithPredicates(bindablePredicates),
 		)
 	}
