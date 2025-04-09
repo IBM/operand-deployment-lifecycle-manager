@@ -879,6 +879,8 @@ func unique(stringSlice []string) []string {
 
 func (r *Reconciler) toOpbiRequest() handler.MapFunc {
 	return func(object client.Object) []reconcile.Request {
+		labels := object.GetLabels()
+
 		// Get a complete copy of the object using the Reader
 		var objectInCluster client.Object
 
@@ -895,12 +897,16 @@ func (r *Reconciler) toOpbiRequest() handler.MapFunc {
 		}
 		if err := r.Reader.Get(context.Background(), types.NamespacedName{
 			Name: object.GetName(), Namespace: object.GetNamespace(),
-		}, objectInCluster); err != nil {
+		}, objectInCluster); apierrors.IsNotFound(err) {
+			klog.V(2).Infof("Object %s/%s not found, it is a deleted object, using the cache", object.GetNamespace(), object.GetName())
+		} else if err != nil {
 			klog.Errorf("Failed to get object %s/%s: %v", object.GetNamespace(), object.GetName(), err)
 			return nil
+		} else {
+			klog.V(2).Infof("Object %s/%s found in the cluster", object.GetNamespace(), object.GetName())
+			labels = objectInCluster.GetLabels()
 		}
 
-		labels := objectInCluster.GetLabels()
 		// check if the label contains the OperandBindInfo label
 		if labels == nil {
 			klog.V(2).Infof("No labels found in object %s/%s", objectInCluster.GetNamespace(), objectInCluster.GetName())
