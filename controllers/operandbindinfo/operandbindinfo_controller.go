@@ -274,7 +274,7 @@ func (r *Reconciler) copySecret(ctx context.Context, sourceName, targetName, sou
 	}
 
 	secret := &corev1.Secret{}
-	if err := r.Client.Get(ctx, types.NamespacedName{Name: sourceName, Namespace: sourceNs}, secret); err != nil {
+	if err := r.Reader.Get(ctx, types.NamespacedName{Name: sourceName, Namespace: sourceNs}, secret); err != nil {
 		if apierrors.IsNotFound(err) {
 			klog.V(3).Infof("Secret %s is not found from the namespace %s", sourceName, sourceNs)
 			r.Recorder.Eventf(bindInfoInstance, corev1.EventTypeNormal, "NotFound", "No Secret %s in the namespace %s", sourceName, sourceNs)
@@ -376,7 +376,7 @@ func (r *Reconciler) copyConfigmap(ctx context.Context, sourceName, targetName, 
 	}
 
 	cm := &corev1.ConfigMap{}
-	if err := r.Client.Get(ctx, types.NamespacedName{Name: sourceName, Namespace: sourceNs}, cm); err != nil {
+	if err := r.Reader.Get(ctx, types.NamespacedName{Name: sourceName, Namespace: sourceNs}, cm); err != nil {
 		if apierrors.IsNotFound(err) {
 			klog.V(3).Infof("Configmap %s/%s is not found", sourceNs, sourceName)
 			r.Recorder.Eventf(bindInfoInstance, corev1.EventTypeNormal, "NotFound", "No Configmap %s in the namespace %s", sourceName, sourceNs)
@@ -478,7 +478,7 @@ func (r *Reconciler) copyRoute(ctx context.Context, route operatorv1alpha1.Route
 	}
 
 	sourceRoute := &ocproute.Route{}
-	if err := r.Client.Get(ctx, types.NamespacedName{Name: route.Name, Namespace: sourceNs}, sourceRoute); err != nil {
+	if err := r.Reader.Get(ctx, types.NamespacedName{Name: route.Name, Namespace: sourceNs}, sourceRoute); err != nil {
 		if apierrors.IsNotFound(err) {
 			klog.V(3).Infof("Route %s/%s is not found", sourceNs, route.Name)
 			r.Recorder.Eventf(bindInfoInstance, corev1.EventTypeNormal, "NotFound", "No Route %s in the namespace %s", route.Name, sourceNs)
@@ -574,7 +574,7 @@ func (r *Reconciler) copyService(ctx context.Context, service operatorv1alpha1.S
 	}
 
 	sourceService := &corev1.Service{}
-	if err := r.Client.Get(ctx, types.NamespacedName{Name: service.Name, Namespace: sourceNs}, sourceService); err != nil {
+	if err := r.Reader.Get(ctx, types.NamespacedName{Name: service.Name, Namespace: sourceNs}, sourceService); err != nil {
 		if apierrors.IsNotFound(err) {
 			klog.V(3).Infof("Route %s/%s is not found", sourceNs, service.Name)
 			r.Recorder.Eventf(bindInfoInstance, corev1.EventTypeNormal, "NotFound", "No Service %s in the namespace %s", service.Name, sourceNs)
@@ -877,20 +877,56 @@ func unique(stringSlice []string) []string {
 	return list
 }
 
-func toOpbiRequest() handler.MapFunc {
+func (r *Reconciler) toOpbiRequest() handler.MapFunc {
 	return func(object client.Object) []reconcile.Request {
-		opbiInstance := []reconcile.Request{}
 		labels := object.GetLabels()
+
+		// Get a complete copy of the object using the Reader
+		var objectInCluster client.Object
+
+		switch v := object.(type) {
+		case *corev1.Secret:
+			objectInCluster = &corev1.Secret{}
+		case *corev1.ConfigMap:
+			objectInCluster = &corev1.ConfigMap{}
+		case *ocproute.Route:
+			objectInCluster = &ocproute.Route{}
+		default:
+			klog.Errorf("Unsupported object type: %T", v)
+			return nil
+		}
+		if err := r.Reader.Get(context.Background(), types.NamespacedName{
+			Name: object.GetName(), Namespace: object.GetNamespace(),
+		}, objectInCluster); apierrors.IsNotFound(err) {
+			klog.V(2).Infof("Object %s/%s not found, it is a deleted object, using the cache", object.GetNamespace(), object.GetName())
+		} else if err != nil {
+			klog.Errorf("Failed to get object %s/%s: %v", object.GetNamespace(), object.GetName(), err)
+			return nil
+		} else {
+			klog.V(2).Infof("Object %s/%s found in the cluster", object.GetNamespace(), object.GetName())
+			labels = objectInCluster.GetLabels()
+		}
+
+		// check if the label contains the OperandBindInfo label
+		if labels == nil {
+			klog.V(2).Infof("No labels found in object %s/%s", objectInCluster.GetNamespace(), objectInCluster.GetName())
+			return nil
+		}
+		if _, ok := labels[constant.OpbiTypeLabel]; !ok {
+			klog.V(2).Infof("No OperandBindInfo label found in object %s/%s", objectInCluster.GetNamespace(), objectInCluster.GetName())
+			return nil
+		}
+		opbiInstances := []reconcile.Request{}
 		reg, _ := regexp.Compile(`^(.*)\.(.*)\/bindinfo`)
-		for annotation := range labels {
-			if reg.MatchString(annotation) {
-				annotationSlices := strings.Split(annotation, ".")
-				bindinfoNamespace := annotationSlices[0]
-				bindinfoName := strings.Split(annotationSlices[1], "/")[0]
-				opbiInstance = append(opbiInstance, reconcile.Request{NamespacedName: types.NamespacedName{Name: bindinfoName, Namespace: bindinfoNamespace}})
+		for key := range labels {
+			if reg.MatchString(key) {
+				keySlices := strings.Split(key, ".")
+				bindinfoNamespace := keySlices[0]
+				bindinfoName := strings.Split(keySlices[1], "/")[0]
+				opbiInstances = append(opbiInstances, reconcile.Request{NamespacedName: types.NamespacedName{Name: bindinfoName, Namespace: bindinfoNamespace}})
 			}
 		}
-		return opbiInstance
+		return opbiInstances
 	}
 }
 
@@ -1046,22 +1082,10 @@ func (r *Reconciler) refreshPodsFromDaemonSet(ns, name, resourceType string) err
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	bindablePredicates := predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
-			labels := e.Object.GetLabels()
-			for labelKey, labelValue := range labels {
-				if labelKey == constant.OpbiTypeLabel {
-					return labelValue == "original"
-				}
-			}
-			return false
+			return true
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			labels := e.ObjectNew.GetLabels()
-			for labelKey, labelValue := range labels {
-				if labelKey == constant.OpbiTypeLabel {
-					return labelValue == "original"
-				}
-			}
-			return false
+			return true
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			return true
@@ -1113,12 +1137,12 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&operatorv1alpha1.OperandBindInfo{}).
 		Watches(
 			&source.Kind{Type: &corev1.ConfigMap{}},
-			handler.EnqueueRequestsFromMapFunc(toOpbiRequest()),
+			handler.EnqueueRequestsFromMapFunc(r.toOpbiRequest()),
 			builder.WithPredicates(bindablePredicates),
 		).
 		Watches(
 			&source.Kind{Type: &corev1.Secret{}},
-			handler.EnqueueRequestsFromMapFunc(toOpbiRequest()),
+			handler.EnqueueRequestsFromMapFunc(r.toOpbiRequest()),
 			builder.WithPredicates(bindablePredicates),
 		).
 		Watches(
@@ -1134,7 +1158,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	if isRouteAPI {
 		controller.Watches(
 			&source.Kind{Type: &ocproute.Route{}},
-			handler.EnqueueRequestsFromMapFunc(toOpbiRequest()),
+			handler.EnqueueRequestsFromMapFunc(r.toOpbiRequest()),
 			builder.WithPredicates(bindablePredicates),
 		)
 	}
