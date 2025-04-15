@@ -265,12 +265,16 @@ The resulting array preserves the structure of each item while resolving any ref
 Empty values in conditional branches are properly handled - if a condition evaluates to false and no else branch is provided, the corresponding field will be removed from the final configuration rather than being set to an empty value.
 
 #### Conditional Logic
-1. The templating system supports conditional expressions that allow you to define different values based on runtime conditions in your cluster. This enables dynamic configuration that adapts to the environment:
+The templating system in ODLM offers powerful conditional logic capabilities that allow dynamic configuration based on cluster state. 
+This enables administrators to create flexible, environment-aware configurations without manual intervention.
+
+1. Simple Conditional Expressions
+Basic conditional expressions evaluate a condition and provide different values based on the result:
   ```yaml
   templatingValueFrom:
     conditional:
       expression:
-        equal:  # Other options: notEqual, greaterThan, lessThan
+        equal:
           left:
             objectRef:
               apiVersion: v1
@@ -283,40 +287,116 @@ Empty values in conditional branches are properly handled - if a condition evalu
       then:
         literal: "50Gi"  # Value if condition is true
       else:
-        literal: "10Gi"
+        literal: "10Gi"  # Value if condition is false
   ```
-In this example, if the ConfigMap cluster-info has an environment value of "production", the larger storage size will be used.
+  This example configures storage size based on the environment value in `cluster-info` ConfigMap - using 50Gi for production environments and 10Gi for others.
 
-2. For more complex scenarios, you can combine multiple conditions using logical operators:
+2. Advanced Expression Evaluation
+Complex conditions can be created using logical operators (`and`, `or`, `not`):
   ```yaml
   templatingValueFrom:
-    conditional:
-      expression:
-        and:
-          - equal:
+  conditional:
+    expression:
+      and:
+        - equal:
+            left:
+              objectRef:
+                apiVersion: v1
+                kind: ConfigMap
+                name: cluster-info
+                path: .data.environment
+            right:
+              literal: "production"
+        - notEqual:
+            equal:
               left:
                 objectRef:
                   apiVersion: v1
                   kind: ConfigMap
                   name: cluster-info
-                  path: .data.environment
+                  path: .data.region
               right:
-                literal: "production"
-          - greaterThan:
-              left:
-                objectRef:
-                  apiVersion: v1
-                  kind: PersistentVolumeClaim
-                  name: jenkins-pvc
-                  path: .status.capacity.storage
-              right:
-                literal: "5Gi"
-      then:
-        literal: "3"  # replicas value if condition is true
-      else:
-        literal: "1"  # replicas value if condition is false
+                literal: "dev-region"
+    then:
+      literal: "3"  # replicas value for production in non-dev regions
+    else:
+      literal: "1"  # replicas value for other environments
   ```
-This example sets the number of replicas to 3 only if the environment is "production" AND the existing PVC capacity is greater than 5Gi.
+  This example sets the number of replicas to 3 only if the environment is "production" AND the region is not "dev-region". Otherwise, it defaults to 1 replica.
+
+3. Comparison Operations
+The templating system supports multiple comparison operators: 
+*   **`equal`**: Checks if two values are equal.
+*   **`notEqual`**: Checks if two values are not equal.
+*   **`greaterThan`**: Checks if the left value is strictly greater than the right value.
+*   **`lessThan`**: Checks if the left value is strictly less than the right value.
+
+These operators can be used to compare values from different sources, such as ConfigMaps, Secrets, or other Kubernetes objects.
+
+**Examples:**
+
+```yaml
+templatingValueFrom:
+  conditional:
+    expression:
+      greaterThan:
+        left:
+          objectRef:
+            apiVersion: v1
+            kind: PersistentVolumeClaim
+            name: data-pvc
+            path: .spec.resources.requests.storage
+        right:
+          literal: "10Gi"
+    then:
+      literal: "LargeVolumePolicy"
+    else:
+      literal: "StandardVolumePolicy"
+```
+This example checks if the storage request of a PersistentVolumeClaim is greater than 10Gi and sets a specific volume policy accordingly.
+
+4. Kubernetes resource quantities
+The system intelligently handles resource quantity comparisons, automatically parsing Kubernetes resource notation:
+- CPU: m (millicores), e.g., 500m, 1 (whole core)
+- Memory: Ki, Mi, Gi, Ti, Pi, Ei (kibibytes, mebibytes, gibibytes, etc.), e.g., 256Mi, 4Gi
+- Storage: Same units as Memory, often used for PersistentVolumes, e.g., 10Gi, 1Ti
+This allows for direct comparison without manual conversion.
+
+**Examples:**
+
+  ```yaml
+  templatingValueFrom:
+  conditional:
+    expression:
+      greaterThan:
+        left:
+          objectRef:
+            apiVersion: v1
+            kind: Node
+            name: worker-1
+            path: .status.allocatable.memory
+        right:
+          literal: "16Gi"
+    then:
+      literal: "8Gi"  # Higher memory limit for nodes with >16Gi
+    else:
+      literal: "4Gi"  # Lower memory limit for smaller nodes
+  ```
+  This example checks if the allocatable memory of a node is greater than 16Gi and sets a higher memory limit accordingly.
+
+5. Tore-Aware comparisons
+The comparison operators perform type-aware comparisons:
+
+- **Numeric Comparison:** If both values can be interpreted as numbers, a numeric comparison is performed. String representations of numbers are converted.
+
+  - 5 > 3 evaluates to true.
+  - "5" > "3" evaluates to true (strings are converted to numbers).
+  - "10Gi" > "5Gi" evaluates to true (Kubernetes quantities are compared numerically).
+  - "500m" < "1" evaluates to true (CPU quantities are compared numerically).
+- **String Comparison:** If values cannot be interpreted as numbers, a lexicographical (alphabetical) string comparison is performed.
+
+  - "abc" < "xyz" evaluates to true.
+  - "apple" > "banana" evaluates to false.
 
 ### How does Operator create the individual operator CR
 
