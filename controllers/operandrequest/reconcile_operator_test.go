@@ -301,6 +301,7 @@ func TestCheckSubAnnotationsForUninstall(t *testing.T) {
 				reqNsNew + "." + reqNameA + "." + opNameV4 + "/config":            opConfigV4,
 				reqNsNew + "." + reqNameB + "." + opNameV4 + "/request":           opChannelV4,
 				reqNsNew + "." + reqNameB + "." + opNameV4 + "/operatorNamespace": reqNsNew,
+				reqNsNew + "." + reqNameB + "." + opNameV4 + "/config":            opConfigV4,
 			},
 			Labels: map[string]string{
 				constant.OpreqLabel: "true",
@@ -409,18 +410,19 @@ func TestCheckSubAnnotationsForUninstall(t *testing.T) {
 	assert.Contains(t, sub.Annotations, reqNsOld+"."+reqNameB+"."+opNameV4+"/operatorNamespace")
 	assert.Contains(t, sub.Annotations, reqNsOld+"."+reqNameB+"."+opNameV4+"/config")
 
-	// Test case 11: Version-suffixed operator names with shared config (the actual issue case)
-	// This simulates the exact issue seen in logs where operator names have version suffixes
+	// Test case 11: Same operator with different channels shared the same config name - operands should be preserved
+	// When uninstalling one operator but another operator shares the same config name,
+	// the operands should NOT be uninstalled since they're shared
 	sub = &olmv1alpha1.Subscription{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "keycloak",
+			Namespace: reqNsOld,
 			Annotations: map[string]string{
-				"keycloak.example-service.keycloak-operator/request":               "stable",
-				"keycloak.example-service.keycloak-operator/operatorNamespace":     "keycloak",
-				"keycloak.example-service.keycloak-operator/config":                "keycloak-operator",
-				"keycloak.example-service.keycloak-operator-v26/request":           "stable-v26",
-				"keycloak.example-service.keycloak-operator-v26/operatorNamespace": "keycloak",
-				"keycloak.example-service.keycloak-operator-v26/config":            "keycloak-operator",
+				reqNsOld + "." + reqNameA + "." + opNameV3 + "/request":           opChannelV3,
+				reqNsOld + "." + reqNameA + "." + opNameV3 + "/operatorNamespace": reqNsOld,
+				reqNsOld + "." + reqNameA + "." + opNameV3 + "/config":            opConfigV3,
+				reqNsOld + "." + reqNameB + "." + opNameV4 + "/request":           opChannelV4,
+				reqNsOld + "." + reqNameB + "." + opNameV4 + "/operatorNamespace": reqNsOld,
+				reqNsOld + "." + reqNameB + "." + opNameV4 + "/config":            opConfigV3,
 			},
 			Labels: map[string]string{
 				constant.OpreqLabel: "true",
@@ -428,10 +430,16 @@ func TestCheckSubAnnotationsForUninstall(t *testing.T) {
 		},
 	}
 
-	uninstallOperator, uninstallOperand = checkSubAnnotationsForUninstall(
-		"example-service", "keycloak", "keycloak-operator", operatorv1alpha1.InstallModeNamespace, sub)
+	uninstallOperator, uninstallOperand = checkSubAnnotationsForUninstall(reqNameA, reqNsOld, opNameV3, operatorv1alpha1.InstallModeNamespace, sub)
 
 	assert.False(t, uninstallOperator)
 	assert.False(t, uninstallOperand)
+
+	assert.NotContains(t, sub.Annotations, reqNsOld+"."+reqNameA+"."+opNameV3+"/request")
+	assert.NotContains(t, sub.Annotations, reqNsOld+"."+reqNameA+"."+opNameV3+"/operatorNamespace")
+	assert.NotContains(t, sub.Annotations, reqNsOld+"."+reqNameA+"."+opNameV3+"/config")
+	assert.Contains(t, sub.Annotations, reqNsOld+"."+reqNameB+"."+opNameV4+"/request")
+	assert.Contains(t, sub.Annotations, reqNsOld+"."+reqNameB+"."+opNameV4+"/operatorNamespace")
+	assert.Contains(t, sub.Annotations, reqNsOld+"."+reqNameB+"."+opNameV4+"/config")
 
 }
