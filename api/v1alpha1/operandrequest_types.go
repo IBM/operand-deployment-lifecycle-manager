@@ -17,12 +17,9 @@
 package v1alpha1
 
 import (
-	"context"
 	"strings"
 	"sync"
 	"time"
-
-	client "sigs.k8s.io/controller-runtime/pkg/client"
 
 	gset "github.com/deckarep/golang-set"
 	corev1 "k8s.io/api/core/v1"
@@ -438,52 +435,40 @@ func (r *OperandRequest) RemoveOperandPhase(name string, mu sync.Locker) {
 	}
 }
 
-func (r *OperandRequest) SetServiceStatus(ctx context.Context, service ServiceStatus, updater client.StatusClient, mu sync.Locker) error {
+// SetServiceStatus updates the service status in the local object
+func (r *OperandRequest) SetServiceStatus(service ServiceStatus, mu sync.Locker) {
 	mu.Lock()
 	defer mu.Unlock()
+
 	pos, _ := getServiceStatus(&r.Status, service.OperatorName)
 	if pos != -1 {
 		if len(r.Status.Services[pos].Resources) == 0 {
+			// If no resources, replace the entire service
 			r.Status.Services[pos] = service
-			updateerr := updater.Status().Update(ctx, r)
-			if updateerr != nil {
-				return updateerr
-			}
 		} else {
+			// Update status if different
 			if r.Status.Services[pos].Status != service.Status {
 				r.Status.Services[pos].Status = service.Status
-				updateerr := updater.Status().Update(ctx, r)
-				if updateerr != nil {
-					return updateerr
-				}
 			}
+
+			// Process each resource
 			for i := range service.Resources {
 				if service.Resources[i].ObjectName != "" {
 					resourcePos, _ := getResourceStatus(r.Status.Services[pos].Resources, service.Resources[i].ObjectName)
 					if resourcePos != -1 {
+						// Update existing resource
 						r.Status.Services[pos].Resources[resourcePos] = service.Resources[i]
-						updateerr := updater.Status().Update(ctx, r)
-						if updateerr != nil {
-							return updateerr
-						}
 					} else {
+						// Add new resource
 						r.Status.Services[pos].Resources = append(r.Status.Services[pos].Resources, service.Resources[i])
-						updateerr := updater.Status().Update(ctx, r)
-						if updateerr != nil {
-							return updateerr
-						}
 					}
 				}
 			}
 		}
 	} else {
+		// Add new service
 		r.Status.Services = append(r.Status.Services, service)
-		updateerr := updater.Status().Update(ctx, r)
-		if updateerr != nil {
-			return updateerr
-		}
 	}
-	return nil
 }
 
 func (r *OperandRequest) setOperatorReadyCondition(operatorPhase OperatorPhase, name string) {
