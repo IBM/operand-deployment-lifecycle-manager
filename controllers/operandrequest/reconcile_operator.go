@@ -795,11 +795,12 @@ func checkSubAnnotationsForUninstall(reqName, reqNs, opName, installMode string,
 	// 1. operator is not uninstalled AND intallMode is no-op.
 	// 2. operator is uninstalled AND  at least one other <prefix>/operatorNamespace annotation exists.
 	// 3. remaining <prefix>/request annotation's values contain the same operator name
-	// 4. remaining <prefix>/config annotation's values contain the same configName as this operator
+	// 4. currentConfigName is found AND remaining <prefix>/config annotation's values contain the same configName as this operator
+	// 5. currentConfigName is empty (not found in annotations)
 	if (!uninstallOperator && installMode == operatorv1alpha1.InstallModeNoop) ||
 		(uninstallOperator && len(opreqNsSlice) != 0) ||
 		util.Contains(operatorNameSlice, opName) ||
-		(currentConfigName != "" && util.Contains(configNameSlice, currentConfigName)) {
+		(currentConfigName != "" && util.Contains(configNameSlice, currentConfigName)) || currentConfigName == "" {
 		uninstallOperand = false
 	}
 
