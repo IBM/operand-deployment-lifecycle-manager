@@ -963,7 +963,7 @@ func (m *ODLMOperator) EvaluateExpression(ctx context.Context, expr *util.Logica
 	}
 
 	// Helper function to compare values with support for Kubernetes resource units
-	compareValues := func(leftVal, rightVal string) (leftIsGreater bool, rightIsEqual bool, rightIsGreater bool, err error) {
+	compareValues := func(leftVal, rightVal string) (leftIsGreater bool, rightIsEqual bool, rightIsGreater bool) {
 		// Check if both are resource quantities
 		leftQty, leftErr := resource.ParseQuantity(strings.TrimSpace(leftVal))
 		rightQty, rightErr := resource.ParseQuantity(strings.TrimSpace(rightVal))
@@ -971,7 +971,7 @@ func (m *ODLMOperator) EvaluateExpression(ctx context.Context, expr *util.Logica
 		// If both are valid Kubernetes quantities, compare their values
 		if leftErr == nil && rightErr == nil {
 			cmp := leftQty.Cmp(rightQty)
-			return cmp > 0, cmp == 0, cmp < 0, nil
+			return cmp > 0, cmp == 0, cmp < 0
 		}
 
 		// Fall back to standard float parsing
@@ -979,11 +979,11 @@ func (m *ODLMOperator) EvaluateExpression(ctx context.Context, expr *util.Logica
 		rightNum, rightFloatErr := strconv.ParseFloat(strings.TrimSpace(rightVal), 64)
 
 		if leftFloatErr == nil && rightFloatErr == nil {
-			return leftNum > rightNum, leftNum == rightNum, leftNum < rightNum, nil
+			return leftNum > rightNum, leftNum == rightNum, leftNum < rightNum
 		}
 
 		// Fall back to string comparison
-		return leftVal > rightVal, leftVal == rightVal, leftVal < rightVal, nil
+		return leftVal > rightVal, leftVal == rightVal, leftVal < rightVal
 	}
 
 	// Handle basic comparison operators
@@ -992,10 +992,7 @@ func (m *ODLMOperator) EvaluateExpression(ctx context.Context, expr *util.Logica
 		if err != nil {
 			return false, err
 		}
-		_, isEqual, _, err := compareValues(leftVal, rightVal)
-		if err != nil {
-			return false, err
-		}
+		_, isEqual, _ := compareValues(leftVal, rightVal)
 		return isEqual, nil
 	}
 
@@ -1004,10 +1001,7 @@ func (m *ODLMOperator) EvaluateExpression(ctx context.Context, expr *util.Logica
 		if err != nil {
 			return false, err
 		}
-		_, isEqual, _, err := compareValues(leftVal, rightVal)
-		if err != nil {
-			return false, err
-		}
+		_, isEqual, _ := compareValues(leftVal, rightVal)
 		return !isEqual, nil
 	}
 
@@ -1017,10 +1011,7 @@ func (m *ODLMOperator) EvaluateExpression(ctx context.Context, expr *util.Logica
 			return false, err
 		}
 
-		leftGreater, _, _, err := compareValues(leftVal, rightVal)
-		if err != nil {
-			return false, err
-		}
+		leftGreater, _, _ := compareValues(leftVal, rightVal)
 		return leftGreater, nil
 	}
 
@@ -1030,10 +1021,7 @@ func (m *ODLMOperator) EvaluateExpression(ctx context.Context, expr *util.Logica
 			return false, err
 		}
 
-		_, _, leftLess, err := compareValues(leftVal, rightVal)
-		if err != nil {
-			return false, err
-		}
+		_, _, leftLess := compareValues(leftVal, rightVal)
 		return leftLess, nil
 	}
 
