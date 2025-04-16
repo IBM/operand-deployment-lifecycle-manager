@@ -120,90 +120,98 @@ OperandConfig supports a templating system that allows values to be dynamically 
 
 The templating system uses the `templatingValueFrom` field to reference values from ConfigMaps, Secrets, or other Kubernetes objects. When ODLM processes an OperandConfig, it resolves these references to their actual values before creating the operand resources.
 
-Example with templating for a Jenkins service port:
+**Example:** Templating a Jenkins service port using a ConfigMap value.
 
 ```yaml
-apiVersion: operator.ibm.com/v1alpha1
-Kind: OperandConfigs
-metadata:
-  name: example-service
-  namespace: example-service-ns
-spec:
-  services:
-  - name: jenkins
-    spec:
-      jenkins:
-        service:
-          port:
-            templatingValueFrom:
-              configMapKeyRef:
-                name: jenkins-config
-                namespace: default  # Optional, defaults to CR namespace
-                key: port
-              required: true 
+  apiVersion: operator.ibm.com/v1alpha1
+  Kind: OperandConfigs
+  metadata:
+    name: common-service
+    namespace: service-ns
+  spec:
+    services:
+    - name: keycloak-operator
+      resources:
+        - apiVersion: v1
+            data:
+              stringData:
+                ca.crt:
+                  templatingValueFrom:
+                    configMapKeyRef:
+                      key: service-ca.crt
+                      name: openshift-service-ca.crt
+                    required: true
+              type: kubernetes.io/tls
+            force: true
+            kind: Secret
+            name: cs-keycloak-tls-secret
 ```
-In this example, instead of hardcoding the port number, ODLM will look up the value from a ConfigMap named jenkins-config using the key port.
+In this example, the `ca.crt` field in the Secret is populated from a key `service-ca.crt` in a ConfigMap named `openshift-service-ca.crt`. The `templatingValueFrom` field specifies how to retrieve the value, and the `required: true` flag indicates that this value must be present for the configuration to be valid.
 
 #### Value Source Types
-ODLM supports several types of value sources that can be referenced in your OperandConfig:
 
-1. ConfigMap Reference
-Values can be retrieved from ConfigMaps. This is useful for environment-specific configuration that might change between deployments:
-  ```yaml
-  templatingValueFrom:
+ODLM supports several types of value sources that can be referenced using templatingValueFrom:
+
+1. ConfigMap Reference (`configMapKeyRef`)
+    Values can be retrieved from specific keys within ConfigMaps. This is useful for environment-specific configuration that might change between deployments.
+
+    ```yaml
+    templatingValueFrom:
     configMapKeyRef:
-      name: jenkins-config
-      namespace: operator-ns  # Optional
-      key: storage-size
-    required: true
-  ```
+      name: my-configmap        # Name of the ConfigMap
+      namespace: my-namespace  # Optional: Defaults to OperandConfig namespace
+      key: data.key            # Key within the ConfigMap's data field
+    # required: true           # Optional: Defaults to false
+    ```
 
-2. Secret Reference
-For sensitive data like passwords, tokens, or certificates, values can be securely retrieved from Secrets:
-  ```yaml
-  templatingValueFrom:
-    secretKeyRef:
-      name: jenkins-secrets
-      namespace: operator-ns  # Optional
-      key: storage-password
-    required: true
-  ```
+2. Secret Reference (`secretKeyRef`)
+    For sensitive data like passwords, API tokens, or certificates, values can be securely retrieved from specific keys within Secrets.
 
-3. Object Reference
-Values can be pulled from any Kubernetes object's fields using JSONPath notation. This is powerful for building dependencies between resources:
-  ```yaml
-  templatingValueFrom:
+    ```yaml
+    templatingValueFrom:
+      secretKeyRef:
+        name: my-secret           # Name of the Secret
+        namespace: my-namespace  # Optional: Defaults to OperandConfig namespace
+        key: data.key            # Key within the Secret's data field
+      # required: true           # Optional: Defaults to false
+    ```
+
+3. Object Reference (`objectRef`) 
+    Values can be pulled from any field within any Kubernetes object using JSONPath notation.
+
+    ```yaml
+    templatingValueFrom:
     objectRef:
-      apiVersion: v1
-      kind: PersistentVolumeClaim
-      name: jenkins-pvc
-      namespace: operator-ns  # Optional
-      path: .spec.resources.requests.storage
-    required: true 
-  ```
+      apiVersion: apps/v1
+      kind: Deployment
+      name: my-deployment
+      namespace: my-namespace  # Optional: Defaults to OperandConfig namespace
+      path: .status.replicas   # JSONPath expression to the desired field
+    # required: true           # Optional: Defaults to false
+    ```
 
-4. Default Value
-The `default` field can specify a static value or reference other objects similar to the main templating system. This serves as a fallback when the primary references are not available:
-  ```yaml
-  templatingValueFrom:
-    default:
-      required: true
+4. Default Value (`default`)
+    The `default` field can specify a static value or reference other objects similar to the main templating system. This serves as a fallback when the primary references are not available:
+    ```yaml
+    templatingValueFrom:
+      default:
+        required: true
+        configMapKeyRef:
+          name: defaults
+          key: standard-storage
       configMapKeyRef:
-        name: defaults
+        name: global-defaults
         key: standard-storage
-    configMapKeyRef:
-      name: global-defaults
-      key: standard-storage
-    secretKeyRef:
-      name: backup-config
-      key: storage-value
-    objectRef:
-      apiVersion: v1
-      kind: PersistentVolume
-      name: reference-pv
-      path: .spec.capacity.storage
-  ```
-  In this example, if none of the primary value sources (configMapKeyRef, secretKeyRef, objectRef) in the main templatingValueFrom provide a value, ODLM will try to resolve values from the default section. It will first check the static defaultValue, then try the Object, Secret, and ConfigMap references in order until it finds a value. This provides multiple layers of fallbacks for your configuration.
+      secretKeyRef:
+        name: backup-config
+        key: storage-value
+      objectRef:
+        apiVersion: v1
+        kind: PersistentVolume
+        name: reference-pv
+        path: .spec.capacity.storage
+    ```
+    In this example, if none of the primary value sources (configMapKeyRef, secretKeyRef, objectRef) in the main templatingValueFrom provide a value, ODLM will try to resolve values from the default section. It will first check the static defaultValue, then try the Object, Secret, and ConfigMap references in order until it finds a value. This provides multiple layers of fallbacks for your configuration.
 
 #### Array Support in Templating
 
@@ -211,11 +219,11 @@ ODLM's templating system also supports complex array values, allowing you to def
 
 Arrays can contain:
 
-1. **Literal values** - Simple string values directly included in the array
-2. **Map structures** - Key-value pairs for complex configuration
-3. **Reference types** - ConfigMap, Secret, and Object references
+*   **Literal values** (`literal`) - Simple static values (strings, numbers, booleans) directly included.
+*   **Map structures** (`map`) - Key-value pairs defining complex objects.
+*   **Reference types** -  Direct references using `configMapKeyRef`, `secretKeyRef`, or `objectRef`
 
-Here's an example of using arrays in a conditional template:
+**Examples:**
 
 ```yaml
 templatingValueFrom:
@@ -269,134 +277,142 @@ The templating system in ODLM offers powerful conditional logic capabilities tha
 This enables administrators to create flexible, environment-aware configurations without manual intervention.
 
 1. Simple Conditional Expressions
-Basic conditional expressions evaluate a condition and provide different values based on the result:
-  ```yaml
-  templatingValueFrom:
-    conditional:
-      expression:
-        equal:
-          left:
-            objectRef:
-              apiVersion: v1
-              kind: ConfigMap
-              name: cluster-info
-              namespace: default
-              path: .data.environment
-          right:
-            literal: "production"
-      then:
-        literal: "50Gi"  # Value if condition is true
-      else:
-        literal: "10Gi"  # Value if condition is false
-  ```
-  This example configures storage size based on the environment value in `cluster-info` ConfigMap - using 50Gi for production environments and 10Gi for others.
+    Basic conditional expressions evaluate a condition and provide different values based on the result:
+  
+    **Examples:**
 
-2. Advanced Expression Evaluation
-Complex conditions can be created using logical operators (`and`, `or`, `not`):
-  ```yaml
-  templatingValueFrom:
-  conditional:
-    expression:
-      and:
-        - equal:
+    ```yaml
+    templatingValueFrom:
+      conditional:
+        expression:
+          equal:
             left:
               objectRef:
                 apiVersion: v1
                 kind: ConfigMap
                 name: cluster-info
+                namespace: default
                 path: .data.environment
             right:
               literal: "production"
-        - notEqual:
-            equal:
+        then:
+          literal: "50Gi"  # Value if condition is true
+        else:
+          literal: "10Gi"  # Value if condition is false
+    ```
+    This example configures storage size based on the environment value in `cluster-info` ConfigMap - using 50Gi for production environments and 10Gi for others.
+
+2. Advanced Expression Evaluation
+    Complex conditions can be created using logical operators (`and`, `or`, `not`). These operators take a list of sub-expressions.
+
+    - **`and`**: All sub-expressions must be true.
+    - **`or`**: At least one sub-expression must be true.
+    - **`not`**: Negates the truth value of a sub-expression.
+
+    **Examples:**
+
+    ```yaml
+    templatingValueFrom:
+    conditional:
+      expression:
+        and:
+          - equal:
               left:
                 objectRef:
                   apiVersion: v1
                   kind: ConfigMap
                   name: cluster-info
-                  path: .data.region
+                  path: .data.environment
               right:
-                literal: "dev-region"
-    then:
-      literal: "3"  # replicas value for production in non-dev regions
-    else:
-      literal: "1"  # replicas value for other environments
-  ```
-  This example sets the number of replicas to 3 only if the environment is "production" AND the region is not "dev-region". Otherwise, it defaults to 1 replica.
+                literal: "production"
+          - notEqual:
+              equal:
+                left:
+                  objectRef:
+                    apiVersion: v1
+                    kind: ConfigMap
+                    name: cluster-info
+                    path: .data.region
+                right:
+                  literal: "dev-region"
+      then:
+        literal: "3"  # replicas value for production in non-dev regions
+      else:
+        literal: "1"  # replicas value for other environments
+    ```
+    This example sets the number of replicas to 3 only if the environment is "production" AND the region is not "dev-region". Otherwise, it defaults to 1 replica.
 
 3. Comparison Operations
-The templating system supports multiple comparison operators: 
-*   **`equal`**: Checks if two values are equal.
-*   **`notEqual`**: Checks if two values are not equal.
-*   **`greaterThan`**: Checks if the left value is strictly greater than the right value.
-*   **`lessThan`**: Checks if the left value is strictly less than the right value.
+    The templating system supports multiple comparison operators: 
+    *   **`equal`**: Checks if `left` == `right`.
+    *   **`notEqual`**: Checks if `left` != `right`.
+    *   **`greaterThan`**: Checks if `left` > `right`.
+    *   **`lessThan`**: Checks if `left` <> `right`.
 
-These operators can be used to compare values from different sources, such as ConfigMaps, Secrets, or other Kubernetes objects.
+    The `left` and `right` operands can be static `literal` values or dynamic references (`configMapKeyRef`, `secretKeyRef`, `objectRef`).
 
-**Examples:**
+    **Examples:**
 
-```yaml
-templatingValueFrom:
-  conditional:
-    expression:
-      greaterThan:
-        left:
-          objectRef:
-            apiVersion: v1
-            kind: PersistentVolumeClaim
-            name: data-pvc
-            path: .spec.resources.requests.storage
-        right:
-          literal: "10Gi"
-    then:
-      literal: "LargeVolumePolicy"
-    else:
-      literal: "StandardVolumePolicy"
-```
-This example checks if the storage request of a PersistentVolumeClaim is greater than 10Gi and sets a specific volume policy accordingly.
+    ```yaml
+    templatingValueFrom:
+      conditional:
+        expression:
+          greaterThan:
+            left:
+              objectRef:
+                apiVersion: v1
+                kind: PersistentVolumeClaim
+                name: data-pvc
+                path: .spec.resources.requests.storage
+            right:
+              literal: "10Gi"
+        then:
+          literal: "LargeVolumePolicy"
+        else:
+          literal: "StandardVolumePolicy"
+    ```
+    This example checks if the storage request of a PersistentVolumeClaim is greater than 10Gi and sets a specific volume policy accordingly.
 
 4. Kubernetes resource quantities
-The system intelligently handles resource quantity comparisons, automatically parsing Kubernetes resource notation:
-- CPU: m (millicores), e.g., 500m, 1 (whole core)
-- Memory: Ki, Mi, Gi, Ti, Pi, Ei (kibibytes, mebibytes, gibibytes, etc.), e.g., 256Mi, 4Gi
-- Storage: Same units as Memory, often used for PersistentVolumes, e.g., 10Gi, 1Ti
-This allows for direct comparison without manual conversion.
+    The system intelligently handles resource quantity comparisons, automatically parsing Kubernetes resource notation:
+    *   **CPU**: `m` (millicores), e.g., `500m`, `1` (whole core)
+    *   **Memory**: `Ki`, `Mi`, `Gi`, `Ti`, `Pi`, `Ei` (kibibytes, mebibytes, gibibytes, etc.), e.g., `256Mi`, `4Gi`
+    *   **Storage**: Same units as Memory, often used for PersistentVolumes, e.g., `10Gi`, `1Ti`
+    This allows for direct comparison without manual conversion.
 
-**Examples:**
+    **Examples:**
 
-  ```yaml
-  templatingValueFrom:
-  conditional:
-    expression:
-      greaterThan:
-        left:
-          objectRef:
-            apiVersion: v1
-            kind: Node
-            name: worker-1
-            path: .status.allocatable.memory
-        right:
-          literal: "16Gi"
-    then:
-      literal: "8Gi"  # Higher memory limit for nodes with >16Gi
-    else:
-      literal: "4Gi"  # Lower memory limit for smaller nodes
-  ```
-  This example checks if the allocatable memory of a node is greater than 16Gi and sets a higher memory limit accordingly.
+    ```yaml
+    templatingValueFrom:
+    conditional:
+      expression:
+        greaterThan:
+          left:
+            objectRef:
+              apiVersion: v1
+              kind: Node
+              name: worker-1
+              path: .status.allocatable.memory
+          right:
+            literal: "16Gi"
+      then:
+        literal: "8Gi"  # Higher memory limit for nodes with >16Gi
+      else:
+        literal: "4Gi"  # Lower memory limit for smaller nodes
+    ```
+    This example checks if the allocatable memory of a node is greater than 16Gi and sets a higher memory limit accordingly.
 
-5. Tore-Aware comparisons
-The comparison operators perform type-aware comparisons:
+5. Numeric and String Comparisons
+    The comparison operators perform type-aware comparisons based on the resolved values of the `left` and `right` operands:
 
-- **Numeric Comparison:** If both values can be interpreted as numbers, a numeric comparison is performed. String representations of numbers are converted.
-
-  - 5 > 3 evaluates to true.
-  - "5" > "3" evaluates to true (strings are converted to numbers).
-  - "10Gi" > "5Gi" evaluates to true (Kubernetes quantities are compared numerically).
-  - "500m" < "1" evaluates to true (CPU quantities are compared numerically).
-- **String Comparison:** If values cannot be interpreted as numbers, a lexicographical (alphabetical) string comparison is performed.
-
-  - "abc" < "xyz" evaluates to true.
-  - "apple" > "banana" evaluates to false.
+    *   **Numeric Comparison:** If both values can be interpreted as numbers, a numeric comparison is performed. String representations of numbers are converted.
+        - 5 > 3 evaluates to true.
+        - "5" > "3" evaluates to true (strings are converted to numbers).
+        - "10Gi" > "5Gi" evaluates to true (Kubernetes quantities are compared numerically).
+        - "500m" < "1" evaluates to true (CPU quantities are compared numerically).
+    *   **String Comparison:** If values cannot be interpreted as numbers, a lexicographical (alphabetical) string comparison is performed.
+        - "abc" < "xyz" evaluates to true.
+        - "apple" > "banana" evaluates to false.
 
 ### How does Operator create the individual operator CR
 
