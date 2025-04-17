@@ -9,6 +9,11 @@
   - [OperandRegistry Spec](#operandregistry-spec)
   - [OperandConfig Spec](#operandconfig-spec)
     - [How does Operator create the individual operator CR](#how-does-operator-create-the-individual-operator-cr)
+    - [Dynamic Configuration with Templating](#dynamic-configuration-with-templating)
+      - [Value Source Types](#value-source-types)
+      - [Array Support in Templating](#array-support-in-templating)
+      - [Conditional Logic](#conditional-logic)
+      - [Conditional Templating Use Cases](#conditional-templating-use-cases)
   - [OperandRequest Spec](#operandrequest-spec)
     - [OperandRequest sample to create custom resource via OperandConfig](#operandrequest-sample-to-create-custom-resource-via-operandconfig)
     - [OperandRequest sample to create custom resource via OperandRequest](#operandrequest-sample-to-create-custom-resource-via-operandrequest)
@@ -120,7 +125,7 @@ OperandConfig supports a templating system that allows values to be dynamically 
 
 The templating system uses the `templatingValueFrom` field to reference values from ConfigMaps, Secrets, or other Kubernetes objects. When ODLM processes an OperandConfig, it resolves these references to their actual values before creating the operand resources.
 
-**Example:** Templating a Jenkins service port using a ConfigMap value.
+**Example:** Templating a keycloak ca cert value using a ConfigMap value.
 
 ```yaml
   apiVersion: operator.ibm.com/v1alpha1
@@ -302,47 +307,7 @@ This enables administrators to create flexible, environment-aware configurations
     ```
     This example configures storage size based on the environment value in `cluster-info` ConfigMap - using 50Gi for production environments and 10Gi for others.
 
-2. Advanced Expression Evaluation
-    Complex conditions can be created using logical operators (`and`, `or`, `not`). These operators take a list of sub-expressions.
-
-    - **`and`**: All sub-expressions must be true.
-    - **`or`**: At least one sub-expression must be true.
-    - **`not`**: Negates the truth value of a sub-expression.
-
-    **Examples:**
-
-    ```yaml
-    templatingValueFrom:
-    conditional:
-      expression:
-        and:
-          - equal:
-              left:
-                objectRef:
-                  apiVersion: v1
-                  kind: ConfigMap
-                  name: cluster-info
-                  path: .data.environment
-              right:
-                literal: "production"
-          - notEqual:
-              equal:
-                left:
-                  objectRef:
-                    apiVersion: v1
-                    kind: ConfigMap
-                    name: cluster-info
-                    path: .data.region
-                right:
-                  literal: "dev-region"
-      then:
-        literal: "3"  # replicas value for production in non-dev regions
-      else:
-        literal: "1"  # replicas value for other environments
-    ```
-    This example sets the number of replicas to 3 only if the environment is "production" AND the region is not "dev-region". Otherwise, it defaults to 1 replica.
-
-3. Comparison Operations
+2. Comparison Operations
     The templating system supports multiple comparison operators: 
     *   **`equal`**: Checks if `left` == `right`.
     *   **`notEqual`**: Checks if `left` != `right`.
@@ -372,6 +337,45 @@ This enables administrators to create flexible, environment-aware configurations
           literal: "StandardVolumePolicy"
     ```
     This example checks if the storage request of a PersistentVolumeClaim is greater than 10Gi and sets a specific volume policy accordingly.
+
+3. Advanced Expression Evaluation
+    Complex conditions can be created using logical operators (`and`, `or`, `not`). These operators take a list of sub-expressions.
+
+    - **`and`**: All sub-expressions must be true.
+    - **`or`**: At least one sub-expression must be true.
+    - **`not`**: Negates the truth value of a sub-expression.
+
+    **Examples:**
+
+    ```yaml
+    templatingValueFrom:
+    conditional:
+      expression:
+        and:
+          - equal:
+              left:
+                objectRef:
+                  apiVersion: v1
+                  kind: ConfigMap
+                  name: cluster-info
+                  path: .data.environment
+              right:
+                literal: "production"
+          - notEqual:
+              left:
+                objectRef:
+                  apiVersion: v1
+                  kind: ConfigMap
+                  name: cluster-info
+                  path: .data.region
+              right:
+                literal: "dev-region"
+      then:
+        literal: "3"  # replicas value for production in non-dev regions
+      else:
+        literal: "1"  # replicas value for other environments
+    ```
+    This example sets the number of replicas to 3 only if the environment is "production" AND the region is not "dev-region". Otherwise, it defaults to 1 replica.
 
 4. Kubernetes resource quantities
     The system intelligently handles resource quantity comparisons, automatically parsing Kubernetes resource notation:
@@ -413,6 +417,25 @@ This enables administrators to create flexible, environment-aware configurations
     *   **String Comparison:** If values cannot be interpreted as numbers, a lexicographical (alphabetical) string comparison is performed.
         - "abc" < "xyz" evaluates to true.
         - "apple" > "banana" evaluates to false.
+
+6. Use Cases
+
+    The templating system's conditional logic capabilities enable several powerful use cases that help manage complex deployment scenarios:
+
+    - **CRD Version Detection and Compatibility**
+
+      CRD Version Detection: Automatically adjust configuration fields based on the version of installed CRDs, enabling smooth upgrades and backward compatibility.
+
+    - **Version-Specific Config Handling**
+
+      Support multiple versions by detecting the operator devlopment and adjusting the CR configuration accordingly.
+
+    - **Complex Multi-Condition Logic**
+
+      Combine multiple conditions with logical operators to make sophisticated decisions about configuration settings, such as enabling or disabling features based on multiple criteria (e.g., matching operator versions, and CRD support, CRD upgrade/downgrade).
+
+
+  These examples demonstrate how conditional templating enables sophisticated, dynamic configuration that can adapt to cluster state, operator versions, and environment settings, making your deployments more resilient and reducing the need for manual configuration changes during upgrades or when deploying to different environments.
 
 ### How does Operator create the individual operator CR
 
