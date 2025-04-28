@@ -19,7 +19,6 @@ package operatorconfig
 import (
 	"context"
 
-	"github.com/barkimedes/go-deepcopy"
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/types"
@@ -116,13 +115,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				continue
 			}
 
-			copyToCast, err := deepcopy.Anything(csv)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-			csvToUpdate := copyToCast.(*olmv1alpha1.ClusterServiceVersion)
 			klog.Infof("Applying OperatorConfig: %s to Operator: %s via CSV: %s, %s", operator.OperatorConfig, operator.Name, csv.Name, csv.Namespace)
-			if err := r.configCsv(ctx, csvToUpdate, serviceConfig); err != nil {
+			if err := r.configCsv(ctx, csv, serviceConfig); err != nil {
 				klog.Errorf("Failed to apply OperatorConfig %s/%s to Operator: %s via CSV: %s, %s", registry.Namespace, operator.OperatorConfig, operator.Name, csv.Namespace, csv.Name)
 				return ctrl.Result{}, err
 			}
@@ -133,18 +127,30 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 }
 
 func (r *Reconciler) configCsv(ctx context.Context, csv *olmv1alpha1.ClusterServiceVersion, config *operatorv1alpha1.ServiceOperatorConfig) error {
+	csvToPatch := csv.DeepCopy()
+
 	if config.Replicas != nil {
-		csv.Spec.InstallStrategy.StrategySpec.DeploymentSpecs[0].Spec.Replicas = config.Replicas
+		if len(csvToPatch.Spec.InstallStrategy.StrategySpec.DeploymentSpecs) > 0 {
+			csvToPatch.Spec.InstallStrategy.StrategySpec.DeploymentSpecs[0].Spec.Replicas = config.Replicas
+		}
 	}
+
 	if config.Affinity != nil {
-		csv.Spec.InstallStrategy.StrategySpec.DeploymentSpecs[0].Spec.Template.Spec.Affinity = config.Affinity
+		if len(csvToPatch.Spec.InstallStrategy.StrategySpec.DeploymentSpecs) > 0 {
+			csvToPatch.Spec.InstallStrategy.StrategySpec.DeploymentSpecs[0].Spec.Template.Spec.Affinity = config.Affinity
+		}
 	}
+
 	if config.TopologySpreadConstraints != nil {
-		csv.Spec.InstallStrategy.StrategySpec.DeploymentSpecs[0].Spec.Template.Spec.TopologySpreadConstraints = config.TopologySpreadConstraints
+		if len(csvToPatch.Spec.InstallStrategy.StrategySpec.DeploymentSpecs) > 0 {
+			csvToPatch.Spec.InstallStrategy.StrategySpec.DeploymentSpecs[0].Spec.Template.Spec.TopologySpreadConstraints = config.TopologySpreadConstraints
+		}
 	}
-	if err := r.Client.Update(ctx, csv); err != nil {
+
+	if err := r.Client.Patch(ctx, csvToPatch, client.MergeFrom(csv)); err != nil {
 		return err
 	}
+
 	return nil
 }
 
