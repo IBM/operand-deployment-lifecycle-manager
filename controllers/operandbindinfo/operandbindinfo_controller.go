@@ -312,7 +312,7 @@ func (r *Reconciler) copySecret(ctx context.Context, sourceName, targetName, sou
 		if apierrors.IsAlreadyExists(err) {
 			// If already exist, update the Secret
 			existingSecret := &corev1.Secret{}
-			if err := r.Client.Get(ctx, types.NamespacedName{Namespace: targetNs, Name: targetName}, existingSecret); err != nil {
+			if err := r.Reader.Get(ctx, types.NamespacedName{Namespace: targetNs, Name: targetName}, existingSecret); err != nil {
 				return false, errors.Wrapf(err, "failed to get secret %s/%s", targetNs, targetName)
 			}
 
@@ -413,7 +413,7 @@ func (r *Reconciler) copyConfigmap(ctx context.Context, sourceName, targetName, 
 		if apierrors.IsAlreadyExists(err) {
 			// If already exist, update the ConfigMap
 			existingCm := &corev1.ConfigMap{}
-			if err := r.Client.Get(ctx, types.NamespacedName{Namespace: targetNs, Name: targetName}, existingCm); err != nil {
+			if err := r.Reader.Get(ctx, types.NamespacedName{Namespace: targetNs, Name: targetName}, existingCm); err != nil {
 				return false, errors.Wrapf(err, "failed to get ConfigMap %s/%s", targetNs, targetName)
 			}
 
@@ -518,7 +518,7 @@ func (r *Reconciler) copyRoute(ctx context.Context, route operatorv1alpha1.Route
 		if apierrors.IsAlreadyExists(err) {
 			// If already exist, update the ConfigMap
 			existingCm := &corev1.ConfigMap{}
-			if err := r.Client.Get(ctx, types.NamespacedName{Namespace: targetNs, Name: targetName}, existingCm); err != nil {
+			if err := r.Reader.Get(ctx, types.NamespacedName{Namespace: targetNs, Name: targetName}, existingCm); err != nil {
 				return false, errors.Wrapf(err, "failed to get ConfigMap %s/%s", targetNs, targetName)
 			}
 			if needUpdate := util.CompareConfigMap(cmCopy, existingCm); needUpdate {
@@ -614,7 +614,7 @@ func (r *Reconciler) copyService(ctx context.Context, service operatorv1alpha1.S
 		if apierrors.IsAlreadyExists(err) {
 			// If already exist, update the ConfigMap
 			existingCm := &corev1.ConfigMap{}
-			if err := r.Client.Get(ctx, types.NamespacedName{Namespace: targetNs, Name: targetName}, existingCm); err != nil {
+			if err := r.Reader.Get(ctx, types.NamespacedName{Namespace: targetNs, Name: targetName}, existingCm); err != nil {
 				return false, errors.Wrapf(err, "failed to get ConfigMap %s/%s", targetNs, targetName)
 			}
 			if needUpdate := util.CompareConfigMap(cmCopy, existingCm); needUpdate {
