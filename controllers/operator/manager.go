@@ -777,6 +777,15 @@ func (m *ODLMOperator) processTemplateValue(ctx context.Context, value interface
 		return valueRef, nil
 	}
 
+	if boolValue, hasBool := templateRef["boolean"]; hasBool {
+		if b, ok := boolValue.(bool); ok {
+			if b {
+				return "true", nil
+			}
+			return "false", nil
+		}
+	}
+
 	templateRefObj, err := m.convertToTemplateValueRef(templateRef, instanceType, instanceName, instanceNs)
 	if err != nil {
 		return "", err
@@ -837,7 +846,13 @@ func (m *ODLMOperator) GetValueFromBranch(ctx context.Context, branch *util.Valu
 		return "", nil
 	}
 
-	// Handle direct literal value first
+	if branch.Boolean != nil {
+		if *branch.Boolean {
+			return "true", nil
+		}
+		return "false", nil
+	}
+
 	if branch.Literal != "" {
 		return branch.Literal, nil
 	}
@@ -847,9 +862,14 @@ func (m *ODLMOperator) GetValueFromBranch(ctx context.Context, branch *util.Valu
 		// Create a slice to hold processed values
 		var processedValues []interface{}
 
-		// Iterate over the array items
 		for _, item := range branch.Array {
-			if item.Literal != "" {
+			if item.Boolean != nil {
+				if *item.Boolean {
+					processedValues = append(processedValues, true)
+				} else {
+					processedValues = append(processedValues, false)
+				}
+			} else if item.Literal != "" {
 				// For literal values in array, add directly
 				processedValues = append(processedValues, item.Literal)
 			} else if len(item.Map) > 0 {
@@ -1084,6 +1104,13 @@ func (m *ODLMOperator) EvaluateExpression(ctx context.Context, expr *util.Logica
 func (m *ODLMOperator) GetValueFromSource(ctx context.Context, source *util.ValueSource, instanceType, instanceName, instanceNs string) (string, error) {
 	if source == nil {
 		return "", nil
+	}
+
+	if source.Boolean != nil {
+		if *source.Boolean {
+			return "true", nil
+		}
+		return "false", nil
 	}
 
 	if source.Literal != "" {
