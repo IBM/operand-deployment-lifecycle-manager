@@ -722,6 +722,15 @@ func (m *ODLMOperator) processMapObject(ctx context.Context, key string, mapObj 
 			if err != nil {
 				return err
 			}
+
+			if valueRef == "true" {
+				finalObject[key] = true
+				continue
+			} else if valueRef == "false" {
+				finalObject[key] = false
+				continue
+			}
+
 			if valueRef != "" {
 				// Check if the returned value is a JSON array string and the field should be an array
 				if strings.HasPrefix(valueRef, "[") && strings.HasSuffix(valueRef, "]") {
