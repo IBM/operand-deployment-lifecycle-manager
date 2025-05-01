@@ -324,7 +324,7 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: operand-deployment-lifecycle-manager.v4.5.0
+  name: operand-deployment-lifecycle-manager-olm
   namespace: {{ $i }}
   labels:
     component-id: {{ $chartName }}
@@ -335,7 +335,7 @@ rules:
 - apiGroups:
   - operators.coreos.com
   resourceNames:
-  - operand-deployment-lifecycle-manager.v4.5.0
+  - operand-deployment-lifecycle-manager-olm
   resources:
   - operatorconditions
   verbs:
@@ -347,7 +347,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: operand-deployment-lifecycle-manager.v4.5.0
+  name: operand-deployment-lifecycle-manager-olm
   namespace: {{ $i }}
   labels:
     component-id: {{ $chartName}}
@@ -357,7 +357,7 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: operand-deployment-lifecycle-manager.v4.5.0
+  name: operand-deployment-lifecycle-manager-olm
 subjects:
 - kind: ServiceAccount
   name: operand-deployment-lifecycle-manager
