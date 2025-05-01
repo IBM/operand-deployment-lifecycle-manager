@@ -195,11 +195,9 @@ spec:
         {{- $watchNamespaces = prepend $watchNamespaces .Values.global.operatorNamespace }}
         - name: WATCH_NAMESPACE
           value: {{ uniq $watchNamespaces | join "," | quote }}
-        - name: OPERATOR_CONDITION_NAME
-          value: operand-deployment-lifecycle-manager.v4.6.0
         - name: NO_OLM
           value: "true"
-        image: {{ .Values.cpfs.imagePullPrefix | default .Values.global.imagePullPrefix }}/{{ .Values.cpfs.imageRegistryNamespaceOperator }}/odlm:4.6.0
+        image: {{ .Values.cpfs.imagePullPrefix | default .Values.global.imagePullPrefix }}/{{ .Values.cpfs.imageRegistryNamespaceOperator }}/odlm:4.5.1
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 10
