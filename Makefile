@@ -86,7 +86,7 @@ OPERATOR_IMAGE_NAME ?= odlm
 # Current Operator bundle image name
 BUNDLE_IMAGE_NAME ?= odlm-operator-bundle
 # Current Operator version
-OPERATOR_VERSION ?= 4.5.0
+OPERATOR_VERSION ?= 4.5.1
 
 # Kind cluster name
 KIND_CLUSTER_NAME ?= "odlm"
@@ -216,7 +216,7 @@ bundle-manifests: yq
 
 generate-all: yq manifests kustomize operator-sdk ## Generate bundle manifests, metadata and package manifests
 	$(OPERATOR_SDK) generate kustomize manifests -q
-	- make bundle-manifests CHANNELS=v4.4 DEFAULT_CHANNEL=v4.4
+	- make bundle-manifests CHANNELS=v4.5 DEFAULT_CHANNEL=v4.5
 
 ##@ Test
 

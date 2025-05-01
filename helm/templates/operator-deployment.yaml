@@ -152,18 +152,9 @@ spec:
         categories: Developer Tools, Monitoring, Logging & Tracing, Security
         certified: "false"
         containerImage: icr.io/cpopen/odlm@sha256:3076710c9891bfb573ea4744398d02977702e8cf24e9f5151f9607c4dc2f95db
-        createdAt: "2024-09-28T19:55:35Z"
         description: The Operand Deployment Lifecycle Manager provides a Kubernetes
           CRD-based API to manage the lifecycle of operands.
         nss.operator.ibm.com/managed-operators: ibm-odlm
-        # olm.operatorGroup: common-service
-        # olm.operatorNamespace: cs-op
-        # olm.skipRange: '>=1.2.0 <4.3.8'
-        # olm.targetNamespaces: cs-op
-        operatorframework.io/properties: '{"properties":[{"type":"olm.gvk","value":{"group":"operator.ibm.com","kind":"OperandBindInfo","version":"v1alpha1"}},{"type":"olm.gvk","value":{"group":"operator.ibm.com","kind":"OperandConfig","version":"v1alpha1"}},{"type":"olm.gvk","value":{"group":"operator.ibm.com","kind":"OperandRegistry","version":"v1alpha1"}},{"type":"olm.gvk","value":{"group":"operator.ibm.com","kind":"OperandRequest","version":"v1alpha1"}},{"type":"olm.gvk","value":{"group":"operator.ibm.com","kind":"OperatorConfig","version":"v1alpha1"}},{"type":"olm.package","value":{"packageName":"ibm-odlm","version":"4.5.0"}}]}'
-        operators.openshift.io/infrastructure-features: '["disconnected"]'
-        operators.operatorframework.io/builder: operator-sdk-v1.32.0
-        operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
         productID: 068a62892a1e4db39641342e592daa25
         productMetric: FREE
         productName: IBM Cloud Platform Common Services
@@ -204,11 +195,9 @@ spec:
         {{- $watchNamespaces = prepend $watchNamespaces .Values.global.operatorNamespace }}
         - name: WATCH_NAMESPACE
           value: {{ uniq $watchNamespaces | join "," | quote }}
-        - name: OPERATOR_CONDITION_NAME
-          value: operand-deployment-lifecycle-manager.v4.5.0
         - name: NO_OLM
           value: "true"
-        image: {{ .Values.cpfs.imagePullPrefix | default .Values.global.imagePullPrefix }}/{{ .Values.cpfs.imageRegistryNamespaceOperator }}/odlm:4.5.0
+        image: {{ .Values.cpfs.imagePullPrefix | default .Values.global.imagePullPrefix }}/{{ .Values.cpfs.imageRegistryNamespaceOperator }}/odlm:4.5.1
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 10
