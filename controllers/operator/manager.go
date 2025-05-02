@@ -1328,19 +1328,19 @@ func (m *ODLMOperator) GetValueRefFromObject(ctx context.Context, instanceType, 
 		return "", errors.Wrapf(err, "failed to get %s %s/%s", objKind, objNs, objName)
 	}
 
-	// Set the Value Reference label for the object
-	m.EnsureLabel(obj, map[string]string{
-		constant.ODLMWatchedLabel: "true",
-	})
-	// Set the Value Reference Annotation for the Secret
-	m.EnsureAnnotation(obj, map[string]string{
-		constant.ODLMReferenceAnnotation: instanceType + "." + instanceNs + "." + instanceName,
-	})
-	// Update the object with the Value Reference label
-	if err := m.Update(ctx, &obj); err != nil {
-		return "", errors.Wrapf(err, "failed to update %s %s/%s", objKind, obj.GetNamespace(), obj.GetName())
-	}
-	klog.V(2).Infof("Set the Value Reference label for %s %s/%s", objKind, obj.GetNamespace(), obj.GetName())
+	// // Set the Value Reference label for the object
+	// m.EnsureLabel(obj, map[string]string{
+	// 	constant.ODLMWatchedLabel: "true",
+	// })
+	// // Set the Value Reference Annotation for the Secret
+	// m.EnsureAnnotation(obj, map[string]string{
+	// 	constant.ODLMReferenceAnnotation: instanceType + "." + instanceNs + "." + instanceName,
+	// })
+	// // Update the object with the Value Reference label
+	// if err := m.Update(ctx, &obj); err != nil {
+	// 	return "", errors.Wrapf(err, "failed to update %s %s/%s", objKind, obj.GetNamespace(), obj.GetName())
+	// }
+	// klog.V(2).Infof("Set the Value Reference label for %s %s/%s", objKind, obj.GetNamespace(), obj.GetName())
 
 	if path == "" {
 		return "", nil
