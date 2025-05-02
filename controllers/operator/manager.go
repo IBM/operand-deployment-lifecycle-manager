@@ -981,10 +981,14 @@ func (m *ODLMOperator) EvaluateExpression(ctx context.Context, expr *util.Logica
 	// Helper function to get comparison values
 	getComparisonValues := func(left, right *util.ValueSource) (string, string, error) {
 		leftVal, err := m.GetValueFromSource(ctx, left, instanceType, instanceName, instanceNs)
+		klog.Infof("44444 leftVal: %s", leftVal)
+
 		if err != nil {
 			return "", "", err
 		}
 		rightVal, err := m.GetValueFromSource(ctx, right, instanceType, instanceName, instanceNs)
+		klog.Infof("55555 rightVal: %s", rightVal)
+
 		if err != nil {
 			return "", "", err
 		}
@@ -1021,6 +1025,7 @@ func (m *ODLMOperator) EvaluateExpression(ctx context.Context, expr *util.Logica
 		if err != nil {
 			return false, err
 		}
+		klog.Infof("11111 leftVal: %s, rightVal: %s", leftVal, rightVal)
 		_, isEqual, _ := compareValues(leftVal, rightVal)
 		return isEqual, nil
 	}
@@ -1030,6 +1035,7 @@ func (m *ODLMOperator) EvaluateExpression(ctx context.Context, expr *util.Logica
 		if err != nil {
 			return false, err
 		}
+		klog.Infof("22222 leftVal: %s, rightVal: %s", leftVal, rightVal)
 		_, isEqual, _ := compareValues(leftVal, rightVal)
 		return !isEqual, nil
 	}
@@ -1058,6 +1064,7 @@ func (m *ODLMOperator) EvaluateExpression(ctx context.Context, expr *util.Logica
 	if len(expr.And) > 0 {
 		for _, subExpr := range expr.And {
 			result, err := m.EvaluateExpression(ctx, subExpr, instanceType, instanceName, instanceNs)
+			klog.Infof("66666 subExpr: %v, result: %v", subExpr, result)
 			if err != nil {
 				return false, err
 			}
@@ -1071,6 +1078,7 @@ func (m *ODLMOperator) EvaluateExpression(ctx context.Context, expr *util.Logica
 	if len(expr.Or) > 0 {
 		for _, subExpr := range expr.Or {
 			result, err := m.EvaluateExpression(ctx, subExpr, instanceType, instanceName, instanceNs)
+			klog.Infof("77777 subExpr: %v, result: %v", subExpr, result)
 			if err != nil {
 				return false, err
 			}
@@ -1134,6 +1142,7 @@ func (m *ODLMOperator) GetValueFromSource(ctx context.Context, source *util.Valu
 		} else if val == "" && source.Required {
 			return "", errors.Errorf("Failed to get required value from source %s, retry in few second", source.ObjectRef.Name)
 		}
+		klog.Infof("33333 source.ObjectRef: %s, value: %s", source.ObjectRef.Name, val)
 		return val, nil
 	}
 
@@ -1339,6 +1348,11 @@ func (m *ODLMOperator) GetValueRefFromObject(ctx context.Context, instanceType, 
 
 	sanitizedString, err := util.SanitizeObjectString(path, obj.Object)
 	if err != nil {
+		// Instead of returning an error for a missing path, log it as a warning and return empty string
+		if strings.Contains(err.Error(), "not found") {
+			klog.Warningf("Path %v from %s %s/%s was not found: %v", path, objKind, objNs, objName, err)
+			return "", nil
+		}
 		return "", errors.Wrapf(err, "failed to parse path %v from %s %s/%s", path, obj.GetKind(), obj.GetNamespace(), obj.GetName())
 	}
 
