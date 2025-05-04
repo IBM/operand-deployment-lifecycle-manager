@@ -814,6 +814,15 @@ func (m *ODLMOperator) processMapObject(ctx context.Context, key string, mapObj 
 			if err != nil {
 				return err
 			}
+
+			if valueRef == "true" {
+				finalObject[key] = true
+				continue
+			} else if valueRef == "false" {
+				finalObject[key] = false
+				continue
+			}
+
 			if valueRef != "" {
 				// Check if the returned value is a JSON array string and the field should be an array
 				if strings.HasPrefix(valueRef, "[") && strings.HasSuffix(valueRef, "]") {
@@ -867,6 +876,15 @@ func (m *ODLMOperator) processTemplateValue(ctx context.Context, value interface
 	templateRef, ok := value.(map[string]interface{})
 	if !ok {
 		return valueRef, nil
+	}
+
+	if boolValue, hasBool := templateRef["boolean"]; hasBool {
+		if b, ok := boolValue.(bool); ok {
+			if b {
+				return "true", nil
+			}
+			return "false", nil
+		}
 	}
 
 	templateRefObj, err := m.convertToTemplateValueRef(templateRef, instanceType, instanceName, instanceNs)
@@ -929,7 +947,13 @@ func (m *ODLMOperator) GetValueFromBranch(ctx context.Context, branch *util.Valu
 		return "", nil
 	}
 
-	// Handle direct literal value first
+	if branch.Boolean != nil {
+		if *branch.Boolean {
+			return "true", nil
+		}
+		return "false", nil
+	}
+
 	if branch.Literal != "" {
 		return branch.Literal, nil
 	}
@@ -939,9 +963,14 @@ func (m *ODLMOperator) GetValueFromBranch(ctx context.Context, branch *util.Valu
 		// Create a slice to hold processed values
 		var processedValues []interface{}
 
-		// Iterate over the array items
 		for _, item := range branch.Array {
-			if item.Literal != "" {
+			if item.Boolean != nil {
+				if *item.Boolean {
+					processedValues = append(processedValues, true)
+				} else {
+					processedValues = append(processedValues, false)
+				}
+			} else if item.Literal != "" {
 				// For literal values in array, add directly
 				processedValues = append(processedValues, item.Literal)
 			} else if len(item.Map) > 0 {
@@ -1044,10 +1073,12 @@ func (m *ODLMOperator) EvaluateExpression(ctx context.Context, expr *util.Logica
 	// Helper function to get comparison values
 	getComparisonValues := func(left, right *util.ValueSource) (string, string, error) {
 		leftVal, err := m.GetValueFromSource(ctx, left, instanceType, instanceName, instanceNs)
+
 		if err != nil {
 			return "", "", err
 		}
 		rightVal, err := m.GetValueFromSource(ctx, right, instanceType, instanceName, instanceNs)
+
 		if err != nil {
 			return "", "", err
 		}
@@ -1176,6 +1207,13 @@ func (m *ODLMOperator) EvaluateExpression(ctx context.Context, expr *util.Logica
 func (m *ODLMOperator) GetValueFromSource(ctx context.Context, source *util.ValueSource, instanceType, instanceName, instanceNs string) (string, error) {
 	if source == nil {
 		return "", nil
+	}
+
+	if source.Boolean != nil {
+		if *source.Boolean {
+			return "true", nil
+		}
+		return "false", nil
 	}
 
 	if source.Literal != "" {
@@ -1375,19 +1413,21 @@ func (m *ODLMOperator) GetValueRefFromObject(ctx context.Context, instanceType, 
 		return "", errors.Wrapf(err, "failed to get %s %s/%s", objKind, objNs, objName)
 	}
 
-	// Set the Value Reference label for the object
-	m.EnsureLabel(obj, map[string]string{
-		constant.ODLMWatchedLabel: "true",
-	})
-	// Set the Value Reference Annotation for the Secret
-	m.EnsureAnnotation(obj, map[string]string{
-		constant.ODLMReferenceAnnotation: instanceType + "." + instanceNs + "." + instanceName,
-	})
-	// Update the object with the Value Reference label
-	if err := m.Update(ctx, &obj); err != nil {
-		return "", errors.Wrapf(err, "failed to update %s %s/%s", objKind, obj.GetNamespace(), obj.GetName())
-	}
-	klog.V(2).Infof("Set the Value Reference label for %s %s/%s", objKind, obj.GetNamespace(), obj.GetName())
+	// Comment out the following lines as we do not need to set labels and annotations for the CRD
+
+	// // Set the Value Reference label for the object
+	// m.EnsureLabel(obj, map[string]string{
+	// 	constant.ODLMWatchedLabel: "true",
+	// })
+	// // Set the Value Reference Annotation for the Secret
+	// m.EnsureAnnotation(obj, map[string]string{
+	// 	constant.ODLMReferenceAnnotation: instanceType + "." + instanceNs + "." + instanceName,
+	// })
+	// // Update the object with the Value Reference label
+	// if err := m.Update(ctx, &obj); err != nil {
+	// 	return "", errors.Wrapf(err, "failed to update %s %s/%s", objKind, obj.GetNamespace(), obj.GetName())
+	// }
+	// klog.V(2).Infof("Set the Value Reference label for %s %s/%s", objKind, obj.GetNamespace(), obj.GetName())
 
 	if path == "" {
 		return "", nil
@@ -1395,6 +1435,11 @@ func (m *ODLMOperator) GetValueRefFromObject(ctx context.Context, instanceType, 
 
 	sanitizedString, err := util.SanitizeObjectString(path, obj.Object)
 	if err != nil {
+		// Instead of returning an error for a missing path, log it as a warning and return empty string
+		if strings.Contains(err.Error(), "not found") {
+			klog.Warningf("Path %v from %s %s/%s was not found: %v", path, objKind, objNs, objName, err)
+			return "", nil
+		}
 		return "", errors.Wrapf(err, "failed to parse path %v from %s %s/%s", path, obj.GetKind(), obj.GetNamespace(), obj.GetName())
 	}
 

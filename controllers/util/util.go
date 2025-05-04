@@ -86,6 +86,7 @@ type ValueSource struct {
 	Map      map[string]interface{} `json:"map,omitempty"` // Add this for arbitrary key-value pairs
 	Array    []ValueSource          `json:"array,omitempty"`
 	Required bool                   `json:"required,omitempty"` // Add this line to support required flag
+	Boolean  *bool                  `json:"boolean,omitempty"`  // Add boolean support
 
 	// Dynamic references
 	ConfigMapKeyRef *ConfigMapRef `json:"configMapKeyRef,omitempty"`
