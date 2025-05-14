@@ -269,10 +269,14 @@ func findCatalogFromFallbackChannels(fallbackChannels []string, fallBackChannelA
 	// sort fallback channels by semantic version
 	semverlList, semVerChannelMappings := prunedSemverChannel(fallbackChannels)
 
-	maxChannel := util.FindMaxSemver("", semverlList, semVerChannelMappings)
-	if catalogSources, ok := fallBackChannelAndCatalogMapping[maxChannel]; ok {
-		fallbackChannel = maxChannel
-		fallbackCatalog = append(fallbackCatalog, catalogSources...)
+	sort.Sort(semver.ByVersion(semverlList))
+	// find the first available channel from the sorted list in descending order
+	for i := len(semverlList) - 1; i >= 0; i-- {
+		if catalogs, ok := fallBackChannelAndCatalogMapping[semVerChannelMappings[semverlList[i]]]; ok {
+			fallbackChannel = semVerChannelMappings[semverlList[i]]
+			fallbackCatalog = catalogs
+			break
+		}
 	}
 	return fallbackChannel, fallbackCatalog
 }
