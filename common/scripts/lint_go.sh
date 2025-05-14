@@ -15,4 +15,4 @@
 # limitations under the License.
 #
 
-GOGC=25 golangci-lint run -c ./common/config/.golangci.yml --timeout=480s
+GOGC=25 golangci-lint run -c ./common/config/.golangci.yml --timeout=600s
