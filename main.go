@@ -19,7 +19,6 @@ package main
 import (
 	"flag"
 	"os"
-	"strings"
 
 	ocproute "github.com/openshift/api/route/v1"
 	olmv1 "github.com/operator-framework/api/pkg/operators/v1"
@@ -34,14 +33,13 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
-	cache "github.com/IBM/controller-filtered-cache/filteredcache"
 	nssv1 "github.com/IBM/ibm-namespace-scope-operator/api/v1"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/v4/api/v1alpha1"
 	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/constant"
-	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/k8sutil"
 	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/namespacescope"
 	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operandbindinfo"
 	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operandconfig"
@@ -117,7 +115,7 @@ func main() {
 	// isolatedModeEnable := util.GetIsolatedMode()
 	isolatedModeEnable := true
 	operatorCheckerDisable := util.GetoperatorCheckerMode()
-	options.NewCache = k8sutil.NewODLMCache(isolatedModeEnable, strings.Split(watchNamespace, ","), gvkLabelMap)
+	options.NewCache = cache.Options{}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
 	if err != nil {
