@@ -19,6 +19,7 @@ package main
 import (
 	"flag"
 	"os"
+	"strings"
 
 	ocproute "github.com/openshift/api/route/v1"
 	olmv1 "github.com/operator-framework/api/pkg/operators/v1"
@@ -26,14 +27,15 @@ import (
 	operatorsv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
 	nssv1 "github.com/IBM/ibm-namespace-scope-operator/api/v1"
@@ -84,24 +86,6 @@ func main() {
 
 	flag.Parse()
 
-	gvkLabelMap := map[schema.GroupVersionKind]cache.Selector{
-		corev1.SchemeGroupVersion.WithKind("Secret"): {
-			LabelSelector: constant.ODLMWatchedLabel,
-		},
-		corev1.SchemeGroupVersion.WithKind("ConfigMap"): {
-			LabelSelector: constant.ODLMWatchedLabel,
-		},
-		appsv1.SchemeGroupVersion.WithKind("Deployment"): {
-			LabelSelector: constant.BindInfoRefreshLabel,
-		},
-		appsv1.SchemeGroupVersion.WithKind("StatefulSet"): {
-			LabelSelector: constant.BindInfoRefreshLabel,
-		},
-		appsv1.SchemeGroupVersion.WithKind("DaemonSet"): {
-			LabelSelector: constant.BindInfoRefreshLabel,
-		},
-	}
-
 	options := ctrl.Options{
 		Scheme:                 scheme,
 		HealthProbeBindAddress: probeAddr,
@@ -109,12 +93,68 @@ func main() {
 		LeaderElectionID:       "ab89bbb1.ibm.com",
 	}
 
-	watchNamespace := util.GetWatchNamespace()
-	// isolatedModeEnable := util.GetIsolatedMode()
 	isolatedModeEnable := true
 	operatorCheckerDisable := util.GetoperatorCheckerMode()
-	options.NewCache = cache.Options{}
 
+	var managedCache = cache.Options{}
+	watchNamespace := util.GetWatchNamespace()
+	watchNamespaces := strings.Split(watchNamespace, ",")
+	cacheWatchedLabelSelector := labels.SelectorFromSet(
+		labels.Set{constant.ODLMWatchedLabel: ""},
+	)
+	cacheFreshLabelSelector := labels.SelectorFromSet(
+		labels.Set{constant.BindInfoRefreshLabel: ""},
+	)
+	// cache resource in all namespaces
+	if len(watchNamespaces) == 1 && watchNamespaces[0] == "" {
+		managedCache = cache.Options{
+			ByObject: map[client.Object]cache.ByObject{
+				&corev1.Secret{}: {
+					Label: cacheWatchedLabelSelector,
+				},
+				&corev1.ConfigMap{}: {
+					Label: cacheWatchedLabelSelector,
+				},
+				&appsv1.Deployment{}: {
+					Label: cacheFreshLabelSelector,
+				},
+				&appsv1.DaemonSet{}: {
+					Label: cacheFreshLabelSelector,
+				},
+				&appsv1.StatefulSet{}: {
+					Label: cacheFreshLabelSelector,
+				},
+			},
+		}
+	} else {
+		// cache resource in watchNamespaces
+		managedCache = cache.Options{
+			ByObject: map[client.Object]cache.ByObject{
+				&corev1.Secret{}: {
+					Namespaces: map[string]cache.Config{watchNamespace: {}},
+					Label:      cacheWatchedLabelSelector,
+				},
+				&corev1.ConfigMap{}: {
+					Namespaces: map[string]cache.Config{watchNamespace: {}},
+					Label:      cacheWatchedLabelSelector,
+				},
+				&appsv1.Deployment{}: {
+					Namespaces: map[string]cache.Config{watchNamespace: {}},
+					Label:      cacheFreshLabelSelector,
+				},
+				&appsv1.DaemonSet{}: {
+					Namespaces: map[string]cache.Config{watchNamespace: {}},
+					Label:      cacheFreshLabelSelector,
+				},
+				&appsv1.StatefulSet{}: {
+					Namespaces: map[string]cache.Config{watchNamespace: {}},
+					Label:      cacheFreshLabelSelector,
+				},
+			},
+		}
+	}
+
+	options.Cache = managedCache
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
 	if err != nil {
 		klog.Errorf("unable to start manager: %v", err)
