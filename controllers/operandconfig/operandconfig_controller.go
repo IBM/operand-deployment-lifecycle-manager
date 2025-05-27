@@ -41,7 +41,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/v4/api/v1alpha1"
 	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/constant"
@@ -372,42 +371,39 @@ func checkRegistryStatus(opName string, registryInstance *operatorv1alpha1.Opera
 	return false
 }
 
-func (r *Reconciler) getRequestToConfigMapper(ctx context.Context) handler.MapFunc {
-	return func(object client.Object) []reconcile.Request {
-		opreqInstance := &operatorv1alpha1.OperandRequest{}
-		requests := []reconcile.Request{}
-		// If the OperandRequest has been deleted, reconcile all the OperandConfig in the cluster
-		if err := r.Client.Get(ctx, types.NamespacedName{Name: object.GetName(), Namespace: object.GetNamespace()}, opreqInstance); apierrors.IsNotFound(err) {
-			configList := &operatorv1alpha1.OperandConfigList{}
-			_ = r.Client.List(ctx, configList)
-			for _, config := range configList.Items {
-				namespaceName := types.NamespacedName{Name: config.Name, Namespace: config.Namespace}
-				req := reconcile.Request{NamespacedName: namespaceName}
-				requests = append(requests, req)
-			}
-			return requests
-		}
-
-		// If the OperandRequest exist, reconcile OperandConfigs specific in the OperandRequest instance.
-		for _, request := range opreqInstance.Spec.Requests {
-			registryKey := opreqInstance.GetRegistryKey(request)
-			req := reconcile.Request{NamespacedName: registryKey}
+func (r *Reconciler) getRequestToConfigMapper(ctx context.Context, obj client.Object) []reconcile.Request {
+	opreqInstance := &operatorv1alpha1.OperandRequest{}
+	requests := []reconcile.Request{}
+	// If the OperandRequest has been deleted, reconcile all the OperandConfig in the cluster
+	if err := r.Client.Get(ctx, types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}, opreqInstance); apierrors.IsNotFound(err) {
+		configList := &operatorv1alpha1.OperandConfigList{}
+		_ = r.Client.List(ctx, configList)
+		for _, config := range configList.Items {
+			namespaceName := types.NamespacedName{Name: config.Name, Namespace: config.Namespace}
+			req := reconcile.Request{NamespacedName: namespaceName}
 			requests = append(requests, req)
 		}
 		return requests
 	}
+
+	// If the OperandRequest exist, reconcile OperandConfigs specific in the OperandRequest instance.
+	for _, request := range opreqInstance.Spec.Requests {
+		registryKey := opreqInstance.GetRegistryKey(request)
+		req := reconcile.Request{NamespacedName: registryKey}
+		requests = append(requests, req)
+	}
+	return requests
 }
 
 // SetupWithManager adds OperandConfig controller to the manager.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
-	ctx := context.Background()
 	options := controller.Options{
 		MaxConcurrentReconciles: r.MaxConcurrentReconciles, // Set the desired value for max concurrent reconciles.
 	}
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(options).
 		For(&operatorv1alpha1.OperandConfig{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
-		Watches(&source.Kind{Type: &operatorv1alpha1.OperandRequest{}}, handler.EnqueueRequestsFromMapFunc(r.getRequestToConfigMapper(ctx)), builder.WithPredicates(predicate.Funcs{
+		Watches(&operatorv1alpha1.OperandRequest{}, handler.EnqueueRequestsFromMapFunc(r.getRequestToConfigMapper), builder.WithPredicates(predicate.Funcs{
 			CreateFunc: func(e event.CreateEvent) bool {
 				return true
 			},

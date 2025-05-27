@@ -96,8 +96,7 @@ var _ = BeforeSuite(func(done Done) {
 
 	// Start your controllers test logic
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
-		Scheme:             clientgoscheme.Scheme,
-		MetricsBindAddress: "0",
+		Scheme: clientgoscheme.Scheme,
 	})
 	Expect(err).ToNot(HaveOccurred())
 
