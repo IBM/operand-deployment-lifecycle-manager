@@ -94,23 +94,24 @@ func retrieveOperandRequest(obj client.Object, ns string) error {
 }
 
 // deleteOperandRequest is used to delete the OperandRequest
-func deleteOperandRequest(req *v1alpha1.OperandRequest) error {
+func deleteOperandRequest(ctx context.Context, req *v1alpha1.OperandRequest) error {
 	fmt.Println("--- DELETE: OperandRequest Instance")
 	// Delete OperandRequest instance
 	if err := k8sClient.Delete(context.TODO(), req); err != nil {
 		return err
 	}
 
-	if err := wait.PollImmediate(WaitForRetry, WaitForTimeout, func() (done bool, err error) {
-		err = retrieveOperandRequest(req, req.Namespace)
-		if err != nil && errors.IsNotFound(err) {
-			return true, nil
+	if err := wait.PollUntilContextTimeout(ctx, WaitForRetry, WaitForTimeout, true, 
+		func(ctx context.Context) (done bool, err error) {
+			err = retrieveOperandRequest(req, req.Namespace)
+			if err != nil && errors.IsNotFound(err) {
+				return true, nil
+			}
+			fmt.Println("    --- Waiting for OperandRequest deleted ...")
+			return false, err
+		}); err != nil {
+			return err
 		}
-		fmt.Println("    --- Waiting for OperandRequest deleted ...")
-		return false, err
-	}); err != nil {
-		return err
-	}
 	return nil
 }
 

@@ -17,6 +17,8 @@
 package e2e
 
 import (
+	"context"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -30,6 +32,7 @@ var _ = Describe("Testing ODLM", func() {
 	Context("Create Multiple OperandRequests", func() {
 
 		It("Should operators and operands are managed", func() {
+			ctx := context.Background()
 			// Create OperandRegistry
 			By("Create OperandRegistry")
 			reg, err := createOperandRegistry(OperandRegistryNamespace, OperatorNamespace)
@@ -221,7 +224,7 @@ var _ = Describe("Testing ODLM", func() {
 
 			// Delete the second OperandRequest
 			By("Delete the second OperandRequest")
-			err = deleteOperandRequest(req2)
+			err = deleteOperandRequest(ctx, req2)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Check the status of the OperandRegistry")
@@ -231,7 +234,7 @@ var _ = Describe("Testing ODLM", func() {
 
 			// Delete the first OperandRequest
 			By("Delete the first OperandRequest")
-			err = deleteOperandRequest(req1)
+			err = deleteOperandRequest(ctx, req1)
 			Expect(err).ToNot(HaveOccurred())
 
 			// Check if the k8s resource is deleted
@@ -264,7 +267,7 @@ var _ = Describe("Testing ODLM", func() {
 
 			// Delete the first OperandRequest
 			By("Delete the first OperandRequest")
-			err = deleteOperandRequest(req1)
+			err = deleteOperandRequest(ctx, req1)
 			Expect(err).ToNot(HaveOccurred())
 
 			// Delete the OperandBindInfo
