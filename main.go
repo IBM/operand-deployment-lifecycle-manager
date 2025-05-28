@@ -129,6 +129,11 @@ func main() {
 		}
 	} else {
 		// cache resource in watchNamespaces
+		defaultNamespaces := make(map[string]cache.Config)
+		for _, ns := range watchNamespaces {
+			defaultNamespaces[ns] = cache.Config{}
+		}
+
 		managedCache = cache.Options{
 			ByObject: map[client.Object]cache.ByObject{
 				&corev1.Secret{}: {
@@ -147,7 +152,7 @@ func main() {
 					Label: cacheFreshLabelSelector,
 				},
 			},
-			DefaultNamespaces: map[string]cache.Config{watchNamespace: {}},
+			DefaultNamespaces: defaultNamespaces,
 		}
 	}
 
