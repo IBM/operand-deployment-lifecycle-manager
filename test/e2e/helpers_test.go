@@ -115,11 +115,11 @@ func deleteOperandRequest(ctx context.Context, req *v1alpha1.OperandRequest) err
 }
 
 // absentOperandFromRequest disables an Operand from the OperandRequest
-func absentOperandFromRequest(ns, opName string) (*v1alpha1.OperandRequest, error) {
+func absentOperandFromRequest(ctx context.Context, ns, opName string) (*v1alpha1.OperandRequest, error) {
 	fmt.Println("--- ABSENT: Operator and Operand")
 	// Delete the last operator and related operand
 	req := &v1alpha1.OperandRequest{}
-	if err := wait.PollImmediate(WaitForRetry, WaitForTimeout, func() (done bool, err error) {
+	if err := wait.PollUntilContextTimeout(ctx, WaitForRetry, WaitForTimeout, true, func(ctx context.Context) (done bool, err error) {
 		if err := retrieveOperandRequest(req, ns); err != nil {
 			return false, client.IgnoreNotFound(err)
 		}
@@ -150,11 +150,11 @@ func absentOperandFromRequest(ns, opName string) (*v1alpha1.OperandRequest, erro
 }
 
 // presentOperandFromRequest enables an Operand from the OperandRequest
-func presentOperandFromRequest(ns, opName string) (*v1alpha1.OperandRequest, error) {
+func presentOperandFromRequest(ctx context.Context, ns, opName string) (*v1alpha1.OperandRequest, error) {
 	fmt.Println("--- PRESENT: Operator and Operand")
 	// Add an operator and related operand
 	req := &v1alpha1.OperandRequest{}
-	if err := wait.PollImmediate(APIRetry, APITimeout, func() (done bool, err error) {
+	if err := wait.PollUntilContextTimeout(ctx, APIRetry, APITimeout, true, func(ctx context.Context) (done bool, err error) {
 		if err := retrieveOperandRequest(req, ns); err != nil {
 			return false, client.IgnoreNotFound(err)
 		}
@@ -188,10 +188,10 @@ func presentOperandFromRequest(ns, opName string) (*v1alpha1.OperandRequest, err
 }
 
 // waitRequestStatus is wait for request phase become to expected phase
-func waitRequestStatusRunning(ns string) (*v1alpha1.OperandRequest, error) {
+func waitRequestStatusRunning(ctx context.Context, ns string) (*v1alpha1.OperandRequest, error) {
 	fmt.Println("--- WAITING: OperandRequest")
 	req := &v1alpha1.OperandRequest{}
-	if err := wait.PollImmediate(APIRetry, APITimeout, func() (bool, error) {
+	if err := wait.PollUntilContextTimeout(ctx, APIRetry, APITimeout, true, func(ctx context.Context) (bool, error) {
 		if err := retrieveOperandRequest(req, ns); err != nil {
 			return false, client.IgnoreNotFound(err)
 		}
@@ -207,10 +207,10 @@ func waitRequestStatusRunning(ns string) (*v1alpha1.OperandRequest, error) {
 }
 
 // waitRegistryStatus is wait for registry phase become to expected phase
-func waitRegistryStatus(expectedPhase v1alpha1.RegistryPhase) (*v1alpha1.OperandRegistry, error) {
+func waitRegistryStatus(ctx context.Context, expectedPhase v1alpha1.RegistryPhase) (*v1alpha1.OperandRegistry, error) {
 	fmt.Println("--- WAITING: OperandRegistry")
 	reg := &v1alpha1.OperandRegistry{}
-	if err := wait.PollImmediate(APIRetry, APITimeout, func() (bool, error) {
+	if err := wait.PollUntilContextTimeout(ctx, APIRetry, APITimeout, true, func(ctx context.Context) (bool, error) {
 		err := retrieveOperandRegistry(reg, OperandRegistryNamespace)
 		if err != nil {
 			return false, err
@@ -227,10 +227,10 @@ func waitRegistryStatus(expectedPhase v1alpha1.RegistryPhase) (*v1alpha1.Operand
 }
 
 // waitConfigStatus is wait for config phase become to expected phase
-func waitConfigStatus(expectedPhase v1alpha1.ServicePhase, ns string) (*v1alpha1.OperandConfig, error) {
+func waitConfigStatus(ctx context.Context, expectedPhase v1alpha1.ServicePhase, ns string) (*v1alpha1.OperandConfig, error) {
 	fmt.Println("--- WAITING: OperandConfig")
 	con := &v1alpha1.OperandConfig{}
-	if err := wait.PollImmediate(APIRetry, APITimeout, func() (bool, error) {
+	if err := wait.PollUntilContextTimeout(ctx, APIRetry, APITimeout, true, func(ctx context.Context) (bool, error) {
 		err := retrieveOperandConfig(con, ns)
 		if err != nil {
 			return false, client.IgnoreNotFound(err)
@@ -247,10 +247,10 @@ func waitConfigStatus(expectedPhase v1alpha1.ServicePhase, ns string) (*v1alpha1
 }
 
 // waitBindInfoStatus is wait for bindinfo phase become to expected phase
-func waitBindInfoStatus(expectedPhase v1alpha1.BindInfoPhase, ns string) (*v1alpha1.OperandBindInfo, error) {
+func waitBindInfoStatus(ctx context.Context, expectedPhase v1alpha1.BindInfoPhase, ns string) (*v1alpha1.OperandBindInfo, error) {
 	fmt.Println("--- WAITING: OperandBindInfo")
 	bi := &v1alpha1.OperandBindInfo{}
-	if err := wait.PollImmediate(APIRetry, APITimeout, func() (bool, error) {
+	if err := wait.PollUntilContextTimeout(ctx, APIRetry, APITimeout, true, func(ctx context.Context) (bool, error) {
 		err := retrieveOperandBindInfo(bi, ns)
 		if err != nil {
 			return false, err
@@ -296,10 +296,10 @@ func retrieveOperandConfig(obj client.Object, ns string) error {
 }
 
 // updateJaegerReplicas is used to update an OperandConfig instance
-func updateJaegerStrategy(ns string) error {
+func updateJaegerStrategy(ctx context.Context, ns string) error {
 	fmt.Println("--- UPDATE: OperandConfig Instance")
 	con := &v1alpha1.OperandConfig{}
-	if err := wait.PollImmediate(WaitForRetry, WaitForTimeout, func() (done bool, err error) {
+	if err := wait.PollUntilContextTimeout(ctx, WaitForRetry, WaitForTimeout, true, func(ctx context.Context) (done bool, err error) {
 		err = retrieveOperandConfig(con, ns)
 		if err != nil {
 			return false, client.IgnoreNotFound(err)
@@ -364,10 +364,10 @@ func retrieveOperandRegistry(obj client.Object, ns string) error {
 }
 
 // updateJaegerChannel is used to update the channel for the jaeger operator
-func updateJaegerChannel(ns string) error {
+func updateJaegerChannel(ctx context.Context, ns string) error {
 	fmt.Println("--- UPDATE: OperandRegistry Instance")
 	reg := &v1alpha1.OperandRegistry{}
-	if err := wait.PollImmediate(WaitForRetry, WaitForTimeout, func() (done bool, err error) {
+	if err := wait.PollUntilContextTimeout(ctx, WaitForRetry, WaitForTimeout, true, func(ctx context.Context) (done bool, err error) {
 		err = retrieveOperandRegistry(reg, ns)
 		if err != nil {
 			return false, client.IgnoreNotFound(err)
@@ -382,15 +382,15 @@ func updateJaegerChannel(ns string) error {
 	}); err != nil {
 		return err
 	}
-	if err := checkNameSpaceandOperatorGroup("openshift-operators"); err != nil {
+	if err := checkNameSpaceandOperatorGroup(ctx, "openshift-operators"); err != nil {
 		return err
 	}
 	return nil
 }
 
 // checkNameSpaceandOperatorGroup makes
-func checkNameSpaceandOperatorGroup(ns string) error {
-	if err := wait.PollImmediate(WaitForRetry, WaitForTimeout, func() (done bool, err error) {
+func checkNameSpaceandOperatorGroup(ctx context.Context, ns string) error {
+	if err := wait.PollUntilContextTimeout(ctx, WaitForRetry, WaitForTimeout, true, func(ctx context.Context) (done bool, err error) {
 		createTestNamespace(ns)
 		existOG := &olmv1.OperatorGroupList{}
 		if err := k8sClient.List(context.TODO(), existOG, &client.ListOptions{Namespace: ns}); err != nil {
@@ -418,10 +418,10 @@ func checkNameSpaceandOperatorGroup(ns string) error {
 }
 
 // updateMongodbScope is used to update the channel for the Mongodb operator
-func updateMongodbScope(ns string) error {
+func updateMongodbScope(ctx context.Context, ns string) error {
 	fmt.Println("--- UPDATE: OperandRegistry Instance")
 	reg := &v1alpha1.OperandRegistry{}
-	if err := wait.PollImmediate(WaitForRetry, WaitForTimeout, func() (done bool, err error) {
+	if err := wait.PollUntilContextTimeout(ctx, WaitForRetry, WaitForTimeout, true, func(ctx context.Context) (done bool, err error) {
 		err = retrieveOperandRegistry(reg, ns)
 		if err != nil {
 			return false, client.IgnoreNotFound(err)
@@ -481,10 +481,10 @@ func retrieveOperandBindInfo(obj client.Object, ns string) error {
 }
 
 // updateOperandBindInfo is used to update an OperandBindInfo instance
-func updateOperandBindInfo(ns string) (*v1alpha1.OperandBindInfo, error) {
+func updateOperandBindInfo(ctx context.Context, ns string) (*v1alpha1.OperandBindInfo, error) {
 	fmt.Println("--- UPDATE: OperandBindInfo Instance")
 	bi := &v1alpha1.OperandBindInfo{}
-	if err := wait.PollImmediate(WaitForRetry, WaitForTimeout, func() (done bool, err error) {
+	if err := wait.PollUntilContextTimeout(ctx, WaitForRetry, WaitForTimeout, true, func(ctx context.Context) (done bool, err error) {
 		err = retrieveOperandBindInfo(bi, ns)
 		if err != nil {
 			return false, err
@@ -516,10 +516,10 @@ func deleteOperandBindInfo(bi *v1alpha1.OperandBindInfo) error {
 }
 
 // retrieveSecret is get a secret
-func retrieveSecret(name, namespace string) (*corev1.Secret, error) {
+func retrieveSecret(ctx context.Context, name, namespace string) (*corev1.Secret, error) {
 	obj := &corev1.Secret{}
 	// Get Secret
-	if err := wait.PollImmediate(WaitForRetry, WaitForTimeout, func() (done bool, err error) {
+	if err := wait.PollUntilContextTimeout(ctx, WaitForRetry, WaitForTimeout, true, func(ctx context.Context) (done bool, err error) {
 		if err = k8sClient.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, obj); err != nil {
 			if errors.IsNotFound(err) {
 				fmt.Println("    --- Waiting for Secret copied ...")
@@ -535,10 +535,10 @@ func retrieveSecret(name, namespace string) (*corev1.Secret, error) {
 }
 
 // retrieveConfigmap is get a configmap
-func retrieveConfigmap(name, namespace string) (*corev1.ConfigMap, error) {
+func retrieveConfigmap(ctx context.Context, name, namespace string) (*corev1.ConfigMap, error) {
 	obj := &corev1.ConfigMap{}
 	// Get ConfigMap
-	if err := wait.PollImmediate(WaitForRetry, WaitForTimeout, func() (done bool, err error) {
+	if err := wait.PollUntilContextTimeout(ctx, WaitForRetry, WaitForTimeout, true, func(ctx context.Context) (done bool, err error) {
 		if err = k8sClient.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, obj); err != nil {
 			if errors.IsNotFound(err) {
 				fmt.Println("    --- Waiting for ConfigMap copied ...")
@@ -554,10 +554,10 @@ func retrieveConfigmap(name, namespace string) (*corev1.ConfigMap, error) {
 }
 
 // retrieveSubscription is get a subscription
-func retrieveSubscription(name, namespace string) (*olmv1alpha1.Subscription, error) {
+func retrieveSubscription(ctx context.Context, name, namespace string) (*olmv1alpha1.Subscription, error) {
 	obj := &olmv1alpha1.Subscription{}
 	// Get subscription
-	if err := wait.PollImmediate(WaitForRetry, WaitForTimeout, func() (done bool, err error) {
+	if err := wait.PollUntilContextTimeout(ctx, WaitForRetry, WaitForTimeout, true, func(ctx context.Context) (done bool, err error) {
 		if err = k8sClient.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, obj); err != nil {
 			if errors.IsNotFound(err) {
 				fmt.Println("    --- Waiting for Subscription created ...")
@@ -573,11 +573,11 @@ func retrieveSubscription(name, namespace string) (*olmv1alpha1.Subscription, er
 }
 
 // retrieveMongodb is get a custom resource
-func retrieveMongodb(name, namespace string) (*unstructured.Unstructured, error) {
+func retrieveMongodb(ctx context.Context, name, namespace string) (*unstructured.Unstructured, error) {
 	obj := &unstructured.Unstructured{}
 	obj.SetGroupVersionKind(schema.GroupVersionKind{Group: "atlas.mongodb.com", Version: "v1", Kind: "AtlasDeployment"})
 	// Get subscription
-	if err := wait.PollImmediate(WaitForRetry, WaitForTimeout, func() (done bool, err error) {
+	if err := wait.PollUntilContextTimeout(ctx, WaitForRetry, WaitForTimeout, true, func(ctx context.Context) (done bool, err error) {
 		if err = k8sClient.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, obj); err != nil {
 			if errors.IsNotFound(err) {
 				fmt.Println("    --- Waiting for custom resource AtlasDeployment created ...")
@@ -593,11 +593,11 @@ func retrieveMongodb(name, namespace string) (*unstructured.Unstructured, error)
 }
 
 // retrieveJaeger is get a custom resource
-func retrieveJaeger(name, namespace string) (*unstructured.Unstructured, error) {
+func retrieveJaeger(ctx context.Context, name, namespace string) (*unstructured.Unstructured, error) {
 	obj := &unstructured.Unstructured{}
 	obj.SetGroupVersionKind(schema.GroupVersionKind{Group: "jaegertracing.io", Version: "v1", Kind: "Jaeger"})
 	// Get subscription
-	if err := wait.PollImmediate(WaitForRetry, WaitForTimeout, func() (done bool, err error) {
+	if err := wait.PollUntilContextTimeout(ctx, WaitForRetry, WaitForTimeout, true, func(ctx context.Context) (done bool, err error) {
 		if err = k8sClient.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, obj); err != nil {
 			if errors.IsNotFound(err) {
 				fmt.Println("    --- Waiting for custom resource Jaeger created ...")
@@ -829,9 +829,9 @@ func newOperandBindInfoCR(name, namespace, RegistryNamespace string) *v1alpha1.O
 	}
 }
 
-func waitConfigmapDeletion(name, namespace string) error {
+func waitConfigmapDeletion(ctx context.Context, name, namespace string) error {
 	obj := &corev1.ConfigMap{}
-	if err := wait.PollImmediate(WaitForRetry, WaitForTimeout, func() (done bool, err error) {
+	if err := wait.PollUntilContextTimeout(ctx, WaitForRetry, WaitForTimeout, true, func(ctx context.Context) (done bool, err error) {
 		if err = k8sClient.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, obj); err != nil {
 			if errors.IsNotFound(err) {
 				return true, nil

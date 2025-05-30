@@ -97,63 +97,33 @@ func main() {
 	operatorCheckerDisable := util.GetoperatorCheckerMode()
 
 	managedCache := cache.Options{}
-	watchNamespace := util.GetWatchNamespace()
-	watchNamespaces := strings.Split(watchNamespace, ",")
 	cacheWatchedLabelSelector := labels.SelectorFromSet(
 		labels.Set{constant.ODLMWatchedLabel: ""},
 	)
 	cacheFreshLabelSelector := labels.SelectorFromSet(
 		labels.Set{constant.BindInfoRefreshLabel: ""},
 	)
+
+	managedCache.ByObject = map[client.Object]cache.ByObject{
+		&corev1.Secret{}:      {Label: cacheWatchedLabelSelector},
+		&corev1.ConfigMap{}:   {Label: cacheWatchedLabelSelector},
+		&appsv1.Deployment{}:  {Label: cacheFreshLabelSelector},
+		&appsv1.DaemonSet{}:   {Label: cacheFreshLabelSelector},
+		&appsv1.StatefulSet{}: {Label: cacheFreshLabelSelector},
+	}
+	watchNamespace := util.GetWatchNamespace()
+	watchNamespaces := strings.Split(watchNamespace, ",")
+
 	// cache resource in all namespaces
 	if len(watchNamespaces) == 1 && watchNamespaces[0] == "" {
-		managedCache = cache.Options{
-			ByObject: map[client.Object]cache.ByObject{
-				&corev1.Secret{}: {
-					Label: cacheWatchedLabelSelector,
-				},
-				&corev1.ConfigMap{}: {
-					Label: cacheWatchedLabelSelector,
-				},
-				&appsv1.Deployment{}: {
-					Label: cacheFreshLabelSelector,
-				},
-				&appsv1.DaemonSet{}: {
-					Label: cacheFreshLabelSelector,
-				},
-				&appsv1.StatefulSet{}: {
-					Label: cacheFreshLabelSelector,
-				},
-			},
-			DefaultNamespaces: map[string]cache.Config{corev1.NamespaceAll: {}},
-		}
+		managedCache.DefaultNamespaces = map[string]cache.Config{corev1.NamespaceAll: {}}
 	} else {
 		// cache resource in watchNamespaces
 		defaultNamespaces := make(map[string]cache.Config)
 		for _, ns := range watchNamespaces {
 			defaultNamespaces[ns] = cache.Config{}
 		}
-
-		managedCache = cache.Options{
-			ByObject: map[client.Object]cache.ByObject{
-				&corev1.Secret{}: {
-					Label: cacheWatchedLabelSelector,
-				},
-				&corev1.ConfigMap{}: {
-					Label: cacheWatchedLabelSelector,
-				},
-				&appsv1.Deployment{}: {
-					Label: cacheFreshLabelSelector,
-				},
-				&appsv1.DaemonSet{}: {
-					Label: cacheFreshLabelSelector,
-				},
-				&appsv1.StatefulSet{}: {
-					Label: cacheFreshLabelSelector,
-				},
-			},
-			DefaultNamespaces: defaultNamespaces,
-		}
+		managedCache.DefaultNamespaces = defaultNamespaces
 	}
 
 	options.Cache = managedCache

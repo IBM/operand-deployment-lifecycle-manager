@@ -41,7 +41,7 @@ var _ = Describe("Testing ODLM", func() {
 
 			// Check the status of the OperandRegistry
 			By("Check the status of the created OperandRegistry")
-			_, err = waitRegistryStatus(operatorv1alpha1.RegistryReady)
+			_, err = waitRegistryStatus(ctx, operatorv1alpha1.RegistryReady)
 			Expect(err).ToNot(HaveOccurred())
 
 			// Create OperandConfig
@@ -52,7 +52,7 @@ var _ = Describe("Testing ODLM", func() {
 
 			// Check the status of the OperandConfig
 			By("Check the status of the created OperandConfig")
-			_, err = waitConfigStatus(operatorv1alpha1.ServiceInit, OperandRegistryNamespace)
+			_, err = waitConfigStatus(ctx, operatorv1alpha1.ServiceInit, OperandRegistryNamespace)
 			Expect(err).ToNot(HaveOccurred())
 
 			// Create the first OperandRequest
@@ -64,31 +64,31 @@ var _ = Describe("Testing ODLM", func() {
 
 			// Check the status of the OperandRequest
 			By("Check the status of the created OperandRequest")
-			req1, err = waitRequestStatusRunning(OperandRequestNamespace1)
+			req1, err = waitRequestStatusRunning(ctx, OperandRequestNamespace1)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(req1.Status.Members)).Should(Equal(1))
 
 			// Check if the subscription is created
 			By("Check if the subscription is created")
-			sub, err := retrieveSubscription("jaeger", OperatorNamespace)
+			sub, err := retrieveSubscription(ctx, "jaeger", OperatorNamespace)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(sub).ToNot(BeNil())
 
 			// Check if the custom resource is created
 			By("Check if the custom resource is created")
-			JaegerCR, err := retrieveJaeger("my-jaeger", OperandRegistryNamespace)
+			JaegerCR, err := retrieveJaeger(ctx, "my-jaeger", OperandRegistryNamespace)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(JaegerCR).ToNot(BeNil())
 
 			// Update the Mongodb operator to the public scope
 			By("Update the Mongodb operator to the public scope")
-			err = updateMongodbScope(OperandRegistryNamespace)
+			err = updateMongodbScope(ctx, OperandRegistryNamespace)
 			Expect(err).ToNot(HaveOccurred())
 
 			// Check the status of the OperandRequest
 			By("Check the status of the created OperandRequest")
 			Eventually(func() bool {
-				req1, err = waitRequestStatusRunning(OperandRequestNamespace1)
+				req1, err = waitRequestStatusRunning(ctx, OperandRequestNamespace1)
 				if err != nil {
 					return false
 				}
@@ -100,30 +100,30 @@ var _ = Describe("Testing ODLM", func() {
 
 			// Check if the subscription is created
 			By("Check if the subscription is created")
-			sub, err = retrieveSubscription("mongodb-atlas-kubernetes", OperatorNamespace)
+			sub, err = retrieveSubscription(ctx, "mongodb-atlas-kubernetes", OperatorNamespace)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(sub).ToNot(BeNil())
 
 			// Check if the custom resource is created
 			By("Check if the custom resource is created")
-			mongodb, err := retrieveMongodb("my-atlas-deployment", OperandRegistryNamespace)
+			mongodb, err := retrieveMongodb(ctx, "my-atlas-deployment", OperandRegistryNamespace)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mongodb).ToNot(BeNil())
 
 			// Check if the k8s resource is created
 			By("Check if the k8s resource is created")
-			mongodbConfigmap, err := retrieveConfigmap("mongodb-configmap", OperandRegistryNamespace)
+			mongodbConfigmap, err := retrieveConfigmap(ctx, "mongodb-configmap", OperandRegistryNamespace)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mongodbConfigmap).ToNot(BeNil())
 
 			// Update the OperandConfig
 			By("Update the OperandConfig")
 			Eventually(func() bool {
-				err = updateJaegerStrategy(OperandRegistryNamespace)
+				err = updateJaegerStrategy(ctx, OperandRegistryNamespace)
 				if err != nil {
 					return false
 				}
-				jaegerCR, err := retrieveJaeger("my-jaeger", OperandRegistryNamespace)
+				jaegerCR, err := retrieveJaeger(ctx, "my-jaeger", OperandRegistryNamespace)
 				if err != nil {
 					return false
 				}
@@ -140,12 +140,12 @@ var _ = Describe("Testing ODLM", func() {
 			Expect(bi).ToNot(BeNil())
 
 			By("Wait the OperandBindInfo is completed")
-			bi, err = waitBindInfoStatus(operatorv1alpha1.BindInfoCompleted, OperatorNamespace)
+			bi, err = waitBindInfoStatus(ctx, operatorv1alpha1.BindInfoCompleted, OperatorNamespace)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(bi).ToNot(BeNil())
 
 			By("Wait the OperandRegistry is running")
-			reg, err = waitRegistryStatus(operatorv1alpha1.RegistryRunning)
+			reg, err = waitRegistryStatus(ctx, operatorv1alpha1.RegistryRunning)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(reg.Status.OperatorsStatus["mongodb-atlas-kubernetes"].ReconcileRequests)).Should(Equal(1))
 
@@ -157,68 +157,68 @@ var _ = Describe("Testing ODLM", func() {
 			Expect(req2).ToNot(BeNil())
 
 			By("Check the status of the second OperandRequest")
-			req2, err = waitRequestStatusRunning(OperandRequestNamespace2)
+			req2, err = waitRequestStatusRunning(ctx, OperandRequestNamespace2)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(req2).ToNot(BeNil())
 
 			// Check registry status if updated
 			By("Wait the OperandRegistry is running")
-			reg, err = waitRegistryStatus(operatorv1alpha1.RegistryRunning)
+			reg, err = waitRegistryStatus(ctx, operatorv1alpha1.RegistryRunning)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(reg.Status.OperatorsStatus["mongodb-atlas-kubernetes"].ReconcileRequests)).Should(Equal(2))
 
-			bi, err = waitBindInfoStatus(operatorv1alpha1.BindInfoCompleted, OperatorNamespace)
+			bi, err = waitBindInfoStatus(ctx, operatorv1alpha1.BindInfoCompleted, OperatorNamespace)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(bi).ToNot(BeNil())
 
 			// Check if the secret and configmap are copied
 			By("Check if the secret and configmap are copied")
-			sec, err := retrieveSecret("mongodb-secret", OperandRequestNamespace2)
+			sec, err := retrieveSecret(ctx, "mongodb-secret", OperandRequestNamespace2)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(sec).ToNot(BeNil())
 
-			cm, err := retrieveConfigmap("mongodb-configmap", OperandRequestNamespace2)
+			cm, err := retrieveConfigmap(ctx, "mongodb-configmap", OperandRequestNamespace2)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cm).ToNot(BeNil())
 
 			// Update OperandBindInfo
 			By("Update OperandBindInfo")
-			bi, err = updateOperandBindInfo(OperatorNamespace)
+			bi, err = updateOperandBindInfo(ctx, OperatorNamespace)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cm).ToNot(BeNil())
 
-			cm, err = retrieveConfigmap("mongodb-public-bindinfo-mongodb-second-configmap", OperandRequestNamespace1)
+			cm, err = retrieveConfigmap(ctx, "mongodb-public-bindinfo-mongodb-second-configmap", OperandRequestNamespace1)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cm).ToNot(BeNil())
 
 			// Delete the last operator and related operands from the first OperandRequest
 			By("Delete the last operator and related operands from the first OperandRequest")
-			req1, err = absentOperandFromRequest(OperandRequestNamespace1, "mongodb-atlas-kubernetes")
+			req1, err = absentOperandFromRequest(ctx, OperandRequestNamespace1, "mongodb-atlas-kubernetes")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(req1.Spec.Requests[0].Operands)).Should(Equal(1))
 
 			By("Check the status of the first OperandRequest")
-			req1, err = waitRequestStatusRunning(OperandRequestNamespace1)
+			req1, err = waitRequestStatusRunning(ctx, OperandRequestNamespace1)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(req1.Status.Phase).Should(Equal(operatorv1alpha1.ClusterPhaseRunning))
 
 			By("Check the status of the OperandRegistry")
-			reg, err = waitRegistryStatus(operatorv1alpha1.RegistryRunning)
+			reg, err = waitRegistryStatus(ctx, operatorv1alpha1.RegistryRunning)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(reg.Status.OperatorsStatus["mongodb-atlas-kubernetes"].ReconcileRequests)).Should(Equal(1))
 
 			// Add an operator into the first OperandRequest
 			By("Add an operator into the first OperandRequest")
-			req1, err = presentOperandFromRequest(OperandRequestNamespace1, "mongodb-atlas-kubernetes")
+			req1, err = presentOperandFromRequest(ctx, OperandRequestNamespace1, "mongodb-atlas-kubernetes")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(req1.Spec.Requests[0].Operands)).Should(Equal(2))
 
 			By("Check the status of the first OperandRequest")
-			req1, err = waitRequestStatusRunning(OperandRequestNamespace1)
+			req1, err = waitRequestStatusRunning(ctx, OperandRequestNamespace1)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Check the status of the OperandRegistry")
-			reg, err = waitRegistryStatus(operatorv1alpha1.RegistryRunning)
+			reg, err = waitRegistryStatus(ctx, operatorv1alpha1.RegistryRunning)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(reg.Status.OperatorsStatus["mongodb-atlas-kubernetes"].ReconcileRequests)).Should(Equal(2))
 
@@ -228,7 +228,7 @@ var _ = Describe("Testing ODLM", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Check the status of the OperandRegistry")
-			reg, err = waitRegistryStatus(operatorv1alpha1.RegistryRunning)
+			reg, err = waitRegistryStatus(ctx, operatorv1alpha1.RegistryRunning)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(reg.Status.OperatorsStatus["mongodb-atlas-kubernetes"].ReconcileRequests)).Should(Equal(1))
 
@@ -239,12 +239,12 @@ var _ = Describe("Testing ODLM", func() {
 
 			// Check if the k8s resource is deleted
 			By("Check if the k8s resource is deleted")
-			err = waitConfigmapDeletion("mongodb-configmap", OperandRegistryNamespace)
+			err = waitConfigmapDeletion(ctx, "mongodb-configmap", OperandRegistryNamespace)
 			Expect(err).ToNot(HaveOccurred())
 
 			// Update the channel of the jaeger operator
 			By("Update the channel of the jaeger operator")
-			err = updateJaegerChannel(OperandRegistryNamespace)
+			err = updateJaegerChannel(ctx, OperandRegistryNamespace)
 			Expect(err).ToNot(HaveOccurred())
 
 			// Create the first OperandRequest
@@ -256,12 +256,12 @@ var _ = Describe("Testing ODLM", func() {
 
 			// Check the status of the OperandRequest
 			By("Check the status of the created OperandRequest")
-			req1, err = waitRequestStatusRunning(OperandRequestNamespace1)
+			req1, err = waitRequestStatusRunning(ctx, OperandRequestNamespace1)
 			Expect(err).ToNot(HaveOccurred())
 
 			// Check if the subscription is created
 			By("Check if the subscription is created")
-			sub, err = retrieveSubscription("jaeger", "openshift-operators")
+			sub, err = retrieveSubscription(ctx, "jaeger", "openshift-operators")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(sub).ToNot(BeNil())
 
@@ -277,7 +277,7 @@ var _ = Describe("Testing ODLM", func() {
 
 			// Check the status of the OperandRegistry
 			By("Check the status of the created OperandRegistry")
-			reg, err = waitRegistryStatus(operatorv1alpha1.RegistryReady)
+			reg, err = waitRegistryStatus(ctx, operatorv1alpha1.RegistryReady)
 			Expect(err).ToNot(HaveOccurred())
 
 			// Delete OperandRegistry
@@ -287,7 +287,7 @@ var _ = Describe("Testing ODLM", func() {
 
 			// Check the status of the OperandConfig
 			By("Check the status of the created OperandConfig")
-			con, err = waitConfigStatus(operatorv1alpha1.ServiceInit, OperandRegistryNamespace)
+			con, err = waitConfigStatus(ctx, operatorv1alpha1.ServiceInit, OperandRegistryNamespace)
 			Expect(err).ToNot(HaveOccurred())
 
 			// Delete OperandConfig

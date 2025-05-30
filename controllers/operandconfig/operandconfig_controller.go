@@ -338,7 +338,7 @@ func (r *Reconciler) deleteK8sReousce(ctx context.Context, k8sAPIVersion, k8sKin
 			if k8sDeleteError != nil && !apierrors.IsNotFound(k8sDeleteError) {
 				return errors.Wrapf(k8sDeleteError, "failed to delete k8s resource -- Kind: %s, NamespacedName: %s/%s", k8sKind, k8sNamespace, k8sName)
 			}
-			waitErr := wait.PollImmediate(constant.DefaultCRDeletePeriod, constant.DefaultCRDeleteTimeout, func() (bool, error) {
+			waitErr := wait.PollUntilContextTimeout(ctx, constant.DefaultCRDeletePeriod, constant.DefaultCRDeleteTimeout, true, func(ctx context.Context) (bool, error) {
 				klog.V(3).Infof("Waiting for k8s resource -- Kind: %s, NamespacedName: %s/%s removed ...", k8sKind, k8sNamespace, k8sName)
 				err := r.Client.Get(ctx, types.NamespacedName{
 					Name:      k8sName,
