@@ -17,6 +17,7 @@
 package e2e
 
 import (
+	"context"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -53,15 +54,15 @@ var _ = BeforeSuite(func(done Done) {
 }, 600)
 
 var _ = AfterSuite(func() {
-
+	ctx := context.TODO()
 	By("Delete the Namespace for the first OperandRequest")
-	deleteTestNamespace(OperandRequestNamespace1)
+	deleteTestNamespace(ctx, OperandRequestNamespace1)
 	By("Delete the Namespace for the second OperandRequest")
-	deleteTestNamespace(OperandRequestNamespace2)
+	deleteTestNamespace(ctx, OperandRequestNamespace2)
 	By("Delete the Namespace for OperandRegistry")
-	deleteTestNamespace(OperandRegistryNamespace)
+	deleteTestNamespace(ctx, OperandRegistryNamespace)
 	By("Delete the Namespace for Operators")
-	deleteTestNamespace(OperatorNamespace)
+	deleteTestNamespace(ctx, OperatorNamespace)
 
 	// Close the test suite
 	tearDownSuite()

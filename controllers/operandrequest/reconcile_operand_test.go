@@ -26,7 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -80,13 +80,13 @@ func TestSetOwnerReferences(t *testing.T) {
 			APIVersion: "v1",
 			Kind:       "Deployment",
 			Name:       "test-deployment",
-			Controller: pointer.BoolPtr(true),
+			Controller: ptr.To(true),
 		},
 		{
 			APIVersion: "v1",
 			Kind:       "Service",
 			Name:       "test-service",
-			Controller: pointer.BoolPtr(false),
+			Controller: ptr.To(false),
 		},
 	}
 
@@ -106,8 +106,8 @@ func TestSetOwnerReferences(t *testing.T) {
 			APIVersion:         "v1",
 			Kind:               "Deployment",
 			Name:               "test-deployment",
-			Controller:         pointer.BoolPtr(true),
-			BlockOwnerDeletion: pointer.BoolPtr(true),
+			Controller:         ptr.To(true),
+			BlockOwnerDeletion: ptr.To(true),
 		},
 		{
 			APIVersion: "v1",

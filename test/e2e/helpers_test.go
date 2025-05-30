@@ -46,7 +46,7 @@ func createTestNamespace(namespace string) {
 	}).Should(Succeed())
 }
 
-func deleteTestNamespace(namespace string) {
+func deleteTestNamespace(ctx context.Context, namespace string) {
 	ns, err := clientset.CoreV1().Namespaces().Get(context.TODO(), namespace, metav1.GetOptions{})
 	if err != nil && !errors.IsNotFound(err) {
 		Expect(err).ToNot(HaveOccurred())
@@ -56,7 +56,7 @@ func deleteTestNamespace(namespace string) {
 		err = clientset.CoreV1().Namespaces().Delete(context.TODO(), namespace, metav1.DeleteOptions{})
 		Expect(err).ToNot(HaveOccurred())
 		log.Info("Waiting for namespace to be removed", "timeout", APITimeout)
-		err := wait.Poll(APIRetry, APITimeout, func() (bool, error) {
+		err := wait.PollUntilContextTimeout(ctx, APIRetry, APITimeout, true, func(ctx context.Context) (bool, error) {
 			od, err := clientset.CoreV1().Namespaces().Get(context.TODO(), namespace, metav1.GetOptions{})
 			if err != nil {
 				if errors.IsNotFound(err) {
