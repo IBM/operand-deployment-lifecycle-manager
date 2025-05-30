@@ -104,6 +104,7 @@ func main() {
 		labels.Set{constant.BindInfoRefreshLabel: ""},
 	)
 
+	// cache resource with selected label
 	managedCache.ByObject = map[client.Object]cache.ByObject{
 		&corev1.Secret{}:      {Label: cacheWatchedLabelSelector},
 		&corev1.ConfigMap{}:   {Label: cacheWatchedLabelSelector},
@@ -114,8 +115,8 @@ func main() {
 	watchNamespace := util.GetWatchNamespace()
 	watchNamespaces := strings.Split(watchNamespace, ",")
 
-	// cache resource in all namespaces
 	if len(watchNamespaces) == 1 && watchNamespaces[0] == "" {
+		// cache resource in all namespaces
 		managedCache.DefaultNamespaces = map[string]cache.Config{corev1.NamespaceAll: {}}
 	} else {
 		// cache resource in watchNamespaces
