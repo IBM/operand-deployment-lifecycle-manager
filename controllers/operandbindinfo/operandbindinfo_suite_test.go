@@ -57,7 +57,7 @@ var (
 	// scheme    = runtime.NewScheme()
 
 	timeout  = time.Second * 600
-	interval = time.Second * 5
+	interval = time.Second * 10
 )
 
 func TestOperandBindInfo(t *testing.T) {
