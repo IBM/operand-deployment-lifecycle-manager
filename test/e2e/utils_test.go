@@ -20,7 +20,7 @@ import (
 	"strings"
 
 	jaegerv1 "github.com/jaegertracing/jaeger-operator/apis/v1"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	olmv1 "github.com/operator-framework/api/pkg/operators/v1"
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
