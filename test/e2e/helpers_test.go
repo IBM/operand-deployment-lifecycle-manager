@@ -101,17 +101,16 @@ func deleteOperandRequest(ctx context.Context, req *v1alpha1.OperandRequest) err
 		return err
 	}
 
-	if err := wait.PollUntilContextTimeout(ctx, WaitForRetry, WaitForTimeout, true, 
-		func(ctx context.Context) (done bool, err error) {
-			err = retrieveOperandRequest(req, req.Namespace)
-			if err != nil && errors.IsNotFound(err) {
-				return true, nil
-			}
-			fmt.Println("    --- Waiting for OperandRequest deleted ...")
-			return false, err
-		}); err != nil {
-			return err
+	if err := wait.PollUntilContextTimeout(ctx, WaitForRetry, WaitForTimeout, true, func(ctx context.Context) (done bool, err error) {
+		err = retrieveOperandRequest(req, req.Namespace)
+		if err != nil && errors.IsNotFound(err) {
+			return true, nil
 		}
+		fmt.Println("    --- Waiting for OperandRequest deleted ...")
+		return false, err
+	}); err != nil {
+		return err
+	}
 	return nil
 }
 

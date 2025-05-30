@@ -96,7 +96,7 @@ func main() {
 	isolatedModeEnable := true
 	operatorCheckerDisable := util.GetoperatorCheckerMode()
 
-	var managedCache = cache.Options{}
+	managedCache := cache.Options{}
 	watchNamespace := util.GetWatchNamespace()
 	watchNamespaces := strings.Split(watchNamespace, ",")
 	cacheWatchedLabelSelector := labels.SelectorFromSet(
