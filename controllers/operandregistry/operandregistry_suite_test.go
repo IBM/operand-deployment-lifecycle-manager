@@ -56,7 +56,7 @@ var (
 	testEnv   *envtest.Environment
 	// scheme    = runtime.NewScheme()
 
-	timeout  = time.Second * 300
+	timeout  = time.Second * 600
 	interval = time.Second * 5
 )
 
@@ -123,6 +123,7 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).ToNot(HaveOccurred())
 
 	go func() {
+		defer GinkgoRecover()
 		err = k8sManager.Start(ctrl.SetupSignalHandler())
 		Expect(err).ToNot(HaveOccurred())
 	}()

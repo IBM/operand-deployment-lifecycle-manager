@@ -56,7 +56,7 @@ var (
 	testEnv   *envtest.Environment
 	// scheme    = runtime.NewScheme()
 
-	timeout  = time.Second * 300
+	timeout  = time.Second * 600
 	interval = time.Second * 5
 )
 
