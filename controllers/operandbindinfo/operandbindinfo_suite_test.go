@@ -68,6 +68,7 @@ func TestOperandBindInfo(t *testing.T) {
 }
 
 var _ = BeforeSuite(func(done Done) {
+	defer GinkgoRecover()
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
 	By("bootstrapping test environment")
