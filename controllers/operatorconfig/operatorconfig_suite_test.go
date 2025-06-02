@@ -17,6 +17,7 @@
 package operatorconfig
 
 import (
+	"context"
 	"path/filepath"
 	"testing"
 
@@ -48,7 +49,7 @@ func TestAPIs(t *testing.T) {
 	RunSpecs(t, "Controller Suite")
 }
 
-var _ = BeforeSuite(func() {
+var _ = BeforeSuite(func(ctx context.Context) {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
 	By("bootstrapping test environment")

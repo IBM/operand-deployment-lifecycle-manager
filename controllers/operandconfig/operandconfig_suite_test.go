@@ -17,6 +17,7 @@
 package operandconfig
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -68,7 +69,7 @@ func TestOperandConfig(t *testing.T) {
 		"OperandConfig Controller Suite")
 }
 
-var _ = BeforeSuite(func() {
+var _ = BeforeSuite(func(ctx context.Context) {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
 	By("bootstrapping test environment")
