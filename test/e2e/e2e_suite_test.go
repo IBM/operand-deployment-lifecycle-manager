@@ -34,7 +34,7 @@ func TestODLME2E(t *testing.T) {
 		"Operand Deployment Lifecycle Manager TestSuite")
 }
 
-var _ = BeforeSuite("suit test", func(ctx context.Context) {
+var _ = BeforeSuite(func(ctx context.Context) {
 
 	// Initialize the test suite
 	initSuite()
