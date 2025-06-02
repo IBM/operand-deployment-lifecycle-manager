@@ -17,7 +17,6 @@
 package operandrequest
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -62,7 +61,7 @@ func TestOperanRequest(t *testing.T) {
 		"OperandRequest Controller Suite")
 }
 
-var _ = BeforeSuite(func(ctx context.Context) {
+var _ = BeforeSuite(func(ctx SpecContext) {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
 	By("bootstrapping test environment")
@@ -113,7 +112,7 @@ var _ = BeforeSuite(func(ctx context.Context) {
 		Expect(err).ToNot(HaveOccurred())
 	}()
 
-}, NodeTimeout(600))
+})
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")

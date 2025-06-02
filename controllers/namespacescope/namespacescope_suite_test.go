@@ -17,7 +17,6 @@
 package namespacescope
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -68,7 +67,7 @@ func TestNamespaceScope(t *testing.T) {
 		"NamespaceScope Controller Suite")
 }
 
-var _ = BeforeSuite(func(ctx context.Context) {
+var _ = BeforeSuite(func(ctx SpecContext) {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
 	By("bootstrapping test environment")
@@ -127,7 +126,7 @@ var _ = BeforeSuite(func(ctx context.Context) {
 		Expect(err).ToNot(HaveOccurred())
 	}()
 
-}, NodeTimeout(timeout))
+})
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")
