@@ -67,7 +67,7 @@ func TestOperandBindInfo(t *testing.T) {
 		"OperandBindInfo Controller Suite")
 }
 
-var _ = BeforeSuite(func(done Done) {
+var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
 	By("bootstrapping test environment")
@@ -129,8 +129,7 @@ var _ = BeforeSuite(func(done Done) {
 		Expect(err).ToNot(HaveOccurred())
 	}()
 
-	close(done)
-})
+}, NodeTimeout(timeout))
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")
