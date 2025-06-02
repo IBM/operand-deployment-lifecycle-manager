@@ -127,7 +127,7 @@ var _ = BeforeSuite(func(done Done) {
 	}()
 
 	close(done)
-}, 600)
+})
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")
