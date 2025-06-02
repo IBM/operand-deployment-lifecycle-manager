@@ -51,7 +51,7 @@ var _ = BeforeSuite(func(done Done) {
 
 	close(done)
 
-}, 600)
+})
 
 var _ = AfterSuite(func() {
 	ctx := context.TODO()
