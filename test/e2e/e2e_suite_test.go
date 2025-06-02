@@ -51,8 +51,7 @@ var _ = BeforeSuite(func(ctx context.Context) {
 
 }, NodeTimeout(600))
 
-var _ = AfterSuite(func() {
-	ctx := context.TODO()
+var _ = AfterSuite(func(ctx context.Context) {
 	By("Delete the Namespace for the first OperandRequest")
 	deleteTestNamespace(ctx, OperandRequestNamespace1)
 	By("Delete the Namespace for the second OperandRequest")
@@ -64,4 +63,4 @@ var _ = AfterSuite(func() {
 
 	// Close the test suite
 	tearDownSuite()
-}, 1200)
+}, NodeTimeout(600))
