@@ -130,7 +130,7 @@ var _ = BeforeSuite(func(ctx SpecContext) {
 
 	// End your controllers test logic
 
-})
+}, NodeTimeout(timeout))
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")

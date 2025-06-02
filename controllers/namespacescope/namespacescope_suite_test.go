@@ -126,7 +126,7 @@ var _ = BeforeSuite(func(ctx SpecContext) {
 		Expect(err).ToNot(HaveOccurred())
 	}()
 
-})
+}, NodeTimeout(timeout))
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")

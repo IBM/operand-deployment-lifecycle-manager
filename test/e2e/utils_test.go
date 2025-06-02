@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	kbtestutils "sigs.k8s.io/kubebuilder/test/e2e/utils"
+	kbtestutils "sigs.k8s.io/kubebuilder/v3/test/e2e/utils"
 
 	apiv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/v4/api/v1alpha1"
 )
