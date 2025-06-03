@@ -82,6 +82,9 @@ const (
 	//DefaultSyncPeriod is the frequency at which watched resources are reconciled
 	DefaultSyncPeriod = 3 * time.Hour
 
+	// DefaultCacheSyncPeriod is the default period for cache sync
+	DefaultCacheSyncPeriod = 5 * time.Minute
+
 	//DefaultCRFetchTimeout is the default timeout for getting a custom resource
 	DefaultCRFetchTimeout = 250 * time.Millisecond
 
