@@ -17,6 +17,7 @@
 package operandrequest
 
 import (
+	"log"
 	"os"
 	"path/filepath"
 	"testing"
@@ -74,25 +75,34 @@ var _ = BeforeSuite(func(ctx SpecContext) {
 	cfg, err = testEnv.Start()
 	Expect(err).ToNot(HaveOccurred())
 	Expect(cfg).ToNot(BeNil())
+	log.Printf("1any error: %v", err)
 
 	err = apiv1alpha1.AddToScheme(clientgoscheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 	// +kubebuilder:scaffold:scheme
+	log.Printf("2any error: %v", err)
 
 	err = nssv1.AddToScheme(clientgoscheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
+	log.Printf("3any error: %v", err)
 	err = olmv1alpha1.AddToScheme(clientgoscheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
+	log.Printf("4any error: %v", err)
 	err = olmv1.AddToScheme(clientgoscheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
+	log.Printf("5any error: %v", err)
 	err = jaegerv1.AddToScheme(clientgoscheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
+	log.Printf("6any error: %v", err)
 	err = operatorsv1.AddToScheme(clientgoscheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
+	log.Printf("7any error: %v", err)
 
 	k8sClient, err = client.New(cfg, client.Options{Scheme: clientgoscheme.Scheme})
 	Expect(err).ToNot(HaveOccurred())
 	Expect(k8sClient).ToNot(BeNil())
+
+	log.Printf("8any error: %v", err)
 
 	// Start your controllers test logic
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
