@@ -57,7 +57,8 @@ func NewODLMCacheFunc(isolatedModeEnable bool) cache.NewCacheFunc {
 			labels.Set{constant.BindInfoRefreshLabel: ""},
 		)
 
-		// cache resource with selected label
+		// set byObject to watch the resources
+		// the cache will watch the resources with the label selector
 		opts.ByObject = map[client.Object]cache.ByObject{
 			&corev1.Secret{}:      {Label: cacheWatchedLabelSelector},
 			&corev1.ConfigMap{}:   {Label: cacheWatchedLabelSelector},
@@ -68,6 +69,8 @@ func NewODLMCacheFunc(isolatedModeEnable bool) cache.NewCacheFunc {
 		watchNamespace := util.GetWatchNamespace()
 		watchNamespaces := strings.Split(watchNamespace, ",")
 
+		// set DefaultNamespaces based on watchNamespaces
+		// if watchNamespaces is empty, then cache resource in all namespaces
 		if len(watchNamespaces) == 1 && watchNamespaces[0] == "" {
 			// cache resource in all namespaces
 			opts.DefaultNamespaces = map[string]cache.Config{corev1.NamespaceAll: {}}
@@ -80,6 +83,14 @@ func NewODLMCacheFunc(isolatedModeEnable bool) cache.NewCacheFunc {
 			}
 			opts.DefaultNamespaces = defaultNamespaces
 		}
+		// set ReaderFailOnMissingInformer to true
+		// this will make sure that the cache will not return an error when the informer is not found
+		opts.ReaderFailOnMissingInformer = true
+
+		// set SyncPeriod to the default cache sync period
+		syncPeriod := constant.DefaultCacheSyncPeriod
+		opts.SyncPeriod = &syncPeriod
+
 		var clusterGVKList []schema.GroupVersionKind
 		GVKList := []schema.GroupVersionKind{
 			{Group: "operator.ibm.com", Kind: "OperandRequest", Version: "v1alpha1"},
