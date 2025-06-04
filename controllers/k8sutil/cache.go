@@ -92,6 +92,14 @@ func NewODLMCacheFunc(isolatedModeEnable bool) cache.NewCacheFunc {
 		opts.SyncPeriod = &syncPeriod
 
 		var clusterGVKList []schema.GroupVersionKind
+		existGVKList := []schema.GroupVersionKind{
+			corev1.SchemeGroupVersion.WithKind("Secret"),
+			corev1.SchemeGroupVersion.WithKind("ConfigMap"),
+			appsv1.SchemeGroupVersion.WithKind("Deployment"),
+			appsv1.SchemeGroupVersion.WithKind("DaemonSet"),
+			appsv1.SchemeGroupVersion.WithKind("StatefulSet"),
+		}
+		clusterGVKList = append(clusterGVKList, existGVKList...)
 		if !isolatedModeEnable {
 			GVKList := []schema.GroupVersionKind{
 				{Group: "operator.ibm.com", Kind: "OperandRequest", Version: "v1alpha1"},
