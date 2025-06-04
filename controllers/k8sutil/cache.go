@@ -23,8 +23,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/constant"
-	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -43,6 +41,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
+
+	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/constant"
+	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/util"
 )
 
 func NewODLMCacheFunc(isolatedModeEnable bool) cache.NewCacheFunc {
