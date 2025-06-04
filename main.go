@@ -89,7 +89,7 @@ func main() {
 
 	isolatedModeEnable := true
 	operatorCheckerDisable := util.GetoperatorCheckerMode()
-	options.NewCache = k8sutil.NewODLMCacheFunc(isolatedModeEnable)
+	options = k8sutil.NewODLMCache(isolatedModeEnable, options)
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
 	if err != nil {
