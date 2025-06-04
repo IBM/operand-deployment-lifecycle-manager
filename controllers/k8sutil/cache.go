@@ -88,19 +88,22 @@ func NewODLMCacheFunc(isolatedModeEnable bool) cache.NewCacheFunc {
 		opts.ReaderFailOnMissingInformer = true
 
 		// set SyncPeriod to the default cache sync period
-		syncPeriod := constant.DefaultCacheSyncPeriod
+		syncPeriod := constant.DefaultSyncPeriod
 		opts.SyncPeriod = &syncPeriod
 
 		var clusterGVKList []schema.GroupVersionKind
-		GVKList := []schema.GroupVersionKind{
-			{Group: "operator.ibm.com", Kind: "OperandRequest", Version: "v1alpha1"},
-			{Group: "operator.ibm.com", Kind: "OperandRegistry", Version: "v1alpha1"},
-			{Group: "operator.ibm.com", Kind: "OperandConfig", Version: "v1alpha1"},
-			{Group: "operator.ibm.com", Kind: "OperandBindInfo", Version: "v1alpha1"},
+		if !isolatedModeEnable {
+			GVKList := []schema.GroupVersionKind{
+				{Group: "operator.ibm.com", Kind: "OperandRequest", Version: "v1alpha1"},
+				{Group: "operator.ibm.com", Kind: "OperandRegistry", Version: "v1alpha1"},
+				{Group: "operator.ibm.com", Kind: "OperandConfig", Version: "v1alpha1"},
+				{Group: "operator.ibm.com", Kind: "OperandBindInfo", Version: "v1alpha1"},
+			}
+			clusterGVKList = append(clusterGVKList, GVKList...)
 		}
-		clusterGVKList = append(clusterGVKList, GVKList...)
+
 		// Generate informermap to contain the gvks and their informers
-		informerMap, err := buildInformerMap(config, opts, constant.DefaultCacheSyncPeriod, clusterGVKList)
+		informerMap, err := buildInformerMap(config, opts, constant.DefaultSyncPeriod, clusterGVKList)
 		if err != nil {
 			return nil, err
 		}
