@@ -29,7 +29,7 @@
     "destStage": "edge",
     "destNamespace": "build-images",
     "destImage": "ubi9-micro",
-    "tag": "9.6-1745521186",
+    "tag": "9.6-1747318857",
     "updatePackages": []
   },
   {
@@ -44,6 +44,6 @@
     "sourceImage": "ubi9-minimal",
     "sourceTag": "9.6-1747218906",
     "destImage": "node-v22-ubi9-minimal",
-    "nodeVersion": "22.15.1"
+    "nodeVersion": "22.16.0"
   }
 ]
