@@ -7,7 +7,7 @@
     "destStage": "edge",
     "destNamespace": "build-images",
     "destImage": "ubi9-minimal",
-    "tag": "9.6-1750782676",
+    "tag": "9.6-1751286687",
     "updatePackages": []
   },
   {
@@ -18,7 +18,7 @@
     "destStage": "edge",
     "destNamespace": "build-images",
     "destImage": "ubi9",
-    "tag": "9.6-1750786174",
+    "tag": "9.6-1751287003",
     "updatePackages": []
   },
   {
@@ -29,20 +29,20 @@
     "destStage": "edge",
     "destNamespace": "build-images",
     "destImage": "ubi9-micro",
-    "tag": "9.6-1749632992",
+    "tag": "9.6-1751366659",
     "updatePackages": []
   },
   {
     "imageType": "node",
     "sourceImage": "ubi9-minimal",
-    "sourceTag": "9.6-1750782676",
+    "sourceTag": "9.6-1751286687",
     "destImage": "node-v20-ubi9-minimal",
     "nodeVersion": "20.19.3"
   },
   {
     "imageType": "node",
     "sourceImage": "ubi9-minimal",
-    "sourceTag": "9.6-1750782676",
+    "sourceTag": "9.6-1751286687",
     "destImage": "node-v22-ubi9-minimal",
     "nodeVersion": "22.17.0"
   }
