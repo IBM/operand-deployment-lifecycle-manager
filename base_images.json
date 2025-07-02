@@ -18,7 +18,7 @@
     "destStage": "edge",
     "destNamespace": "build-images",
     "destImage": "ubi9",
-    "tag": "9.6-1751287003",
+    "tag": "9.6-1751445649",
     "updatePackages": []
   },
   {
