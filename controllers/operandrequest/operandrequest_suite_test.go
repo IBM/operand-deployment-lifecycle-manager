@@ -23,7 +23,7 @@ import (
 	"time"
 
 	jaegerv1 "github.com/jaegertracing/jaeger-operator/apis/v1"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	olmv1 "github.com/operator-framework/api/pkg/operators/v1"
@@ -61,7 +61,7 @@ func TestOperanRequest(t *testing.T) {
 		"OperandRequest Controller Suite")
 }
 
-var _ = BeforeSuite(func(done Done) {
+var _ = BeforeSuite(func(ctx SpecContext) {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
 	By("bootstrapping test environment")
@@ -96,8 +96,7 @@ var _ = BeforeSuite(func(done Done) {
 
 	// Start your controllers test logic
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
-		Scheme:             clientgoscheme.Scheme,
-		MetricsBindAddress: "0",
+		Scheme: clientgoscheme.Scheme,
 	})
 	Expect(err).ToNot(HaveOccurred())
 
@@ -113,8 +112,7 @@ var _ = BeforeSuite(func(done Done) {
 		Expect(err).ToNot(HaveOccurred())
 	}()
 
-	close(done)
-}, 600)
+}, NodeTimeout(600))
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")

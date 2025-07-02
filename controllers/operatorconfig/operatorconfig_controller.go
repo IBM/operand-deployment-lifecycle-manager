@@ -28,10 +28,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/v4/api/v1alpha1"
 	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/constant"
@@ -55,7 +53,6 @@ type Reconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.14.1/pkg/reconcile
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
 
 	instance := &operatorv1alpha1.OperandRequest{}
 	if err := r.Client.Get(ctx, req.NamespacedName, instance); err != nil {
@@ -154,27 +151,24 @@ func (r *Reconciler) configCsv(ctx context.Context, csv *olmv1alpha1.ClusterServ
 	return nil
 }
 
-func (r *Reconciler) requestsFromMapFunc(ctx context.Context) handler.MapFunc {
-	return func(object client.Object) []reconcile.Request {
-		requests := []reconcile.Request{}
+func (r *Reconciler) requestsFromMapFunc(ctx context.Context, obj client.Object) []reconcile.Request {
+	requests := []reconcile.Request{}
 
-		operandRequests, _ := r.ListOperandRequests(ctx, nil)
-		for _, req := range operandRequests.Items {
-			r := reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Namespace: req.Namespace,
-					Name:      req.Name,
-				},
-			}
-			requests = append(requests, r)
+	operandRequests, _ := r.ListOperandRequests(ctx, nil)
+	for _, req := range operandRequests.Items {
+		r := reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: req.Namespace,
+				Name:      req.Name,
+			},
 		}
-		return requests
+		requests = append(requests, r)
 	}
+	return requests
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
-	ctx := context.Background()
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&operatorv1alpha1.OperandRequest{}, builder.WithPredicates(predicate.Funcs{
 			CreateFunc: func(e event.CreateEvent) bool {
@@ -190,7 +184,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 				return !equality.Semantic.DeepEqual(oldObject.Spec, newObject.Spec) || !equality.Semantic.DeepEqual(oldObject.Status, newObject.Status)
 			},
 		})).
-		Watches(&source.Kind{Type: &operatorv1alpha1.OperatorConfig{}}, handler.EnqueueRequestsFromMapFunc(r.requestsFromMapFunc(ctx)), builder.WithPredicates(predicate.Funcs{
+		Watches(&operatorv1alpha1.OperatorConfig{}, handler.EnqueueRequestsFromMapFunc(r.requestsFromMapFunc), builder.WithPredicates(predicate.Funcs{
 			CreateFunc: func(e event.CreateEvent) bool {
 				return true
 			},

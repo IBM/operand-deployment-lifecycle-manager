@@ -97,7 +97,7 @@ func (r *Reconciler) ReconcileOperandRequest(ctx context.Context, req ctrl.Reque
 
 	if !requestInstance.ObjectMeta.DeletionTimestamp.IsZero() {
 		// Wait OperandRequest is deleted
-		err := wait.PollImmediate(time.Second*3, time.Minute*5, func() (bool, error) {
+		err := wait.PollUntilContextTimeout(ctx, time.Second*3, time.Minute*5, true, func(ctx context.Context) (bool, error) {
 			err := r.Client.Get(ctx, req.NamespacedName, requestInstance)
 			if apierrors.IsNotFound(err) {
 				return true, nil

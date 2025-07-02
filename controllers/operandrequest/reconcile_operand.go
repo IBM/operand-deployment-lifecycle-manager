@@ -778,7 +778,7 @@ func (r *Reconciler) updateCustomResource(ctx context.Context, existingCR unstru
 	apiversion := existingCR.GetAPIVersion()
 	name := existingCR.GetName()
 	// Update the CR
-	err := wait.PollImmediate(constant.DefaultCRFetchPeriod, constant.DefaultCRFetchTimeout, func() (bool, error) {
+	err := wait.PollUntilContextTimeout(ctx, constant.DefaultCRFetchPeriod, constant.DefaultCRFetchTimeout, true, func(ctx context.Context) (bool, error) {
 
 		existingCR := unstructured.Unstructured{
 			Object: map[string]interface{}{
@@ -906,7 +906,7 @@ func (r *Reconciler) deleteCustomResource(ctx context.Context, existingCR unstru
 			if err != nil && !apierrors.IsNotFound(err) {
 				return errors.Wrapf(err, "failed to delete custom resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 			}
-			err = wait.PollImmediate(constant.DefaultCRDeletePeriod, constant.DefaultCRDeleteTimeout, func() (bool, error) {
+			err = wait.PollUntilContextTimeout(ctx, constant.DefaultCRDeletePeriod, constant.DefaultCRDeleteTimeout, true, func(ctx context.Context) (bool, error) {
 				if strings.EqualFold(kind, "OperandRequest") {
 					return true, nil
 				}
@@ -1101,7 +1101,7 @@ func (r *Reconciler) updateK8sResource(ctx context.Context, existingK8sRes unstr
 	}
 
 	// Update the k8s resource
-	err := wait.PollImmediate(constant.DefaultCRFetchPeriod, constant.DefaultCRFetchTimeout, func() (bool, error) {
+	err := wait.PollUntilContextTimeout(ctx, constant.DefaultCRFetchPeriod, constant.DefaultCRFetchTimeout, true, func(ctx context.Context) (bool, error) {
 
 		existingRes := unstructured.Unstructured{
 			Object: map[string]interface{}{
@@ -1409,7 +1409,7 @@ func (r *Reconciler) deleteK8sResource(ctx context.Context, existingK8sRes unstr
 			if err != nil && !apierrors.IsNotFound(err) {
 				return errors.Wrapf(err, "failed to delete k8s resource -- Kind: %s, NamespacedName: %s/%s", kind, namespace, name)
 			}
-			err = wait.PollImmediate(constant.DefaultCRDeletePeriod, constant.DefaultCRDeleteTimeout, func() (bool, error) {
+			err = wait.PollUntilContextTimeout(ctx, constant.DefaultCRDeletePeriod, constant.DefaultCRDeleteTimeout, true, func(ctx context.Context) (bool, error) {
 				if strings.EqualFold(kind, "OperandRequest") {
 					return true, nil
 				}

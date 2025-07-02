@@ -227,7 +227,7 @@ type MockReader struct {
 	CatalogSourceList   *olmv1alpha1.CatalogSourceList
 }
 
-func (m *MockReader) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
+func (m *MockReader) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
 	if catalogSource, ok := obj.(*olmv1alpha1.CatalogSource); ok {
 		if m.CatalogSourceList != nil {
 			for _, cs := range m.CatalogSourceList.Items {
