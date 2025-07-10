@@ -17,6 +17,8 @@
 package e2e
 
 import (
+	"fmt"
+	"path/filepath"
 	"strings"
 
 	jaegerv1 "github.com/jaegertracing/jaeger-operator/apis/v1"
@@ -50,12 +52,16 @@ func initSuite() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
 	By("bootstrapping test environment")
+	fmt.Println("Starting test environment...")
 
 	useCluster := true
 
 	testEnv = &envtest.Environment{
 		UseExistingCluster:       &useCluster,
 		AttachControlPlaneOutput: false,
+		CRDDirectoryPaths: []string{
+			filepath.Join("..", "..", "config", "crd", "bases"),
+		},
 	}
 
 	var err error
@@ -86,6 +92,7 @@ func initSuite() {
 	k8sClient = k8sManager.GetClient()
 
 	clientset = kubernetes.NewForConfigOrDie(cfg)
+	fmt.Println("Test environment started")
 }
 
 func tearDownSuite() {
