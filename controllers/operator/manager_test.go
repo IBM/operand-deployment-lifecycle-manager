@@ -1241,7 +1241,7 @@ func TestGetValueFromBranch(t *testing.T) {
 						Map: map[string]interface{}{
 							"hostname": "backend-service",
 							"enabled":  true,
-							"port":     8080,
+							"port":     8082,
 						},
 					},
 					{
@@ -1264,7 +1264,7 @@ func TestGetValueFromBranch(t *testing.T) {
 			},
 			branchName:     "test-branch",
 			key:            "test-key",
-			expectedResult: `["value1",{"enabled":true,"hostname":"backend-service","port":8080},{"apikey":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"},"test-key-value"]`,
+			expectedResult: `["value1",{"enabled":true,"hostname":"backend-service","port":8082},{"apikey":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"},"test-key-value"]`,
 			expectError:    false,
 		},
 		{

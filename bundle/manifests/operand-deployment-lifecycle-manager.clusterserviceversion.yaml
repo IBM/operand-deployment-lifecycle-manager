@@ -415,7 +415,7 @@ spec:
           },
           "spec":{
             ...
-            "service":{"port":8080,"type":"ClusterIP"},
+            "service":{"port":8082,"type":"ClusterIP"},
             ...
           }
         }

@@ -665,7 +665,7 @@ func newOperandConfigCR(name, namespace string) *v1alpha1.OperandConfig {
 								"mongodb": "configmap",
 							},
 							Data: &runtime.RawExtension{
-								Raw: []byte(`{"data": {"port": "8080"}}`),
+								Raw: []byte(`{"data": {"port": "8082"}}`),
 							},
 							Force: false,
 						},
