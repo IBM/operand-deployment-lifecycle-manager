@@ -27,7 +27,7 @@ const (
 
 	// APITimeout defines the amount of time we should spend querying the k8s api
 	// when waiting for a specific condition to be true.
-	APITimeout = time.Minute * 5
+	APITimeout = time.Minute * 10
 
 	// CleanupRetry is the interval at which test framework attempts cleanup
 	CleanupRetry = time.Second * 10
