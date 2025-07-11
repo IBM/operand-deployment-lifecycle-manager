@@ -67,14 +67,10 @@ func NewODLMCache(isolatedModeEnable bool, opts ctrl.Options) ctrl.Options {
 		&appsv1.StatefulSet{}: {Label: cacheFreshLabelSelector},
 	}
 
-	// set SyncPeriod to the default cache sync period
-	syncPeriod := constant.DefaultSyncPeriod
-
 	// set cache options
 	opts.Cache = cache.Options{
 		ByObject:          cacheByObject,
 		DefaultNamespaces: cacheDefaultNamespaces,
-		SyncPeriod:        &syncPeriod,
 		Scheme:            opts.Scheme,
 	}
 
