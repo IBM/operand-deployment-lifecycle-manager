@@ -49,7 +49,7 @@ var _ = BeforeSuite(func(ctx context.Context) {
 	By("Creating the Namespace for Operators")
 	createTestNamespace(OperatorNamespace)
 
-}, NodeTimeout(1200))
+})
 
 var _ = AfterSuite(func(ctx context.Context) {
 	By("Delete the Namespace for the first OperandRequest")
@@ -63,4 +63,4 @@ var _ = AfterSuite(func(ctx context.Context) {
 
 	// Close the test suite
 	tearDownSuite()
-}, NodeTimeout(1200))
+})
