@@ -36,7 +36,7 @@ const (
 	CleanupTimeout = time.Second * 180
 
 	// WaitForTimeout is the wait time for cluster resource
-	WaitForTimeout = time.Minute * 10
+	WaitForTimeout = time.Minute * 15
 
 	// WaitForRetry is the the interval at checking cluster resource
 	WaitForRetry = time.Second * 10
