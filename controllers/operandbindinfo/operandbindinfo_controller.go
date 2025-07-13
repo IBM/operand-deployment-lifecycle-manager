@@ -45,10 +45,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/v4/api/v1alpha1"
 	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/constant"
@@ -800,53 +798,46 @@ func getBindingInfofromRequest(bindInfoInstance *operatorv1alpha1.OperandBindInf
 	return secretReq, cmReq
 }
 
-func (r *Reconciler) getOperandRegistryToRequestMapper(mgr manager.Manager) handler.MapFunc {
-	ctx := context.Background()
-
-	return func(object client.Object) []reconcile.Request {
-		mgrClient := mgr.GetClient()
-		bindInfoList := &operatorv1alpha1.OperandBindInfoList{}
-		opts := []client.ListOption{
-			client.MatchingLabels(map[string]string{object.GetNamespace() + "." + object.GetName() + "/registry": "true"}),
-		}
-
-		_ = mgrClient.List(ctx, bindInfoList, opts...)
-
-		bindinfos := []reconcile.Request{}
-		for _, bindinfo := range bindInfoList.Items {
-			namespaceName := types.NamespacedName{Name: bindinfo.Name, Namespace: bindinfo.Namespace}
-			req := reconcile.Request{NamespacedName: namespaceName}
-			bindinfos = append(bindinfos, req)
-		}
-		return bindinfos
+func (r *Reconciler) getOperandRegistryToRequestMapper(ctx context.Context, object client.Object) []reconcile.Request {
+	bindInfoList := &operatorv1alpha1.OperandBindInfoList{}
+	opts := []client.ListOption{
+		client.MatchingLabels(map[string]string{object.GetNamespace() + "." + object.GetName() + "/registry": "true"}),
 	}
+
+	_ = r.Client.List(ctx, bindInfoList, opts...)
+
+	bindinfos := []reconcile.Request{}
+	for _, bindinfo := range bindInfoList.Items {
+		namespaceName := types.NamespacedName{Name: bindinfo.Name, Namespace: bindinfo.Namespace}
+		req := reconcile.Request{NamespacedName: namespaceName}
+		bindinfos = append(bindinfos, req)
+	}
+	return bindinfos
+
 }
 
-func (r *Reconciler) getOperandRequestToRequestMapper(mgr manager.Manager) handler.MapFunc {
-	ctx := context.Background()
-	return func(a client.Object) []reconcile.Request {
-		or := a.(*operatorv1alpha1.OperandRequest)
-		reglist := or.GetAllRegistryReconcileRequest()
-		mgrClient := mgr.GetClient()
-		bindInfoList := &operatorv1alpha1.OperandBindInfoList{}
+func (r *Reconciler) getOperandRequestToRequestMapper(ctx context.Context, object client.Object) []reconcile.Request {
+	or := object.(*operatorv1alpha1.OperandRequest)
+	reglist := or.GetAllRegistryReconcileRequest()
+	bindInfoList := &operatorv1alpha1.OperandBindInfoList{}
 
-		for _, registry := range reglist {
-			opts := []client.ListOption{
-				client.MatchingLabels(map[string]string{registry.Namespace + "." + registry.Name + "/registry": "true"}),
-			}
-
-			_ = mgrClient.List(ctx, bindInfoList, opts...)
+	for _, registry := range reglist {
+		opts := []client.ListOption{
+			client.MatchingLabels(map[string]string{registry.Namespace + "." + registry.Name + "/registry": "true"}),
 		}
 
-		bindinfos := []reconcile.Request{}
-		for _, bindinfo := range bindInfoList.Items {
-			namespaceName := types.NamespacedName{Name: bindinfo.Name, Namespace: bindinfo.Namespace}
-			req := reconcile.Request{NamespacedName: namespaceName}
-			bindinfos = append(bindinfos, req)
-		}
-
-		return bindinfos
+		_ = r.Client.List(ctx, bindInfoList, opts...)
 	}
+
+	bindinfos := []reconcile.Request{}
+	for _, bindinfo := range bindInfoList.Items {
+		namespaceName := types.NamespacedName{Name: bindinfo.Name, Namespace: bindinfo.Namespace}
+		req := reconcile.Request{NamespacedName: namespaceName}
+		bindinfos = append(bindinfos, req)
+	}
+
+	return bindinfos
+
 }
 
 func (r *Reconciler) updateBindInfoPhase(bindInfoInstance *operatorv1alpha1.OperandBindInfo, phase operatorv1alpha1.BindInfoPhase, requestNamespaces []operatorv1alpha1.ReconcileRequest) {
@@ -877,57 +868,56 @@ func unique(stringSlice []string) []string {
 	return list
 }
 
-func (r *Reconciler) toOpbiRequest() handler.MapFunc {
-	return func(object client.Object) []reconcile.Request {
-		labels := object.GetLabels()
+func (r *Reconciler) toOpbiRequest(ctx context.Context, object client.Object) []reconcile.Request {
+	labels := object.GetLabels()
 
-		// Get a complete copy of the object using the Reader
-		var objectInCluster client.Object
+	// Get a complete copy of the object using the Reader
+	var objectInCluster client.Object
 
-		switch v := object.(type) {
-		case *corev1.Secret:
-			objectInCluster = &corev1.Secret{}
-		case *corev1.ConfigMap:
-			objectInCluster = &corev1.ConfigMap{}
-		case *ocproute.Route:
-			objectInCluster = &ocproute.Route{}
-		default:
-			klog.Errorf("Unsupported object type: %T", v)
-			return nil
-		}
-		if err := r.Reader.Get(context.Background(), types.NamespacedName{
-			Name: object.GetName(), Namespace: object.GetNamespace(),
-		}, objectInCluster); apierrors.IsNotFound(err) {
-			klog.V(2).Infof("Object %s/%s not found, it is a deleted object, using the cache", object.GetNamespace(), object.GetName())
-		} else if err != nil {
-			klog.Errorf("Failed to get object %s/%s: %v", object.GetNamespace(), object.GetName(), err)
-			return nil
-		} else {
-			klog.V(2).Infof("Object %s/%s found in the cluster", object.GetNamespace(), object.GetName())
-			labels = objectInCluster.GetLabels()
-		}
-
-		// check if the label contains the OperandBindInfo label
-		if labels == nil {
-			klog.V(2).Infof("No labels found in object %s/%s", objectInCluster.GetNamespace(), objectInCluster.GetName())
-			return nil
-		}
-		if _, ok := labels[constant.OpbiTypeLabel]; !ok {
-			klog.V(2).Infof("No OperandBindInfo label found in object %s/%s", objectInCluster.GetNamespace(), objectInCluster.GetName())
-			return nil
-		}
-		opbiInstances := []reconcile.Request{}
-		reg, _ := regexp.Compile(`^(.*)\.(.*)\/bindinfo`)
-		for key := range labels {
-			if reg.MatchString(key) {
-				keySlices := strings.Split(key, ".")
-				bindinfoNamespace := keySlices[0]
-				bindinfoName := strings.Split(keySlices[1], "/")[0]
-				opbiInstances = append(opbiInstances, reconcile.Request{NamespacedName: types.NamespacedName{Name: bindinfoName, Namespace: bindinfoNamespace}})
-			}
-		}
-		return opbiInstances
+	switch v := object.(type) {
+	case *corev1.Secret:
+		objectInCluster = &corev1.Secret{}
+	case *corev1.ConfigMap:
+		objectInCluster = &corev1.ConfigMap{}
+	case *ocproute.Route:
+		objectInCluster = &ocproute.Route{}
+	default:
+		klog.Errorf("Unsupported object type: %T", v)
+		return nil
 	}
+	if err := r.Reader.Get(context.Background(), types.NamespacedName{
+		Name: object.GetName(), Namespace: object.GetNamespace(),
+	}, objectInCluster); apierrors.IsNotFound(err) {
+		klog.V(2).Infof("Object %s/%s not found, it is a deleted object, using the cache", object.GetNamespace(), object.GetName())
+	} else if err != nil {
+		klog.Errorf("Failed to get object %s/%s: %v", object.GetNamespace(), object.GetName(), err)
+		return nil
+	} else {
+		klog.V(2).Infof("Object %s/%s found in the cluster", object.GetNamespace(), object.GetName())
+		labels = objectInCluster.GetLabels()
+	}
+
+	// check if the label contains the OperandBindInfo label
+	if labels == nil {
+		klog.V(2).Infof("No labels found in object %s/%s", objectInCluster.GetNamespace(), objectInCluster.GetName())
+		return nil
+	}
+	if _, ok := labels[constant.OpbiTypeLabel]; !ok {
+		klog.V(2).Infof("No OperandBindInfo label found in object %s/%s", objectInCluster.GetNamespace(), objectInCluster.GetName())
+		return nil
+	}
+	opbiInstances := []reconcile.Request{}
+	reg, _ := regexp.Compile(`^(.*)\.(.*)\/bindinfo`)
+	for key := range labels {
+		if reg.MatchString(key) {
+			keySlices := strings.Split(key, ".")
+			bindinfoNamespace := keySlices[0]
+			bindinfoName := strings.Split(keySlices[1], "/")[0]
+			opbiInstances = append(opbiInstances, reconcile.Request{NamespacedName: types.NamespacedName{Name: bindinfoName, Namespace: bindinfoNamespace}})
+		}
+	}
+	return opbiInstances
+
 }
 
 func (r *Reconciler) refreshPods(ns, name, resourceType string) error {
@@ -1136,29 +1126,29 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 		WithOptions(options).
 		For(&operatorv1alpha1.OperandBindInfo{}).
 		Watches(
-			&source.Kind{Type: &corev1.ConfigMap{}},
-			handler.EnqueueRequestsFromMapFunc(r.toOpbiRequest()),
+			&corev1.ConfigMap{},
+			handler.EnqueueRequestsFromMapFunc(r.toOpbiRequest),
 			builder.WithPredicates(bindablePredicates),
 		).
 		Watches(
-			&source.Kind{Type: &corev1.Secret{}},
-			handler.EnqueueRequestsFromMapFunc(r.toOpbiRequest()),
+			&corev1.Secret{},
+			handler.EnqueueRequestsFromMapFunc(r.toOpbiRequest),
 			builder.WithPredicates(bindablePredicates),
 		).
 		Watches(
-			&source.Kind{Type: &operatorv1alpha1.OperandRequest{}},
-			handler.EnqueueRequestsFromMapFunc(r.getOperandRequestToRequestMapper(mgr)),
+			&operatorv1alpha1.OperandRequest{},
+			handler.EnqueueRequestsFromMapFunc(r.getOperandRequestToRequestMapper),
 			builder.WithPredicates(predicate.GenerationChangedPredicate{}),
 		).
 		Watches(
-			&source.Kind{Type: &operatorv1alpha1.OperandRegistry{}},
-			handler.EnqueueRequestsFromMapFunc(r.getOperandRegistryToRequestMapper(mgr)),
+			&operatorv1alpha1.OperandRegistry{},
+			handler.EnqueueRequestsFromMapFunc(r.getOperandRegistryToRequestMapper),
 			builder.WithPredicates(opregPredicates),
 		)
 	if isRouteAPI {
 		controller.Watches(
-			&source.Kind{Type: &ocproute.Route{}},
-			handler.EnqueueRequestsFromMapFunc(r.toOpbiRequest()),
+			&ocproute.Route{},
+			handler.EnqueueRequestsFromMapFunc(r.toOpbiRequest),
 			builder.WithPredicates(bindablePredicates),
 		)
 	}

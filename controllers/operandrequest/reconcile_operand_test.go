@@ -38,7 +38,7 @@ type MockReader struct {
 	mock.Mock
 }
 
-func (m *MockReader) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
+func (m *MockReader) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
 	args := m.Called(ctx, key, obj)
 	return args.Error(0)
 }

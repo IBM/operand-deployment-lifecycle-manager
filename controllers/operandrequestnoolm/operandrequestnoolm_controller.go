@@ -38,7 +38,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/v4/api/v1alpha1"
 	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/constant"
@@ -255,69 +254,60 @@ func (r *Reconciler) checkFinalizer(ctx context.Context, requestInstance *operat
 	return nil
 }
 
-func (r *Reconciler) getRegistryToRequestMapper() handler.MapFunc {
-	ctx := context.Background()
-	return func(object client.Object) []ctrl.Request {
-		requestList, _ := r.ListOperandRequestsByRegistry(ctx, types.NamespacedName{Namespace: object.GetNamespace(), Name: object.GetName()})
+func (r *Reconciler) getRegistryToRequestMapper(ctx context.Context, object client.Object) []ctrl.Request {
+	requestList, _ := r.ListOperandRequestsByRegistry(ctx, types.NamespacedName{Namespace: object.GetNamespace(), Name: object.GetName()})
 
-		requests := []ctrl.Request{}
-		for _, request := range requestList {
-			namespaceName := types.NamespacedName{Name: request.Name, Namespace: request.Namespace}
-			req := ctrl.Request{NamespacedName: namespaceName}
-			requests = append(requests, req)
-		}
-		return requests
+	requests := []ctrl.Request{}
+	for _, request := range requestList {
+		namespaceName := types.NamespacedName{Name: request.Name, Namespace: request.Namespace}
+		req := ctrl.Request{NamespacedName: namespaceName}
+		requests = append(requests, req)
 	}
+	return requests
 }
 
-func (r *Reconciler) getConfigToRequestMapper() handler.MapFunc {
-	ctx := context.Background()
-	return func(object client.Object) []ctrl.Request {
-		requestList, _ := r.ListOperandRequestsByConfig(ctx, types.NamespacedName{Namespace: object.GetNamespace(), Name: object.GetName()})
+func (r *Reconciler) getConfigToRequestMapper(ctx context.Context, object client.Object) []ctrl.Request {
+	requestList, _ := r.ListOperandRequestsByConfig(ctx, types.NamespacedName{Namespace: object.GetNamespace(), Name: object.GetName()})
 
-		requests := []ctrl.Request{}
-		for _, request := range requestList {
-			namespaceName := types.NamespacedName{Name: request.Name, Namespace: request.Namespace}
-			req := ctrl.Request{NamespacedName: namespaceName}
-			requests = append(requests, req)
-		}
-		return requests
+	requests := []ctrl.Request{}
+	for _, request := range requestList {
+		namespaceName := types.NamespacedName{Name: request.Name, Namespace: request.Namespace}
+		req := ctrl.Request{NamespacedName: namespaceName}
+		requests = append(requests, req)
 	}
+	return requests
 }
 
-func (r *Reconciler) getReferenceToRequestMapper() handler.MapFunc {
-	ctx := context.Background()
-	return func(object client.Object) []ctrl.Request {
-		annotations := object.GetAnnotations()
-		if annotations == nil {
-			return []ctrl.Request{}
-		}
-		odlmReference, ok := annotations[constant.ODLMReferenceAnnotation]
-		if !ok {
-			return []ctrl.Request{}
-		}
-		odlmReferenceSlices := strings.Split(odlmReference, ".")
-		if len(odlmReferenceSlices) != 3 {
-			return []ctrl.Request{}
-		}
-
-		var requestList []operatorv1alpha1.OperandRequest
-		if odlmReferenceSlices[0] == "OperandConfig" {
-			requestList, _ = r.ListOperandRequestsByConfig(ctx, types.NamespacedName{Namespace: odlmReferenceSlices[1], Name: odlmReferenceSlices[2]})
-		} else if odlmReferenceSlices[0] == "OperandRegistry" {
-			requestList, _ = r.ListOperandRequestsByRegistry(ctx, types.NamespacedName{Namespace: odlmReferenceSlices[1], Name: odlmReferenceSlices[2]})
-		} else {
-			return []ctrl.Request{}
-		}
-
-		requests := []ctrl.Request{}
-		for _, request := range requestList {
-			namespaceName := types.NamespacedName{Name: request.Name, Namespace: request.Namespace}
-			req := ctrl.Request{NamespacedName: namespaceName}
-			requests = append(requests, req)
-		}
-		return requests
+func (r *Reconciler) getReferenceToRequestMapper(ctx context.Context, object client.Object) []ctrl.Request {
+	annotations := object.GetAnnotations()
+	if annotations == nil {
+		return []ctrl.Request{}
 	}
+	odlmReference, ok := annotations[constant.ODLMReferenceAnnotation]
+	if !ok {
+		return []ctrl.Request{}
+	}
+	odlmReferenceSlices := strings.Split(odlmReference, ".")
+	if len(odlmReferenceSlices) != 3 {
+		return []ctrl.Request{}
+	}
+
+	var requestList []operatorv1alpha1.OperandRequest
+	if odlmReferenceSlices[0] == "OperandConfig" {
+		requestList, _ = r.ListOperandRequestsByConfig(ctx, types.NamespacedName{Namespace: odlmReferenceSlices[1], Name: odlmReferenceSlices[2]})
+	} else if odlmReferenceSlices[0] == "OperandRegistry" {
+		requestList, _ = r.ListOperandRequestsByRegistry(ctx, types.NamespacedName{Namespace: odlmReferenceSlices[1], Name: odlmReferenceSlices[2]})
+	} else {
+		return []ctrl.Request{}
+	}
+
+	requests := []ctrl.Request{}
+	for _, request := range requestList {
+		namespaceName := types.NamespacedName{Name: request.Name, Namespace: request.Namespace}
+		req := ctrl.Request{NamespacedName: namespaceName}
+		requests = append(requests, req)
+	}
+	return requests
 }
 
 // SetupWithManager adds OperandRequest controller to the manager.
@@ -360,7 +350,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(options).
 		For(&operatorv1alpha1.OperandRequest{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
-		Watches(&source.Kind{Type: &corev1.ConfigMap{}}, handler.EnqueueRequestsFromMapFunc(r.getReferenceToRequestMapper()), builder.WithPredicates(predicate.Funcs{
+		Watches(&corev1.ConfigMap{}, handler.EnqueueRequestsFromMapFunc(r.getReferenceToRequestMapper), builder.WithPredicates(predicate.Funcs{
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				oldObject := e.ObjectOld.(*corev1.ConfigMap)
 				newObject := e.ObjectNew.(*corev1.ConfigMap)
@@ -377,7 +367,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 				return false
 			},
 		})).
-		Watches(&source.Kind{Type: &operatorv1alpha1.OperandRegistry{}}, handler.EnqueueRequestsFromMapFunc(r.getRegistryToRequestMapper()), builder.WithPredicates(predicate.Funcs{
+		Watches(&operatorv1alpha1.OperandRegistry{}, handler.EnqueueRequestsFromMapFunc(r.getRegistryToRequestMapper), builder.WithPredicates(predicate.Funcs{
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				oldObject := e.ObjectOld.(*operatorv1alpha1.OperandRegistry)
 				newObject := e.ObjectNew.(*operatorv1alpha1.OperandRegistry)
@@ -388,7 +378,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 				return !e.DeleteStateUnknown
 			},
 		})).
-		Watches(&source.Kind{Type: &operatorv1alpha1.OperandConfig{}}, handler.EnqueueRequestsFromMapFunc(r.getConfigToRequestMapper()), builder.WithPredicates(predicate.Funcs{
+		Watches(&operatorv1alpha1.OperandConfig{}, handler.EnqueueRequestsFromMapFunc(r.getConfigToRequestMapper), builder.WithPredicates(predicate.Funcs{
 			DeleteFunc: func(e event.DeleteEvent) bool {
 				// Evaluates to false if the object has been confirmed deleted.
 				return !e.DeleteStateUnknown
@@ -399,7 +389,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 				return !reflect.DeepEqual(oldObject.Spec, newObject.Spec)
 			},
 		})).
-		Watches(&source.Kind{Type: &corev1.ConfigMap{}}, handler.EnqueueRequestsFromMapFunc(r.getReferenceToRequestMapper()), builder.WithPredicates(ReferencePredicates)).
-		Watches(&source.Kind{Type: &corev1.Secret{}}, handler.EnqueueRequestsFromMapFunc(r.getReferenceToRequestMapper()), builder.WithPredicates(ReferencePredicates)).
+		Watches(&corev1.ConfigMap{}, handler.EnqueueRequestsFromMapFunc(r.getReferenceToRequestMapper), builder.WithPredicates(ReferencePredicates)).
+		Watches(&corev1.Secret{}, handler.EnqueueRequestsFromMapFunc(r.getReferenceToRequestMapper), builder.WithPredicates(ReferencePredicates)).
 		Complete(r)
 }
