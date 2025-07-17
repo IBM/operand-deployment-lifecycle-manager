@@ -33,10 +33,10 @@ import (
 func NewODLMCache(isolatedModeEnable bool, opts ctrl.Options) ctrl.Options {
 
 	cacheWatchedLabelSelector := labels.SelectorFromSet(
-		labels.Set{constant.ODLMWatchedLabel: ""},
+		labels.Set{constant.ODLMWatchedLabel: "true"},
 	)
 	cacheFreshLabelSelector := labels.SelectorFromSet(
-		labels.Set{constant.BindInfoRefreshLabel: ""},
+		labels.Set{constant.BindInfoRefreshLabel: "true"},
 	)
 
 	watchNamespace := util.GetWatchNamespace()

@@ -31,6 +31,7 @@ import (
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	nssv1 "github.com/IBM/ibm-namespace-scope-operator/api/v1"
 
@@ -85,6 +86,9 @@ func main() {
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "ab89bbb1.ibm.com",
+		Metrics: server.Options{
+			BindAddress: metricsAddr,
+		},
 	}
 
 	isolatedModeEnable := true
