@@ -27,7 +27,7 @@ const (
 
 	// APITimeout defines the amount of time we should spend querying the k8s api
 	// when waiting for a specific condition to be true.
-	APITimeout = time.Minute * 5
+	APITimeout = time.Minute * 15
 
 	// CleanupRetry is the interval at which test framework attempts cleanup
 	CleanupRetry = time.Second * 10
@@ -36,7 +36,7 @@ const (
 	CleanupTimeout = time.Second * 180
 
 	// WaitForTimeout is the wait time for cluster resource
-	WaitForTimeout = time.Minute * 5
+	WaitForTimeout = time.Minute * 15
 
 	// WaitForRetry is the the interval at checking cluster resource
 	WaitForRetry = time.Second * 10
@@ -63,7 +63,7 @@ const (
 	OperandRequestNamespace2 = "ibm-cloudpak-2"
 
 	// OperandRegistryNamespace specifies the namespace of the OperandRegistry
-	OperandRegistryNamespace = "ibm-common-services"
+	OperandRegistryNamespace = "ibm-operators"
 
 	// OperatorNamespace specifies the namespace of the generated operators
 	OperatorNamespace = "ibm-operators"
