@@ -63,7 +63,7 @@ const (
 	OperandRequestNamespace2 = "ibm-cloudpak-2"
 
 	// OperandRegistryNamespace specifies the namespace of the OperandRegistry
-	OperandRegistryNamespace = "ibm-common-services"
+	OperandRegistryNamespace = "ibm-operators"
 
 	// OperatorNamespace specifies the namespace of the generated operators
 	OperatorNamespace = "ibm-operators"
