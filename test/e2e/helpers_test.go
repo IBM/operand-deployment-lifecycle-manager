@@ -336,8 +336,10 @@ func createOperandRegistry(ns, OperatorNamespace string) (*v1alpha1.OperandRegis
 	fmt.Println("--- CREATE: OperandRegistry Instance")
 	var ri *v1alpha1.OperandRegistry
 	if isRunningOnKind() {
+		fmt.Println("Is running on Kind...")
 		ri = newOperandRegistryCRforKind(OperandRegistryCrName, ns, OperatorNamespace)
 	} else {
+		fmt.Println("Not running on Kind...")
 		ri = newOperandRegistryCR(OperandRegistryCrName, ns, OperatorNamespace)
 	}
 	err := k8sClient.Create(context.TODO(), ri)
