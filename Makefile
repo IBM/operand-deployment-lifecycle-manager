@@ -238,7 +238,7 @@ e2e-test:
 
 e2e-test-kind: build-test-operator-image kind-start kind-load-img deploy-e2e e2e-test kind-delete
 
-e2e-test-fyre: build-push-test-operator-image deploy-e2e
+e2e-test-fyre: build-push-test-image deploy-e2e
 
 scorecard: operator-sdk ## Run scorecard test
 	@echo ... Running the scorecard test
@@ -280,7 +280,7 @@ build-test-operator-image: $(CONFIG_DOCKER_TARGET) ## Build the operator test im
 	--build-arg VCS_REF=$(VCS_REF) --build-arg VCS_URL=$(VCS_URL) --build-arg RELEASE_VERSION=$(RELEASE_VERSION) \
 	--build-arg GOARCH=$(LOCAL_ARCH) -f Dockerfile .
 
-build-push-test-operator-image: build-test-operator-image ## Build and push the operator test image.
+build-push-test-image: build-test-operator-image ## Build and push the operator test image.
 	@echo "Pushing the $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG) docker image to $(DEV_REGISTRY)..."
 	@docker push $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG)
 

@@ -18,6 +18,7 @@ package e2e
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	jaegerv1 "github.com/jaegertracing/jaeger-operator/apis/v1"
@@ -33,6 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	kbtestutils "sigs.k8s.io/kubebuilder/v3/test/e2e/utils"
 
 	apiv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/v4/api/v1alpha1"
@@ -58,9 +60,9 @@ func initSuite() {
 	testEnv = &envtest.Environment{
 		UseExistingCluster:       &useCluster,
 		AttachControlPlaneOutput: false,
-		// CRDDirectoryPaths: []string{
-		// 	filepath.Join("..", "..", "config", "crd", "bases"),
-		// },
+		CRDDirectoryPaths: []string{
+			filepath.Join("..", "..", "config", "crd", "bases"),
+		},
 	}
 
 	var err error
@@ -80,9 +82,9 @@ func initSuite() {
 
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme: clientgoscheme.Scheme,
-		// Metrics: server.Options{
-		// 	BindAddress: "0",
-		// },
+		Metrics: server.Options{
+			BindAddress: "0",
+		},
 	})
 	Expect(err).ToNot(HaveOccurred())
 

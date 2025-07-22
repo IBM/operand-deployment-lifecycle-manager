@@ -22,6 +22,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -46,9 +47,11 @@ func NewODLMCache(isolatedModeEnable bool, opts ctrl.Options) ctrl.Options {
 	// if watchNamespaces is empty, then cache resource in all namespaces
 	var cacheDefaultNamespaces map[string]cache.Config
 	if len(watchNamespaces) == 1 && watchNamespaces[0] == "" {
+		klog.Infof("All namespaces will be watched")
 		// cache resource in all namespaces
-		cacheDefaultNamespaces = map[string]cache.Config{corev1.NamespaceAll: {}}
+		cacheDefaultNamespaces = nil
 	} else {
+		klog.Infof("Watching namespaces: %v", watchNamespaces)
 		// cache resource in watchNamespaces
 		cacheNamespaces := make(map[string]cache.Config)
 		for _, ns := range watchNamespaces {
