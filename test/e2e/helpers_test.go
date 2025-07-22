@@ -218,7 +218,9 @@ func waitRegistryStatus(ctx context.Context, expectedPhase v1alpha1.RegistryPhas
 		if reg.Status.Phase != expectedPhase {
 			fmt.Println("    --- Waiting for registry phase " + expectedPhase)
 			fmt.Println("    --- OperandRegistry status: " + reg.Status.Phase)
-			fmt.Println(reg)
+			fmt.Println(reg.ObjectMeta)
+			fmt.Println(reg.Spec)
+			fmt.Println(reg.Status)
 			return false, nil
 		}
 		return true, nil
