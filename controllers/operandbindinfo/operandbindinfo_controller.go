@@ -804,7 +804,7 @@ func (r *Reconciler) getOperandRegistryToRequestMapper(ctx context.Context, obj 
 		client.MatchingLabels(map[string]string{obj.GetNamespace() + "." + obj.GetName() + "/registry": "true"}),
 	}
 
-	_ = r.Reader.List(ctx, bindInfoList, opts...)
+	_ = r.Client.List(ctx, bindInfoList, opts...)
 
 	bindinfos := []reconcile.Request{}
 	for _, bindinfo := range bindInfoList.Items {
@@ -826,7 +826,7 @@ func (r *Reconciler) getOperandRequestToRequestMapper(ctx context.Context, obj c
 			client.MatchingLabels(map[string]string{registry.Namespace + "." + registry.Name + "/registry": "true"}),
 		}
 
-		_ = r.Reader.List(ctx, bindInfoList, opts...)
+		_ = r.Client.List(ctx, bindInfoList, opts...)
 	}
 
 	bindinfos := []reconcile.Request{}
