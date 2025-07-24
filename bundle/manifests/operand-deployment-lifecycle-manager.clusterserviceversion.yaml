@@ -636,7 +636,7 @@ spec:
                                 - s390x
                 containers:
                   - args:
-                      - -v=2
+                      - -v=1
                     command:
                       - /manager
                     env:

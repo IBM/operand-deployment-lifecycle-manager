@@ -46,7 +46,7 @@ spec:
       - command:
         - /manager
         args:
-        - -v=2
+        - -v=1
         image: icr.io/cpopen/odlm:latest
         name: manager
         resources:
