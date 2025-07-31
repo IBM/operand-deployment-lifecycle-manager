@@ -181,7 +181,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 
 	// Check if all csv deploy succeed
 	if requestInstance.Status.Phase != operatorv1alpha1.ClusterPhaseRunning {
-		klog.V(2).Info("Waiting for all operators and operands to be deployed successfully ...")
+		klog.Info("Waiting for all operators and operands to be deployed successfully ...")
 		return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
 	}
 
@@ -406,7 +406,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(options).
-		For(&operatorv1alpha1.OperandRequest{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		For(&operatorv1alpha1.OperandRequest{}, builder.WithPredicates(predicate.ResourceVersionChangedPredicate{})).
 		Watches(&olmv1alpha1.Subscription{}, handler.EnqueueRequestsFromMapFunc(r.getSubToRequestMapper), builder.WithPredicates(predicate.Funcs{
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				oldObject := e.ObjectOld.(*olmv1alpha1.Subscription)
