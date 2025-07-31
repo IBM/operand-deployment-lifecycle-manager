@@ -85,6 +85,7 @@ func (r *Reconciler) reconcileOperator(ctx context.Context, requestInstance *ope
 				return utilerrors.NewAggregate([]error{err, patchErr})
 			}
 			klog.Errorf("Failed to get suitable OperandRegistry %s: %v", registryKey.String(), err)
+			return utilerrors.NewAggregate([]error{err, fmt.Errorf("failed to get suitable OperandRegistry %s", registryKey.String())})
 		}
 		merr := &util.MultiErr{}
 
