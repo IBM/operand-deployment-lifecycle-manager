@@ -351,7 +351,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(options).
-		For(&operatorv1alpha1.OperandRequest{}, builder.WithPredicates(predicate.ResourceVersionChangedPredicate{})).
+		For(&operatorv1alpha1.OperandRequest{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Watches(&corev1.ConfigMap{}, handler.EnqueueRequestsFromMapFunc(r.getReferenceToRequestMapper), builder.WithPredicates(predicate.Funcs{
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				oldObject := e.ObjectOld.(*corev1.ConfigMap)
