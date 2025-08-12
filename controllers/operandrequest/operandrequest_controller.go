@@ -406,7 +406,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(options).
-		For(&operatorv1alpha1.OperandRequest{}, builder.WithPredicates(predicate.ResourceVersionChangedPredicate{})).
+		For(&operatorv1alpha1.OperandRequest{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Watches(&olmv1alpha1.Subscription{}, handler.EnqueueRequestsFromMapFunc(r.getSubToRequestMapper), builder.WithPredicates(predicate.Funcs{
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				oldObject := e.ObjectOld.(*olmv1alpha1.Subscription)
