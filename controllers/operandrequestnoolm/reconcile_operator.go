@@ -549,7 +549,7 @@ func (r *Reconciler) generateClusterObjects(o *operatorv1alpha1.Operator, regist
 		registryKey.Namespace + "." + registryKey.Name + "/config":                         "true",
 		requestKey.Namespace + "." + requestKey.Name + "." + o.Name + "/request":           o.Channel,
 		requestKey.Namespace + "." + requestKey.Name + "." + o.Name + "/operatorNamespace": namespace,
-		"packageName": o.PackageName,
+		"operator.ibm.com.common-service/packageName":                                      o.PackageName,
 	}
 	if o.ConfigName != "" {
 		annotations[requestKey.Namespace+"."+requestKey.Name+"."+o.Name+"/config"] = o.ConfigName
