@@ -211,7 +211,7 @@ func (r *Reconciler) reconcileOpReqCM(ctx context.Context, requestInstance *oper
 		cm.Annotations[registryKey.Namespace+"."+registryKey.Name+"/config"] = "true"
 		cm.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/request"] = opt.Channel
 		cm.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/operatorNamespace"] = namespace
-		cm.Annotations["packageName"] = opt.PackageName
+		cm.Annotations["operator.ibm.com.common-service/packageName"] = opt.PackageName
 		if opt.ConfigName != "" {
 			cm.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/config"] = opt.ConfigName
 		} else {
