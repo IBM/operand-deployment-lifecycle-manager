@@ -485,8 +485,12 @@ func (m *ODLMOperator) GetOpReqCM(ctx context.Context, operatorName, operatorNs,
 
 		for _, cm := range cmList.Items {
 			if cm.Annotations != nil {
-				if pkg, exists := cm.Annotations["packageName"]; exists && pkg == operatorName {
+				if pkg, exists := cm.Annotations["operator.ibm.com.common-service/packageName"]; exists && pkg == operatorName {
 					cmCandidates = append(cmCandidates, cm)
+				} else if _, ok := cm.Labels[constant.OpreqLabel]; ok {
+					if pkg, old_anno_exists := cm.Annotations["packageName"]; old_anno_exists && pkg == operatorName {
+						cmCandidates = append(cmCandidates, cm)
+					}
 				}
 			}
 		}

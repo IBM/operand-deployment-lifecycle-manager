@@ -211,7 +211,7 @@ func (r *Reconciler) reconcileOpReqCM(ctx context.Context, requestInstance *oper
 		cm.Annotations[registryKey.Namespace+"."+registryKey.Name+"/config"] = "true"
 		cm.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/request"] = opt.Channel
 		cm.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/operatorNamespace"] = namespace
-		cm.Annotations["packageName"] = opt.PackageName
+		cm.Annotations["operator.ibm.com.common-service/packageName"] = opt.PackageName
 		if opt.ConfigName != "" {
 			cm.Annotations[requestInstance.Namespace+"."+requestInstance.Name+"."+operand.Name+"/config"] = opt.ConfigName
 		} else {
@@ -549,7 +549,7 @@ func (r *Reconciler) generateClusterObjects(o *operatorv1alpha1.Operator, regist
 		registryKey.Namespace + "." + registryKey.Name + "/config":                         "true",
 		requestKey.Namespace + "." + requestKey.Name + "." + o.Name + "/request":           o.Channel,
 		requestKey.Namespace + "." + requestKey.Name + "." + o.Name + "/operatorNamespace": namespace,
-		"packageName": o.PackageName,
+		"operator.ibm.com.common-service/packageName":                                      o.PackageName,
 	}
 	if o.ConfigName != "" {
 		annotations[requestKey.Namespace+"."+requestKey.Name+"."+o.Name+"/config"] = o.ConfigName
