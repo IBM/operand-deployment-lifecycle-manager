@@ -18,7 +18,7 @@
     "destStage": "edge",
     "destNamespace": "build-images",
     "destImage": "ubi9",
-    "tag": "9.6-1755678605",
+    "tag": "9.6-1756915113",
     "updatePackages": []
   },
   {
@@ -37,6 +37,6 @@
     "sourceImage": "ubi9-minimal",
     "sourceTag": "9.6-1755695350",
     "destImage": "node-v22-ubi9-minimal",
-    "nodeVersion": "22.18.0"
+    "nodeVersion": "22.19.0"
   }
 ]
