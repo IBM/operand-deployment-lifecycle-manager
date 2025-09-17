@@ -5,6 +5,8 @@
 cpfs:
   imageRegistryNamespaceOperator: cpopen
   imageRegistryNamespaceOperand: cpopen/cpfs
+  labels:
+  clusterLabels:
 
 # other configuration you think you might need for your operator
 # following are examples, not required:
