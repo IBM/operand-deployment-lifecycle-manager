@@ -181,7 +181,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 
 	// Check if all csv deploy succeed
 	if requestInstance.Status.Phase != operatorv1alpha1.ClusterPhaseRunning {
-		klog.V(2).Info("Waiting for all operators and operands to be deployed successfully ...")
+		klog.Info("Waiting for all operators and operands to be deployed successfully ...")
 		return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
 	}
 
