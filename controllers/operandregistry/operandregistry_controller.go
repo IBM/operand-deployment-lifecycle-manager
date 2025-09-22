@@ -32,7 +32,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/v4/api/v1alpha1"
 	deploy "github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operator"
@@ -44,7 +43,6 @@ type Reconciler struct {
 }
 
 // +kubebuilder:rbac:groups=operator.ibm.com,namespace="placeholder",resources=operandregistries;operandregistries/status;operandregistries/finalizers,verbs=get;list;watch;create;update;patch;delete
-
 // Reconcile reads that state of the cluster for a OperandRegistry object and makes changes based on the state read
 // and what is in the OperandRegistry.Spec
 // Note:
@@ -115,6 +113,11 @@ func (r *Reconciler) updateStatus(ctx context.Context, instance *operatorv1alpha
 	return nil
 }
 
+func (r *Reconciler) getOperandRequestToRequestMapper(ctx context.Context, obj client.Object) []reconcile.Request {
+	or := obj.(*operatorv1alpha1.OperandRequest)
+	return or.GetAllRegistryReconcileRequest()
+}
+
 // SetupWithManager adds OperandRegistry controller to the manager.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	options := controller.Options{
@@ -123,10 +126,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(options).
 		For(&operatorv1alpha1.OperandRegistry{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
-		Watches(&source.Kind{Type: &operatorv1alpha1.OperandRequest{}}, handler.EnqueueRequestsFromMapFunc(func(a client.Object) []reconcile.Request {
-			or := a.(*operatorv1alpha1.OperandRequest)
-			return or.GetAllRegistryReconcileRequest()
-		}), builder.WithPredicates(predicate.Funcs{
+		Watches(&operatorv1alpha1.OperandRequest{}, handler.EnqueueRequestsFromMapFunc(r.getOperandRequestToRequestMapper), builder.WithPredicates(predicate.Funcs{
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				oldObject := e.ObjectOld.(*operatorv1alpha1.OperandRequest)
 				newObject := e.ObjectNew.(*operatorv1alpha1.OperandRequest)
