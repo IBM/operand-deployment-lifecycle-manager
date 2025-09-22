@@ -43,7 +43,6 @@ import (
 	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operandconfig"
 	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operandregistry"
 	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operandrequest"
-	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operandrequestnoolm"
 	deploy "github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operator"
 	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operatorchecker"
 	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operatorconfig"
@@ -107,23 +106,12 @@ func main() {
 		klog.Errorf("unable to start manager: %v", err)
 		os.Exit(1)
 	}
-	noolm := util.GetNoOLM()
-	if noolm == "true" {
-		if err = (&operandrequestnoolm.Reconciler{
-			ODLMOperator: deploy.NewODLMOperator(mgr, "OperandRequest"),
-			StepSize:     *stepSize,
-		}).SetupWithManager(mgr); err != nil {
-			klog.Errorf("unable to create controller OperandRequestNoOLM: %v", err)
-			os.Exit(1)
-		}
-	} else {
-		if err = (&operandrequest.Reconciler{
-			ODLMOperator: deploy.NewODLMOperator(mgr, "OperandRequest"),
-			StepSize:     *stepSize,
-		}).SetupWithManager(mgr); err != nil {
-			klog.Errorf("unable to create controller OperandRequest: %v", err)
-			os.Exit(1)
-		}
+	if err = (&operandrequest.Reconciler{
+		ODLMOperator: deploy.NewODLMOperator(mgr, "OperandRequest"),
+		StepSize:     *stepSize,
+	}).SetupWithManager(mgr); err != nil {
+		klog.Errorf("unable to create controller OperandRequest: %v", err)
+		os.Exit(1)
 	}
 	if err = (&operandconfig.Reconciler{
 		ODLMOperator: deploy.NewODLMOperator(mgr, "OperandConfig"),
@@ -162,14 +150,11 @@ func main() {
 			}
 		}
 	}
-	// disable operatorConfig in no-olm environment
-	if noolm != "true" {
-		if err = (&operatorconfig.Reconciler{
-			ODLMOperator: deploy.NewODLMOperator(mgr, "OperatorConfig"),
-		}).SetupWithManager(mgr); err != nil {
-			klog.Error(err, "unable to create controller", "controller", "OperatorConfig")
-			os.Exit(1)
-		}
+	if err = (&operatorconfig.Reconciler{
+		ODLMOperator: deploy.NewODLMOperator(mgr, "OperatorConfig"),
+	}).SetupWithManager(mgr); err != nil {
+		klog.Error(err, "unable to create controller", "controller", "OperatorConfig")
+		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder
 
