@@ -236,6 +236,8 @@ scorecard: operator-sdk ## Run scorecard test
 	@echo ... Running the scorecard test
 	- $(OPERATOR_SDK) scorecard bundle --verbose
 
+e2e-test-fyre: build-push-test-image deploy-e2e
+
 kind-start: kind
 	@${KIND} get clusters | grep $(KIND_CLUSTER_NAME)  >/dev/null 2>&1 && \
 	echo "KIND Cluster already exists" && exit 0 || \
@@ -279,6 +281,10 @@ build-push-image: $(CONFIG_DOCKER_TARGET) build-operator-image  ## Build and pus
 	@echo "Pushing the $(OPERATOR_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
 	@docker tag $(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) $(ARTIFACTORYA_REGISTRY)/$(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION)
 	@docker push $(ARTIFACTORYA_REGISTRY)/$(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION)
+
+build-push-test-image: build-test-operator-image ## Build and push the operator test image.
+	@echo "Pushing the $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG) docker image to $(DEV_REGISTRY)..."
+	@docker push $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG)
 
 build-push-bundle-image: yq
 	@docker build -f bundle.Dockerfile -t $(QUAY_REGISTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) .

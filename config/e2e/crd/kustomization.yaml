@@ -7,5 +7,5 @@ resources:
 - bases/operator.ibm.com_operandbindinfos.yaml
 - bases/operator.ibm.com_operandregistries.yaml
 - bases/operator.ibm.com_namespacescopes.yaml
-
+- bases/operator.ibm.com_operatorconfigs.yaml
 

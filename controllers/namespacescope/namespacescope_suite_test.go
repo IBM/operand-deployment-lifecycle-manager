@@ -23,11 +23,12 @@ import (
 	"time"
 
 	jaegerv1 "github.com/jaegertracing/jaeger-operator/apis/v1"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	olmv1 "github.com/operator-framework/api/pkg/operators/v1"
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
+	operatorsv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -35,6 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	nssv1 "github.com/IBM/ibm-namespace-scope-operator/api/v1"
 
@@ -67,7 +69,7 @@ func TestNamespaceScope(t *testing.T) {
 		"NamespaceScope Controller Suite")
 }
 
-var _ = BeforeSuite(func(done Done) {
+var _ = BeforeSuite(func(ctx SpecContext) {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
 	By("bootstrapping test environment")
@@ -94,6 +96,8 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).NotTo(HaveOccurred())
 	err = jaegerv1.AddToScheme(clientgoscheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
+	err = operatorsv1.AddToScheme(clientgoscheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
 
 	k8sClient, err = client.New(cfg, client.Options{Scheme: clientgoscheme.Scheme})
 	Expect(err).ToNot(HaveOccurred())
@@ -101,8 +105,10 @@ var _ = BeforeSuite(func(done Done) {
 
 	// Start your controllers test logic
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
-		Scheme:             clientgoscheme.Scheme,
-		MetricsBindAddress: "0",
+		Scheme: clientgoscheme.Scheme,
+		Metrics: server.Options{
+			BindAddress: "0",
+		},
 	})
 	Expect(err).ToNot(HaveOccurred())
 
@@ -127,8 +133,7 @@ var _ = BeforeSuite(func(done Done) {
 		Expect(err).ToNot(HaveOccurred())
 	}()
 
-	close(done)
-}, 600)
+}, NodeTimeout(timeout))
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")

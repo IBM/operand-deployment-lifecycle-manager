@@ -23,7 +23,7 @@ import (
 	"time"
 
 	jaegerv1 "github.com/jaegertracing/jaeger-operator/apis/v1"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	olmv1 "github.com/operator-framework/api/pkg/operators/v1"
@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	nssv1 "github.com/IBM/ibm-namespace-scope-operator/api/v1"
 
@@ -57,7 +58,7 @@ var (
 	testEnv   *envtest.Environment
 	// scheme    = runtime.NewScheme()
 
-	timeout  = time.Second * 300
+	timeout  = time.Second * 900
 	interval = time.Second * 5
 )
 
@@ -68,7 +69,7 @@ func TestOperandConfig(t *testing.T) {
 		"OperandConfig Controller Suite")
 }
 
-var _ = BeforeSuite(func(done Done) {
+var _ = BeforeSuite(func(ctx SpecContext) {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
 	By("bootstrapping test environment")
@@ -103,8 +104,10 @@ var _ = BeforeSuite(func(done Done) {
 
 	// Start your controllers test logic
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
-		Scheme:             clientgoscheme.Scheme,
-		MetricsBindAddress: "0",
+		Scheme: clientgoscheme.Scheme,
+		Metrics: server.Options{
+			BindAddress: "0",
+		},
 	})
 	Expect(err).ToNot(HaveOccurred())
 
@@ -125,14 +128,14 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).ToNot(HaveOccurred())
 
 	go func() {
+		defer GinkgoRecover()
 		err = k8sManager.Start(ctrl.SetupSignalHandler())
 		Expect(err).ToNot(HaveOccurred())
 	}()
 
 	// End your controllers test logic
 
-	close(done)
-}, 600)
+}, NodeTimeout(timeout))
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")

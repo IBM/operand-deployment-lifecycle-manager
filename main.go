@@ -19,28 +19,24 @@ package main
 import (
 	"flag"
 	"os"
-	"strings"
 
 	ocproute "github.com/openshift/api/route/v1"
 	olmv1 "github.com/operator-framework/api/pkg/operators/v1"
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	operatorsv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
-	cache "github.com/IBM/controller-filtered-cache/filteredcache"
 	nssv1 "github.com/IBM/ibm-namespace-scope-operator/api/v1"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/v4/api/v1alpha1"
-	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/constant"
 	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/k8sutil"
 	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/namespacescope"
 	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operandbindinfo"
@@ -83,40 +79,27 @@ func main() {
 			"Enabling this will ensure there is only one active controller manager.")
 	var stepSize = flag.Int("batch-chunk-size", 3, "batch-chunk-size is used to control at most how many subscriptions will be created concurrently")
 
+	opts := zap.Options{
+		Development: true,
+	}
+	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 
-	gvkLabelMap := map[schema.GroupVersionKind]cache.Selector{
-		corev1.SchemeGroupVersion.WithKind("Secret"): {
-			LabelSelector: constant.ODLMWatchedLabel,
-		},
-		corev1.SchemeGroupVersion.WithKind("ConfigMap"): {
-			LabelSelector: constant.ODLMWatchedLabel,
-		},
-		appsv1.SchemeGroupVersion.WithKind("Deployment"): {
-			LabelSelector: constant.BindInfoRefreshLabel,
-		},
-		appsv1.SchemeGroupVersion.WithKind("StatefulSet"): {
-			LabelSelector: constant.BindInfoRefreshLabel,
-		},
-		appsv1.SchemeGroupVersion.WithKind("DaemonSet"): {
-			LabelSelector: constant.BindInfoRefreshLabel,
-		},
-	}
+	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
 	options := ctrl.Options{
 		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
 		HealthProbeBindAddress: probeAddr,
-		Port:                   9443,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "ab89bbb1.ibm.com",
+		Metrics: server.Options{
+			BindAddress: metricsAddr,
+		},
 	}
 
-	watchNamespace := util.GetWatchNamespace()
-	// isolatedModeEnable := util.GetIsolatedMode()
 	isolatedModeEnable := true
 	operatorCheckerDisable := util.GetoperatorCheckerMode()
-	options.NewCache = k8sutil.NewODLMCache(isolatedModeEnable, strings.Split(watchNamespace, ","), gvkLabelMap)
+	options = k8sutil.NewODLMCache(isolatedModeEnable, options)
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
 	if err != nil {

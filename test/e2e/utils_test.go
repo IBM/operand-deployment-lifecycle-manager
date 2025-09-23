@@ -17,10 +17,12 @@
 package e2e
 
 import (
+	"fmt"
+	"path/filepath"
 	"strings"
 
 	jaegerv1 "github.com/jaegertracing/jaeger-operator/apis/v1"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	olmv1 "github.com/operator-framework/api/pkg/operators/v1"
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
@@ -32,7 +34,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	kbtestutils "sigs.k8s.io/kubebuilder/test/e2e/utils"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	kbtestutils "sigs.k8s.io/kubebuilder/v3/test/e2e/utils"
 
 	apiv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/v4/api/v1alpha1"
 )
@@ -50,12 +53,16 @@ func initSuite() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
 	By("bootstrapping test environment")
+	fmt.Println("Starting test environment...")
 
 	useCluster := true
 
 	testEnv = &envtest.Environment{
 		UseExistingCluster:       &useCluster,
 		AttachControlPlaneOutput: false,
+		CRDDirectoryPaths: []string{
+			filepath.Join("..", "..", "config", "crd", "bases"),
+		},
 	}
 
 	var err error
@@ -75,6 +82,9 @@ func initSuite() {
 
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme: clientgoscheme.Scheme,
+		Metrics: server.Options{
+			BindAddress: "0",
+		},
 	})
 	Expect(err).ToNot(HaveOccurred())
 
@@ -86,6 +96,7 @@ func initSuite() {
 	k8sClient = k8sManager.GetClient()
 
 	clientset = kubernetes.NewForConfigOrDie(cfg)
+	fmt.Println("Test environment started")
 }
 
 func tearDownSuite() {
