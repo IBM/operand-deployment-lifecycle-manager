@@ -19,9 +19,6 @@ metadata:
 {{- if .Values.global.instanceNamespace }}
   {{- $namespaces = append $namespaces .Values.global.instanceNamespace }}
 {{- end }}
-{{- if .Values.cpfs.labels }}
-  {{- $labels := .Values.cpfs.labels }}
-{{- end }}
 {{- range $i := $namespaces }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -31,11 +28,11 @@ metadata:
   namespace: {{ $i }}
   labels:
     component-id: {{ $chartName }}
-    {{- if .Values.cpfs.labels }}
-      {{- with $labels }}
+    {{- if $.Values.cpfs.labels }}
+      {{- with $.Values.cpfs.labels }}
         {{- toYaml . | nindent 4 }}
       {{- end }}
-    {{- end }}
+    {{- end}}
 rules:
 - apiGroups:
   - ""
@@ -313,11 +310,11 @@ metadata:
   namespace: {{ $i }}
   labels:
     component-id: {{ $chartName }}
-    {{- if .Values.cpfs.labels }}
-      {{- with $labels }}
+    {{- if $.Values.cpfs.labels }}
+      {{- with $.Values.cpfs.labels }}
         {{- toYaml . | nindent 4 }}
       {{- end }}
-    {{- end }}
+    {{- end}}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -336,11 +333,11 @@ metadata:
   namespace: {{ $i }}
   labels:
     component-id: {{ $chartName }}
-    {{- if .Values.cpfs.labels }}
-      {{- with $labels }}
+    {{- if $.Values.cpfs.labels }}
+      {{- with $.Values.cpfs.labels }}
         {{- toYaml . | nindent 4 }}
       {{- end }}
-    {{- end }}
+    {{- end}}
 rules:
 - apiGroups:
   - operators.coreos.com
@@ -361,11 +358,11 @@ metadata:
   namespace: {{ $i }}
   labels:
     component-id: {{ $chartName}}
-    {{- if .Values.cpfs.labels }}
-      {{- with $labels }}
+    {{- if $.Values.cpfs.labels }}
+      {{- with $.Values.cpfs.labels }}
         {{- toYaml . | nindent 4 }}
       {{- end }}
-    {{- end }}
+    {{- end}}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
