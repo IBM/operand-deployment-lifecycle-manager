@@ -5,9 +5,11 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     productName: IBM_Cloud_Platform_Common_Services
     component-id: {{ .Chart.Name }}
-    {{- with .Values.cpfs.labels }}
-      {{- toYaml . | nindent 4 }}
-    {{- end }}
+    {{- if .Values.cpfs.labels }}
+      {{- with .Values.cpfs.labels }}
+        {{- toYaml . | nindent 4 }}
+      {{- end }}
+    {{- end}}
   name: operand-deployment-lifecycle-manager
   namespace: {{ .Values.global.operatorNamespace }}
 spec:

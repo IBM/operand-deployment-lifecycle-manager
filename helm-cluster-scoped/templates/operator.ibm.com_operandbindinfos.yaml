@@ -11,12 +11,16 @@ metadata:
   name: operandbindinfos.operator.ibm.com
   labels:
     component-id: {{ .Chart.Name }}
-    {{- with .Values.cpfs.labels }}
-      {{- toYaml . | nindent 4 }}
-    {{- end }}
-    {{- with .Values.cpfs.clusterLabels }}
-      {{- toYaml . | nindent 4 }}
-    {{- end }}
+    {{- if .Values.cpfs.labels }}
+      {{- with .Values.cpfs.labels }}
+        {{- toYaml . | nindent 4 }}
+      {{- end }}
+    {{- end}}
+    {{- if .Values.cpfs.clusterLabels }}
+      {{- with .Values.cpfs.clusterLabels }}
+        {{- toYaml . | nindent 4 }}
+      {{- end }}
+    {{- end}}
 spec:
   group: operator.ibm.com
   names:
