@@ -65,7 +65,7 @@ else
 endif
 
 # Default image repo
-QUAY_REGISTRY ?= quay.io/opencloudio
+QUAY_REGISTRY ?= quay.io/luzarragaben
 ICR_REIGSTRY ?= icr.io/cpopen
 
 ifeq ($(BUILD_LOCALLY),0)
@@ -268,8 +268,8 @@ build-operator-image: $(CONFIG_DOCKER_TARGET) ## Build the operator image.
 	--build-arg GOARCH=$(LOCAL_ARCH) -f Dockerfile .
 
 build-operator-dev-image: ## Build the operator dev image.
-	@echo "Building the $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME) docker image..."
-	@docker build -t $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(VERSION) \
+	@echo "Building the $(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME) docker image..."
+	@docker build -t $(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(VERSION) \
 	--build-arg VCS_REF=$(VCS_REF) --build-arg RELEASE_VERSION=$(RELEASE_VERSION) \
 	--build-arg GOARCH=$(LOCAL_ARCH) -f Dockerfile .
 
