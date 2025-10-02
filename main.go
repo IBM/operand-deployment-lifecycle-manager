@@ -41,6 +41,7 @@ import (
 	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/namespacescope"
 	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operandbindinfo"
 	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operandconfig"
+	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operandconfignoolm"
 	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operandregistry"
 	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operandrequest"
 	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operandrequestnoolm"
@@ -116,6 +117,12 @@ func main() {
 			klog.Errorf("unable to create controller OperandRequestNoOLM: %v", err)
 			os.Exit(1)
 		}
+		if err = (&operandconfignoolm.Reconciler{
+			ODLMOperator: deploy.NewODLMOperator(mgr, "OperandConfig"),
+		}).SetupWithManager(mgr); err != nil {
+			klog.Errorf("unable to create controller OperandConfigNoOLM: %v", err)
+			os.Exit(1)
+		}
 	} else {
 		if err = (&operandrequest.Reconciler{
 			ODLMOperator: deploy.NewODLMOperator(mgr, "OperandRequest"),
@@ -124,12 +131,12 @@ func main() {
 			klog.Errorf("unable to create controller OperandRequest: %v", err)
 			os.Exit(1)
 		}
-	}
-	if err = (&operandconfig.Reconciler{
-		ODLMOperator: deploy.NewODLMOperator(mgr, "OperandConfig"),
-	}).SetupWithManager(mgr); err != nil {
-		klog.Errorf("unable to create controller OperandConfig: %v", err)
-		os.Exit(1)
+		if err = (&operandconfig.Reconciler{
+			ODLMOperator: deploy.NewODLMOperator(mgr, "OperandConfig"),
+		}).SetupWithManager(mgr); err != nil {
+			klog.Errorf("unable to create controller OperandConfig: %v", err)
+			os.Exit(1)
+		}
 	}
 	if err = (&operandbindinfo.Reconciler{
 		ODLMOperator: deploy.NewODLMOperator(mgr, "OperandBindInfo"),
