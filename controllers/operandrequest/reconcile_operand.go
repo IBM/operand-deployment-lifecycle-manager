@@ -142,15 +142,10 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 			}
 
 			var csv *olmv1alpha1.ClusterServiceVersion
+			csvNamespace := namespace
 
 			if opdRegistry.UserManaged {
-				csvList, err := r.GetClusterServiceVersionListFromPackage(ctx, opdRegistry.PackageName, opdRegistry.Namespace)
-				if err != nil {
-					merr.Add(err)
-					requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
-					continue
-				}
-				csv = csvList[0]
+				klog.V(3).Infof("Operator %s is user managed; skipping CSV lookup", opdRegistry.Name)
 			} else {
 				csv, err = r.GetClusterServiceVersion(ctx, sub)
 				// If can't get CSV, requeue the request
@@ -159,18 +154,20 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 					requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
 					continue
 				}
-			}
 
-			if csv == nil {
-				klog.Warningf("ClusterServiceVersion for the Subscription %s in the namespace %s is not ready yet, retry", operatorName, namespace)
-				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorInstalling, "", &r.Mutex)
-				continue
-			}
+				if csv == nil {
+					klog.Warningf("ClusterServiceVersion for the Subscription %s in the namespace %s is not ready yet, retry", operatorName, namespace)
+					requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorInstalling, "", &r.Mutex)
+					continue
+				}
 
-			if err := r.DeleteRedundantCSV(ctx, csv.Name, csv.Namespace, registryKey.Namespace, opdRegistry.PackageName); err != nil {
-				merr.Add(errors.Wrapf(err, "failed to delete the redundant ClusterServiceVersion %s in the namespace %s", csv.Name, csv.Namespace))
-				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
-				continue
+				csvNamespace = csv.Namespace
+
+				if err := r.DeleteRedundantCSV(ctx, csv.Name, csv.Namespace, registryKey.Namespace, opdRegistry.PackageName); err != nil {
+					merr.Add(errors.Wrapf(err, "failed to delete the redundant ClusterServiceVersion %s in the namespace %s", csv.Name, csv.Namespace))
+					requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
+					continue
+				}
 			}
 
 			if !opdRegistry.UserManaged {
@@ -184,7 +181,11 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 				}
 			}
 
-			klog.V(3).Info("Generating customresource base on ClusterServiceVersion: ", csv.GetName())
+			if csv != nil {
+				klog.V(3).Info("Generating customresource base on ClusterServiceVersion: ", csv.GetName())
+			} else {
+				klog.V(3).Infof("Generating customresource without CSV for user managed operator: %s", operatorName)
+			}
 			requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorRunning, "", &r.Mutex)
 
 			// Merge and Generate CR
@@ -193,11 +194,22 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 				if err == nil {
 					// Check the requested Service Config if exist in specific OperandConfig
 					opdConfig := configInstance.GetService(operand.Name, opdRegistry.ConfigName)
-					if opdConfig == nil && !opdRegistry.UserManaged {
-						klog.V(2).Infof("There is no service: %s from the OperandConfig instance: %s/%s, Skip reconciling Operands", operand.Name, registryKey.Namespace, req.Registry)
+					if opdConfig == nil {
+						if opdRegistry.UserManaged {
+							klog.V(2).Infof("Operator %s is user managed and no OperandConfig service is defined; skipping OperandConfig reconciliation", operand.Name)
+						} else {
+							klog.V(2).Infof("There is no service: %s from the OperandConfig instance: %s/%s, Skip reconciling Operands", operand.Name, registryKey.Namespace, req.Registry)
+						}
 						continue
 					}
-					err = r.reconcileCRwithConfig(ctx, opdConfig, configInstance.Name, configInstance.Namespace, csv, requestInstance, operand.Name, csv.Namespace, &r.Mutex)
+					if opdRegistry.UserManaged && len(opdConfig.Spec) > 0 {
+						err := fmt.Errorf("operator %s is user managed; OperandConfig spec must be empty", operand.Name)
+						merr.Add(err)
+						requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
+						requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceFailed, &r.Mutex)
+						continue
+					}
+					err = r.reconcileCRwithConfig(ctx, opdConfig, configInstance.Name, configInstance.Namespace, csv, requestInstance, operand.Name, csvNamespace, &r.Mutex)
 					if err != nil {
 						merr.Add(err)
 						requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceFailed, &r.Mutex)
@@ -262,6 +274,13 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 		if len(merr.Errors) != 0 {
 			return merr
 		}
+	}
+
+	if csv == nil {
+		if len(service.Spec) != 0 {
+			return errors.Errorf("OperandConfig spec for service %s requires a CSV, but none was provided", service.Name)
+		}
+		return nil
 	}
 
 	almExamples := csv.GetAnnotations()["alm-examples"]
