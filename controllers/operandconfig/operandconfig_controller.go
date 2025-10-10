@@ -129,12 +129,70 @@ func (r *Reconciler) updateStatus(ctx context.Context, instance *operatorv1alpha
 			continue
 		}
 
+		status, ok := instance.Status.ServiceStatus[op.Name]
+		if !ok {
+			status = operatorv1alpha1.CrStatus{}
+		}
+		if status.CrStatus == nil {
+			status.CrStatus = make(map[string]operatorv1alpha1.ServicePhase)
+		}
+
+		merr := &util.MultiErr{}
+		origStatusMap := map[string]operatorv1alpha1.CrStatus{}
+		if cast, ok := originalStatus.(map[string]operatorv1alpha1.CrStatus); ok && cast != nil {
+			origStatusMap = cast
+		}
+		if err := r.deleteK8sReousceFromStatus(ctx, origStatusMap, service, &op); err != nil {
+			merr.Add(err)
+		}
+
+		for _, resource := range service.Resources {
+			var k8sUnstruct unstructured.Unstructured
+			k8sAPIVersion := resource.APIVersion
+			k8sKind := resource.Kind
+			k8sName := resource.Name
+			k8sNamespace := instance.Namespace
+			if resource.Namespace != "" {
+				k8sNamespace = resource.Namespace
+			}
+			resourceKey := k8sAPIVersion + "@" + k8sKind + "@" + k8sNamespace + "@" + k8sName
+
+			k8sUnstruct.SetAPIVersion(k8sAPIVersion)
+			k8sUnstruct.SetKind(k8sKind)
+			k8sGetError := r.Client.Get(ctx, types.NamespacedName{
+				Name:      k8sName,
+				Namespace: k8sNamespace,
+			}, &k8sUnstruct)
+
+			if k8sGetError != nil && !apierrors.IsNotFound(k8sGetError) {
+				status.CrStatus[resourceKey] = operatorv1alpha1.ServiceFailed
+			} else if apierrors.IsNotFound(k8sGetError) {
+				status.CrStatus[resourceKey] = operatorv1alpha1.ServiceCreating
+			} else {
+				status.CrStatus[resourceKey] = operatorv1alpha1.ServiceRunning
+			}
+		}
+
+		instance.Status.ServiceStatus[op.Name] = status
+
+		if op.UserManaged {
+			klog.V(3).Infof("Operator %s is user managed; skipping OperandConfig CSV reconciliation", op.Name)
+			instance.Status.ServiceStatus[op.Name] = status
+			if len(merr.Errors) != 0 {
+				return merr
+			}
+			continue
+		}
+
 		// Looking for the CSV
 		namespace := r.GetOperatorNamespace(op.InstallMode, op.Namespace)
 		sub, err := r.GetSubscription(ctx, op.Name, namespace, registryInstance.Namespace, op.PackageName)
 
 		if sub == nil && err == nil {
 			klog.V(3).Infof("There is no Subscription %s or %s in the namespace %s", op.Name, op.PackageName, namespace)
+			if len(merr.Errors) != 0 {
+				return merr
+			}
 			continue
 		}
 
@@ -155,77 +213,28 @@ func (r *Reconciler) updateStatus(ctx context.Context, instance *operatorv1alpha
 
 		if csv == nil {
 			klog.Warningf("ClusterServiceVersion for the Subscription %s/%s doesn't exist, retry...", namespace, sub.Name)
+			if len(merr.Errors) != 0 {
+				return merr
+			}
 			continue
 		}
 
-		_, ok := instance.Status.ServiceStatus[op.Name]
-
-		if !ok {
-			instance.Status.ServiceStatus[op.Name] = operatorv1alpha1.CrStatus{}
-		}
-
-		if instance.Status.ServiceStatus[op.Name].CrStatus == nil {
-			tmp := instance.Status.ServiceStatus[op.Name]
-			tmp.CrStatus = make(map[string]operatorv1alpha1.ServicePhase)
-			instance.Status.ServiceStatus[op.Name] = tmp
-		}
-
-		merr := &util.MultiErr{}
-
-		// handle the deletion of k8s resources
-		k8sError := r.deleteK8sReousceFromStatus(ctx, originalStatus.(map[string]operatorv1alpha1.CrStatus), service, &op)
-		if k8sError != nil {
-			merr.Add(k8sError)
-		}
-
-		// update the status for kubernetes resources
-		k8sResources := service.Resources
-		for _, resource := range k8sResources {
-			var k8sUnstruct unstructured.Unstructured
-			k8sAPIVersion := resource.APIVersion
-			k8sKind := resource.Kind
-			k8sName := resource.Name
-			k8sNamespace := instance.Namespace
-			if resource.Namespace != "" {
-				k8sNamespace = resource.Namespace
-			}
-			resourceKey := k8sAPIVersion + "@" + k8sKind + "@" + k8sNamespace + "@" + k8sName
-
-			k8sUnstruct.SetAPIVersion(k8sAPIVersion)
-			k8sUnstruct.SetKind(k8sKind)
-			k8sGetError := r.Client.Get(ctx, types.NamespacedName{
-				Name:      k8sName,
-				Namespace: k8sNamespace,
-			}, &k8sUnstruct)
-
-			if k8sGetError != nil && !apierrors.IsNotFound(k8sGetError) {
-				instance.Status.ServiceStatus[op.Name].CrStatus[resourceKey] = operatorv1alpha1.ServiceFailed
-			} else if apierrors.IsNotFound(k8sGetError) {
-				instance.Status.ServiceStatus[op.Name].CrStatus[resourceKey] = operatorv1alpha1.ServiceCreating
-			} else {
-				instance.Status.ServiceStatus[op.Name].CrStatus[resourceKey] = operatorv1alpha1.ServiceRunning
-			}
-		}
-
-		// update the status for custom resources
 		almExamples := csv.ObjectMeta.Annotations["alm-examples"]
 		if almExamples == "" {
 			klog.Warningf("Notfound alm-examples in the ClusterServiceVersion %s/%s", csv.Namespace, csv.Name)
+			if len(merr.Errors) != 0 {
+				return merr
+			}
 			continue
 		}
-		// Create a slice for crTemplates
-		var crTemplates []interface{}
 
-		// Convert CR template string to slice
+		var crTemplates []interface{}
 		err = json.Unmarshal([]byte(almExamples), &crTemplates)
 		if err != nil {
 			return errors.Wrapf(err, "failed to convert alm-examples in the Subscription %s/%s to slice", sub.Namespace, sub.Name)
 		}
 
-		// Merge OperandConfig and ClusterServiceVersion alm-examples
 		for _, crTemplate := range crTemplates {
-
-			// Create an unstruct object for CR and request its value to CR template
 			var unstruct unstructured.Unstructured
 			unstruct.Object = crTemplate.(map[string]interface{})
 
@@ -233,7 +242,6 @@ func (r *Reconciler) updateStatus(ctx context.Context, instance *operatorv1alpha
 
 			existinConfig := false
 			for crName := range service.Spec {
-				// Compare the name of OperandConfig and CRD name
 				if strings.EqualFold(kind, crName) {
 					existinConfig = true
 				}
@@ -254,13 +262,17 @@ func (r *Reconciler) updateStatus(ctx context.Context, instance *operatorv1alpha
 			}, &unstruct)
 
 			if getError != nil && !apierrors.IsNotFound(getError) {
-				instance.Status.ServiceStatus[op.Name].CrStatus[kind] = operatorv1alpha1.ServiceFailed
+				status.CrStatus[kind] = operatorv1alpha1.ServiceFailed
+				merr.Add(getError)
 			} else if apierrors.IsNotFound(getError) {
-				instance.Status.ServiceStatus[op.Name].CrStatus[kind] = operatorv1alpha1.ServiceCreating
+				status.CrStatus[kind] = operatorv1alpha1.ServiceCreating
 			} else {
-				instance.Status.ServiceStatus[op.Name].CrStatus[kind] = operatorv1alpha1.ServiceRunning
+				status.CrStatus[kind] = operatorv1alpha1.ServiceRunning
 			}
 		}
+
+		instance.Status.ServiceStatus[op.Name] = status
+
 		if len(merr.Errors) != 0 {
 			return merr
 		}

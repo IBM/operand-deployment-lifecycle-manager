@@ -163,15 +163,26 @@ func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance 
 	sub, err := r.GetSubscription(ctx, opt.Name, namespace, registryInstance.Namespace, opt.PackageName)
 
 	if opt.UserManaged {
+		if err != nil && !apierrors.IsNotFound(err) {
+			return err
+		}
+		if sub != nil {
+			if _, managedByODLM := sub.Labels[constant.OpreqLabel]; managedByODLM {
+				if r.checkUninstallLabel(sub) {
+					klog.V(1).Infof("Operator %s has label operator.ibm.com/opreq-do-not-uninstall. Skip subscription cleanup", opt.Name)
+				} else {
+					klog.Infof("Deleting existing subscription %s/%s because operator %s is now user managed", sub.Namespace, sub.Name, opt.PackageName)
+					if err = r.deleteSubscription(ctx, requestInstance, sub); err != nil {
+						requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorFailed, "", mu)
+						return err
+					}
+					requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorUpdating, "", mu)
+					return nil
+				}
+			}
+		}
 		klog.Infof("Skip installing operator %s because it is managed by user", opt.PackageName)
-		csvList, err := r.GetClusterServiceVersionListFromPackage(ctx, opt.PackageName, namespace)
-		if err != nil {
-			return errors.Wrapf(err, "failed to get CSV from package %s/%s", namespace, opt.PackageName)
-		}
-		if len(csvList) == 0 {
-			return errors.New("operator " + opt.Name + " is user managed, but no CSV exists, waiting...")
-		}
-		requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorUpdating, "", mu)
+		requestInstance.SetMemberStatus(opt.Name, operatorv1alpha1.OperatorRunning, "", mu)
 		return nil
 	}
 
@@ -430,8 +441,8 @@ func (r *Reconciler) uninstallOperatorsAndOperands(ctx context.Context, operandN
 	if _, ok := sub.Labels[constant.OpreqLabel]; !ok {
 		if !op.UserManaged {
 			klog.V(2).Infof("Subscription %s in the namespace %s isn't created by ODLM and isn't user managed", sub.Name, sub.Namespace)
-			return nil
 		}
+		return nil
 	}
 
 	uninstallOperator, uninstallOperand := checkSubAnnotationsForUninstall(requestInstance.ObjectMeta.Name, requestInstance.ObjectMeta.Namespace, op.Name, op.InstallMode, sub)
