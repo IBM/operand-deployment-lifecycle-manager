@@ -124,4 +124,3 @@ When the API or CRD changed, run `make code-dev` re-generate the code.
 ## SecurityContextConstraints Requirements
 
 The Operand Deployment Lifecycle Manager supports running under the OpenShift Container Platform default restricted security context constraints.
-
