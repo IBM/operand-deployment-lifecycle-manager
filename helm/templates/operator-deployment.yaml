@@ -199,7 +199,7 @@ spec:
           value: {{ uniq $watchNamespaces | join "," | quote }}
         - name: NO_OLM
           value: "true"
-        image: {{ .Values.cpfs.imagePullPrefix | default .Values.global.imagePullPrefix }}/{{ .Values.cpfs.imageRegistryNamespaceOperator }}/odlm:4.5.3
+        image: {{ .Values.cpfs.imagePullPrefix | default .Values.global.imagePullPrefix }}/{{ .Values.cpfs.imageRegistryNamespaceOperator }}/odlm:4.5.5
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 10
