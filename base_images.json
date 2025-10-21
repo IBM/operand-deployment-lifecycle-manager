@@ -37,6 +37,6 @@
     "sourceImage": "ubi9-minimal",
     "sourceTag": "9.6-1760515502",
     "destImage": "node-v22-ubi9-minimal",
-    "nodeVersion": "22.20.0"
+    "nodeVersion": "22.21.0"
   }
 ]
