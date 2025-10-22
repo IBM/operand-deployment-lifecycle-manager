@@ -18,6 +18,7 @@ package operatorconfig
 
 import (
 	"context"
+	"fmt"
 
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -76,24 +77,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				continue
 			}
 
-			var sub *olmv1alpha1.Subscription
-			sub, err = r.GetSubscription(ctx, operator.Name, operator.Namespace, registry.Namespace, operator.PackageName)
-			if err != nil {
-				return ctrl.Result{}, err
-			} else if sub == nil {
-				klog.Infof("Subscription for Operator %s/%s not found", operator.Name, operator.PackageName)
-				return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
-			}
-
-			var csv *olmv1alpha1.ClusterServiceVersion
-			csv, err = r.GetClusterServiceVersion(ctx, sub)
-			if err != nil {
-				return ctrl.Result{}, err
-			} else if csv == nil {
-				klog.Infof("ClusterServiceVersion for Operator %s/%s not found", operator.Name, operator.PackageName)
-				return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
-			}
-
 			klog.Infof("Fetching OperatorConfig: %s", operator.OperatorConfig)
 			config := &operatorv1alpha1.OperatorConfig{}
 			if err := r.Client.Get(ctx, types.NamespacedName{
@@ -110,6 +93,32 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			if serviceConfig == nil {
 				klog.Infof("OperatorConfig %s does not have configuration for operator: %s", operator.OperatorConfig, operator.Name)
 				continue
+			}
+
+			if operator.UserManaged {
+				if serviceConfig.Affinity != nil || serviceConfig.Replicas != nil || len(serviceConfig.TopologySpreadConstraints) > 0 {
+					return ctrl.Result{}, fmt.Errorf("operator %s is user managed; OperatorConfig %s must not specify replicas, affinity, or topologySpreadConstraints", operator.Name, operator.OperatorConfig)
+				}
+				klog.V(3).Infof("Operator %s is user managed; skipping OperatorConfig reconciliation", operator.Name)
+				continue
+			}
+
+			var sub *olmv1alpha1.Subscription
+			sub, err = r.GetSubscription(ctx, operator.Name, operator.Namespace, registry.Namespace, operator.PackageName)
+			if err != nil {
+				return ctrl.Result{}, err
+			} else if sub == nil {
+				klog.Infof("Subscription for Operator %s/%s not found", operator.Name, operator.PackageName)
+				return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
+			}
+
+			var csv *olmv1alpha1.ClusterServiceVersion
+			csv, err = r.GetClusterServiceVersion(ctx, sub)
+			if err != nil {
+				return ctrl.Result{}, err
+			} else if csv == nil {
+				klog.Infof("ClusterServiceVersion for Operator %s/%s not found", operator.Name, operator.PackageName)
+				return ctrl.Result{RequeueAfter: constant.DefaultRequeueDuration}, nil
 			}
 
 			klog.Infof("Applying OperatorConfig: %s to Operator: %s via CSV: %s, %s", operator.OperatorConfig, operator.Name, csv.Name, csv.Namespace)

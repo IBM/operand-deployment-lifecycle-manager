@@ -94,23 +94,29 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 
 			klog.V(1).Info("Looking for deployment for the operator: ", operatorName)
 
-			// Looking for the CSV
 			namespace := r.GetOperatorNamespace(opdRegistry.InstallMode, opdRegistry.Namespace)
+			operatorNamespace := namespace
 
 			var deployment *appsv1.Deployment
 
-			deploymentList, err := r.GetDeploymentListFromPackage(ctx, opdRegistry.PackageName, opdRegistry.Namespace)
-			if err != nil {
-				merr.Add(err)
-				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
-				continue
-			}
-			deployment = deploymentList[0]
+			if opdRegistry.UserManaged {
+				klog.V(3).Infof("Operator %s is user managed; skipping deployment lookup", opdRegistry.Name)
+			} else {
+				deploymentList, err := r.GetDeploymentListFromPackage(ctx, opdRegistry.PackageName, opdRegistry.Namespace)
+				if err != nil {
+					merr.Add(err)
+					requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
+					continue
+				}
 
-			if deployment == nil {
-				klog.Warningf("Deployment for %s in the namespace %s is not ready yet, retry", operatorName, namespace)
-				requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorInstalling, "", &r.Mutex)
-				continue
+				if len(deploymentList) == 0 || deploymentList[0] == nil {
+					klog.Warningf("Deployment for %s in the namespace %s is not ready yet, retry", operatorName, namespace)
+					requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorInstalling, "", &r.Mutex)
+					continue
+				}
+
+				deployment = deploymentList[0]
+				operatorNamespace = deployment.Namespace
 			}
 
 			// TODO determine if we need to reimagine this function for noolm use, do we want odlm cleaning up extra deployments? How should ODLM know the difference between "good" and "bad" deployments?
@@ -121,7 +127,11 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 			// 	continue
 			// }
 
-			klog.V(3).Info("Generating customresource base on Deployment: ", deployment.GetName())
+			if deployment != nil {
+				klog.V(3).Info("Generating customresource base on Deployment: ", deployment.GetName())
+			} else {
+				klog.V(3).Infof("Generating customresource without deployment for user managed operator: %s", operatorName)
+			}
 			requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorRunning, "", &r.Mutex)
 
 			// Merge and Generate CR
@@ -130,11 +140,22 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 				if err == nil {
 					// Check the requested Service Config if exist in specific OperandConfig
 					opdConfig := configInstance.GetService(operand.Name, opdRegistry.ConfigName)
-					if opdConfig == nil && !opdRegistry.UserManaged {
-						klog.V(2).Infof("There is no service: %s from the OperandConfig instance: %s/%s, Skip reconciling Operands", operand.Name, registryKey.Namespace, req.Registry)
+					if opdConfig == nil {
+						if opdRegistry.UserManaged {
+							klog.V(2).Infof("Operator %s is user managed and no OperandConfig service is defined; skipping OperandConfig reconciliation", operand.Name)
+						} else {
+							klog.V(2).Infof("There is no service: %s from the OperandConfig instance: %s/%s, Skip reconciling Operands", operand.Name, registryKey.Namespace, req.Registry)
+						}
 						continue
 					}
-					err = r.reconcileCRwithConfig(ctx, opdConfig, configInstance.Name, configInstance.Namespace, deployment, requestInstance, operand.Name, deployment.Namespace, &r.Mutex)
+					if opdRegistry.UserManaged && len(opdConfig.Spec) > 0 {
+						err := fmt.Errorf("operator %s is user managed; OperandConfig spec must be empty", operand.Name)
+						merr.Add(err)
+						requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorFailed, "", &r.Mutex)
+						requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceFailed, &r.Mutex)
+						continue
+					}
+					err = r.reconcileCRwithConfig(ctx, opdConfig, configInstance.Name, configInstance.Namespace, deployment, requestInstance, operand.Name, operatorNamespace, &r.Mutex)
 					if err != nil {
 						merr.Add(err)
 						requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceFailed, &r.Mutex)
@@ -148,7 +169,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 				}
 
 			} else {
-				err = r.reconcileCRwithRequest(ctx, requestInstance, operand, types.NamespacedName{Name: requestInstance.Name, Namespace: requestInstance.Namespace}, i, deployment.Namespace, &r.Mutex)
+				err = r.reconcileCRwithRequest(ctx, requestInstance, operand, types.NamespacedName{Name: requestInstance.Name, Namespace: requestInstance.Namespace}, i, operatorNamespace, &r.Mutex)
 				if err != nil {
 					merr.Add(err)
 					requestInstance.SetMemberStatus(operand.Name, "", operatorv1alpha1.ServiceFailed, &r.Mutex)
@@ -199,6 +220,13 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 		if len(merr.Errors) != 0 {
 			return merr
 		}
+	}
+
+	if deployment == nil {
+		if len(service.Spec) != 0 {
+			return errors.Errorf("OperandConfig spec for service %s requires a deployment, but none was provided", service.Name)
+		}
+		return nil
 	}
 
 	almExamples := deployment.GetAnnotations()["alm-examples"]
