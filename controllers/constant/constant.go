@@ -80,7 +80,7 @@ const (
 	DefaultSyncPeriod = 3 * time.Hour
 
 	//DefaultCRFetchTimeout is the default timeout for getting a custom resource
-	DefaultCRFetchTimeout = 250 * time.Millisecond
+	DefaultCRFetchTimeout = 5 * time.Second
 
 	//DefaultCRFetchPeriod is the default retry Period for getting a custom resource
 	DefaultCRFetchPeriod = 5 * time.Second
