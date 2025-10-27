@@ -23,13 +23,19 @@ KUSTOMIZE_VERSION=v3.8.7
 
 ENVCRDS_DIR=$(shell pwd)/testcrds
 
+# CONTAINER_TOOL defines the container tool to be used for building images.
+# Be aware that the target commands are only tested with Docker which is
+# scaffolded by default. However, you might want to replace it to use other
+# tools. (i.e. podman)
+CONTAINER_TOOL ?= docker
+
 # Specify whether this repo is build locally or not, default values is '1';
 # If set to 1, then you need to also set 'DOCKER_USERNAME' and 'DOCKER_PASSWORD'
 # environment variables before build the repo.
 BUILD_LOCALLY ?= 1
 
 VCS_REF ?= $(shell git rev-parse HEAD)
-VERSION ?= $(shell git describe --exact-match 2> /dev/null || \
+BUILD_VERSION ?= $(shell git describe --exact-match 2> /dev/null || \
                 git describe --match=$(git rev-parse --short=8 HEAD) --always --dirty --abbrev=8)
 RELEASE_VERSION ?= $(shell cat ./version/version.go | grep "Version =" | awk '{ print $$3}' | tr -d '"')
 LATEST_VERSION ?= latest
@@ -52,16 +58,20 @@ else
     $(error "This system's OS $(LOCAL_OS) isn't recognized/supported")
 endif
 
-ARCH := $(shell uname -m)
-LOCAL_ARCH := "amd64"
+# Auto-detect LOCAL_ARCH only when the caller hasn't provided one.
+ifeq ($(origin LOCAL_ARCH), undefined)
+LOCAL_ARCH := amd64
 ifeq ($(ARCH),x86_64)
-    LOCAL_ARCH="amd64"
+	LOCAL_ARCH := amd64
 else ifeq ($(ARCH),ppc64le)
-    LOCAL_ARCH="ppc64le"
+	LOCAL_ARCH := ppc64le
 else ifeq ($(ARCH),s390x)
-    LOCAL_ARCH="s390x"
+	LOCAL_ARCH := s390x
+else ifeq ($(ARCH),arm64)
+	LOCAL_ARCH := arm64
 else
-    $(error "This system's ARCH $(ARCH) isn't recognized/supported")
+	$(error "This system's ARCH $(ARCH) isn't recognized/supported")
+endif
 endif
 
 # Default image repo
@@ -69,10 +79,12 @@ QUAY_REGISTRY ?= quay.io/opencloudio
 ICR_REIGSTRY ?= icr.io/cpopen
 
 ifeq ($(BUILD_LOCALLY),0)
-ARTIFACTORYA_REGISTRY ?= "docker-na-public.artifactory.swg-devops.com/hyc-cloud-private-integration-docker-local/ibmcom"
+DOCKER_REGISTRY ?= "docker-na-public.artifactory.swg-devops.com/hyc-cloud-private-integration-docker-local/ibmcom"
 else
-ARTIFACTORYA_REGISTRY ?= "docker-na-public.artifactory.swg-devops.com/hyc-cloud-private-scratch-docker-local/ibmcom"
+DOCKER_REGISTRY ?= "docker-na-public.artifactory.swg-devops.com/hyc-cloud-private-scratch-docker-local/ibmcom"
 endif
+
+BUILDX_BUILDER ?= ibm-common-service-operator-builder
 
 ifdef DEV_REGISTRY
 DEV_REGISTRY := $(DEV_REGISTRY)
