@@ -279,7 +279,7 @@ prepare-buildx:
 	@docker buildx use $(BUILDX_BUILDER)
 	@docker run --privileged --rm tonistiigi/binfmt --install all >/dev/null
 
-build-operator-image: config-docker cloudpak-theme.jar prepare-buildx ## Build the operator image.
+build-operator-image: config-docker prepare-buildx ## Build the operator image.
 	@echo "Building the $(OPERATOR_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
 	@$(CONTAINER_TOOL) buildx build \
 		--builder $(BUILDX_BUILDER) \
