@@ -1,5 +1,7 @@
 # Build the manager binary
 FROM docker-na-public.artifactory.swg-devops.com/hyc-cloud-private-dockerhub-docker-remote/golang:1.23.2 AS builder
+ARG TARGETOS
+ARG TARGETARCH
 ARG GOARCH
 
 WORKDIR /workspace
@@ -16,12 +18,17 @@ COPY api/ api/
 COPY controllers/ controllers/
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GO111MODULE=on go build -a -o manager main.go
+RUN CGO_ENABLED=0 \
+  GOOS="${TARGETOS:-linux}" \
+  GOARCH="${GOARCH:-${TARGETARCH:-amd64}}" \
+  GO111MODULE=on \
+  go build -a -o manager cmd/main.go
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
 # FROM gcr.io/distroless/static:nonroot
 FROM docker-na-public.artifactory.swg-devops.com/hyc-cloud-private-edge-docker-local/build-images/ubi9-minimal:latest
+ARG TARGETARCH
 
 ARG VCS_REF
 ARG RELEASE_VERSION
