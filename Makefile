@@ -273,11 +273,37 @@ kind-load-img:
 
 ##@ Build
 
-build-operator-image: $(CONFIG_DOCKER_TARGET) ## Build the operator image.
+.PHONY: prepare-buildx
+prepare-buildx:
+	@docker buildx inspect $(BUILDX_BUILDER) >/dev/null 2>&1 || docker buildx create --name $(BUILDX_BUILDER) --driver docker-container --use
+	@docker buildx use $(BUILDX_BUILDER)
+	@docker run --privileged --rm tonistiigi/binfmt --install all >/dev/null
+
+build-operator-image: config-docker cloudpak-theme.jar prepare-buildx ## Build the operator image.
 	@echo "Building the $(OPERATOR_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
-	@docker build -t $(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(BUILD_VERSION) \
-	--build-arg VCS_REF=$(VCS_REF) --build-arg RELEASE_VERSION=$(RELEASE_VERSION) \
-	--build-arg GOARCH=$(LOCAL_ARCH) -f Dockerfile .
+	@$(CONTAINER_TOOL) buildx build \
+		--builder $(BUILDX_BUILDER) \
+		--platform linux/$(LOCAL_ARCH) \
+		--build-arg VCS_REF=$(VCS_REF) \
+		--build-arg RELEASE_VERSION=$(RELEASE_VERSION) \
+		--build-arg TARGETOS=linux \
+		--build-arg TARGETARCH=$(LOCAL_ARCH) \
+		-t $(LOCAL_ARCH_IMAGE) \
+		--load \
+		-f Dockerfile .
+	@$(CONTAINER_TOOL) tag $(LOCAL_ARCH_IMAGE) $(RELEASE_IMAGE)
+	@$(CONTAINER_TOOL) tag $(LOCAL_ARCH_IMAGE) $(RELEASE_IMAGE_ARCH)
+	@printf 'Built image artifacts:\n  local -> %s\n  release -> %s\n  release-arch -> %s\n' \
+		"$(LOCAL_ARCH_IMAGE)" "$(RELEASE_IMAGE)" "$(RELEASE_IMAGE_ARCH)"
+
+build-push-image: config-docker build-operator-image  ## Build and push the operator images.
+	@echo "Pushing $(OPERATOR_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
+	$(MAKE) docker-push IMG=$(RELEASE_IMAGE_ARCH)
+	$(MAKE) docker-push IMG=$(RELEASE_IMAGE)
+
+.PHONY: docker-push
+docker-push:
+	docker push $(IMG)
 
 build-operator-dev-image: ## Build the operator dev image.
 	@echo "Building the $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME) docker image..."
@@ -285,7 +311,7 @@ build-operator-dev-image: ## Build the operator dev image.
 	--build-arg VCS_REF=$(VCS_REF) --build-arg RELEASE_VERSION=$(RELEASE_VERSION) \
 	--build-arg GOARCH=$(LOCAL_ARCH) -f Dockerfile .
 
-build-test-operator-image: $(CONFIG_DOCKER_TARGET) ## Build the operator test image.
+build-test-operator-image: config-docker ## Build the operator test image.
 	@echo "Building the $(OPERATOR_IMAGE_NAME) docker image for testing..."
 	@docker build -t $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG) \
 	--build-arg VCS_REF=$(VCS_REF) --build-arg RELEASE_VERSION=$(RELEASE_VERSION) \
@@ -301,11 +327,6 @@ build-push-dev-image: build-operator-dev-image  ## Build and push the operator d
 	@echo "Pushing the $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(BUILD_VERSION) docker image to $(DEV_REGISTRY)..."
 	@docker push $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(BUILD_VERSION)
 
-build-push-image: $(CONFIG_DOCKER_TARGET) build-operator-image  ## Build and push the operator images.
-	@echo "Pushing the $(OPERATOR_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
-	@docker tag $(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(BUILD_VERSION) $(ARTIFACTORYA_REGISTRY)/$(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(BUILD_VERSION)
-	@docker push $(ARTIFACTORYA_REGISTRY)/$(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(BUILD_VERSION)
-
 build-push-bundle-image: yq
 	@docker build -f bundle.Dockerfile -t $(ICR_REIGSTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(BUILD_VERSION) .
 	@echo "Pushing the $(BUNDLE_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
@@ -317,9 +338,9 @@ build-catalog-source:
 
 build-catalog: build-push-bundle-image build-catalog-source
 
-multiarch-image: $(CONFIG_DOCKER_TARGET) ## Generate multiarch images for operator image.
-	@MAX_PULLING_RETRY=20 RETRY_INTERVAL=30 common/scripts/multiarch_image.sh $(ARTIFACTORYA_REGISTRY) $(OPERATOR_IMAGE_NAME) $(BUILD_VERSION) $(RELEASE_VERSION)
-
+multiarch-image: config-docker ## Generate multiarch images for operator image.
+	@MAX_PULLING_RETRY=20 RETRY_INTERVAL=30 common/scripts/multiarch_image.sh $(DOCKER_REGISTRY) $(OPERATOR_IMAGE_NAME) $(BUILD_VERSION) $(RELEASE_VERSION)
+	
 run-bundle:
 	$(OPERATOR_SDK) run bundle $(QUAY_REGISTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(BUILD_VERSION) --install-mode OwnNamespace
 
