@@ -49,28 +49,29 @@ LOCAL_OS := $(shell uname)
 ifeq ($(LOCAL_OS),Linux)
     TARGET_OS ?= linux
     XARGS_FLAGS="-r"
-	STRIP_FLAGS=
+    STRIP_FLAGS=
 else ifeq ($(LOCAL_OS),Darwin)
     TARGET_OS ?= darwin
     XARGS_FLAGS=
-	STRIP_FLAGS="-x"
+    STRIP_FLAGS="-x"
 else
     $(error "This system's OS $(LOCAL_OS) isn't recognized/supported")
 endif
 
+ARCH := $(shell uname -m)
 # Auto-detect LOCAL_ARCH only when the caller hasn't provided one.
 ifeq ($(origin LOCAL_ARCH), undefined)
 LOCAL_ARCH := amd64
 ifeq ($(ARCH),x86_64)
-	LOCAL_ARCH := amd64
+    LOCAL_ARCH := amd64
 else ifeq ($(ARCH),ppc64le)
-	LOCAL_ARCH := ppc64le
+    LOCAL_ARCH := ppc64le
 else ifeq ($(ARCH),s390x)
-	LOCAL_ARCH := s390x
+    LOCAL_ARCH := s390x
 else ifeq ($(ARCH),arm64)
-	LOCAL_ARCH := arm64
+    LOCAL_ARCH := arm64
 else
-	$(error "This system's ARCH $(ARCH) isn't recognized/supported")
+    $(error "This system's ARCH $(ARCH) isn't recognized/supported")
 endif
 endif
 
@@ -84,7 +85,7 @@ else
 DOCKER_REGISTRY ?= "docker-na-public.artifactory.swg-devops.com/hyc-cloud-private-scratch-docker-local/ibmcom"
 endif
 
-BUILDX_BUILDER ?= ibm-common-service-operator-builder
+BUILDX_BUILDER ?= operand-deployment-lifecycle-manager-builder
 
 ifdef DEV_REGISTRY
 DEV_REGISTRY := $(DEV_REGISTRY)

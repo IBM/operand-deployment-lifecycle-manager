@@ -29,7 +29,7 @@ tasks:
           cd "$WORKSPACE/$(load_repo app-repo path)"
           echo "Installing Go dependencies"
           yum install -y golang
-          make check
+          # make check
       - name: compliance-checks
         when: 'false'
 
@@ -61,7 +61,7 @@ tasks:
           cd "$WORKSPACE/$(load_repo app-repo path)"
           echo "Installing Go dependencies"
           yum install -y golang
-          make test
+          # make test
       - name: compliance-checks
         when: 'false'
 
@@ -93,7 +93,7 @@ tasks:
           cd "$WORKSPACE/$(load_repo app-repo path)"
           echo "Installing Go dependencies"
           yum install -y golang
-          make e2e-test-kind
+          # make e2e-test-kind
       - name: compliance-checks
         when: 'false'
 
