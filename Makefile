@@ -23,13 +23,19 @@ KUSTOMIZE_VERSION=v3.8.7
 
 ENVCRDS_DIR=$(shell pwd)/testcrds
 
+# CONTAINER_TOOL defines the container tool to be used for building images.
+# Be aware that the target commands are only tested with Docker which is
+# scaffolded by default. However, you might want to replace it to use other
+# tools. (i.e. podman)
+CONTAINER_TOOL ?= docker
+
 # Specify whether this repo is build locally or not, default values is '1';
 # If set to 1, then you need to also set 'DOCKER_USERNAME' and 'DOCKER_PASSWORD'
 # environment variables before build the repo.
 BUILD_LOCALLY ?= 1
 
 VCS_REF ?= $(shell git rev-parse HEAD)
-VERSION ?= $(shell git describe --exact-match 2> /dev/null || \
+BUILD_VERSION ?= $(shell git describe --exact-match 2> /dev/null || \
                 git describe --match=$(git rev-parse --short=8 HEAD) --always --dirty --abbrev=8)
 RELEASE_VERSION ?= $(shell cat ./version/version.go | grep "Version =" | awk '{ print $$3}' | tr -d '"')
 LATEST_VERSION ?= latest
@@ -42,41 +48,52 @@ LOCAL_OS := $(shell uname)
 ifeq ($(LOCAL_OS),Linux)
     TARGET_OS ?= linux
     XARGS_FLAGS="-r"
-	STRIP_FLAGS=
+    STRIP_FLAGS=
 else ifeq ($(LOCAL_OS),Darwin)
     TARGET_OS ?= darwin
     XARGS_FLAGS=
-	STRIP_FLAGS="-x"
+    STRIP_FLAGS="-x"
 else
     $(error "This system's OS $(LOCAL_OS) isn't recognized/supported")
 endif
 
 ARCH := $(shell uname -m)
-LOCAL_ARCH := "amd64"
+# Auto-detect LOCAL_ARCH only when the caller hasn't provided one.
+ifeq ($(origin LOCAL_ARCH), undefined)
+LOCAL_ARCH := amd64
 ifeq ($(ARCH),x86_64)
-    LOCAL_ARCH="amd64"
+    LOCAL_ARCH := amd64
 else ifeq ($(ARCH),ppc64le)
-    LOCAL_ARCH="ppc64le"
+    LOCAL_ARCH := ppc64le
 else ifeq ($(ARCH),s390x)
-    LOCAL_ARCH="s390x"
+    LOCAL_ARCH := s390x
+else ifeq ($(ARCH),arm64)
+    LOCAL_ARCH := arm64
 else
     $(error "This system's ARCH $(ARCH) isn't recognized/supported")
+endif
 endif
 
 # Default image repo
 QUAY_REGISTRY ?= quay.io/opencloudio
 
 ifeq ($(BUILD_LOCALLY),0)
-ARTIFACTORYA_REGISTRY ?= "docker-na-public.artifactory.swg-devops.com/hyc-cloud-private-integration-docker-local/ibmcom"
+DOCKER_REGISTRY ?= "docker-na-public.artifactory.swg-devops.com/hyc-cloud-private-integration-docker-local/ibmcom"
 else
-ARTIFACTORYA_REGISTRY ?= "docker-na-public.artifactory.swg-devops.com/hyc-cloud-private-scratch-docker-local/ibmcom"
+DOCKER_REGISTRY ?= "docker-na-public.artifactory.swg-devops.com/hyc-cloud-private-scratch-docker-local/ibmcom"
 endif
+
+BUILDX_BUILDER ?= operand-deployment-lifecycle-manager-builder
 
 ifdef DEV_REGISTRY
 DEV_REGISTRY := $(DEV_REGISTRY)
 else
 DEV_REGISTRY := ${QUAY_REGISTRY}
 endif
+
+RELEASE_IMAGE ?= $(DOCKER_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(BUILD_VERSION)
+RELEASE_IMAGE_ARCH ?= $(DOCKER_REGISTRY)/$(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(BUILD_VERSION)
+LOCAL_ARCH_IMAGE ?= $(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(BUILD_VERSION)
 
 # Current Operator image name
 OPERATOR_IMAGE_NAME ?= odlm
@@ -104,10 +121,6 @@ ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
 else
 GOBIN=$(shell go env GOBIN)
-endif
-
-ifeq ($(BUILD_LOCALLY),0)
-    export CONFIG_DOCKER_TARGET = config-docker
 endif
 
 include common/Makefile.common.mk
@@ -256,17 +269,41 @@ kind-load-img:
 
 ##@ Build
 
-build-operator-image: $(CONFIG_DOCKER_TARGET) ## Build the operator image.
+.PHONY: prepare-buildx
+prepare-buildx:
+	@docker buildx inspect $(BUILDX_BUILDER) >/dev/null 2>&1 || docker buildx create --name $(BUILDX_BUILDER) --driver docker-container --use
+	@docker buildx use $(BUILDX_BUILDER)
+	@docker run --privileged --rm tonistiigi/binfmt --install all >/dev/null
+
+build-operator-image: config-docker prepare-buildx ## Build the operator image.
 	@echo "Building the $(OPERATOR_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
-	@docker build -t $(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) \
-	--build-arg VCS_REF=$(VCS_REF) --build-arg GOARCH=$(LOCAL_ARCH) -f Dockerfile .
+	@$(CONTAINER_TOOL) buildx build \
+		--builder $(BUILDX_BUILDER) \
+		--platform linux/$(LOCAL_ARCH) \
+		--build-arg VCS_REF=$(VCS_REF) \
+		--build-arg RELEASE_VERSION=$(RELEASE_VERSION) \
+		--build-arg TARGETOS=linux \
+		--build-arg TARGETARCH=$(LOCAL_ARCH) \
+		-t $(LOCAL_ARCH_IMAGE) \
+		--load \
+		-f Dockerfile .
+	@$(CONTAINER_TOOL) tag $(LOCAL_ARCH_IMAGE) $(RELEASE_IMAGE_ARCH)
+
+build-push-image: config-docker build-operator-image  ## Build and push the operator images.
+	@echo "Pushing $(OPERATOR_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
+	$(MAKE) docker-push IMG=$(RELEASE_IMAGE_ARCH)
+
+.PHONY: docker-push
+docker-push:
+	docker push $(IMG)
 
 build-operator-dev-image: ## Build the operator dev image.
 	@echo "Building the $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME) docker image..."
-	@docker build -t $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(VERSION) \
-	--build-arg VCS_REF=$(VCS_REF) --build-arg GOARCH=$(LOCAL_ARCH) -f Dockerfile .
+	@docker build -t $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(BUILD_VERSION) \
+	--build-arg VCS_REF=$(VCS_REF) --build-arg RELEASE_VERSION=$(RELEASE_VERSION) \
+	--build-arg GOARCH=$(LOCAL_ARCH) -f Dockerfile .
 
-build-test-operator-image: $(CONFIG_DOCKER_TARGET) ## Build the operator test image.
+build-test-operator-image: config-docker ## Build the operator test image.
 	@echo "Building the $(OPERATOR_IMAGE_NAME) docker image for testing..."
 	@docker build -t $(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG) \
 	--build-arg VCS_REF=$(VCS_REF) --build-arg GOARCH=$(LOCAL_ARCH) -f Dockerfile .
@@ -274,34 +311,29 @@ build-test-operator-image: $(CONFIG_DOCKER_TARGET) ## Build the operator test im
 ##@ Release
 
 build-push-dev-image: build-operator-dev-image  ## Build and push the operator dev images.
-	@echo "Pushing the $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(VERSION) docker image to $(DEV_REGISTRY)..."
-	@docker push $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(VERSION)
-
-build-push-image: $(CONFIG_DOCKER_TARGET) build-operator-image  ## Build and push the operator images.
-	@echo "Pushing the $(OPERATOR_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
-	@docker tag $(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) $(ARTIFACTORYA_REGISTRY)/$(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION)
-	@docker push $(ARTIFACTORYA_REGISTRY)/$(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION)
+	@echo "Pushing the $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(BUILD_VERSION) docker image to $(DEV_REGISTRY)..."
+	@docker push $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(BUILD_VERSION)
 
 build-push-test-image: build-test-operator-image ## Build and push the operator test image.
 	@echo "Pushing the $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG) docker image to $(DEV_REGISTRY)..."
 	@docker push $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG)
 
 build-push-bundle-image: yq
-	@docker build -f bundle.Dockerfile -t $(QUAY_REGISTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) .
+	@docker build -f bundle.Dockerfile -t $(ICR_REIGSTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(BUILD_VERSION) .
 	@echo "Pushing the $(BUNDLE_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
-	@docker push $(QUAY_REGISTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION)
+	@docker push $(ICR_REIGSTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(BUILD_VERSION)
 
 build-catalog-source:
-	@opm -u docker index add --bundles $(QUAY_REGISTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) --tag $(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME)-catalog:$(VERSION)
-	@docker push $(QUAY_REGISTRY)/$(OPERATOR_IMAGE_NAME)-catalog:$(VERSION)
+	@opm -u docker index add --bundles $(ICR_REIGSTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(BUILD_VERSION) --tag $(ICR_REIGSTRY)/$(OPERATOR_IMAGE_NAME)-catalog:$(BUILD_VERSION)
+	@docker push $(ICR_REIGSTRY)/$(OPERATOR_IMAGE_NAME)-catalog:$(BUILD_VERSION)
 
 build-catalog: build-push-bundle-image build-catalog-source
 
-multiarch-image: $(CONFIG_DOCKER_TARGET) ## Generate multiarch images for operator image.
-	@MAX_PULLING_RETRY=20 RETRY_INTERVAL=30 common/scripts/multiarch_image.sh $(ARTIFACTORYA_REGISTRY) $(OPERATOR_IMAGE_NAME) $(VERSION) $(RELEASE_VERSION)
-
+multiarch-image: config-docker ## Generate multiarch images for operator image.
+	@MAX_PULLING_RETRY=20 RETRY_INTERVAL=30 common/scripts/multiarch_image.sh $(DOCKER_REGISTRY) $(OPERATOR_IMAGE_NAME) $(BUILD_VERSION) $(RELEASE_VERSION)
+	
 run-bundle:
-	$(OPERATOR_SDK) run bundle $(QUAY_REGISTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) --install-mode OwnNamespace
+	$(OPERATOR_SDK) run bundle $(QUAY_REGISTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(BUILD_VERSION) --install-mode OwnNamespace
 
 cleanup-bundle:
 	$(OPERATOR_SDK) cleanup ibm-odlm
