@@ -10,7 +10,7 @@ tasks:
       - name: checks-setup
         when: 'false'
       - name: detect-secrets
-        when: 'false'
+        when: 'true'
         include:
           - docker-socket
       - name: unit-test
@@ -42,7 +42,7 @@ tasks:
       - name: checks-setup
         when: 'false'
       - name: detect-secrets
-        when: 'false'
+        when: 'true'
         include:
           - docker-socket
       - name: unit-test
@@ -74,7 +74,7 @@ tasks:
       - name: checks-setup
         when: 'false'
       - name: detect-secrets
-        when: 'false'
+        when: 'true'
         include:
           - docker-socket
       - name: unit-test
@@ -106,7 +106,7 @@ tasks:
       - name: checks-setup
         when: 'false'
       - name: detect-secrets
-        when: 'false'
+        when: 'true'
         include:
           - docker-socket
       - name: unit-test
@@ -135,7 +135,7 @@ tasks:
       - name: compliance-checks
         when: 'false'
 
-  pr-code-checks-ppc:
+  pr-code-checks-ppc64le:
     from: pr-code-checks
     runtimeClassName: x86-xlarge
     include:
@@ -212,7 +212,7 @@ tasks:
     runtimeClassName: x86-xlarge
     runAfter: 
       - pr-code-checks-amd64
-      - pr-code-checks-ppc
+      - pr-code-checks-ppc64le
       - pr-code-checks-s390
     include:
       - dind
@@ -220,7 +220,7 @@ tasks:
       - name: checks-setup
         when: 'false'
       - name: detect-secrets
-        when: 'false'
+        when: 'true'
         include:
           - docker-socket
           - dind
