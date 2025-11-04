@@ -171,7 +171,7 @@ tasks:
     runtimeClassName: x86-xlarge
     runAfter: 
       - code-build-amd64
-      - code-build-ppc
+      - code-build-ppc64le
       - code-build-s390
     include:
       - dind
