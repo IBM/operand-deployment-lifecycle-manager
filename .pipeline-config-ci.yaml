@@ -1,0 +1,209 @@
+version: '2'
+
+# CI Pipeline: code-checks, code-build, deploy-checks, deploy-release
+tasks:
+  code-checks:
+    # code-checks includes five configurable steps: setup, detect-secrets, compliance-checks, peer-review, static-scan
+    include:
+      - dind
+    steps:
+      - name: checks-setup
+        when: 'false'
+      - name: detect-secrets
+        when: 'false'
+        include:
+          - docker-socket
+      - name: compliance-checks
+        when: 'false'
+      - name: peer-review
+        when: 'false'
+      - name: static-scan
+        when: 'false'
+
+  code-build:
+    include:
+      - dind
+    # code-build includes five configurable steps: setup, unit-test, build-artifact, sign-artifact, scan-artifact
+    steps:
+      - name: setup
+        when: 'false'
+      - name: unit-test
+        include:
+          - docker-socket
+          - dind
+        image: icr.io/continuous-delivery/base-images/base:v1.21.0
+        displayName: Unit test for ODLM
+        script: |
+          #!/usr/bin/env bash
+          if [[ "$PIPELINE_DEBUG" == 1 ]]; then
+              trap env EXIT
+              env
+              set -x
+          fi
+          cd "$WORKSPACE/$(load_repo app-repo path)"
+          echo "Installing Go dependencies"
+          yum install -y golang
+          echo "Skip unit tests for now"
+          # make test
+      - name: build-artifact
+        when: 'false'
+      - name: sign-artifact
+        when: 'false'
+      - name: scan-artifact
+        when: 'false'
+
+  code-build-amd64:
+    from: code-build
+    runtimeClassName: x86-xlarge
+    include:
+      - dind
+    steps:
+      - name: setup
+        when: 'false'
+      - name: unit-test
+        when: 'false'
+      - name: build-artifact
+        include:
+          - docker-socket
+          - dind
+        image: icr.io/continuous-delivery/base-images/base:v1.21.0
+        displayName: Build amd64 ODLM image
+        script: |
+          #!/usr/bin/env bash
+          if [[ "$PIPELINE_DEBUG" == 1 ]]; then
+              trap env EXIT
+              env
+              set -x
+          fi
+          cd "$WORKSPACE/$(load_repo app-repo path)"
+          export DOCKER_REGISTRY="$(get_env DOCKER_REGISTRY)"
+          export DOCKER_USER="$(get_env DOCKER_USER)"
+          export DOCKER_PASS="$(get_env DOCKER_PASS)"
+          export GIT_COMMIT="$(get_env git-commit)"
+          export BUILD_VERSION="${GIT_COMMIT:0:7}"
+          export LOCAL_ARCH=amd64
+          echo "Installing Go dependencies"
+          yum install -y golang
+          make build-push-image
+      - name: sign-artifact
+        when: 'false'
+      - name: scan-artifact
+        when: 'false'
+
+  code-build-ppc64le:
+    from: code-build
+    runtimeClassName: x86-xlarge
+    include:
+      - dind
+    steps:
+      - name: setup
+        when: 'false'
+      - name: unit-test
+        when: 'false'
+      - name: build-artifact
+        include:
+          - docker-socket
+          - dind
+        image: icr.io/continuous-delivery/base-images/base:v1.21.0
+        displayName: Build ppc ODLM image
+        script: |
+          #!/usr/bin/env bash
+          if [[ "$PIPELINE_DEBUG" == 1 ]]; then
+              trap env EXIT
+              env
+              set -x
+          fi
+          cd "$WORKSPACE/$(load_repo app-repo path)"
+          export DOCKER_REGISTRY="$(get_env DOCKER_REGISTRY)"
+          export DOCKER_USER="$(get_env DOCKER_USER)"
+          export DOCKER_PASS="$(get_env DOCKER_PASS)"
+          export GIT_COMMIT="$(get_env git-commit)"
+          export BUILD_VERSION="${GIT_COMMIT:0:7}"
+          export LOCAL_ARCH=ppc64le
+          echo "Installing Go dependencies"
+          yum install -y golang
+          make build-push-image
+      - name: sign-artifact
+        when: 'false'
+      - name: scan-artifact
+        when: 'false'
+
+  code-build-s390:
+    from: code-build
+    runtimeClassName: x86-xlarge
+    include:
+      - dind
+    steps:
+      - name: setup
+        when: 'false'
+      - name: unit-test
+        when: 'false'
+      - name: build-artifact
+        include:
+          - docker-socket
+          - dind
+        image: icr.io/continuous-delivery/base-images/base:v1.21.0
+        displayName: Build s390 ODLM image
+        script: |
+          #!/usr/bin/env bash
+          if [[ "$PIPELINE_DEBUG" == 1 ]]; then
+              trap env EXIT
+              env
+              set -x
+          fi
+          cd "$WORKSPACE/$(load_repo app-repo path)"
+          export DOCKER_REGISTRY="$(get_env DOCKER_REGISTRY)"
+          export DOCKER_USER="$(get_env DOCKER_USER)"
+          export DOCKER_PASS="$(get_env DOCKER_PASS)"
+          export GIT_COMMIT="$(get_env git-commit)"
+          export BUILD_VERSION="${GIT_COMMIT:0:7}"
+          export LOCAL_ARCH=s390x
+          echo "Installing Go dependencies"
+          yum install -y golang
+          make build-push-image
+      - name: sign-artifact
+        when: 'false'
+      - name: scan-artifact
+        when: 'false'
+
+  code-build-multiarch:
+    from: code-build
+    runtimeClassName: x86-xlarge
+    runAfter: 
+      - code-build-amd64
+      - code-build-ppc64le
+      - code-build-s390
+    include:
+      - dind
+    steps:
+      - name: setup
+        when: 'false'
+      - name: unit-test
+        when: 'false'
+      - name: build-artifact
+        include:
+          - docker-socket
+          - dind
+        image: icr.io/continuous-delivery/base-images/base:v1.21.0
+        displayName: Build multiarch ODLM image
+        script: |
+          #!/usr/bin/env bash
+          if [[ "$PIPELINE_DEBUG" == 1 ]]; then
+              trap env EXIT
+              env
+              set -x
+          fi
+          cd "$WORKSPACE/$(load_repo app-repo path)"
+          export DOCKER_REGISTRY="$(get_env DOCKER_REGISTRY)"
+          export DOCKER_USER="$(get_env DOCKER_USER)"
+          export DOCKER_PASS="$(get_env DOCKER_PASS)"
+          export GIT_COMMIT="$(get_env git-commit)"
+          export BUILD_VERSION="${GIT_COMMIT:0:7}"
+          echo "Installing Go dependencies"
+          yum install -y golang
+          make config-docker
+          make multiarch-image
+      - name: sign-artifact
+        when: 'false'
+      - name: scan-artifact
+        when: 'false'

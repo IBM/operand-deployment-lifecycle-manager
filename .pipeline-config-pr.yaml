@@ -1,0 +1,251 @@
+version: '2'
+
+# PR Pipeline: pr-code-checks, code-pr-finish
+tasks:
+  pr-code-checks:
+    runtimeClassName: x86-xlarge
+    include:
+      - dind
+    steps:
+      - name: checks-setup
+        when: 'false'
+      - name: detect-secrets
+        when: 'false'
+        include:
+          - docker-socket
+      - name: unit-test
+        include:
+          - docker-socket
+          - dind
+        image: icr.io/continuous-delivery/base-images/base:v1.21.0
+        displayName: Link check for operand-deployment-lifecycle-manager
+        script: |
+          #!/usr/bin/env bash
+          if [[ "$PIPELINE_DEBUG" == 1 ]]; then
+              trap env EXIT
+              env
+              set -x
+          fi
+          cd "$WORKSPACE/$(load_repo app-repo path)"
+          echo "Installing Go dependencies"
+          yum install -y golang
+          # make check
+      - name: compliance-checks
+        when: 'false'
+
+  pr-code-checks-test:
+    from: pr-code-checks
+    runtimeClassName: x86-xlarge
+    include:
+      - dind
+    steps:
+      - name: checks-setup
+        when: 'false'
+      - name: detect-secrets
+        when: 'false'
+        include:
+          - docker-socket
+      - name: unit-test
+        include:
+          - docker-socket
+          - dind
+        image: icr.io/continuous-delivery/base-images/base:v1.21.0
+        displayName: Unit test for operand-deployment-lifecycle-manager
+        script: |
+          #!/usr/bin/env bash
+          if [[ "$PIPELINE_DEBUG" == 1 ]]; then
+              trap env EXIT
+              env
+              set -x
+          fi
+          cd "$WORKSPACE/$(load_repo app-repo path)"
+          echo "Installing Go dependencies"
+          yum install -y golang
+          # make test
+      - name: compliance-checks
+        when: 'false'
+
+  pr-code-checks-e2e-test-kind:
+    from: pr-code-checks
+    runtimeClassName: x86-xlarge
+    include:
+      - dind
+    steps:
+      - name: checks-setup
+        when: 'false'
+      - name: detect-secrets
+        when: 'false'
+        include:
+          - docker-socket
+      - name: unit-test
+        include:
+          - docker-socket
+          - dind
+        image: icr.io/continuous-delivery/base-images/base:v1.21.0
+        displayName: Unit test for operand-deployment-lifecycle-manager
+        script: |
+          #!/usr/bin/env bash
+          if [[ "$PIPELINE_DEBUG" == 1 ]]; then
+              trap env EXIT
+              env
+              set -x
+          fi
+          cd "$WORKSPACE/$(load_repo app-repo path)"
+          echo "Installing Go dependencies"
+          yum install -y golang
+          # make e2e-test-kind
+      - name: compliance-checks
+        when: 'false'
+
+  pr-code-checks-amd64:
+    from: pr-code-checks
+    runtimeClassName: x86-xlarge
+    include:
+      - dind
+    steps:
+      - name: checks-setup
+        when: 'false'
+      - name: detect-secrets
+        when: 'false'
+        include:
+          - docker-socket
+      - name: unit-test
+        include:
+          - docker-socket
+          - dind
+        image: icr.io/continuous-delivery/base-images/base:v1.21.0
+        displayName: Build amd64 operand-deployment-lifecycle-manager image
+        script: |
+          #!/usr/bin/env bash
+          if [[ "$PIPELINE_DEBUG" == 1 ]]; then
+              trap env EXIT
+              env
+              set -x
+          fi
+          cd "$WORKSPACE/$(load_repo app-repo path)"
+          export DOCKER_REGISTRY="$(get_env DOCKER_REGISTRY)"
+          export DOCKER_USER="$(get_env DOCKER_USER)"
+          export DOCKER_PASS="$(get_env DOCKER_PASS)"
+          export GIT_COMMIT="$(get_env git-commit)"
+          export BUILD_VERSION="${GIT_COMMIT:0:7}"
+          export LOCAL_ARCH=amd64
+          echo "Installing Go dependencies"
+          yum install -y golang
+          make build-push-image
+      - name: compliance-checks
+        when: 'false'
+
+  pr-code-checks-ppc64le:
+    from: pr-code-checks
+    runtimeClassName: x86-xlarge
+    include:
+      - dind
+    steps:
+      - name: checks-setup
+        when: 'false'
+      - name: detect-secrets
+        when: 'false'
+      - name: unit-test
+        include:
+          - docker-socket
+          - dind
+        image: icr.io/continuous-delivery/base-images/base:v1.21.0
+        displayName: Build ppc operand-deployment-lifecycle-manager image
+        script: |
+          #!/usr/bin/env bash
+          if [[ "$PIPELINE_DEBUG" == 1 ]]; then
+              trap env EXIT
+              env
+              set -x
+          fi
+          cd "$WORKSPACE/$(load_repo app-repo path)"
+          export DOCKER_REGISTRY="$(get_env DOCKER_REGISTRY)"
+          export DOCKER_USER="$(get_env DOCKER_USER)"
+          export DOCKER_PASS="$(get_env DOCKER_PASS)"
+          export GIT_COMMIT="$(get_env git-commit)"
+          export BUILD_VERSION="${GIT_COMMIT:0:7}"
+          export LOCAL_ARCH=ppc64le
+          echo "Installing Go dependencies"
+          yum install -y golang
+          make build-push-image
+      - name: compliance-checks
+        when: 'false'
+
+  pr-code-checks-s390:
+    from: pr-code-checks
+    runtimeClassName: x86-xlarge
+    include:
+      - dind
+    steps:
+      - name: checks-setup
+        when: 'false'
+      - name: detect-secrets
+        when: 'false'
+      - name: unit-test
+        include:
+          - docker-socket
+          - dind
+        image: icr.io/continuous-delivery/base-images/base:v1.21.0
+        displayName: Build s390 operand-deployment-lifecycle-manager image
+        script: |
+          #!/usr/bin/env bash
+          if [[ "$PIPELINE_DEBUG" == 1 ]]; then
+              trap env EXIT
+              env
+              set -x
+          fi
+          cd "$WORKSPACE/$(load_repo app-repo path)"
+          export DOCKER_REGISTRY="$(get_env DOCKER_REGISTRY)"
+          export DOCKER_USER="$(get_env DOCKER_USER)"
+          export DOCKER_PASS="$(get_env DOCKER_PASS)"
+          export GIT_COMMIT="$(get_env git-commit)"
+          export BUILD_VERSION="${GIT_COMMIT:0:7}"
+          export LOCAL_ARCH=s390x
+          echo "Installing Go dependencies"
+          yum install -y golang
+          make build-push-image
+      - name: compliance-checks
+        when: 'false'
+
+  pr-code-checks-multiarch:
+    from: pr-code-checks
+    runtimeClassName: x86-xlarge
+    runAfter: 
+      - pr-code-checks-amd64
+      - pr-code-checks-ppc64le
+      - pr-code-checks-s390
+    include:
+      - dind
+    steps:
+      - name: checks-setup
+        when: 'false'
+      - name: detect-secrets
+        when: 'false'
+        include:
+          - docker-socket
+          - dind
+      - name: unit-test
+        include:
+          - docker-socket
+          - dind
+        image: icr.io/continuous-delivery/base-images/base:v1.21.0
+        displayName: Build multiarch operand-deployment-lifecycle-manager image
+        script: |
+          #!/usr/bin/env bash
+          if [[ "$PIPELINE_DEBUG" == 1 ]]; then
+              trap env EXIT
+              env
+              set -x
+          fi
+          cd "$WORKSPACE/$(load_repo app-repo path)"
+          export DOCKER_REGISTRY="$(get_env DOCKER_REGISTRY)"
+          export DOCKER_USER="$(get_env DOCKER_USER)"
+          export DOCKER_PASS="$(get_env DOCKER_PASS)"
+          export GIT_COMMIT="$(get_env git-commit)"
+          export BUILD_VERSION="${GIT_COMMIT:0:7}"
+          echo "Installing Go dependencies"
+          yum install -y golang
+          make config-docker
+          make multiarch-image
+      - name: compliance-checks
+        when: 'false'
