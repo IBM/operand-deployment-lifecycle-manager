@@ -10,7 +10,7 @@ tasks:
       - name: checks-setup
         when: 'false'
       - name: detect-secrets
-        when: 'false'
+        when: 'true'
         include:
           - docker-socket
       - name: compliance-checks
