@@ -319,17 +319,7 @@ func (r *Reconciler) createSubscription(ctx context.Context, cr *operatorv1alpha
 
 	co := r.generateClusterObjects(opt, key, types.NamespacedName{Namespace: cr.Namespace, Name: cr.Name})
 
-	// Create required namespace
-	ns := co.namespace
-	klog.V(3).Info("Creating the Namespace for Operator: " + opt.Name)
-
-	// Compare namespace and create namespace
-	oprNs := util.GetOperatorNamespace()
-	if ns.Name != oprNs && ns.Name != constant.ClusterOperatorNamespace {
-		if err := r.Create(ctx, ns); err != nil && !apierrors.IsAlreadyExists(err) {
-			klog.Warningf("failed to create the namespace %s, please make sure it exists: %s", ns.Name, err)
-		}
-	}
+	klog.V(3).Info("Skipping namespace creation for Operator: " + opt.Name)
 
 	if namespace != constant.ClusterOperatorNamespace {
 		// Create required operatorgroup
