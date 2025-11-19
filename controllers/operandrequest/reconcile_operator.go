@@ -319,8 +319,6 @@ func (r *Reconciler) createSubscription(ctx context.Context, cr *operatorv1alpha
 
 	co := r.generateClusterObjects(opt, key, types.NamespacedName{Namespace: cr.Namespace, Name: cr.Name})
 
-	klog.V(3).Info("Skipping namespace creation for Operator: " + opt.Name)
-
 	if namespace != constant.ClusterOperatorNamespace {
 		// Create required operatorgroup
 		existOG := &olmv1.OperatorGroupList{}

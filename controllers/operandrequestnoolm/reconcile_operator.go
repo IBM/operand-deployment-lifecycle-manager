@@ -251,8 +251,6 @@ func (r *Reconciler) createOpReqCM(ctx context.Context, cr *operatorv1alpha1.Ope
 
 	co := r.generateClusterObjects(opt, key, types.NamespacedName{Namespace: cr.Namespace, Name: cr.Name})
 
-	klog.V(3).Info("Skipping namespace creation for Operator: " + opt.Name)
-
 	// Create OperandRequest CM
 	klog.V(2).Info("Creating the Configmap: " + opt.Name)
 
