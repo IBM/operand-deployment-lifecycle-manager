@@ -66,7 +66,8 @@ type clusterObjects struct {
 
 //+kubebuilder:rbac:groups=*,namespace="placeholder",resources=*,verbs=create;delete;get;list;patch;update;watch
 //+kubebuilder:rbac:groups=operator.ibm.com,namespace="placeholder",resources=operandrequests;operandrequests/status;operandrequests/finalizers,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups="",namespace="placeholder",resources=configmaps;secrets;services;namespaces,verbs=create;delete;get;list;patch;update;watch
+//+kubebuilder:rbac:groups="",namespace="placeholder",resources=configmaps;secrets;services,verbs=create;delete;get;list;patch;update;watch
+//+kubebuilder:rbac:groups="",namespace="placeholder",resources=namespaces,verbs=get;list;watch
 //+kubebuilder:rbac:groups=route.openshift.io,namespace="placeholder",resources=routes,verbs=create;delete;get;list;patch;update;watch
 //+kubebuilder:rbac:groups=operators.coreos.com,namespace="placeholder",resources=operatorgroups;installplans,verbs=create;delete;get;list;patch;update;watch
 //+kubebuilder:rbac:groups=k8s.keycloak.org,namespace="placeholder",resources=keycloaks;keycloakrealmimports,verbs=create;delete;get;list;patch;update;watch

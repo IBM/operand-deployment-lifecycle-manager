@@ -38,7 +38,6 @@ rules:
   - ""
   resources:
   - configmaps
-  - namespaces
   - secrets
   - services
   - serviceaccounts
@@ -52,6 +51,14 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - get
+  - list
+  - watch  
 - apiGroups:
   - postgresql.k8s.enterprisedb.io
   - postgresql.cnpg.ibm.com
