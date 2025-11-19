@@ -52,6 +52,14 @@ rules:
   - update
   - watch
 - apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - get
+  - list
+  - watch  
+- apiGroups:
   - postgresql.k8s.enterprisedb.io
   - postgresql.cnpg.ibm.com
   resources:
