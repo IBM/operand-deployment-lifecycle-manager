@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM docker-na-public.artifactory.swg-devops.com/hyc-cloud-private-dockerhub-docker-remote/golang:1.25.2 AS builder
+FROM docker-na-public.artifactory.swg-devops.com/hyc-cloud-private-dockerhub-docker-remote/golang:1.25.3 AS builder
 ARG TARGETOS
 ARG TARGETARCH
 ARG GOARCH
