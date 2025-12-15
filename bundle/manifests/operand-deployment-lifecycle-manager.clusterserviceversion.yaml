@@ -128,7 +128,7 @@ metadata:
     capabilities: Seamless Upgrades
     categories: Developer Tools, Monitoring, Logging & Tracing, Security
     certified: "false"
-    containerImage: icr.io/cpopen/odlm:4.5.5
+    containerImage: icr.io/cpopen/odlm:4.5.6
     createdAt: "2025-11-19T03:29:12Z"
     description: The Operand Deployment Lifecycle Manager provides a Kubernetes CRD-based API to manage the lifecycle of operands.
     features.operators.openshift.io/disconnected: "true"
@@ -139,7 +139,7 @@ metadata:
     features.operators.openshift.io/token-auth-azure: "false"
     features.operators.openshift.io/token-auth-gcp: "false"
     nss.operator.ibm.com/managed-operators: ibm-odlm
-    olm.skipRange: '>=1.2.0 <4.5.5'
+    olm.skipRange: '>=1.2.0 <4.5.6'
     operators.openshift.io/infrastructure-features: '["disconnected"]'
     operators.operatorframework.io/builder: operator-sdk-v1.32.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
@@ -150,7 +150,7 @@ metadata:
     operatorframework.io/arch.ppc64le: supported
     operatorframework.io/arch.s390x: supported
     operatorframework.io/os.linux: supported
-  name: operand-deployment-lifecycle-manager.v4.5.5
+  name: operand-deployment-lifecycle-manager.v4.5.6
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -649,7 +649,7 @@ spec:
                         valueFrom:
                           fieldRef:
                             fieldPath: metadata.annotations['olm.targetNamespaces']
-                    image: icr.io/cpopen/odlm:4.5.5
+                    image: icr.io/cpopen/odlm:4.5.6
                     imagePullPolicy: IfNotPresent
                     livenessProbe:
                       failureThreshold: 10
@@ -882,7 +882,7 @@ spec:
   minKubeVersion: 1.19.0
   provider:
     name: IBM
-  version: 4.5.5
+  version: 4.5.6
   relatedImages:
-    - image: icr.io/cpopen/odlm:4.5.5
+    - image: icr.io/cpopen/odlm:4.5.6
       name: ODLM_IMAGE
