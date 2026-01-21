@@ -28,6 +28,7 @@ metadata:
   namespace: {{ $i }}
   labels:
     component-id: {{ $chartName }}
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
     {{- if $.Values.cpfs.labels }}
       {{- with $.Values.cpfs.labels }}
         {{- toYaml . | nindent 4 }}
