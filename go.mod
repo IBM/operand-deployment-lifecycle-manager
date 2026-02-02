@@ -1,8 +1,6 @@
 module github.com/IBM/operand-deployment-lifecycle-manager/v4
 
-go 1.23.0
-
-toolchain go1.23.4
+go 1.25.6
 
 require (
 	github.com/IBM/ibm-namespace-scope-operator v1.17.3
@@ -10,6 +8,7 @@ require (
 	github.com/google/go-cmp v0.6.0
 	github.com/jaegertracing/jaeger-operator v1.51.0
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826
+	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/ginkgo/v2 v2.17.3
 	github.com/onsi/gomega v1.33.1
 	github.com/openshift/api v0.0.0-20230915112357-693d4b64813c
@@ -26,7 +25,11 @@ require (
 	sigs.k8s.io/controller-runtime v0.16.1
 )
 
-require k8s.io/apiextensions-apiserver v0.28.2 // indirect
+require (
+	github.com/nxadm/tail v1.4.8 // indirect
+	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
+	k8s.io/apiextensions-apiserver v0.28.2 // indirect
+)
 
 require (
 	github.com/Shopify/logrus-bugsnag v0.0.0-20240507214313-004243a594f4 // indirect
