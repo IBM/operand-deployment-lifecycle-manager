@@ -179,6 +179,7 @@ rules:
   - patch
   - update
   - watch
+{{- if ne (toString $.Values.cpfs.enableKeycloak) "false" }}
 - apiGroups:
   - k8s.keycloak.org
   resources:
@@ -192,6 +193,7 @@ rules:
   - patch
   - update
   - watch
+{{- end }}
 - apiGroups:
   - operator.ibm.com
   resources:
