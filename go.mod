@@ -1,8 +1,6 @@
 module github.com/IBM/operand-deployment-lifecycle-manager/v4
 
-go 1.23.0
-
-toolchain go1.23.4
+go 1.25.7
 
 require (
 	github.com/IBM/ibm-namespace-scope-operator v1.17.3
