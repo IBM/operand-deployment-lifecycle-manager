@@ -307,10 +307,8 @@ func (r *Reconciler) uninstallOperatorsAndOperands(ctx context.Context, operandN
 	namespace := r.GetOperatorNamespace(op.InstallMode, op.Namespace)
 
 	// Get deployment list for the operator package
-	// During deletion, missing deployments are treated as "already cleaned up"
 	deploymentList, err := r.GetDeploymentListFromPackage(ctx, op.PackageName, op.Namespace)
 	if err != nil {
-		// Actual error occurred (not just missing deployment)
 		klog.Errorf("Error getting deployment list for package %s: %v", op.PackageName, err)
 		return err
 	}
@@ -416,8 +414,6 @@ func (r *Reconciler) uninstallOperands(ctx context.Context, operandName string, 
 	// ignore the name which triggered reconcile
 	// if list is empty then uninstallOperand = true
 
-	// Get deployment list for operand cleanup
-	// During deletion, missing deployments are treated as "already cleaned up"
 	deploymentList, err := r.GetDeploymentListFromPackage(ctx, op.PackageName, op.Namespace)
 	if err != nil {
 		klog.Errorf("Error getting deployment list for package %s: %v", op.PackageName, err)

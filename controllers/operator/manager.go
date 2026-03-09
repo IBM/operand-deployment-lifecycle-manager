@@ -659,10 +659,8 @@ func (m *ODLMOperator) GetDeploymentListFromPackage(ctx context.Context, name, n
 	}
 
 	if len(deployments) == 0 {
-		// No deployment found - this is acceptable during deletion scenarios.
-		// Return nil to indicate "nothing to clean up" rather than an error.
-		// This allows deletion operations to be idempotent and succeed even when
-		// deployments have been manually removed or never existed.
+		// No deployment found
+		// Return nil to indicate "nothing to clean up"
 		klog.V(2).Infof("No Deployment found with package name %s in namespace %s - treating as already cleaned up", packageName, deploymentNamespace)
 		return nil, nil
 	}
