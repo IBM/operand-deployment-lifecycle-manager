@@ -129,7 +129,7 @@ metadata:
     categories: Developer Tools, Monitoring, Logging & Tracing, Security
     certified: "false"
     containerImage: icr.io/cpopen/odlm:4.5.7
-    createdAt: "2025-11-19T03:29:12Z"
+    createdAt: "2026-03-10T16:16:59Z"
     description: The Operand Deployment Lifecycle Manager provides a Kubernetes CRD-based API to manage the lifecycle of operands.
     features.operators.openshift.io/disconnected: "true"
     features.operators.openshift.io/fips-compliant: "true"
@@ -825,6 +825,11 @@ spec:
                 - operators.coreos.com
               resources:
                 - installplans
+              verbs:
+                - get
+            - apiGroups:
+                - operators.coreos.com
+              resources:
                 - operatorgroups
               verbs:
                 - create
