@@ -278,7 +278,6 @@ rules:
 - apiGroups:
   - operators.coreos.com
   resources:
-  - installplans
   - operatorgroups
   verbs:
   - create
@@ -288,6 +287,12 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - operators.coreos.com
+  resources:
+  - installplans
+  verbs:
+  - get
 - apiGroups:
   - packages.operators.coreos.com
   resources:

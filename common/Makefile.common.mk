@@ -141,9 +141,7 @@ TMP_DIR=$$(mktemp -d) ;\
 cd $$TMP_DIR ;\
 go mod init tmp ;\
 echo "Downloading $(2)" ;\
-unset GOSUMDB ;\
-go env -w GOSUMDB=off ;\
-GOBIN=$(PROJECT_DIR)/bin go install $(2) ;\
+GOBIN=$(PROJECT_DIR)/bin GOTOOLCHAIN=$${GOTOOLCHAIN:-auto} GOSUMDB=$${GOSUMDB:-sum.golang.org} go install $(2) ;\
 rm -rf $$TMP_DIR ;\
 }
 endef
