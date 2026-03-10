@@ -306,11 +306,20 @@ func (r *Reconciler) uninstallOperatorsAndOperands(ctx context.Context, operandN
 
 	namespace := r.GetOperatorNamespace(op.InstallMode, op.Namespace)
 
-	//Assuing we can still use op as a parameter, we should be able to get the deployment with ease
-	if deploymentList, err := r.GetDeploymentListFromPackage(ctx, op.PackageName, op.Namespace); err != nil {
-		// If can't get deployment, requeue the request
+	// Get deployment list for the operator package
+	deploymentList, err := r.GetDeploymentListFromPackage(ctx, op.PackageName, op.Namespace)
+	if err != nil {
+		klog.Errorf("Error getting deployment list for package %s: %v", op.PackageName, err)
 		return err
-	} else if deploymentList != nil {
+	}
+	if deploymentList == nil || len(deploymentList) == 0 {
+		// No deployments found - already cleaned up, nothing to do
+		klog.V(2).Infof("No deployments found for package %s in namespace %s during deletion, assumeing it is already cleaned up", op.PackageName, op.Namespace)
+		return nil
+	}
+
+	// Deployments exist, proceed with cleanup
+	if deploymentList != nil {
 
 		if deploymentList[0].Labels == nil {
 			// Deployment existing and not managed by OperandRequest controller
@@ -332,10 +341,17 @@ func (r *Reconciler) uninstallOperatorsAndOperands(ctx context.Context, operandN
 				klog.V(1).Infof("No deletion, operator %s/%s and its operands are still requested by other OperandRequests", cm.Namespace, cm.Name)
 				return nil
 			}
-			if deploymentList, err := r.GetDeploymentListFromPackage(ctx, op.PackageName, op.Namespace); err != nil {
-				// If can't get deployment, requeue the request
+			// Get deployment list again to check for operand cleanup
+			deploymentList, err := r.GetDeploymentListFromPackage(ctx, op.PackageName, op.Namespace)
+			if err != nil {
+				klog.Errorf("Error getting deployment list for package %s: %v", op.PackageName, err)
 				return err
-			} else if deploymentList != nil {
+			}
+			if deploymentList == nil || len(deploymentList) == 0 {
+				klog.V(2).Infof("No deployments found for package %s during operand deletion - already cleaned up", op.PackageName)
+				return nil
+			}
+			if deploymentList != nil {
 				klog.Infof("Found %d Deployment for package %s/%s", len(deploymentList), op.Name, namespace)
 				if uninstallOperand {
 
@@ -398,10 +414,16 @@ func (r *Reconciler) uninstallOperands(ctx context.Context, operandName string, 
 	// ignore the name which triggered reconcile
 	// if list is empty then uninstallOperand = true
 
-	if deploymentList, err := r.GetDeploymentListFromPackage(ctx, op.PackageName, op.Namespace); err != nil {
-		// If can't get deployment, requeue the request
+	deploymentList, err := r.GetDeploymentListFromPackage(ctx, op.PackageName, op.Namespace)
+	if err != nil {
+		klog.Errorf("Error getting deployment list for package %s: %v", op.PackageName, err)
 		return err
-	} else if deploymentList != nil {
+	}
+	if deploymentList == nil || len(deploymentList) == 0 {
+		klog.V(2).Infof("No deployments found for package %s during uninstall - already cleaned up", op.PackageName)
+		return nil
+	}
+	if deploymentList != nil {
 		klog.Infof("Found %d Deployment for package %s/%s", len(deploymentList), op.Name, namespace)
 		if uninstallOperand {
 			klog.V(2).Infof("Deleting all the Custom Resources for Deployment, Namespace: %s, Name: %s", deploymentList[0].Namespace, deploymentList[0].Name)
