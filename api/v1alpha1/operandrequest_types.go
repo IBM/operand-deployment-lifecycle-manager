@@ -242,6 +242,13 @@ type MemberStatus struct {
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=.metadata.creationTimestamp
 // +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=.status.phase,description="Current Phase"
 // +kubebuilder:printcolumn:name="Created At",type=string,JSONPath=.metadata.creationTimestamp
+// +kubebuilder:printcolumn:name="Service",type=string,JSONPath=.status.services[*].operatorName,priority=1
+// +kubebuilder:printcolumn:name="S_Status",type=string,JSONPath=.status.services[*].status,priority=1
+// +kubebuilder:printcolumn:name="Obj_Name",type=string,JSONPath=.status.services[*].resources[-1].objectName,priority=1
+// +kubebuilder:printcolumn:name="Obj_Status",type=string,JSONPath=.status.services[*].resources[-1].status,priority=1
+// +kubebuilder:printcolumn:name="Last_Transition",type=string,JSONPath=.status.conditions[-1].lastTransitionTime,priority=1
+// +kubebuilder:printcolumn:name="L_Status",type=string,JSONPath=.status.conditions[-1].status,priority=1
+// +kubebuilder:printcolumn:name="Reason",type=string,JSONPath=.status.conditions[-1].reason,priority=1
 // +operator-sdk:csv:customresourcedefinitions:displayName="OperandRequest"
 
 // OperandRequest is the Schema for the operandrequests API. Documentation For additional details regarding install parameters check https://ibm.biz/icpfs39install. License By installing this product you accept the license terms https://ibm.biz/icpfs39license

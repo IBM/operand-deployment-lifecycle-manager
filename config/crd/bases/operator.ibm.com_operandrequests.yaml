@@ -27,6 +27,34 @@ spec:
     - jsonPath: .metadata.creationTimestamp
       name: Created At
       type: string
+    - jsonPath: .status.services[*].operatorName
+      name: Service
+      priority: 1
+      type: string
+    - jsonPath: .status.services[*].status
+      name: S_Status
+      priority: 1
+      type: string
+    - jsonPath: .status.services[*].resources[-1].objectName
+      name: Obj_Name
+      priority: 1
+      type: string
+    - jsonPath: .status.services[*].resources[-1].status
+      name: Obj_Status
+      priority: 1
+      type: string
+    - jsonPath: .status.conditions[-1].lastTransitionTime
+      name: Last_Transition
+      priority: 1
+      type: string
+    - jsonPath: .status.conditions[-1].status
+      name: L_Status
+      priority: 1
+      type: string
+    - jsonPath: .status.conditions[-1].reason
+      name: Reason
+      priority: 1
+      type: string
     name: v1alpha1
     schema:
       openAPIV3Schema:
