@@ -60,7 +60,6 @@ type clusterObjects struct {
 	subscription  *olmv1alpha1.Subscription
 }
 
-//+kubebuilder:rbac:groups=operator.ibm.com,resources=certmanagers;auditloggings,verbs=get;delete
 //+kubebuilder:rbac:groups=operators.coreos.com,resources=catalogsources,verbs=get
 //+kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get
 
