@@ -14,6 +14,10 @@
 
 .DEFAULT_GOAL:=help
 
+# Allow Go to resolve the toolchain declared in go.mod during code generation.
+export GOTOOLCHAIN ?= auto
+export GOSUMDB ?= sum.golang.org
+
 # Dependence tools
 KUBECTL ?= $(shell which kubectl)
 OPERATOR_SDK ?= $(shell which operator-sdk)

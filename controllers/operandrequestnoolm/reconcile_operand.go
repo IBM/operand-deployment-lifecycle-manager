@@ -102,6 +102,7 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 			if opdRegistry.UserManaged {
 				klog.V(3).Infof("Operator %s is user managed; skipping deployment lookup", opdRegistry.Name)
 			} else {
+				// Get deployment list for the operator package
 				deploymentList, err := r.GetDeploymentListFromPackage(ctx, opdRegistry.PackageName, opdRegistry.Namespace)
 				if err != nil {
 					merr.Add(err)
@@ -109,7 +110,8 @@ func (r *Reconciler) reconcileOperand(ctx context.Context, requestInstance *oper
 					continue
 				}
 
-				if len(deploymentList) == 0 || deploymentList[0] == nil {
+				if deploymentList == nil || len(deploymentList) == 0 || deploymentList[0] == nil {
+					// No deployment found, operator is still being installed
 					klog.Warningf("Deployment for %s in the namespace %s is not ready yet, retry", operatorName, namespace)
 					requestInstance.SetMemberStatus(operand.Name, operatorv1alpha1.OperatorInstalling, "", &r.Mutex)
 					continue

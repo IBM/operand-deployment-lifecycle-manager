@@ -157,6 +157,11 @@ rules:
   - operators.coreos.com
   resources:
   - installplans
+  verbs:
+  - get
+- apiGroups:
+  - operators.coreos.com
+  resources:
   - operatorgroups
   verbs:
   - create
