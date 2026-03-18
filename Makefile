@@ -213,10 +213,10 @@ deploy-e2e: kustomize ## Deploy controller in the configured Kubernetes cluster 
 ##@ Generate code and manifests
 
 manifests: controller-gen ## Generate manifests e.g. CRD, RBAC etc.
-	$(CONTROLLER_GEN) crd rbac:roleName=operand-deployment-lifecycle-manager webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	GOTOOLCHAIN=auto GOSUMDB=sum.golang.org $(CONTROLLER_GEN) crd rbac:roleName=operand-deployment-lifecycle-manager webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
 generate: controller-gen ## Generate code e.g. API etc.
-	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+	GOTOOLCHAIN=auto GOSUMDB=sum.golang.org $(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 bundle-manifests: yq
 	cd config/manager && $(KUSTOMIZE) edit set image icr.io/cpopen/odlm=$(ICR_REIGSTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_VERSION)
@@ -231,7 +231,7 @@ bundle-manifests: yq
 	sed -i'' s/operand-deployment-lifecycle-manager/ibm-odlm/ bundle.Dockerfile
 
 generate-all: yq manifests kustomize operator-sdk ## Generate bundle manifests, metadata and package manifests
-	$(OPERATOR_SDK) generate kustomize manifests -q
+	GOTOOLCHAIN=auto GOSUMDB=sum.golang.org $(OPERATOR_SDK) generate kustomize manifests -q
 	- make bundle-manifests CHANNELS=v4.5 DEFAULT_CHANNEL=v4.5
 
 ##@ Test
