@@ -339,3 +339,4 @@ subjects:
 - kind: ServiceAccount
   name: operand-deployment-lifecycle-manager
   namespace: {{ $operaterNamespace }}
+{{- end }}
