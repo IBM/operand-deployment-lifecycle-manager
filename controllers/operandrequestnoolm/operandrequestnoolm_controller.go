@@ -56,7 +56,6 @@ type clusterObjects struct {
 	configmap *corev1.ConfigMap
 }
 
-//+kubebuilder:rbac:groups=operators.coreos.com,resources=catalogsources,verbs=get
 //+kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get
 
 //+kubebuilder:rbac:groups=*,namespace="placeholder",resources=*,verbs=create;delete;get;list;patch;update;watch
