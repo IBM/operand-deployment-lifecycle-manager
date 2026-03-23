@@ -581,12 +581,6 @@ spec:
                 - customresourcedefinitions
               verbs:
                 - get
-            - apiGroups:
-                - operators.coreos.com
-              resources:
-                - catalogsources
-              verbs:
-                - get
           serviceAccountName: operand-deployment-lifecycle-manager
       deployments:
         - label:
