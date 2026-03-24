@@ -178,27 +178,28 @@ func (m *ODLMOperator) GetCatalogSourceAndChannelFromPackage(ctx context.Context
 				continue
 			}
 
-			hasCatalogPermission := m.CheckResAuth(ctx, pm.Status.CatalogSourceNamespace, "operators.coreos.com", "catalogsources", "get")
-			if !hasCatalogPermission {
-				klog.V(2).Infof("No permission to get CatalogSource %s in the namespace %s", pm.Status.CatalogSource, pm.Status.CatalogSourceNamespace)
-				continue
-			}
-			// Fetch the CatalogSource if cluster permission allows
-			catalogsource := &olmv1alpha1.CatalogSource{}
-			if err := m.Reader.Get(ctx, types.NamespacedName{Name: pm.Status.CatalogSource, Namespace: pm.Status.CatalogSourceNamespace}, catalogsource); err != nil {
-				klog.Warning(err)
-				continue
-			}
-
 			currentCatalog := CatalogSource{
 				Name:                 pm.Status.CatalogSource,
 				Namespace:            pm.Status.CatalogSourceNamespace,
 				OpNamespace:          namespace,
 				RegistryNamespace:    registryNs,
-				Priority:             catalogsource.Spec.Priority,
+				Priority:             0,
 				ODLMCatalog:          odlmCatalog,
 				ODLMCatalogNamespace: odlmCatalogNs,
 			}
+
+			// Permission to get catalogsources is only required to enrich priority.
+			if hasCatalogPermission := m.CheckResAuth(ctx, pm.Status.CatalogSourceNamespace, "operators.coreos.com", "catalogsources", "get"); !hasCatalogPermission {
+				klog.V(2).Infof("No permission to get CatalogSource %s in namespace %s, using PackageManifest data with default priority", pm.Status.CatalogSource, pm.Status.CatalogSourceNamespace)
+			} else {
+				catalogsource := &olmv1alpha1.CatalogSource{}
+				if err := m.Reader.Get(ctx, types.NamespacedName{Name: pm.Status.CatalogSource, Namespace: pm.Status.CatalogSourceNamespace}, catalogsource); err != nil {
+					klog.Warningf("Failed to get CatalogSource %s/%s, using PackageManifest data with default priority: %v", pm.Status.CatalogSourceNamespace, pm.Status.CatalogSource, err)
+				} else {
+					currentCatalog.Priority = catalogsource.Spec.Priority
+				}
+			}
+
 			if channelCheck(channel, pm.Status.Channels) {
 				primaryCatalogCandidate = append(primaryCatalogCandidate, currentCatalog)
 			}
