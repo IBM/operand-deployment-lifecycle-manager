@@ -62,7 +62,7 @@ rules:
   - watch  
 - apiGroups:
   - postgresql.k8s.enterprisedb.io
-  - postgresql.cnpg.ibm.com
+  - pg.ibm.com
   resources:
   - clusters
   verbs:
