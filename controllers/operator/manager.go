@@ -690,7 +690,9 @@ func (m *ODLMOperator) DeleteRedundantCSV(ctx context.Context, csvName, operator
 		return nil
 	}
 	// Delete the CSV if the csv does not contain label operators.coreos.com/packageName.operatorNs='' AND does not contains label olm.copiedFrom: operatorNs
-	if _, ok := csv.GetLabels()[fmt.Sprintf("operators.coreos.com/%s.%s", packageName, operatorNs)]; !ok {
+	labelKey := fmt.Sprintf("operators.coreos.com/%s.%s", packageName, operatorNs)
+	labelKey = util.GetFirstNCharacter(labelKey, 63)
+	if _, ok := csv.GetLabels()[labelKey]; !ok {
 		if _, ok := csv.Labels["olm.copiedFrom"]; !ok {
 			klog.Infof("Delete the redundant ClusterServiceVersion %s in the namespace %s", csvName, serviceNs)
 			if err := m.Client.Delete(ctx, csv); err != nil {
