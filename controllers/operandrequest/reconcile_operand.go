@@ -1282,8 +1282,8 @@ func (r *Reconciler) updateK8sJob(ctx context.Context, existingK8sRes unstructur
 
 	var existingHashedData string
 	var newHashedData string
-	if existingRes.GetAnnotations() != nil {
-		existingHashedData = existingRes.GetAnnotations()[constant.HashedData]
+	if annotations := existingRes.GetAnnotations(); annotations != nil {
+		existingHashedData = annotations[constant.HashedData]
 	}
 
 	if k8sResConfig != nil {
