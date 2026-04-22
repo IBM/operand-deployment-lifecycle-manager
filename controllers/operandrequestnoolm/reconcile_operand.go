@@ -237,7 +237,11 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 		return nil
 	}
 
-	almExamples := deployment.GetAnnotations()["alm-examples"]
+	annotations := deployment.GetAnnotations()
+	if annotations == nil {
+		return errors.Errorf("service %s has spec defined but deployment %s/%s has nil annotations", service.Name, deployment.Namespace, deployment.Name)
+	}
+	almExamples := annotations["alm-examples"]
 	if almExamples == "" {
 		return errors.Errorf("service %s has spec defined but deployment %s/%s is missing alm-examples annotation", service.Name, deployment.Namespace, deployment.Name)
 	}
@@ -620,7 +624,12 @@ func (r *Reconciler) deleteAllCustomResource(ctx context.Context, deployment *ap
 		return nil
 	}
 
-	almExamples := deployment.GetAnnotations()["alm-examples"]
+	annotations := deployment.GetAnnotations()
+	if annotations == nil {
+		klog.V(2).Infof("Deployment %s/%s has nil annotations, skipping custom resource deletion from alm-examples", deployment.Namespace, deployment.Name)
+		return nil
+	}
+	almExamples := annotations["alm-examples"]
 	if almExamples == "" {
 		klog.V(2).Infof("Deployment %s/%s is missing alm-examples annotation, skipping custom resource deletion from alm-examples", deployment.Namespace, deployment.Name)
 		return nil

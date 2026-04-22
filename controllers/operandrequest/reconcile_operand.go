@@ -289,7 +289,11 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 		return nil
 	}
 
-	almExamples := csv.GetAnnotations()["alm-examples"]
+	annotations := csv.GetAnnotations()
+	if annotations == nil {
+		return errors.Errorf("service %s has spec defined but CSV %s/%s has nil annotations", service.Name, csv.Namespace, csv.Name)
+	}
+	almExamples := annotations["alm-examples"]
 	if almExamples == "" {
 		return errors.Errorf("service %s has spec defined but CSV %s/%s is missing alm-examples annotation", service.Name, csv.Namespace, csv.Name)
 	}
@@ -672,7 +676,12 @@ func (r *Reconciler) deleteAllCustomResource(ctx context.Context, csv *olmv1alph
 		return nil
 	}
 
-	almExamples := csv.GetAnnotations()["alm-examples"]
+	annotations := csv.GetAnnotations()
+	if annotations == nil {
+		klog.V(2).Infof("CSV %s/%s has nil annotations, skipping custom resource deletion from alm-examples", csv.Namespace, csv.Name)
+		return nil
+	}
+	almExamples := annotations["alm-examples"]
 	if almExamples == "" {
 		klog.V(2).Infof("CSV %s/%s is missing alm-examples annotation, skipping custom resource deletion from alm-examples", csv.Namespace, csv.Name)
 		return nil
