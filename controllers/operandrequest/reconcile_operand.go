@@ -283,7 +283,16 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 		return nil
 	}
 
+	// If no custom resources are defined in the spec, skip alm-examples parsing
+	if len(service.Spec) == 0 {
+		klog.V(2).Infof("No custom resources defined in spec for service %s, skipping alm-examples parsing", service.Name)
+		return nil
+	}
+
 	almExamples := csv.GetAnnotations()["alm-examples"]
+	if almExamples == "" {
+		return errors.Errorf("service %s has spec defined but CSV %s/%s is missing alm-examples annotation", service.Name, csv.Namespace, csv.Name)
+	}
 
 	// Convert CR template string to slice
 	var almExampleList []interface{}
@@ -656,7 +665,19 @@ func (r *Reconciler) deleteAllCustomResource(ctx context.Context, csv *olmv1alph
 	if service == nil {
 		return nil
 	}
+
+	// If no custom resources are defined in the spec, skip alm-examples parsing
+	if len(service.Spec) == 0 {
+		klog.V(2).Infof("No custom resources defined in spec for service %s, skipping deletion from alm-examples", service.Name)
+		return nil
+	}
+
 	almExamples := csv.GetAnnotations()["alm-examples"]
+	if almExamples == "" {
+		klog.V(2).Infof("CSV %s/%s is missing alm-examples annotation, skipping custom resource deletion from alm-examples", csv.Namespace, csv.Name)
+		return nil
+	}
+
 	klog.V(2).Info("Delete all the custom resource from Subscription ", service.Name)
 
 	// Create a slice for crTemplates

@@ -231,7 +231,16 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 		return nil
 	}
 
+	// If no custom resources are defined in the spec, skip alm-examples parsing
+	if len(service.Spec) == 0 {
+		klog.V(2).Infof("No custom resources defined in spec for service %s, skipping alm-examples parsing", service.Name)
+		return nil
+	}
+
 	almExamples := deployment.GetAnnotations()["alm-examples"]
+	if almExamples == "" {
+		return errors.Errorf("service %s has spec defined but deployment %s/%s is missing alm-examples annotation", service.Name, deployment.Namespace, deployment.Name)
+	}
 
 	// Convert CR template string to slice
 	var almExampleList []interface{}
@@ -604,7 +613,19 @@ func (r *Reconciler) deleteAllCustomResource(ctx context.Context, deployment *ap
 	if service == nil {
 		return nil
 	}
+
+	// If no custom resources are defined in the spec, skip alm-examples parsing
+	if len(service.Spec) == 0 {
+		klog.V(2).Infof("No custom resources defined in spec for service %s, skipping deletion from alm-examples", service.Name)
+		return nil
+	}
+
 	almExamples := deployment.GetAnnotations()["alm-examples"]
+	if almExamples == "" {
+		klog.V(2).Infof("Deployment %s/%s is missing alm-examples annotation, skipping custom resource deletion from alm-examples", deployment.Namespace, deployment.Name)
+		return nil
+	}
+
 	klog.V(2).Info("Delete all the custom resource from Subscription ", service.Name)
 
 	// Create a slice for crTemplates
