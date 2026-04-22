@@ -1287,6 +1287,9 @@ func (r *Reconciler) updateK8sRoute(ctx context.Context, existingK8sRes unstruct
 	}
 
 	existingAnnos := existingRes.GetAnnotations()
+	if existingAnnos == nil {
+		existingAnnos = make(map[string]string)
+	}
 	existingHostHash := existingAnnos[constant.RouteHash]
 
 	if k8sResConfig != nil {
