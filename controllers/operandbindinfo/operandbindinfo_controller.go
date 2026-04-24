@@ -763,9 +763,13 @@ func (r *Reconciler) cleanupCopies(ctx context.Context, bindInfoInstance *operat
 		}
 	}
 
+	// Only delete copied configmaps, not original ones
 	for i := range cmList.Items {
-		if err := r.Delete(ctx, &cmList.Items[i]); err != nil {
-			return err
+		// Check if this is a copied configmap (not an original)
+		if cmList.Items[i].Labels[constant.OpbiTypeLabel] == "copy" {
+			if err := r.Delete(ctx, &cmList.Items[i]); err != nil {
+				return err
+			}
 		}
 	}
 	// Update finalizer to allow delete CR
