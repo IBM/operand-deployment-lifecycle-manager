@@ -1230,7 +1230,7 @@ func (r *Reconciler) updateK8sJob(ctx context.Context, existingK8sRes unstructur
 	var existingHashedData string
 	var newHashedData string
 	if annotations := existingRes.GetAnnotations(); annotations != nil {
-		existingHashedData = annotations[constant.HashedData]
+		existingHashedData = annotations[constant.K8sHashedData]
 	}
 
 	if k8sResConfig != nil {
@@ -1245,11 +1245,6 @@ func (r *Reconciler) updateK8sJob(ctx context.Context, existingK8sRes unstructur
 		templatek8sRes.SetKind(kind)
 		templatek8sRes.SetName(name)
 		templatek8sRes.SetNamespace(namespace)
-
-		if newAnnotations == nil {
-			newAnnotations = make(map[string]string)
-		}
-		newAnnotations[constant.HashedData] = newHashedData
 
 		if err := r.deleteK8sResource(ctx, existingRes, newLabels, namespace); err != nil {
 			return errors.Wrap(err, "failed to update k8s resource")
