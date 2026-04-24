@@ -753,9 +753,13 @@ func (r *Reconciler) cleanupCopies(ctx context.Context, bindInfoInstance *operat
 		return err
 	}
 
+	// Only delete copied secrets, not original ones
 	for i := range secretList.Items {
-		if err := r.Delete(ctx, &secretList.Items[i]); err != nil {
-			return err
+		// Check if this is a copied secret (not an original)
+		if secretList.Items[i].Labels[constant.OpbiTypeLabel] == "copy" {
+			if err := r.Delete(ctx, &secretList.Items[i]); err != nil {
+				return err
+			}
 		}
 	}
 
