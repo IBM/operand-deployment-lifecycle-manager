@@ -551,24 +551,27 @@ func (m *ODLMOperator) GetClusterServiceVersionList(ctx context.Context, sub *ol
 
 	packageName := sub.Spec.Package
 	csvNamespace := sub.Namespace
-	labelKey := packageName + "." + csvNamespace
-	labelKey = util.GetFirstNCharacter(labelKey, 63)
+	// Kubernetes label keys have format [prefix/]name where name must be <= 63 chars
+	// Truncate only the name part (packageName.csvNamespace), not the full key with prefix
+	labelName := packageName + "." + csvNamespace
+	labelName = util.GetFirstNCharacter(labelName, 63)
+	labelKey := fmt.Sprintf("operators.coreos.com/%s", labelName)
 
 	// Get the ClusterServiceVersion list with label operators.coreos.com/packageName.csvNamespace=''
 	csvList := &olmv1alpha1.ClusterServiceVersionList{}
 	opts := []client.ListOption{
-		client.MatchingLabels{fmt.Sprintf("operators.coreos.com/%s", labelKey): ""},
+		client.MatchingLabels{labelKey: ""},
 		client.InNamespace(csvNamespace),
 	}
 
 	if err := m.Reader.List(ctx, csvList, opts...); err != nil {
 		if apierrors.IsNotFound(err) || len(csvList.Items) == 0 {
-			klog.V(3).Infof("No ClusterServiceVersion found with label operators.coreos.com/%s", labelKey)
+			klog.V(3).Infof("No ClusterServiceVersion found with label %s", labelKey)
 			return nil, nil
 		}
-		return nil, errors.Wrapf(err, "failed to list ClusterServiceVersions with label operators.coreos.com/%s", labelKey)
+		return nil, errors.Wrapf(err, "failed to list ClusterServiceVersions with label %s", labelKey)
 	} else if len(csvList.Items) > 1 {
-		klog.Warningf("Multiple ClusterServiceVersions found with label operators.coreos.com/%s", labelKey)
+		klog.Warningf("Multiple ClusterServiceVersions found with label %s", labelKey)
 	}
 
 	var csvs []*olmv1alpha1.ClusterServiceVersion
@@ -690,8 +693,11 @@ func (m *ODLMOperator) DeleteRedundantCSV(ctx context.Context, csvName, operator
 		return nil
 	}
 	// Delete the CSV if the csv does not contain label operators.coreos.com/packageName.operatorNs='' AND does not contains label olm.copiedFrom: operatorNs
-	labelKey := fmt.Sprintf("operators.coreos.com/%s.%s", packageName, operatorNs)
-	labelKey = util.GetFirstNCharacter(labelKey, 63)
+	// Kubernetes label keys have format [prefix/]name where name must be <= 63 chars
+	// Truncate only the name part (packageName.operatorNs), not the full key with prefix
+	labelName := fmt.Sprintf("%s.%s", packageName, operatorNs)
+	labelName = util.GetFirstNCharacter(labelName, 63)
+	labelKey := fmt.Sprintf("operators.coreos.com/%s", labelName)
 	if _, ok := csv.GetLabels()[labelKey]; !ok {
 		if _, ok := csv.Labels["olm.copiedFrom"]; !ok {
 			klog.Infof("Delete the redundant ClusterServiceVersion %s in the namespace %s", csvName, serviceNs)
@@ -725,9 +731,12 @@ func (m *ODLMOperator) GetOperandFromRegistry(ctx context.Context, reg *apiv1alp
 			excludedCatalogSources = strings.Split(reg.Annotations["excluded-catalogsource"], ",")
 		}
 		// Get catalog used by ODLM itself by check its own subscription
-		labelKey := util.GetFirstNCharacter("ibm-odlm"+"."+util.GetOperatorNamespace(), 63)
+		// Kubernetes label keys have format [prefix/]name where name must be <= 63 chars
+		// Truncate only the name part (packageName.namespace), not the full key with prefix
+		labelName := util.GetFirstNCharacter("ibm-odlm"+"."+util.GetOperatorNamespace(), 63)
+		labelKey := fmt.Sprintf("operators.coreos.com/%s", labelName)
 		opts := []client.ListOption{
-			client.MatchingLabels{fmt.Sprintf("operators.coreos.com/%s", labelKey): ""},
+			client.MatchingLabels{labelKey: ""},
 			client.InNamespace(util.GetOperatorNamespace()),
 		}
 		odlmCatalog := ""
