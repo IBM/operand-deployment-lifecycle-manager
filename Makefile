@@ -307,7 +307,7 @@ docker-push:
 
 build-operator-dev-image: ## Build the operator dev image.
 	@echo "Building the $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME) docker image..."
-	@docker build -t $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(BUILD_VERSION) \
+	@$(CONTAINER_TOOL) build -t $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(BUILD_VERSION) \
 	--build-arg VCS_REF=$(VCS_REF) --build-arg RELEASE_VERSION=$(RELEASE_VERSION) \
 	--build-arg GOARCH=$(LOCAL_ARCH) -f Dockerfile .
 
