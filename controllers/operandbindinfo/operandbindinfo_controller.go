@@ -739,6 +739,8 @@ func nestedBasicType(obj map[string]interface{}, fields ...string) (string, bool
 	}
 }
 
+// cleanupCopies deletes all copied secrets and configmaps when an OperandBindInfo is deleted.
+// Only resources labeled with OpbiTypeLabel="copy" are deleted, preserving original resources.
 func (r *Reconciler) cleanupCopies(ctx context.Context, bindInfoInstance *operatorv1alpha1.OperandBindInfo) error {
 	secretList := &corev1.SecretList{}
 	cmList := &corev1.ConfigMapList{}
