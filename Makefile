@@ -325,7 +325,7 @@ build-push-test-image: build-test-operator-image ## Build and push the operator 
 
 build-push-dev-image: build-operator-dev-image  ## Build and push the operator dev images.
 	@echo "Pushing the $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(BUILD_VERSION) docker image to $(DEV_REGISTRY)..."
-	@docker push $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(BUILD_VERSION)
+	@$(CONTAINER_TOOL) push $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(BUILD_VERSION)
 
 build-push-bundle-image: yq
 	@docker build -f bundle.Dockerfile -t $(ICR_REIGSTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(BUILD_VERSION) .
