@@ -319,7 +319,7 @@ build-test-operator-image: config-docker ## Build the operator test image.
 
 build-push-test-image: build-test-operator-image ## Build and push the operator test image.
 	@echo "Pushing the $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG) docker image to $(DEV_REGISTRY)..."
-	@docker push $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG)
+	@$(CONTAINER_TOOL) push $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG)
 
 ##@ Release
 
