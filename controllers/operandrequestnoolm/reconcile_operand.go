@@ -231,7 +231,20 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 		return nil
 	}
 
-	almExamples := deployment.GetAnnotations()["alm-examples"]
+	// If no custom resources are defined in the spec, skip alm-examples parsing
+	if len(service.Spec) == 0 {
+		klog.V(2).Infof("No custom resources defined in spec for service %s, skipping alm-examples parsing", service.Name)
+		return nil
+	}
+
+	annotations := deployment.GetAnnotations()
+	if annotations == nil {
+		return errors.Errorf("service %s has spec defined but deployment %s/%s has nil annotations", service.Name, deployment.Namespace, deployment.Name)
+	}
+	almExamples := annotations["alm-examples"]
+	if almExamples == "" {
+		return errors.Errorf("service %s has spec defined but deployment %s/%s is missing alm-examples annotation", service.Name, deployment.Namespace, deployment.Name)
+	}
 
 	// Convert CR template string to slice
 	var almExampleList []interface{}
@@ -604,7 +617,24 @@ func (r *Reconciler) deleteAllCustomResource(ctx context.Context, deployment *ap
 	if service == nil {
 		return nil
 	}
-	almExamples := deployment.GetAnnotations()["alm-examples"]
+
+	// If no custom resources are defined in the spec, skip alm-examples parsing
+	if len(service.Spec) == 0 {
+		klog.V(2).Infof("No custom resources defined in spec for service %s, skipping deletion from alm-examples", service.Name)
+		return nil
+	}
+
+	annotations := deployment.GetAnnotations()
+	if annotations == nil {
+		klog.V(2).Infof("Deployment %s/%s has nil annotations, skipping custom resource deletion from alm-examples", deployment.Namespace, deployment.Name)
+		return nil
+	}
+	almExamples := annotations["alm-examples"]
+	if almExamples == "" {
+		klog.V(2).Infof("Deployment %s/%s is missing alm-examples annotation, skipping custom resource deletion from alm-examples", deployment.Namespace, deployment.Name)
+		return nil
+	}
+
 	klog.V(2).Info("Delete all the custom resource from Subscription ", service.Name)
 
 	// Create a slice for crTemplates
@@ -1199,8 +1229,8 @@ func (r *Reconciler) updateK8sJob(ctx context.Context, existingK8sRes unstructur
 
 	var existingHashedData string
 	var newHashedData string
-	if existingRes.GetAnnotations() != nil {
-		existingHashedData = existingRes.GetAnnotations()[constant.HashedData]
+	if annotations := existingRes.GetAnnotations(); annotations != nil {
+		existingHashedData = annotations[constant.K8sHashedData]
 	}
 
 	if k8sResConfig != nil {
@@ -1215,11 +1245,6 @@ func (r *Reconciler) updateK8sJob(ctx context.Context, existingK8sRes unstructur
 		templatek8sRes.SetKind(kind)
 		templatek8sRes.SetName(name)
 		templatek8sRes.SetNamespace(namespace)
-
-		if newAnnotations == nil {
-			newAnnotations = make(map[string]string)
-		}
-		newAnnotations[constant.HashedData] = newHashedData
 
 		if err := r.deleteK8sResource(ctx, existingRes, newLabels, namespace); err != nil {
 			return errors.Wrap(err, "failed to update k8s resource")
@@ -1256,8 +1281,10 @@ func (r *Reconciler) updateK8sRoute(ctx context.Context, existingK8sRes unstruct
 		return nil
 	}
 
-	existingAnnos := existingRes.GetAnnotations()
-	existingHostHash := existingAnnos[constant.RouteHash]
+	var existingHostHash string
+	if existingAnnos := existingRes.GetAnnotations(); existingAnnos != nil {
+		existingHostHash = existingAnnos[constant.RouteHash]
+	}
 
 	if k8sResConfig != nil {
 		k8sResConfigDecoded := make(map[string]interface{})

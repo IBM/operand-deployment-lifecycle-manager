@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"sync"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -159,8 +159,7 @@ var _ = Describe("OperandRequestNoOLM controller", func() {
 			}
 
 			By("Verifying getRegistryToRequestMapper works")
-			mapper := reconciler.getRegistryToRequestMapper()
-			requests := mapper(registry)
+			requests := reconciler.getRegistryToRequestMapper(ctx, registry)
 			Expect(len(requests)).To(BeNumerically(">", 0))
 		})
 
@@ -179,8 +178,7 @@ var _ = Describe("OperandRequestNoOLM controller", func() {
 			}
 
 			By("Verifying getConfigToRequestMapper works")
-			mapper := reconciler.getConfigToRequestMapper()
-			requests := mapper(config)
+			requests := reconciler.getConfigToRequestMapper(ctx, config)
 			Expect(len(requests)).To(BeNumerically(">", 0))
 		})
 
@@ -214,8 +212,7 @@ var _ = Describe("OperandRequestNoOLM controller", func() {
 			}
 
 			By("Verifying getReferenceToRequestMapper works")
-			mapper := reconciler.getReferenceToRequestMapper()
-			requests := mapper(cm)
+			requests := reconciler.getReferenceToRequestMapper(ctx, cm)
 			Expect(len(requests)).To(BeNumerically(">", 0))
 		})
 	})

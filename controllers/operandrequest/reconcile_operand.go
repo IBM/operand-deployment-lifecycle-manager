@@ -283,7 +283,20 @@ func (r *Reconciler) reconcileCRwithConfig(ctx context.Context, service *operato
 		return nil
 	}
 
-	almExamples := csv.GetAnnotations()["alm-examples"]
+	// If no custom resources are defined in the spec, skip alm-examples parsing
+	if len(service.Spec) == 0 {
+		klog.V(2).Infof("No custom resources defined in spec for service %s, skipping alm-examples parsing", service.Name)
+		return nil
+	}
+
+	annotations := csv.GetAnnotations()
+	if annotations == nil {
+		return errors.Errorf("service %s has spec defined but CSV %s/%s has nil annotations", service.Name, csv.Namespace, csv.Name)
+	}
+	almExamples := annotations["alm-examples"]
+	if almExamples == "" {
+		return errors.Errorf("service %s has spec defined but CSV %s/%s is missing alm-examples annotation", service.Name, csv.Namespace, csv.Name)
+	}
 
 	// Convert CR template string to slice
 	var almExampleList []interface{}
@@ -656,7 +669,24 @@ func (r *Reconciler) deleteAllCustomResource(ctx context.Context, csv *olmv1alph
 	if service == nil {
 		return nil
 	}
-	almExamples := csv.GetAnnotations()["alm-examples"]
+
+	// If no custom resources are defined in the spec, skip alm-examples parsing
+	if len(service.Spec) == 0 {
+		klog.V(2).Infof("No custom resources defined in spec for service %s, skipping deletion from alm-examples", service.Name)
+		return nil
+	}
+
+	annotations := csv.GetAnnotations()
+	if annotations == nil {
+		klog.V(2).Infof("CSV %s/%s has nil annotations, skipping custom resource deletion from alm-examples", csv.Namespace, csv.Name)
+		return nil
+	}
+	almExamples := annotations["alm-examples"]
+	if almExamples == "" {
+		klog.V(2).Infof("CSV %s/%s is missing alm-examples annotation, skipping custom resource deletion from alm-examples", csv.Namespace, csv.Name)
+		return nil
+	}
+
 	klog.V(2).Info("Delete all the custom resource from Subscription ", service.Name)
 
 	// Create a slice for crTemplates
@@ -1252,8 +1282,8 @@ func (r *Reconciler) updateK8sJob(ctx context.Context, existingK8sRes unstructur
 
 	var existingHashedData string
 	var newHashedData string
-	if existingRes.GetAnnotations() != nil {
-		existingHashedData = existingRes.GetAnnotations()[constant.HashedData]
+	if annotations := existingRes.GetAnnotations(); annotations != nil {
+		existingHashedData = annotations[constant.K8sHashedData]
 	}
 
 	if k8sResConfig != nil {
@@ -1268,11 +1298,6 @@ func (r *Reconciler) updateK8sJob(ctx context.Context, existingK8sRes unstructur
 		templatek8sRes.SetKind(kind)
 		templatek8sRes.SetName(name)
 		templatek8sRes.SetNamespace(namespace)
-
-		if newAnnotations == nil {
-			newAnnotations = make(map[string]string)
-		}
-		newAnnotations[constant.HashedData] = newHashedData
 
 		if err := r.deleteK8sResource(ctx, existingRes, newLabels, namespace); err != nil {
 			return errors.Wrap(err, "failed to update k8s resource")
@@ -1310,6 +1335,9 @@ func (r *Reconciler) updateK8sRoute(ctx context.Context, existingK8sRes unstruct
 	}
 
 	existingAnnos := existingRes.GetAnnotations()
+	if existingAnnos == nil {
+		existingAnnos = make(map[string]string)
+	}
 	existingHostHash := existingAnnos[constant.RouteHash]
 
 	if k8sResConfig != nil {

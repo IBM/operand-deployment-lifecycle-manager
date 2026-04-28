@@ -119,7 +119,11 @@ func (r *Reconciler) getCSVBySubscription(ctx context.Context, subscriptionInsta
 
 	var matchCSVList = []olmv1alpha1.ClusterServiceVersion{}
 	for _, csv := range csvList.Items {
-		csvPackageName := csv.GetAnnotations()["operatorframework.io/properties"]
+		annotations := csv.GetAnnotations()
+		if annotations == nil {
+			continue
+		}
+		csvPackageName := annotations["operatorframework.io/properties"]
 		if strings.Contains(csvPackageName, subscriptionInstance.Spec.Package) {
 			matchCSVList = append(matchCSVList, csv)
 		}
