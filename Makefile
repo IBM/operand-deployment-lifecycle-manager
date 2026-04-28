@@ -313,7 +313,7 @@ build-operator-dev-image: ## Build the operator dev image.
 
 build-test-operator-image: config-docker ## Build the operator test image.
 	@echo "Building the $(OPERATOR_IMAGE_NAME) docker image for testing..."
-	@docker build -t $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG) \
+	@$(CONTAINER_TOOL) build -t $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(OPERATOR_TEST_TAG) \
 	--build-arg VCS_REF=$(VCS_REF) --build-arg RELEASE_VERSION=$(RELEASE_VERSION) \
 	--build-arg GOARCH=$(LOCAL_ARCH) -f Dockerfile .
 
