@@ -55,6 +55,18 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - persistentvolumeclaims/status
+  - services/status
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
   - namespaces
   verbs:
   - get
@@ -73,6 +85,27 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - postgresql.k8s.enterprisedb.io
+  resources:
+  - clusters/finalizers
+  verbs:
+  - get
+  - list
+  - watch
+  - patch
+  - delete
+- apiGroups:
+  - pg.ibm.com
+  resources:
+  - clusters/finalizers
+  verbs:
+  - create
+  - get
+  - list
+  - watch
+  - patch
+  - delete
 - apiGroups:
   - rbac.authorization.k8s.io
   resources:
@@ -99,6 +132,14 @@ rules:
   - list
   - patch
   - update
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - deployments/status
+  verbs:
+  - get
+  - list
   - watch
 - apiGroups:
   - batch
