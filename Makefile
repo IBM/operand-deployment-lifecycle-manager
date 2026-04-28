@@ -328,13 +328,13 @@ build-push-dev-image: build-operator-dev-image  ## Build and push the operator d
 	@$(CONTAINER_TOOL) push $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(BUILD_VERSION)
 
 build-push-bundle-image: yq
-	@docker build -f bundle.Dockerfile -t $(ICR_REIGSTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(BUILD_VERSION) .
+	@$(CONTAINER_TOOL) build -f bundle.Dockerfile -t $(ICR_REIGSTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(BUILD_VERSION) .
 	@echo "Pushing the $(BUNDLE_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
-	@docker push $(ICR_REIGSTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(BUILD_VERSION)
+	@$(CONTAINER_TOOL) push $(ICR_REIGSTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(BUILD_VERSION)
 
 build-catalog-source:
 	@opm -u docker index add --bundles $(ICR_REIGSTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(BUILD_VERSION) --tag $(ICR_REIGSTRY)/$(OPERATOR_IMAGE_NAME)-catalog:$(BUILD_VERSION)
-	@docker push $(ICR_REIGSTRY)/$(OPERATOR_IMAGE_NAME)-catalog:$(BUILD_VERSION)
+	@$(CONTAINER_TOOL) push $(ICR_REIGSTRY)/$(OPERATOR_IMAGE_NAME)-catalog:$(BUILD_VERSION)
 
 build-catalog: build-push-bundle-image build-catalog-source
 
