@@ -44,6 +44,7 @@ rules:
   - serviceaccounts
   - pods #for EDB
   - events
+  - persistentvolumeclaims
   verbs:
   - create
   - delete
@@ -57,6 +58,7 @@ rules:
   resources:
   - persistentvolumeclaims/status
   - services/status
+  - pods/status
   verbs:
   - get
   - list
@@ -93,6 +95,18 @@ rules:
   - get
   - list
   - watch
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - postgresql.k8s.enterprisedb.io
+  resources:
+  - clusters/status
+  verbs:
+  - get
+  - list
+  - watch
+  - update
   - patch
   - delete
 - apiGroups:
@@ -104,6 +118,19 @@ rules:
   - get
   - list
   - watch
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - pg.ibm.com
+  resources:
+  - clusters/status
+  verbs:
+  - create
+  - get
+  - list
+  - watch
+  - update
   - patch
   - delete
 - apiGroups:
