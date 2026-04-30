@@ -739,6 +739,47 @@ func nestedBasicType(obj map[string]interface{}, fields ...string) (string, bool
 	}
 }
 
+// hasOtherManagers checks if there are other OperandBindInfos managing this resource
+// by examining labels with pattern: namespace.name/bindinfo: "true"
+func (r *Reconciler) hasOtherManagers(ctx context.Context, labels map[string]string, ownerRefs []metav1.OwnerReference, currentBindInfoNs, currentBindInfoName string) bool {
+	currentLabel := currentBindInfoNs + "." + currentBindInfoName + "/bindinfo"
+
+	// Check labels for other OperandBindInfos
+	for key, value := range labels {
+		if strings.HasSuffix(key, "/bindinfo") && value == "true" && key != currentLabel {
+			klog.V(3).Infof("Resource has other OperandBindInfo manager: %s", key)
+			return true
+		}
+	}
+
+	return false
+}
+
+// removeBindInfoReference removes the current OperandBindInfo's label from the resource
+func (r *Reconciler) removeBindInfoReference(ctx context.Context, obj client.Object, bindInfoInstance *operatorv1alpha1.OperandBindInfo) error {
+	labelKey := bindInfoInstance.Namespace + "." + bindInfoInstance.Name + "/bindinfo"
+
+	// Remove the label
+	labels := obj.GetLabels()
+	if labels != nil {
+		if _, exists := labels[labelKey]; exists {
+			klog.V(2).Infof("Removing label %s from resource %s/%s", labelKey, obj.GetNamespace(), obj.GetName())
+			delete(labels, labelKey)
+			obj.SetLabels(labels)
+		} else {
+			klog.V(2).Infof("Label %s not found on resource %s/%s", labelKey, obj.GetNamespace(), obj.GetName())
+		}
+	}
+
+	// Update the resource
+	if err := r.Update(ctx, obj); err != nil {
+		return errors.Wrapf(err, "failed to update resource %s/%s", obj.GetNamespace(), obj.GetName())
+	}
+
+	klog.V(2).Infof("Successfully removed label %s from resource %s/%s", labelKey, obj.GetNamespace(), obj.GetName())
+	return nil
+}
+
 // cleanupCopies deletes all copied secrets and configmaps when an OperandBindInfo is deleted.
 // Only resources labeled with OpbiTypeLabel="copy" are deleted, preserving original resources.
 func (r *Reconciler) cleanupCopies(ctx context.Context, bindInfoInstance *operatorv1alpha1.OperandBindInfo) error {
@@ -759,12 +800,30 @@ func (r *Reconciler) cleanupCopies(ctx context.Context, bindInfoInstance *operat
 	for i := range secretList.Items {
 		// Check if this is a copied secret (not an original)
 		if secretList.Items[i].Labels[constant.OpbiTypeLabel] == "copy" {
-			if err := r.Delete(ctx, &secretList.Items[i]); err != nil {
+			secret := &secretList.Items[i]
+			// Check if there are other OperandBindInfos or OperandRequests managing this secret
+			if r.hasOtherManagers(ctx, secret.Labels, secret.GetOwnerReferences(), bindInfoInstance.Namespace, bindInfoInstance.Name) {
+				// Remove only this OperandBindInfo's label and owner reference
+				if err := r.removeBindInfoReference(ctx, secret, bindInfoInstance); err != nil {
+					klog.Errorf("Failed to remove OperandBindInfo reference from secret %s/%s: %v", secret.Namespace, secret.Name, err)
+					return err
+				}
+				klog.V(1).Infof("Removed OperandBindInfo reference from secret %s/%s (other managers exist)", secret.Namespace, secret.Name)
+			} else {
+				// No other managers, safe to delete
+				if err := r.Delete(ctx, secret); err != nil {
+					return err
+				}
+				klog.V(1).Infof("Deleted copied secret %s/%s (no other managers)", secret.Namespace, secret.Name)
+			}
+		} else if secretList.Items[i].Labels[constant.OpbiTypeLabel] == "original" {
+			// For original secrets, just remove the label (don't delete)
+			secret := &secretList.Items[i]
+			if err := r.removeBindInfoReference(ctx, secret, bindInfoInstance); err != nil {
+				klog.Errorf("Failed to remove OperandBindInfo label from original secret %s/%s: %v", secret.Namespace, secret.Name, err)
 				return err
 			}
-			klog.V(1).Infof("Deleted copied secret %s/%s", secretList.Items[i].Namespace, secretList.Items[i].Name)
-		} else {
-			klog.V(1).Infof("Skipping deletion of original secret %s/%s", secretList.Items[i].Namespace, secretList.Items[i].Name)
+			klog.V(1).Infof("Removed OperandBindInfo label from original secret %s/%s", secret.Namespace, secret.Name)
 		}
 	}
 
@@ -772,12 +831,30 @@ func (r *Reconciler) cleanupCopies(ctx context.Context, bindInfoInstance *operat
 	for i := range cmList.Items {
 		// Check if this is a copied configmap (not an original)
 		if cmList.Items[i].Labels[constant.OpbiTypeLabel] == "copy" {
-			if err := r.Delete(ctx, &cmList.Items[i]); err != nil {
+			cm := &cmList.Items[i]
+			// Check if there are other OperandBindInfos or OperandRequests managing this configmap
+			if r.hasOtherManagers(ctx, cm.Labels, cm.GetOwnerReferences(), bindInfoInstance.Namespace, bindInfoInstance.Name) {
+				// Remove only this OperandBindInfo's label and owner reference
+				if err := r.removeBindInfoReference(ctx, cm, bindInfoInstance); err != nil {
+					klog.Errorf("Failed to remove OperandBindInfo reference from configmap %s/%s: %v", cm.Namespace, cm.Name, err)
+					return err
+				}
+				klog.V(1).Infof("Removed OperandBindInfo reference from configmap %s/%s (other managers exist)", cm.Namespace, cm.Name)
+			} else {
+				// No other managers, safe to delete
+				if err := r.Delete(ctx, cm); err != nil {
+					return err
+				}
+				klog.V(1).Infof("Deleted copied configmap %s/%s (no other managers)", cm.Namespace, cm.Name)
+			}
+		} else if cmList.Items[i].Labels[constant.OpbiTypeLabel] == "original" {
+			// For original configmaps, just remove the label (don't delete)
+			cm := &cmList.Items[i]
+			if err := r.removeBindInfoReference(ctx, cm, bindInfoInstance); err != nil {
+				klog.Errorf("Failed to remove OperandBindInfo label from original configmap %s/%s: %v", cm.Namespace, cm.Name, err)
 				return err
 			}
-			klog.V(1).Infof("Deleted copied configmap %s/%s", cmList.Items[i].Namespace, cmList.Items[i].Name)
-		} else {
-			klog.V(1).Infof("Skipping deletion of original configmap %s/%s", cmList.Items[i].Namespace, cmList.Items[i].Name)
+			klog.V(1).Infof("Removed OperandBindInfo label from original configmap %s/%s", cm.Namespace, cm.Name)
 		}
 	}
 	// Update finalizer to allow delete CR
