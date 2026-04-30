@@ -739,22 +739,6 @@ func nestedBasicType(obj map[string]interface{}, fields ...string) (string, bool
 	}
 }
 
-// hasOtherManagers checks if there are other OperandBindInfos managing this resource
-// by examining labels with pattern: namespace.name/bindinfo: "true"
-func (r *Reconciler) hasOtherManagers(ctx context.Context, labels map[string]string, ownerRefs []metav1.OwnerReference, currentBindInfoNs, currentBindInfoName string) bool {
-	currentLabel := currentBindInfoNs + "." + currentBindInfoName + "/bindinfo"
-
-	// Check labels for other OperandBindInfos
-	for key, value := range labels {
-		if strings.HasSuffix(key, "/bindinfo") && value == "true" && key != currentLabel {
-			klog.V(3).Infof("Resource has other OperandBindInfo manager: %s", key)
-			return true
-		}
-	}
-
-	return false
-}
-
 // removeBindInfoReference removes the current OperandBindInfo's label from the resource
 func (r *Reconciler) removeBindInfoReference(ctx context.Context, obj client.Object, bindInfoInstance *operatorv1alpha1.OperandBindInfo) error {
 	labelKey := bindInfoInstance.Namespace + "." + bindInfoInstance.Name + "/bindinfo"
@@ -801,9 +785,9 @@ func (r *Reconciler) cleanupCopies(ctx context.Context, bindInfoInstance *operat
 		// Check if this is a copied secret (not an original)
 		if secretList.Items[i].Labels[constant.OpbiTypeLabel] == "copy" {
 			secret := &secretList.Items[i]
-			// Check if there are other OperandBindInfos or OperandRequests managing this secret
-			if r.hasOtherManagers(ctx, secret.Labels, secret.GetOwnerReferences(), bindInfoInstance.Namespace, bindInfoInstance.Name) {
-				// Remove only this OperandBindInfo's label and owner reference
+			// Check if there are other OperandBindInfos managing this secret
+			if util.HasOtherManagers(secret.Labels, bindInfoInstance.Namespace, bindInfoInstance.Name) {
+				// Remove only this OperandBindInfo's label
 				if err := r.removeBindInfoReference(ctx, secret, bindInfoInstance); err != nil {
 					klog.Errorf("Failed to remove OperandBindInfo reference from secret %s/%s: %v", secret.Namespace, secret.Name, err)
 					return err
@@ -832,9 +816,9 @@ func (r *Reconciler) cleanupCopies(ctx context.Context, bindInfoInstance *operat
 		// Check if this is a copied configmap (not an original)
 		if cmList.Items[i].Labels[constant.OpbiTypeLabel] == "copy" {
 			cm := &cmList.Items[i]
-			// Check if there are other OperandBindInfos or OperandRequests managing this configmap
-			if r.hasOtherManagers(ctx, cm.Labels, cm.GetOwnerReferences(), bindInfoInstance.Namespace, bindInfoInstance.Name) {
-				// Remove only this OperandBindInfo's label and owner reference
+			// Check if there are other OperandBindInfos managing this configmap
+			if util.HasOtherManagers(cm.Labels, bindInfoInstance.Namespace, bindInfoInstance.Name) {
+				// Remove only this OperandBindInfo's label
 				if err := r.removeBindInfoReference(ctx, cm, bindInfoInstance); err != nil {
 					klog.Errorf("Failed to remove OperandBindInfo reference from configmap %s/%s: %v", cm.Namespace, cm.Name, err)
 					return err

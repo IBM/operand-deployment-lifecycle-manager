@@ -603,3 +603,18 @@ func GetFirstNCharacter(str string, n int) string {
 	}
 	return str[:n]
 }
+
+// HasOtherManagers checks if there are other OperandBindInfos managing this resource
+// by examining labels with pattern: namespace.name/bindinfo: "true"
+func HasOtherManagers(labels map[string]string, currentBindInfoNs, currentBindInfoName string) bool {
+	currentLabel := currentBindInfoNs + "." + currentBindInfoName + "/bindinfo"
+
+	// Check labels for other OperandBindInfos
+	for key, value := range labels {
+		if strings.HasSuffix(key, "/bindinfo") && value == "true" && key != currentLabel {
+			return true
+		}
+	}
+
+	return false
+}
