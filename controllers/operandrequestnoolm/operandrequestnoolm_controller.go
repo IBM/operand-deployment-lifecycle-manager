@@ -388,7 +388,20 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				oldObject := e.ObjectOld.(*operatorv1alpha1.OperandConfig)
 				newObject := e.ObjectNew.(*operatorv1alpha1.OperandConfig)
-				return !reflect.DeepEqual(oldObject.Spec, newObject.Spec)
+
+				// Trigger on Spec changes
+				if !reflect.DeepEqual(oldObject.Spec, newObject.Spec) {
+					return true
+				}
+
+				// Trigger when OperandConfig status is Creating
+				// This ensures OperandRequest reconciles when OperandConfig is stuck in Creating status
+				if newObject.Status.Phase == operatorv1alpha1.ServiceCreating {
+					klog.V(2).Infof("OperandConfig %s/%s is in Creating status, triggering OperandRequest (no-OLM) reconciliation", newObject.Namespace, newObject.Name)
+					return true
+				}
+
+				return false
 			},
 		})).
 		Watches(&corev1.ConfigMap{}, handler.EnqueueRequestsFromMapFunc(r.getReferenceToRequestMapper), builder.WithPredicates(ReferencePredicates)).
