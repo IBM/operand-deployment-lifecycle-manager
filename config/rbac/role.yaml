@@ -176,6 +176,18 @@ rules:
   - update
   - watch
 - apiGroups:
+  - pg.ibm.com
+  resources:
+  - imagecatalogs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - route.openshift.io
   resources:
   - routes
