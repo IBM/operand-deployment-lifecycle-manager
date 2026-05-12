@@ -129,7 +129,7 @@ metadata:
     categories: Developer Tools, Monitoring, Logging & Tracing, Security
     certified: "false"
     containerImage: icr.io/cpopen/odlm:4.5.8
-    createdAt: "2026-05-12T20:13:27Z"
+    createdAt: "2026-05-12T21:20:18Z"
     description: The Operand Deployment Lifecycle Manager provides a Kubernetes CRD-based API to manage the lifecycle of operands.
     features.operators.openshift.io/disconnected: "true"
     features.operators.openshift.io/fips-compliant: "true"
@@ -843,10 +843,7 @@ spec:
                 - create
                 - delete
                 - get
-                - list
-                - patch
                 - update
-                - watch
             - apiGroups:
                 - route.openshift.io
               resources:
