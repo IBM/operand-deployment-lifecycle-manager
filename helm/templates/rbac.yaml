@@ -134,7 +134,7 @@ rules:
   - patch
   - delete
 - apiGroups:
-  - postgresql.cnpg.io
+  - pg.ibm.com
   resources:
   - imagecatalogs
   verbs:
