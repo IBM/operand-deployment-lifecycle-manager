@@ -1145,15 +1145,44 @@ func (r *Reconciler) refreshPodsFromDaemonSet(ns, name, resourceType string) err
 
 // SetupWithManager adds OperandBindInfo controller to the manager.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+	// Only watch Secrets and ConfigMaps that have the ODLM label
+	// This prevents caching all Secrets/ConfigMaps in watched namespaces
 	bindablePredicates := predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
-			return true
+			labels := e.Object.GetLabels()
+			if labels == nil {
+				return false
+			}
+			// Only watch resources with ODLM bindinfo label
+			_, hasOpbiLabel := labels[constant.OpbiTypeLabel]
+			return hasOpbiLabel
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			return true
+			// Check if either old or new object has the ODLM bindinfo label
+			// This ensures reconciliation runs when the label is removed
+			newLabels := e.ObjectNew.GetLabels()
+			oldLabels := e.ObjectOld.GetLabels()
+
+			if newLabels == nil {
+				newLabels = make(map[string]string)
+			}
+			if oldLabels == nil {
+				oldLabels = make(map[string]string)
+			}
+
+			_, hasOpbiLabelNew := newLabels[constant.OpbiTypeLabel]
+			_, hasOpbiLabelOld := oldLabels[constant.OpbiTypeLabel]
+
+			return hasOpbiLabelNew || hasOpbiLabelOld
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			return true
+			labels := e.Object.GetLabels()
+			if labels == nil {
+				return false
+			}
+			// Only watch resources with ODLM bindinfo label
+			_, hasOpbiLabel := labels[constant.OpbiTypeLabel]
+			return hasOpbiLabel
 		},
 	}
 
