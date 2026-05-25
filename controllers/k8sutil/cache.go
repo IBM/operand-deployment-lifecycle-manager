@@ -40,9 +40,6 @@ func NewODLMCache(isolatedModeEnable bool, opts ctrl.Options) ctrl.Options {
 	cacheFreshLabelSelector := labels.SelectorFromSet(
 		labels.Set{constant.BindInfoRefreshLabel: "enabled"},
 	)
-	cacheOpreqLabelSelector := labels.SelectorFromSet(
-		labels.Set{constant.OpreqLabel: "true"},
-	)
 
 	watchNamespace := util.GetWatchNamespace()
 	watchNamespaces := strings.Split(watchNamespace, ",")
@@ -72,8 +69,8 @@ func NewODLMCache(isolatedModeEnable bool, opts ctrl.Options) ctrl.Options {
 		&appsv1.Deployment{}:                 {Label: cacheFreshLabelSelector},
 		&appsv1.DaemonSet{}:                  {Label: cacheFreshLabelSelector},
 		&appsv1.StatefulSet{}:                {Label: cacheFreshLabelSelector},
-		&olmv1alpha1.ClusterServiceVersion{}: {},                               // Cache is needed because the action for deleting the ODLM-managed CSVs
-		&olmv1alpha1.Subscription{}:          {Label: cacheOpreqLabelSelector}, // Cache only ODLM-managed subscriptions
+		&olmv1alpha1.ClusterServiceVersion{}: {}, // Cache is needed because the action for deleting CSVs
+		&olmv1alpha1.Subscription{}:          {}, // Cache all subscriptions for any labeled and unlabeled subscriptions
 	}
 
 	// set cache options

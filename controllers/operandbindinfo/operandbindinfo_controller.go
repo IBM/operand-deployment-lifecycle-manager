@@ -1158,13 +1158,22 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 			return hasOpbiLabel
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			labels := e.ObjectNew.GetLabels()
-			if labels == nil {
-				return false
+			// Check if either old or new object has the ODLM bindinfo label
+			// This ensures reconciliation runs when the label is removed
+			newLabels := e.ObjectNew.GetLabels()
+			oldLabels := e.ObjectOld.GetLabels()
+
+			if newLabels == nil {
+				newLabels = make(map[string]string)
 			}
-			// Only watch resources with ODLM bindinfo label
-			_, hasOpbiLabel := labels[constant.OpbiTypeLabel]
-			return hasOpbiLabel
+			if oldLabels == nil {
+				oldLabels = make(map[string]string)
+			}
+
+			_, hasOpbiLabelNew := newLabels[constant.OpbiTypeLabel]
+			_, hasOpbiLabelOld := oldLabels[constant.OpbiTypeLabel]
+
+			return hasOpbiLabelNew || hasOpbiLabelOld
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			labels := e.Object.GetLabels()
