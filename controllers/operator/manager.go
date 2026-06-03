@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"reflect"
 	"sort"
 	"strconv"
@@ -435,6 +436,14 @@ func (m *ODLMOperator) ListOperandRequestsByConfig(ctx context.Context, key type
 // GetSubscription gets Subscription by name and package name
 func (m *ODLMOperator) GetSubscription(ctx context.Context, name, operatorNs, servicesNs, packageName string) (*olmv1alpha1.Subscription, error) {
 	klog.V(3).Infof("Fetch Subscription %s in operatorNamespace %s and servicesNamespace %s", name, operatorNs, servicesNs)
+
+	no_olm := os.Getenv("NO_OLM")
+	klog.Infof("NO_OLM: %s", no_olm)
+	if no_olm == "true" {
+		klog.Info("No subscription, this is NO_OLM deployment")
+		return nil, nil
+	}
+	klog.Infof("NO_OLM: %s", no_olm)
 
 	tenantScope := make(map[string]struct{})
 	for _, ns := range []string{operatorNs, servicesNs} {

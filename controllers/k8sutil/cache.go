@@ -19,7 +19,6 @@ package k8sutil
 import (
 	"strings"
 
-	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -64,13 +63,13 @@ func NewODLMCache(isolatedModeEnable bool, opts ctrl.Options) ctrl.Options {
 	// set byObject to watch the resources
 	// the cache will watch the resources with the label selector
 	cacheByObject := map[client.Object]cache.ByObject{
-		&corev1.Secret{}:                     {Label: cacheWatchedLabelSelector},
-		&corev1.ConfigMap{}:                  {Label: cacheWatchedLabelSelector},
-		&appsv1.Deployment{}:                 {Label: cacheFreshLabelSelector},
-		&appsv1.DaemonSet{}:                  {Label: cacheFreshLabelSelector},
-		&appsv1.StatefulSet{}:                {Label: cacheFreshLabelSelector},
-		&olmv1alpha1.ClusterServiceVersion{}: {}, // Cache is needed because the action for deleting CSVs
-		&olmv1alpha1.Subscription{}:          {}, // Cache all subscriptions for any labeled and unlabeled subscriptions
+		&corev1.Secret{}:      {Label: cacheWatchedLabelSelector},
+		&corev1.ConfigMap{}:   {Label: cacheWatchedLabelSelector},
+		&appsv1.Deployment{}:  {Label: cacheFreshLabelSelector},
+		&appsv1.DaemonSet{}:   {Label: cacheFreshLabelSelector},
+		&appsv1.StatefulSet{}: {Label: cacheFreshLabelSelector},
+		// &olmv1alpha1.ClusterServiceVersion{}: {}, // Cache is needed because the action for deleting CSVs
+		// &olmv1alpha1.Subscription{}:          {}, // Cache all subscriptions for any labeled and unlabeled subscriptions
 	}
 
 	// set cache options

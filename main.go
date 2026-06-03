@@ -56,13 +56,18 @@ var (
 )
 
 func init() {
-	utilruntime.Must(olmv1.AddToScheme(scheme))
-	utilruntime.Must(olmv1alpha1.AddToScheme(scheme))
+	// Only register OLM types if NO_OLM is not set to true
+	noolm := os.Getenv("NO_OLM")
+	if noolm != "true" {
+		utilruntime.Must(olmv1.AddToScheme(scheme))
+		utilruntime.Must(olmv1alpha1.AddToScheme(scheme))
+		utilruntime.Must(operatorsv1.AddToScheme(scheme))
+	}
+
 	utilruntime.Must(nssv1.AddToScheme(scheme))
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(operatorv1alpha1.AddToScheme(scheme))
-	utilruntime.Must(operatorsv1.AddToScheme(scheme))
 	utilruntime.Must(ocproute.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
