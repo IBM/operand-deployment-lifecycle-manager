@@ -97,9 +97,9 @@ else
 DEV_REGISTRY := ${QUAY_REGISTRY}
 endif
 
-RELEASE_IMAGE ?= $(DOCKER_REGISTRY)/$(OPERATOR_IMAGE_NAME):cncf
-RELEASE_IMAGE_ARCH ?= $(DOCKER_REGISTRY)/$(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):cncf
-LOCAL_ARCH_IMAGE ?= $(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):cncf
+RELEASE_IMAGE ?= $(DOCKER_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(BUILD_VERSION)
+RELEASE_IMAGE_ARCH ?= $(DOCKER_REGISTRY)/$(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(BUILD_VERSION)
+LOCAL_ARCH_IMAGE ?= $(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(BUILD_VERSION)
 
 # Current Operator image name
 OPERATOR_IMAGE_NAME ?= odlm
@@ -307,7 +307,7 @@ docker-push:
 
 build-operator-dev-image: ## Build the operator dev image.
 	@echo "Building the $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME) docker image..."
-	@$(CONTAINER_TOOL) build -t $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):cncf \
+	@$(CONTAINER_TOOL) build -t $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(BUILD_VERSION) \
 	--build-arg VCS_REF=$(VCS_REF) --build-arg RELEASE_VERSION=$(RELEASE_VERSION) \
 	--build-arg GOARCH=$(LOCAL_ARCH) -f Dockerfile .
 
@@ -324,25 +324,25 @@ build-push-test-image: build-test-operator-image ## Build and push the operator 
 ##@ Release
 
 build-push-dev-image: build-operator-dev-image  ## Build and push the operator dev images.
-	@echo "Pushing the $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):cncf docker image to $(DEV_REGISTRY)..."
-	@$(CONTAINER_TOOL) push $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):cncf
+	@echo "Pushing the $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(BUILD_VERSION) docker image to $(DEV_REGISTRY)..."
+	@$(CONTAINER_TOOL) push $(DEV_REGISTRY)/$(OPERATOR_IMAGE_NAME):$(BUILD_VERSION)
 
 build-push-bundle-image: yq
-	@$(CONTAINER_TOOL) build -f bundle.Dockerfile -t $(ICR_REIGSTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):cncf .
+	@$(CONTAINER_TOOL) build -f bundle.Dockerfile -t $(ICR_REIGSTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(BUILD_VERSION) .
 	@echo "Pushing the $(BUNDLE_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
-	@$(CONTAINER_TOOL) push $(ICR_REIGSTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):cncf
+	@$(CONTAINER_TOOL) push $(ICR_REIGSTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(BUILD_VERSION)
 
 build-catalog-source:
-	@opm -u docker index add --bundles $(ICR_REIGSTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):cncf --tag $(ICR_REIGSTRY)/$(OPERATOR_IMAGE_NAME)-catalog:cncf
-	@$(CONTAINER_TOOL) push $(ICR_REIGSTRY)/$(OPERATOR_IMAGE_NAME)-catalog:cncf
+	@opm -u docker index add --bundles $(ICR_REIGSTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(BUILD_VERSION) --tag $(ICR_REIGSTRY)/$(OPERATOR_IMAGE_NAME)-catalog:$(BUILD_VERSION)
+	@$(CONTAINER_TOOL) push $(ICR_REIGSTRY)/$(OPERATOR_IMAGE_NAME)-catalog:$(BUILD_VERSION)
 
 build-catalog: build-push-bundle-image build-catalog-source
 
 multiarch-image: config-docker ## Generate multiarch images for operator image.
-	@MAX_PULLING_RETRY=20 RETRY_INTERVAL=30 common/scripts/multiarch_image.sh $(DOCKER_REGISTRY) $(OPERATOR_IMAGE_NAME) cncf $(RELEASE_VERSION)
+	@MAX_PULLING_RETRY=20 RETRY_INTERVAL=30 common/scripts/multiarch_image.sh $(DOCKER_REGISTRY) $(OPERATOR_IMAGE_NAME) $(BUILD_VERSION) $(RELEASE_VERSION)
 	
 run-bundle:
-	$(OPERATOR_SDK) run bundle $(QUAY_REGISTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):cncf --install-mode OwnNamespace
+	$(OPERATOR_SDK) run bundle $(QUAY_REGISTRY)/$(BUNDLE_IMAGE_NAME)-$(LOCAL_ARCH):$(BUILD_VERSION) --install-mode OwnNamespace
 
 cleanup-bundle:
 	$(OPERATOR_SDK) cleanup ibm-odlm

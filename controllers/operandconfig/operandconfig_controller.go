@@ -99,7 +99,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 }
 
 func (r *Reconciler) updateStatus(ctx context.Context, instance *operatorv1alpha1.OperandConfig) error {
-	klog.Info("Updating OperandConfig status")
 	// Create an empty ServiceStatus map
 	klog.V(3).Info("Initializing OperandConfig status")
 
