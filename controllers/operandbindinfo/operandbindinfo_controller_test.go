@@ -23,9 +23,12 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/v4/api/v1alpha1"
+	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/constant"
 	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/testutil"
 )
 
@@ -389,6 +392,74 @@ var _ = Describe("OperandBindInfo controller", func() {
 
 			By("Deleting the OperandBindInfo")
 			Expect(k8sClient.Delete(ctx, bindInfo)).Should(Succeed())
+		})
+	})
+
+	// Test concurrent access to predicate functions to prevent regression of issue #69503
+	var _ = Describe("BindablePredicates concurrent access", func() {
+		It("Should handle concurrent map access without panicking", func() {
+			// Use the shared predicate function to avoid code duplication
+			bindablePredicates := NewBindablePredicates()
+
+			// Simulate concurrent access - this should trigger the race condition
+			// with the buggy code when run with -race flag
+			done := make(chan bool)
+			numGoroutines := 10
+			iterationsPerGoroutine := 100
+
+			for i := 0; i < numGoroutines; i++ {
+				go func(id int) {
+					defer GinkgoRecover()
+					// Create a separate secret for each goroutine to simulate
+					// concurrent access to different objects (as happens in real controller)
+					localSecret := &corev1.Secret{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-secret",
+							Namespace: "test-ns",
+							Labels: map[string]string{
+								constant.OpbiTypeLabel: "copy",
+								"test-label":           "test-value",
+							},
+						},
+					}
+
+					for j := 0; j < iterationsPerGoroutine; j++ {
+						// Test CreateFunc
+						createEvent := event.CreateEvent{
+							Object: localSecret,
+						}
+						_ = bindablePredicates.CreateFunc(createEvent)
+
+						// Test UpdateFunc
+						updateEvent := event.UpdateEvent{
+							ObjectOld: localSecret,
+							ObjectNew: localSecret,
+						}
+						_ = bindablePredicates.UpdateFunc(updateEvent)
+
+						// Test DeleteFunc
+						deleteEvent := event.DeleteEvent{
+							Object: localSecret,
+						}
+						_ = bindablePredicates.DeleteFunc(deleteEvent)
+
+						// Simulate concurrent modification of labels
+						// This is what happens in the real controller when cache updates
+						if j%10 == 0 {
+							localSecret.Labels["modified-by"] = "goroutine"
+						}
+					}
+					done <- true
+				}(i)
+			}
+
+			// Wait for all goroutines to complete
+			for i := 0; i < numGoroutines; i++ {
+				<-done
+			}
+
+			// If we reach here without panic, the test passes
+			// With the buggy code and -race flag, this will fail
 		})
 	})
 })
