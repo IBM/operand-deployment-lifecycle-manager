@@ -745,20 +745,17 @@ func (r *Reconciler) removeBindInfoReference(ctx context.Context, obj client.Obj
 
 	// Create immutable snapshot before accessing labels
 	objCopy := obj.DeepCopyObject()
-	originalLabels := objCopy.(client.Object).GetLabels()
-	if originalLabels != nil {
-		labels := make(map[string]string)
-		for k, v := range originalLabels {
-			labels[k] = v
-		}
+	labels := objCopy.(client.Object).GetLabels()
+	if labels == nil {
+		labels = make(map[string]string)
+	}
 
-		if _, exists := labels[labelKey]; exists {
-			klog.V(2).Infof("Removing label %s from resource %s/%s", labelKey, obj.GetNamespace(), obj.GetName())
-			delete(labels, labelKey)
-			objCopy.(client.Object).SetLabels(labels)
-		} else {
-			klog.V(2).Infof("Label %s not found on resource %s/%s", labelKey, obj.GetNamespace(), obj.GetName())
-		}
+	if _, exists := labels[labelKey]; exists {
+		klog.V(2).Infof("Removing label %s from resource %s/%s", labelKey, obj.GetNamespace(), obj.GetName())
+		delete(labels, labelKey)
+		objCopy.(client.Object).SetLabels(labels)
+	} else {
+		klog.V(2).Infof("Label %s not found on resource %s/%s", labelKey, obj.GetNamespace(), obj.GetName())
 	}
 
 	// Update the resource
