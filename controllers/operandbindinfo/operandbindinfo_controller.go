@@ -743,20 +743,23 @@ func nestedBasicType(obj map[string]interface{}, fields ...string) (string, bool
 func (r *Reconciler) removeBindInfoReference(ctx context.Context, obj client.Object, bindInfoInstance *operatorv1alpha1.OperandBindInfo) error {
 	labelKey := bindInfoInstance.Namespace + "." + bindInfoInstance.Name + "/bindinfo"
 
-	// Remove the label
-	labels := obj.GetLabels()
-	if labels != nil {
-		if _, exists := labels[labelKey]; exists {
-			klog.V(2).Infof("Removing label %s from resource %s/%s", labelKey, obj.GetNamespace(), obj.GetName())
-			delete(labels, labelKey)
-			obj.SetLabels(labels)
-		} else {
-			klog.V(2).Infof("Label %s not found on resource %s/%s", labelKey, obj.GetNamespace(), obj.GetName())
-		}
+	// Create immutable snapshot before accessing labels
+	objCopy := obj.DeepCopyObject()
+	labels := objCopy.(client.Object).GetLabels()
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+
+	if _, exists := labels[labelKey]; exists {
+		klog.V(2).Infof("Removing label %s from resource %s/%s", labelKey, obj.GetNamespace(), obj.GetName())
+		delete(labels, labelKey)
+		objCopy.(client.Object).SetLabels(labels)
+	} else {
+		klog.V(2).Infof("Label %s not found on resource %s/%s", labelKey, obj.GetNamespace(), obj.GetName())
 	}
 
 	// Update the resource
-	if err := r.Update(ctx, obj); err != nil {
+	if err := r.Update(ctx, objCopy.(client.Object)); err != nil {
 		return errors.Wrapf(err, "failed to update resource %s/%s", obj.GetNamespace(), obj.GetName())
 	}
 
@@ -945,7 +948,7 @@ func unique(stringSlice []string) []string {
 }
 
 func (r *Reconciler) toOpbiRequest(ctx context.Context, object client.Object) []reconcile.Request {
-	labels := object.GetLabels()
+	var labels map[string]string
 
 	// Get a complete copy of the object using the Reader
 	var objectInCluster client.Object
@@ -970,6 +973,7 @@ func (r *Reconciler) toOpbiRequest(ctx context.Context, object client.Object) []
 		return nil
 	} else {
 		klog.V(2).Infof("Object %s/%s found in the cluster", object.GetNamespace(), object.GetName())
+		// Object fetched from API server is already a fresh copy, safe to access labels directly
 		labels = objectInCluster.GetLabels()
 	}
 
@@ -1143,16 +1147,20 @@ func (r *Reconciler) refreshPodsFromDaemonSet(ns, name, resourceType string) err
 	return nil
 }
 
-// SetupWithManager adds OperandBindInfo controller to the manager.
-func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
-	// Only watch Secrets and ConfigMaps that have the ODLM label
-	// This prevents caching all Secrets/ConfigMaps in watched namespaces
-	bindablePredicates := predicate.Funcs{
+// NewBindablePredicates creates predicates for filtering bindable resources.
+// Only watches Secrets and ConfigMaps that have the ODLM label.
+// This prevents caching all Secrets/ConfigMaps in watched namespaces.
+func NewBindablePredicates() predicate.Funcs {
+	return predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
-			labels := e.Object.GetLabels()
+			// DeepCopy to get immutable snapshot before accessing labels
+			// See: https://github.ibm.com/IBMPrivateCloud/roadmap/issues/69503
+			objCopy := e.Object.DeepCopyObject()
+			labels := objCopy.(client.Object).GetLabels()
 			if labels == nil {
 				return false
 			}
+
 			// Only watch resources with ODLM bindinfo label
 			_, hasOpbiLabel := labels[constant.OpbiTypeLabel]
 			return hasOpbiLabel
@@ -1160,15 +1168,14 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			// Check if either old or new object has the ODLM bindinfo label
 			// This ensures reconciliation runs when the label is removed
-			newLabels := e.ObjectNew.GetLabels()
-			oldLabels := e.ObjectOld.GetLabels()
 
-			if newLabels == nil {
-				newLabels = make(map[string]string)
-			}
-			if oldLabels == nil {
-				oldLabels = make(map[string]string)
-			}
+			// DeepCopy to get immutable snapshots before accessing labels
+			// See: https://github.ibm.com/IBMPrivateCloud/roadmap/issues/69503
+			newObjCopy := e.ObjectNew.DeepCopyObject()
+			oldObjCopy := e.ObjectOld.DeepCopyObject()
+
+			newLabels := newObjCopy.(client.Object).GetLabels()
+			oldLabels := oldObjCopy.(client.Object).GetLabels()
 
 			_, hasOpbiLabelNew := newLabels[constant.OpbiTypeLabel]
 			_, hasOpbiLabelOld := oldLabels[constant.OpbiTypeLabel]
@@ -1176,15 +1183,24 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 			return hasOpbiLabelNew || hasOpbiLabelOld
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			labels := e.Object.GetLabels()
+			// DeepCopy to get immutable snapshot before accessing labels
+			// See: https://github.ibm.com/IBMPrivateCloud/roadmap/issues/69503
+			objCopy := e.Object.DeepCopyObject()
+			labels := objCopy.(client.Object).GetLabels()
 			if labels == nil {
 				return false
 			}
+
 			// Only watch resources with ODLM bindinfo label
 			_, hasOpbiLabel := labels[constant.OpbiTypeLabel]
 			return hasOpbiLabel
 		},
 	}
+}
+
+// SetupWithManager adds OperandBindInfo controller to the manager.
+func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+	bindablePredicates := NewBindablePredicates()
 
 	opregPredicates := predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {

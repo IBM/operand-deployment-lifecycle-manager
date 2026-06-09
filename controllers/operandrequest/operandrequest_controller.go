@@ -286,7 +286,8 @@ func (r *Reconciler) getRegistryToRequestMapper(ctx context.Context, obj client.
 func (r *Reconciler) getSubToRequestMapper(ctx context.Context, obj client.Object) []reconcile.Request {
 	klog.V(2).Infof("DEBUG: OperandRequest reconciliation triggered by Subscription: %s/%s", obj.GetNamespace(), obj.GetName())
 	reg, _ := regexp.Compile(`^(.*)\.(.*)\.(.*)\/request`)
-	annotations := obj.GetAnnotations()
+	objCopy := obj.DeepCopyObject()
+	annotations := objCopy.(client.Object).GetAnnotations()
 	var reqName, reqNamespace string
 	for annotation := range annotations {
 		if reg.MatchString(annotation) {
@@ -323,7 +324,8 @@ func (r *Reconciler) getConfigToRequestMapper(ctx context.Context, obj client.Ob
 
 func (r *Reconciler) getReferenceToRequestMapper(ctx context.Context, obj client.Object) []reconcile.Request {
 	klog.V(2).Infof("DEBUG: OperandRequest reconciliation potentially triggered by referenced object: %s/%s", obj.GetNamespace(), obj.GetName())
-	annotations := obj.GetAnnotations()
+	objCopy := obj.DeepCopyObject()
+	annotations := objCopy.(client.Object).GetAnnotations()
 	if annotations == nil {
 		return []ctrl.Request{}
 	}
@@ -361,18 +363,19 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 	ReferencePredicates := predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
-			labels := e.Object.GetLabels()
+			// DeepCopy to get immutable snapshot before accessing labels
+			// See: https://github.ibm.com/IBMPrivateCloud/roadmap/issues/69503
+			objCopy := e.Object.DeepCopyObject()
+			labels := objCopy.(client.Object).GetLabels()
 			result := false
 			// only return true when both conditions are met at the same time:
 			// 1. label contain key "constant.ODLMWatchedLabel" and value is true
 			// 2. label does not contain key "constant.OpbiTypeLabel" with value "copy"
-			if labels != nil {
-				if labelValue, ok := labels[constant.ODLMWatchedLabel]; ok && labelValue == "true" {
-					if labelValue, ok := labels[constant.OpbiTypeLabel]; ok && labelValue == "copy" {
-						result = false
-					} else {
-						result = true
-					}
+			if labelValue, ok := labels[constant.ODLMWatchedLabel]; ok && labelValue == "true" {
+				if labelValue, ok := labels[constant.OpbiTypeLabel]; ok && labelValue == "copy" {
+					result = false
+				} else {
+					result = true
 				}
 			}
 			if result {
@@ -385,15 +388,15 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 			if !r.ObjectIsUpdatedWithException(&e.ObjectOld, &e.ObjectNew) {
 				return false
 			}
-			labels := e.ObjectNew.GetLabels()
+			// DeepCopy to get immutable snapshot before accessing labels
+			objCopy := e.ObjectNew.DeepCopyObject()
+			labels := objCopy.(client.Object).GetLabels()
 			result := false
-			if labels != nil {
-				if labelValue, ok := labels[constant.ODLMWatchedLabel]; ok && labelValue == "true" {
-					if labelValue, ok := labels[constant.OpbiTypeLabel]; ok && labelValue == "copy" {
-						result = false
-					} else {
-						result = true
-					}
+			if labelValue, ok := labels[constant.ODLMWatchedLabel]; ok && labelValue == "true" {
+				if labelValue, ok := labels[constant.OpbiTypeLabel]; ok && labelValue == "copy" {
+					result = false
+				} else {
+					result = true
 				}
 			}
 			if result {
