@@ -80,7 +80,7 @@ endif
 endif
 
 # Default image repo
-QUAY_REGISTRY ?= quay.io/yuchen_li1
+QUAY_REGISTRY ?= quay.io/opencloudio
 ICR_REIGSTRY ?= icr.io/cpopen
 
 ifeq ($(BUILD_LOCALLY),0)
