@@ -948,7 +948,7 @@ func unique(stringSlice []string) []string {
 }
 
 func (r *Reconciler) toOpbiRequest(ctx context.Context, object client.Object) []reconcile.Request {
-	var labels map[string]string
+	labels := object.GetLabels()
 
 	// Get a complete copy of the object using the Reader
 	var objectInCluster client.Object

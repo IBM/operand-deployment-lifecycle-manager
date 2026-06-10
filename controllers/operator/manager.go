@@ -1474,31 +1474,46 @@ func (m *ODLMOperator) ObjectIsUpdatedWithException(oldObj, newObj *client.Objec
 	newObject := *newObj
 
 	// Check if labels are the same except for ODLMWatchedLabel
-	oldLabels := oldObject.GetLabels()
-	newLabels := newObject.GetLabels()
-	if oldLabels != nil && newLabels != nil {
-		delete(oldLabels, constant.ODLMWatchedLabel)
-		delete(newLabels, constant.ODLMWatchedLabel)
-	}
+	oldLabels := filteredMetadata(oldObject.GetLabels(), constant.ODLMWatchedLabel)
+	newLabels := filteredMetadata(newObject.GetLabels(), constant.ODLMWatchedLabel)
 	if !reflect.DeepEqual(oldLabels, newLabels) {
 		return true
 	}
 
 	// Check if annotations are the same except for ODLMReferenceAnnotation
-	oldAnnotations := oldObject.GetAnnotations()
-	newAnnotations := newObject.GetAnnotations()
-	if oldAnnotations != nil && newAnnotations != nil {
-		delete(oldAnnotations, constant.ODLMReferenceAnnotation)
-		delete(newAnnotations, constant.ODLMReferenceAnnotation)
-	}
+	oldAnnotations := filteredMetadata(oldObject.GetAnnotations(), constant.ODLMReferenceAnnotation)
+	newAnnotations := filteredMetadata(newObject.GetAnnotations(), constant.ODLMReferenceAnnotation)
 	if !reflect.DeepEqual(oldAnnotations, newAnnotations) {
 		return true
 	}
 
 	// Check if other parts of the object are unchanged
-	oldObject.SetLabels(nil)
-	oldObject.SetAnnotations(nil)
-	newObject.SetLabels(nil)
-	newObject.SetAnnotations(nil)
-	return !reflect.DeepEqual(oldObject, newObject)
+	oldObjectCopy := oldObject.DeepCopyObject().(client.Object)
+	newObjectCopy := newObject.DeepCopyObject().(client.Object)
+	oldObjectCopy.SetLabels(nil)
+	oldObjectCopy.SetAnnotations(nil)
+	newObjectCopy.SetLabels(nil)
+	newObjectCopy.SetAnnotations(nil)
+	return !reflect.DeepEqual(oldObjectCopy, newObjectCopy)
+}
+
+func filteredMetadata(metadata map[string]string, ignoredKeys ...string) map[string]string {
+	if metadata == nil {
+		return nil
+	}
+	ignored := make(map[string]struct{}, len(ignoredKeys))
+	for _, key := range ignoredKeys {
+		ignored[key] = struct{}{}
+	}
+	filtered := make(map[string]string, len(metadata))
+	for key, value := range metadata {
+		if _, ok := ignored[key]; ok {
+			continue
+		}
+		filtered[key] = value
+	}
+	if len(filtered) == 0 {
+		return nil
+	}
+	return filtered
 }

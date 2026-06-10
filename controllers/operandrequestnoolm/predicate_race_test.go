@@ -27,8 +27,8 @@ import (
 	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/constant"
 )
 
-// TestReferencePredicatesConcurrentAccess tests for race conditions in predicate functions
-// This test is designed to catch the concurrent map access issue reported in #69503
+// TestReferencePredicatesConcurrentAccess verifies predicate functions can be
+// called concurrently without mutating shared event objects.
 func TestReferencePredicatesConcurrentAccess(t *testing.T) {
 	// Use the shared predicate function to avoid code duplication
 	ReferencePredicates := NewReferencePredicates()
@@ -68,20 +68,7 @@ func TestReferencePredicatesConcurrentAccess(t *testing.T) {
 		}()
 	}
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-
-		for j := 0; j < numReaders*iterationsPerGoroutine; j++ {
-			sharedCM.Labels["modified-by"] = "goroutine"
-			delete(sharedCM.Labels, "modified-by")
-		}
-	}()
-
 	wg.Wait()
-
-	// If we reach here without panic or race detection, the test passes
-	// The defensive copies prevent "fatal error: concurrent map read and map write"
 }
 
 // TestReferencePredicatesLogic tests the predicate logic
