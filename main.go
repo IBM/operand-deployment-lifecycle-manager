@@ -100,9 +100,10 @@ func main() {
 
 	isolatedModeEnable := true
 	operatorCheckerDisable := util.GetoperatorCheckerMode()
-	options = k8sutil.NewODLMCache(isolatedModeEnable, options)
+	config := ctrl.GetConfigOrDie()
+	options = k8sutil.NewODLMCache(isolatedModeEnable, options, config)
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
+	mgr, err := ctrl.NewManager(config, options)
 	if err != nil {
 		klog.Errorf("unable to start manager: %v", err)
 		os.Exit(1)

@@ -20,7 +20,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"reflect"
 	"sort"
 	"strconv"
@@ -437,11 +436,9 @@ func (m *ODLMOperator) ListOperandRequestsByConfig(ctx context.Context, key type
 func (m *ODLMOperator) GetSubscription(ctx context.Context, name, operatorNs, servicesNs, packageName string) (*olmv1alpha1.Subscription, error) {
 	klog.V(3).Infof("Fetch Subscription %s in operatorNamespace %s and servicesNamespace %s", name, operatorNs, servicesNs)
 
-	// might break helm chart on Opneshift ENV
-	no_olm := os.Getenv("NO_OLM")
-	klog.Infof("NO_OLM: %s", no_olm)
-	if no_olm == "true" {
-		klog.Info("No subscription, this is NO_OLM deployment")
+	// Check if OLM is installed in the cluster
+	if !util.IsOLMInstalled(m.Config) {
+		klog.Info("No subscription, OLM is not installed in the cluster")
 		return nil, nil
 	}
 
