@@ -1468,11 +1468,8 @@ func (m *ODLMOperator) GetValueRefFromObject(ctx context.Context, instanceType, 
 	return sanitizedString, nil
 }
 
-// ObjectIsUpdatedWithException checks if the object is updated except for the ODLMWatchedLabel and ODLMReferenceAnnotation
-func (m *ODLMOperator) ObjectIsUpdatedWithException(oldObj, newObj *client.Object) bool {
-	oldObject := *oldObj
-	newObject := *newObj
-
+// ObjectIsUpdatedWithException checks if the reference object changed except for ODLM-managed metadata.
+func (m *ODLMOperator) ObjectIsUpdatedWithException(oldObject, newObject client.Object) bool {
 	// Check if labels are the same except for ODLMWatchedLabel
 	oldLabels := filteredMetadata(oldObject.GetLabels(), constant.ODLMWatchedLabel)
 	newLabels := filteredMetadata(newObject.GetLabels(), constant.ODLMWatchedLabel)
@@ -1487,14 +1484,31 @@ func (m *ODLMOperator) ObjectIsUpdatedWithException(oldObj, newObj *client.Objec
 		return true
 	}
 
-	// Check if other parts of the object are unchanged
-	oldObjectCopy := oldObject.DeepCopyObject().(client.Object)
-	newObjectCopy := newObject.DeepCopyObject().(client.Object)
-	oldObjectCopy.SetLabels(nil)
-	oldObjectCopy.SetAnnotations(nil)
-	newObjectCopy.SetLabels(nil)
-	newObjectCopy.SetAnnotations(nil)
-	return !reflect.DeepEqual(oldObjectCopy, newObjectCopy)
+	return referenceObjectPayloadChanged(oldObject, newObject)
+}
+
+func referenceObjectPayloadChanged(oldObject, newObject client.Object) bool {
+	switch oldTyped := oldObject.(type) {
+	case *corev1.ConfigMap:
+		newTyped, ok := newObject.(*corev1.ConfigMap)
+		if !ok {
+			return true
+		}
+		return !reflect.DeepEqual(oldTyped.Immutable, newTyped.Immutable) ||
+			!reflect.DeepEqual(oldTyped.Data, newTyped.Data) ||
+			!reflect.DeepEqual(oldTyped.BinaryData, newTyped.BinaryData)
+	case *corev1.Secret:
+		newTyped, ok := newObject.(*corev1.Secret)
+		if !ok {
+			return true
+		}
+		return !reflect.DeepEqual(oldTyped.Immutable, newTyped.Immutable) ||
+			oldTyped.Type != newTyped.Type ||
+			!reflect.DeepEqual(oldTyped.Data, newTyped.Data) ||
+			!reflect.DeepEqual(oldTyped.StringData, newTyped.StringData)
+	default:
+		return true
+	}
 }
 
 func filteredMetadata(metadata map[string]string, ignoredKeys ...string) map[string]string {

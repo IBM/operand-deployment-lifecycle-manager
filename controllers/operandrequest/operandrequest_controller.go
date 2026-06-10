@@ -46,6 +46,7 @@ import (
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/v4/api/v1alpha1"
 	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/constant"
 	deploy "github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operator"
+	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/util"
 )
 
 // Reconciler reconciles a OperandRequest object
@@ -286,8 +287,7 @@ func (r *Reconciler) getRegistryToRequestMapper(ctx context.Context, obj client.
 func (r *Reconciler) getSubToRequestMapper(ctx context.Context, obj client.Object) []reconcile.Request {
 	klog.V(2).Infof("DEBUG: OperandRequest reconciliation triggered by Subscription: %s/%s", obj.GetNamespace(), obj.GetName())
 	reg, _ := regexp.Compile(`^(.*)\.(.*)\.(.*)\/request`)
-	objCopy := obj.DeepCopyObject()
-	annotations := objCopy.(client.Object).GetAnnotations()
+	annotations := obj.GetAnnotations()
 	var reqName, reqNamespace string
 	for annotation := range annotations {
 		if reg.MatchString(annotation) {
@@ -324,8 +324,7 @@ func (r *Reconciler) getConfigToRequestMapper(ctx context.Context, obj client.Ob
 
 func (r *Reconciler) getReferenceToRequestMapper(ctx context.Context, obj client.Object) []reconcile.Request {
 	klog.V(2).Infof("DEBUG: OperandRequest reconciliation potentially triggered by referenced object: %s/%s", obj.GetNamespace(), obj.GetName())
-	objCopy := obj.DeepCopyObject()
-	annotations := objCopy.(client.Object).GetAnnotations()
+	annotations := obj.GetAnnotations()
 	if annotations == nil {
 		return []ctrl.Request{}
 	}
@@ -363,21 +362,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 	ReferencePredicates := predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
-			// DeepCopy to get immutable snapshot before accessing labels
-			// See: https://github.ibm.com/IBMPrivateCloud/roadmap/issues/69503
-			objCopy := e.Object.DeepCopyObject()
-			labels := objCopy.(client.Object).GetLabels()
-			result := false
-			// only return true when both conditions are met at the same time:
-			// 1. label contain key "constant.ODLMWatchedLabel" and value is true
-			// 2. label does not contain key "constant.OpbiTypeLabel" with value "copy"
-			if labelValue, ok := labels[constant.ODLMWatchedLabel]; ok && labelValue == "true" {
-				if labelValue, ok := labels[constant.OpbiTypeLabel]; ok && labelValue == "copy" {
-					result = false
-				} else {
-					result = true
-				}
-			}
+			result := util.IsReferenceObject(e.Object)
 			if result {
 				klog.V(2).Infof("DEBUG: ReferencePredicates CreateFunc passed for: %s/%s", e.Object.GetNamespace(), e.Object.GetName())
 			}
@@ -385,20 +370,10 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			// If the object is not updated except the ODLMWatchedLabel label or ODLMReferenceAnnotation annotation, return false
-			if !r.ObjectIsUpdatedWithException(&e.ObjectOld, &e.ObjectNew) {
+			if !r.ObjectIsUpdatedWithException(e.ObjectOld, e.ObjectNew) {
 				return false
 			}
-			// DeepCopy to get immutable snapshot before accessing labels
-			objCopy := e.ObjectNew.DeepCopyObject()
-			labels := objCopy.(client.Object).GetLabels()
-			result := false
-			if labelValue, ok := labels[constant.ODLMWatchedLabel]; ok && labelValue == "true" {
-				if labelValue, ok := labels[constant.OpbiTypeLabel]; ok && labelValue == "copy" {
-					result = false
-				} else {
-					result = true
-				}
-			}
+			result := util.IsReferenceObject(e.ObjectNew)
 			if result {
 				klog.V(2).Infof("DEBUG: ReferencePredicates UpdateFunc passed for: %s/%s", e.ObjectNew.GetNamespace(), e.ObjectNew.GetName())
 			}

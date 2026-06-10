@@ -743,7 +743,7 @@ func nestedBasicType(obj map[string]interface{}, fields ...string) (string, bool
 func (r *Reconciler) removeBindInfoReference(ctx context.Context, obj client.Object, bindInfoInstance *operatorv1alpha1.OperandBindInfo) error {
 	labelKey := bindInfoInstance.Namespace + "." + bindInfoInstance.Name + "/bindinfo"
 
-	// Create immutable snapshot before accessing labels
+	// Work on a copy so the update does not mutate the caller's object.
 	objCopy := obj.DeepCopyObject()
 	labels := objCopy.(client.Object).GetLabels()
 	if labels == nil {
@@ -1153,47 +1153,15 @@ func (r *Reconciler) refreshPodsFromDaemonSet(ns, name, resourceType string) err
 func NewBindablePredicates() predicate.Funcs {
 	return predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
-			// DeepCopy to get immutable snapshot before accessing labels
-			// See: https://github.ibm.com/IBMPrivateCloud/roadmap/issues/69503
-			objCopy := e.Object.DeepCopyObject()
-			labels := objCopy.(client.Object).GetLabels()
-			if labels == nil {
-				return false
-			}
-
-			// Only watch resources with ODLM bindinfo label
-			_, hasOpbiLabel := labels[constant.OpbiTypeLabel]
-			return hasOpbiLabel
+			return util.IsBindableObject(e.Object)
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			// Check if either old or new object has the ODLM bindinfo label
 			// This ensures reconciliation runs when the label is removed
-
-			// DeepCopy to get immutable snapshots before accessing labels
-			// See: https://github.ibm.com/IBMPrivateCloud/roadmap/issues/69503
-			newObjCopy := e.ObjectNew.DeepCopyObject()
-			oldObjCopy := e.ObjectOld.DeepCopyObject()
-
-			newLabels := newObjCopy.(client.Object).GetLabels()
-			oldLabels := oldObjCopy.(client.Object).GetLabels()
-
-			_, hasOpbiLabelNew := newLabels[constant.OpbiTypeLabel]
-			_, hasOpbiLabelOld := oldLabels[constant.OpbiTypeLabel]
-
-			return hasOpbiLabelNew || hasOpbiLabelOld
+			return util.IsBindableObject(e.ObjectNew) || util.IsBindableObject(e.ObjectOld)
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			// DeepCopy to get immutable snapshot before accessing labels
-			// See: https://github.ibm.com/IBMPrivateCloud/roadmap/issues/69503
-			objCopy := e.Object.DeepCopyObject()
-			labels := objCopy.(client.Object).GetLabels()
-			if labels == nil {
-				return false
-			}
-
-			// Only watch resources with ODLM bindinfo label
-			_, hasOpbiLabel := labels[constant.OpbiTypeLabel]
-			return hasOpbiLabel
+			return util.IsBindableObject(e.Object)
 		},
 	}
 }

@@ -43,6 +43,7 @@ import (
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/v4/api/v1alpha1"
 	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/constant"
 	deploy "github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operator"
+	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/util"
 )
 
 // Reconciler reconciles a OperandRequest object
@@ -281,8 +282,7 @@ func (r *Reconciler) getConfigToRequestMapper(ctx context.Context, obj client.Ob
 }
 
 func (r *Reconciler) getReferenceToRequestMapper(ctx context.Context, obj client.Object) []reconcile.Request {
-	objCopy := obj.DeepCopyObject()
-	annotations := objCopy.(client.Object).GetAnnotations()
+	annotations := obj.GetAnnotations()
 	if annotations == nil {
 		return []ctrl.Request{}
 	}
@@ -320,41 +320,10 @@ func (r *Reconciler) getReferenceToRequestMapper(ctx context.Context, obj client
 func NewReferencePredicates() predicate.Funcs {
 	return predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
-			// DeepCopy to get immutable snapshot before accessing labels
-			// See: https://github.ibm.com/IBMPrivateCloud/roadmap/issues/69503
-			objCopy := e.Object.DeepCopyObject()
-			labels := objCopy.(client.Object).GetLabels()
-			if labels == nil {
-				return false
-			}
-
-			// only return true when both conditions are met at the same time:
-			// 1. label contain key "constant.ODLMWatchedLabel" and value is true
-			// 2. label does not contain key "constant.OpbiTypeLabel" with value "copy"
-			if labelValue, ok := labels[constant.ODLMWatchedLabel]; ok && labelValue == "true" {
-				if labelValue, ok := labels[constant.OpbiTypeLabel]; ok && labelValue == "copy" {
-					return false
-				}
-				return true
-			}
-			return false
+			return util.IsReferenceObject(e.Object)
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			// DeepCopy to get immutable snapshot before accessing labels
-			// See: https://github.ibm.com/IBMPrivateCloud/roadmap/issues/69503
-			objCopy := e.ObjectNew.DeepCopyObject()
-			labels := objCopy.(client.Object).GetLabels()
-			if labels == nil {
-				return false
-			}
-
-			if labelValue, ok := labels[constant.ODLMWatchedLabel]; ok && labelValue == "true" {
-				if labelValue, ok := labels[constant.OpbiTypeLabel]; ok && labelValue == "copy" {
-					return false
-				}
-				return true
-			}
-			return false
+			return util.IsReferenceObject(e.ObjectNew)
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			return true

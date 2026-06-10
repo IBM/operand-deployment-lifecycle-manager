@@ -142,8 +142,9 @@ func TestFindCatalogFromFallbackChannels(t *testing.T) {
 func TestObjectIsUpdatedWithExceptionDoesNotMutateObjects(t *testing.T) {
 	oldConfigMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "watched-cm",
-			Namespace: "default",
+			Name:            "watched-cm",
+			Namespace:       "default",
+			ResourceVersion: "1",
 			Labels: map[string]string{
 				constant.ODLMWatchedLabel: "true",
 				"keep":                    "old",
@@ -156,15 +157,14 @@ func TestObjectIsUpdatedWithExceptionDoesNotMutateObjects(t *testing.T) {
 		Data: map[string]string{"key": "value"},
 	}
 	newConfigMap := oldConfigMap.DeepCopy()
+	newConfigMap.ResourceVersion = "2"
 	newConfigMap.Labels[constant.ODLMWatchedLabel] = "false"
 	newConfigMap.Annotations[constant.ODLMReferenceAnnotation] = "new-reference"
 
 	oldBefore := oldConfigMap.DeepCopy()
 	newBefore := newConfigMap.DeepCopy()
-	oldObject := client.Object(oldConfigMap)
-	newObject := client.Object(newConfigMap)
 
-	updated := (&ODLMOperator{}).ObjectIsUpdatedWithException(&oldObject, &newObject)
+	updated := (&ODLMOperator{}).ObjectIsUpdatedWithException(oldConfigMap, newConfigMap)
 
 	if updated {
 		t.Fatalf("expected changes limited to ignored metadata to be ignored")
