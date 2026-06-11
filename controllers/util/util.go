@@ -37,6 +37,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/util/jsonpath"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	constant "github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/constant"
 )
@@ -344,6 +345,22 @@ func ObjectToNewUnstructured(obj interface{}) (*unstructured.Unstructured, error
 	newUnstr := &unstructured.Unstructured{}
 	newUnstr.SetUnstructuredContent(content)
 	return newUnstr, nil
+}
+
+func IsBindableObject(obj client.Object) bool {
+	if obj == nil {
+		return false
+	}
+	_, ok := obj.GetLabels()[constant.OpbiTypeLabel]
+	return ok
+}
+
+func IsReferenceObject(obj client.Object) bool {
+	if obj == nil {
+		return false
+	}
+	labels := obj.GetLabels()
+	return labels[constant.ODLMWatchedLabel] == "true" && labels[constant.OpbiTypeLabel] != "copy"
 }
 
 func EnsureLabelsForSecret(secret *corev1.Secret, labels map[string]string) {

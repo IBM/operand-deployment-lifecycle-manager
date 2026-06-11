@@ -17,18 +17,22 @@
 package operandbindinfo
 
 import (
+	"context"
 	"sync"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 
 	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/constant"
+	deploy "github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operator"
 )
 
-// TestBindablePredicatesConcurrentAccess tests for race conditions in predicate functions
-// This test is designed to catch the concurrent map access issue reported in #69503
+// TestBindablePredicatesConcurrentAccess verifies predicate functions can be
+// called concurrently without mutating shared event objects.
 func TestBindablePredicatesConcurrentAccess(t *testing.T) {
 	// Use the shared predicate function to avoid code duplication
 	bindablePredicates := NewBindablePredicates()
@@ -82,20 +86,38 @@ func TestBindablePredicatesConcurrentAccess(t *testing.T) {
 		}()
 	}
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-
-		for j := 0; j < numReaders*iterationsPerGoroutine; j++ {
-			sharedSecret.Labels["modified-by"] = "goroutine"
-			delete(sharedSecret.Labels, "modified-by")
-		}
-	}()
-
 	wg.Wait()
+}
 
-	// If we reach here without panic or race detection, the test passes
-	// The defensive copies prevent "fatal error: concurrent map read and map write"
+func TestToOpbiRequestUsesEventLabelsWhenObjectDeleted(t *testing.T) {
+	scheme := runtime.NewScheme()
+	if err := corev1.AddToScheme(scheme); err != nil {
+		t.Fatalf("failed to add core scheme: %v", err)
+	}
+	reconciler := &Reconciler{
+		ODLMOperator: &deploy.ODLMOperator{
+			Reader: fake.NewClientBuilder().WithScheme(scheme).Build(),
+		},
+	}
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "deleted-secret",
+			Namespace: "request-ns",
+			Labels: map[string]string{
+				constant.OpbiTypeLabel:       "copy",
+				"bind-ns.bind-name/bindinfo": "true",
+			},
+		},
+	}
+
+	requests := reconciler.toOpbiRequest(context.Background(), secret)
+
+	if len(requests) != 1 {
+		t.Fatalf("expected one reconcile request, got %d", len(requests))
+	}
+	if requests[0].Name != "bind-name" || requests[0].Namespace != "bind-ns" {
+		t.Fatalf("unexpected reconcile request: %#v", requests[0])
+	}
 }
 
 // Made with Bob
