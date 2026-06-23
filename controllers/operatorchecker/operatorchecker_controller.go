@@ -119,7 +119,8 @@ func (r *Reconciler) getCSVBySubscription(ctx context.Context, subscriptionInsta
 
 	var matchCSVList = []olmv1alpha1.ClusterServiceVersion{}
 	for _, csv := range csvList.Items {
-		annotations := csv.GetAnnotations()
+		csvCopy := csv.DeepCopyObject()
+		annotations := csvCopy.(client.Object).GetAnnotations()
 		if annotations == nil {
 			continue
 		}

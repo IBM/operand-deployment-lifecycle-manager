@@ -46,6 +46,7 @@ import (
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/v4/api/v1alpha1"
 	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/constant"
 	deploy "github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operator"
+	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/util"
 )
 
 // Reconciler reconciles a OperandRequest object
@@ -361,20 +362,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 	ReferencePredicates := predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
-			labels := e.Object.GetLabels()
-			result := false
-			// only return true when both conditions are met at the same time:
-			// 1. label contain key "constant.ODLMWatchedLabel" and value is true
-			// 2. label does not contain key "constant.OpbiTypeLabel" with value "copy"
-			if labels != nil {
-				if labelValue, ok := labels[constant.ODLMWatchedLabel]; ok && labelValue == "true" {
-					if labelValue, ok := labels[constant.OpbiTypeLabel]; ok && labelValue == "copy" {
-						result = false
-					} else {
-						result = true
-					}
-				}
-			}
+			result := util.IsReferenceObject(e.Object)
 			if result {
 				klog.V(2).Infof("DEBUG: ReferencePredicates CreateFunc passed for: %s/%s", e.Object.GetNamespace(), e.Object.GetName())
 			}
@@ -382,20 +370,10 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			// If the object is not updated except the ODLMWatchedLabel label or ODLMReferenceAnnotation annotation, return false
-			if !r.ObjectIsUpdatedWithException(&e.ObjectOld, &e.ObjectNew) {
+			if !r.ObjectIsUpdatedWithException(e.ObjectOld, e.ObjectNew) {
 				return false
 			}
-			labels := e.ObjectNew.GetLabels()
-			result := false
-			if labels != nil {
-				if labelValue, ok := labels[constant.ODLMWatchedLabel]; ok && labelValue == "true" {
-					if labelValue, ok := labels[constant.OpbiTypeLabel]; ok && labelValue == "copy" {
-						result = false
-					} else {
-						result = true
-					}
-				}
-			}
+			result := util.IsReferenceObject(e.ObjectNew)
 			if result {
 				klog.V(2).Infof("DEBUG: ReferencePredicates UpdateFunc passed for: %s/%s", e.ObjectNew.GetNamespace(), e.ObjectNew.GetName())
 			}

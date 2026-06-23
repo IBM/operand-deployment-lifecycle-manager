@@ -28,9 +28,11 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/mock"
 	authorizationv1 "k8s.io/api/authorization/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/constant"
 	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/util"
 )
 
@@ -134,6 +136,44 @@ func TestFindCatalogFromFallbackChannels(t *testing.T) {
 
 	if !reflect.DeepEqual(fallbackCatalog, expectedFallbackCatalog) {
 		t.Errorf("Expected fallback catalog %v, but got %v", expectedFallbackCatalog, fallbackCatalog)
+	}
+}
+
+func TestObjectIsUpdatedWithExceptionDoesNotMutateObjects(t *testing.T) {
+	oldConfigMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            "watched-cm",
+			Namespace:       "default",
+			ResourceVersion: "1",
+			Labels: map[string]string{
+				constant.ODLMWatchedLabel: "true",
+				"keep":                    "old",
+			},
+			Annotations: map[string]string{
+				constant.ODLMReferenceAnnotation: "old-reference",
+				"keep":                           "old",
+			},
+		},
+		Data: map[string]string{"key": "value"},
+	}
+	newConfigMap := oldConfigMap.DeepCopy()
+	newConfigMap.ResourceVersion = "2"
+	newConfigMap.Labels[constant.ODLMWatchedLabel] = "false"
+	newConfigMap.Annotations[constant.ODLMReferenceAnnotation] = "new-reference"
+
+	oldBefore := oldConfigMap.DeepCopy()
+	newBefore := newConfigMap.DeepCopy()
+
+	updated := (&ODLMOperator{}).ObjectIsUpdatedWithException(oldConfigMap, newConfigMap)
+
+	if updated {
+		t.Fatalf("expected changes limited to ignored metadata to be ignored")
+	}
+	if !reflect.DeepEqual(oldConfigMap, oldBefore) {
+		t.Fatalf("old object was mutated: got %#v, want %#v", oldConfigMap.ObjectMeta, oldBefore.ObjectMeta)
+	}
+	if !reflect.DeepEqual(newConfigMap, newBefore) {
+		t.Fatalf("new object was mutated: got %#v, want %#v", newConfigMap.ObjectMeta, newBefore.ObjectMeta)
 	}
 }
 

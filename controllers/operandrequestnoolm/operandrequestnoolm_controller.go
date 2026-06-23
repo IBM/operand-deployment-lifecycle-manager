@@ -43,6 +43,7 @@ import (
 	operatorv1alpha1 "github.com/IBM/operand-deployment-lifecycle-manager/v4/api/v1alpha1"
 	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/constant"
 	deploy "github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/operator"
+	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/util"
 )
 
 // Reconciler reconciles a OperandRequest object
@@ -312,43 +313,30 @@ func (r *Reconciler) getReferenceToRequestMapper(ctx context.Context, obj client
 	return requests
 }
 
-// SetupWithManager adds OperandRequest controller to the manager.
-func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
-	options := controller.Options{
-		MaxConcurrentReconciles: r.MaxConcurrentReconciles, // Set the desired value for max concurrent reconciles.
-	}
-	ReferencePredicates := predicate.Funcs{
+// NewReferencePredicates creates predicates for filtering reference resources.
+// Only watches ConfigMaps and Secrets that have the ODLM watched label set to "true"
+// and do not have the OpbiTypeLabel set to "copy".
+// This prevents caching all ConfigMaps/Secrets in watched namespaces.
+func NewReferencePredicates() predicate.Funcs {
+	return predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
-			labels := e.Object.GetLabels()
-			// only return true when both conditions are met at the same time:
-			// 1. label contain key "constant.ODLMWatchedLabel" and value is true
-			// 2. label does not contain key "constant.OpbiTypeLabel" with value "copy"
-			if labels != nil {
-				if labelValue, ok := labels[constant.ODLMWatchedLabel]; ok && labelValue == "true" {
-					if labelValue, ok := labels[constant.OpbiTypeLabel]; ok && labelValue == "copy" {
-						return false
-					}
-					return true
-				}
-			}
-			return false
+			return util.IsReferenceObject(e.Object)
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			labels := e.ObjectNew.GetLabels()
-			if labels != nil {
-				if labelValue, ok := labels[constant.ODLMWatchedLabel]; ok && labelValue == "true" {
-					if labelValue, ok := labels[constant.OpbiTypeLabel]; ok && labelValue == "copy" {
-						return false
-					}
-					return true
-				}
-			}
-			return false
+			return util.IsReferenceObject(e.ObjectNew)
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			return true
 		},
 	}
+}
+
+// SetupWithManager adds OperandRequest controller to the manager.
+func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+	options := controller.Options{
+		MaxConcurrentReconciles: r.MaxConcurrentReconciles, // Set the desired value for max concurrent reconciles.
+	}
+	ReferencePredicates := NewReferencePredicates()
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(options).
 		For(&operatorv1alpha1.OperandRequest{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).

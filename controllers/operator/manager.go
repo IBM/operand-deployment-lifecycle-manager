@@ -1474,37 +1474,66 @@ func (m *ODLMOperator) GetValueRefFromObject(ctx context.Context, instanceType, 
 	return sanitizedString, nil
 }
 
-// ObjectIsUpdatedWithException checks if the object is updated except for the ODLMWatchedLabel and ODLMReferenceAnnotation
-func (m *ODLMOperator) ObjectIsUpdatedWithException(oldObj, newObj *client.Object) bool {
-	oldObject := *oldObj
-	newObject := *newObj
-
+// ObjectIsUpdatedWithException checks if the reference object changed except for ODLM-managed metadata.
+func (m *ODLMOperator) ObjectIsUpdatedWithException(oldObject, newObject client.Object) bool {
 	// Check if labels are the same except for ODLMWatchedLabel
-	oldLabels := oldObject.GetLabels()
-	newLabels := newObject.GetLabels()
-	if oldLabels != nil && newLabels != nil {
-		delete(oldLabels, constant.ODLMWatchedLabel)
-		delete(newLabels, constant.ODLMWatchedLabel)
-	}
+	oldLabels := filteredMetadata(oldObject.GetLabels(), constant.ODLMWatchedLabel)
+	newLabels := filteredMetadata(newObject.GetLabels(), constant.ODLMWatchedLabel)
 	if !reflect.DeepEqual(oldLabels, newLabels) {
 		return true
 	}
 
 	// Check if annotations are the same except for ODLMReferenceAnnotation
-	oldAnnotations := oldObject.GetAnnotations()
-	newAnnotations := newObject.GetAnnotations()
-	if oldAnnotations != nil && newAnnotations != nil {
-		delete(oldAnnotations, constant.ODLMReferenceAnnotation)
-		delete(newAnnotations, constant.ODLMReferenceAnnotation)
-	}
+	oldAnnotations := filteredMetadata(oldObject.GetAnnotations(), constant.ODLMReferenceAnnotation)
+	newAnnotations := filteredMetadata(newObject.GetAnnotations(), constant.ODLMReferenceAnnotation)
 	if !reflect.DeepEqual(oldAnnotations, newAnnotations) {
 		return true
 	}
 
-	// Check if other parts of the object are unchanged
-	oldObject.SetLabels(nil)
-	oldObject.SetAnnotations(nil)
-	newObject.SetLabels(nil)
-	newObject.SetAnnotations(nil)
-	return !reflect.DeepEqual(oldObject, newObject)
+	return referenceObjectPayloadChanged(oldObject, newObject)
+}
+
+func referenceObjectPayloadChanged(oldObject, newObject client.Object) bool {
+	switch oldTyped := oldObject.(type) {
+	case *corev1.ConfigMap:
+		newTyped, ok := newObject.(*corev1.ConfigMap)
+		if !ok {
+			return true
+		}
+		return !reflect.DeepEqual(oldTyped.Immutable, newTyped.Immutable) ||
+			!reflect.DeepEqual(oldTyped.Data, newTyped.Data) ||
+			!reflect.DeepEqual(oldTyped.BinaryData, newTyped.BinaryData)
+	case *corev1.Secret:
+		newTyped, ok := newObject.(*corev1.Secret)
+		if !ok {
+			return true
+		}
+		return !reflect.DeepEqual(oldTyped.Immutable, newTyped.Immutable) ||
+			oldTyped.Type != newTyped.Type ||
+			!reflect.DeepEqual(oldTyped.Data, newTyped.Data) ||
+			!reflect.DeepEqual(oldTyped.StringData, newTyped.StringData)
+	default:
+		return true
+	}
+}
+
+func filteredMetadata(metadata map[string]string, ignoredKeys ...string) map[string]string {
+	if metadata == nil {
+		return nil
+	}
+	ignored := make(map[string]struct{}, len(ignoredKeys))
+	for _, key := range ignoredKeys {
+		ignored[key] = struct{}{}
+	}
+	filtered := make(map[string]string, len(metadata))
+	for key, value := range metadata {
+		if _, ok := ignored[key]; ok {
+			continue
+		}
+		filtered[key] = value
+	}
+	if len(filtered) == 0 {
+		return nil
+	}
+	return filtered
 }
