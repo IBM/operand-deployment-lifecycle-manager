@@ -25,6 +25,7 @@ import (
 	"strings"
 
 	"github.com/mohae/deepcopy"
+	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -184,48 +185,82 @@ func (r *Reconciler) updateStatus(ctx context.Context, instance *operatorv1alpha
 			continue
 		}
 
-		// Looking for the CSV
-		namespace := r.GetOperatorNamespace(op.InstallMode, op.Namespace)
-		sub, err := r.GetSubscription(ctx, op.Name, namespace, registryInstance.Namespace, op.PackageName)
+		var almExamples string
+		var sub *olmv1alpha1.Subscription
 
-		if sub == nil && err == nil {
-			klog.V(3).Infof("There is no Subscription %s or %s in the namespace %s", op.Name, op.PackageName, namespace)
-			if len(merr.Errors) != 0 {
-				return merr
+		if no_olm := util.GetNoOLM(); no_olm != "true" {
+			// Looking for the CSV
+			namespace := r.GetOperatorNamespace(op.InstallMode, op.Namespace)
+			sub, err := r.GetSubscription(ctx, op.Name, namespace, registryInstance.Namespace, op.PackageName)
+
+			if sub == nil && err == nil {
+				klog.V(3).Infof("There is no Subscription %s or %s in the namespace %s", op.Name, op.PackageName, namespace)
+				if len(merr.Errors) != 0 {
+					return merr
+				}
+				continue
 			}
-			continue
-		}
 
-		if err != nil {
-			return errors.Wrapf(err, "failed to get Subscription %s or %s in the namespace %s", op.Name, op.PackageName, namespace)
-		}
-
-		if _, ok := sub.Labels[constant.OpreqLabel]; !ok {
-			// Subscription existing and not managed by OperandRequest controller
-			klog.V(1).Infof("Subscription %s in the namespace %s isn't created by ODLM", sub.Name, sub.Namespace)
-		}
-
-		csv, err := r.GetClusterServiceVersion(ctx, sub)
-
-		if err != nil {
-			return errors.Wrapf(err, "failed to get ClusterServiceVersion for the Subscription %s/%s", namespace, sub.Name)
-		}
-
-		if csv == nil {
-			klog.Warningf("ClusterServiceVersion for the Subscription %s/%s doesn't exist, retry...", namespace, sub.Name)
-			if len(merr.Errors) != 0 {
-				return merr
+			if err != nil {
+				return errors.Wrapf(err, "failed to get Subscription %s or %s in the namespace %s", op.Name, op.PackageName, namespace)
 			}
-			continue
-		}
 
-		almExamples := csv.ObjectMeta.Annotations["alm-examples"]
-		if almExamples == "" {
-			klog.Warningf("Notfound alm-examples in the ClusterServiceVersion %s/%s", csv.Namespace, csv.Name)
-			if len(merr.Errors) != 0 {
-				return merr
+			if _, ok := sub.Labels[constant.OpreqLabel]; !ok {
+				// Subscription existing and not managed by OperandRequest controller
+				klog.V(1).Infof("Subscription %s in the namespace %s isn't created by ODLM", sub.Name, sub.Namespace)
 			}
-			continue
+
+			csv, err := r.GetClusterServiceVersion(ctx, sub)
+
+			if err != nil {
+				return errors.Wrapf(err, "failed to get ClusterServiceVersion for the Subscription %s/%s", namespace, sub.Name)
+			}
+
+			if csv == nil {
+				klog.Warningf("ClusterServiceVersion for the Subscription %s/%s doesn't exist, retry...", namespace, sub.Name)
+				if len(merr.Errors) != 0 {
+					return merr
+				}
+				continue
+			}
+
+			almExamples = csv.ObjectMeta.Annotations["alm-examples"]
+			if almExamples == "" {
+				klog.Warningf("Notfound alm-examples in the ClusterServiceVersion %s/%s", csv.Namespace, csv.Name)
+				if len(merr.Errors) != 0 {
+					return merr
+				}
+				continue
+			}
+		} else {
+			// Get deployment for no-OLM mode
+			namespace := r.GetOperatorNamespace(op.InstallMode, op.Namespace)
+			deploymentList, err := r.GetDeploymentListFromPackage(ctx, op.PackageName, namespace)
+			if err != nil {
+				merr.Add(err)
+				if len(merr.Errors) != 0 {
+					return merr
+				}
+				continue
+			}
+
+			if len(deploymentList) == 0 || deploymentList[0] == nil {
+				klog.Warningf("Deployment for %s in the namespace %s is not ready yet or not exist, retry", op.Name, namespace)
+				if len(merr.Errors) != 0 {
+					return merr
+				}
+				continue
+			}
+
+			deployment := deploymentList[0]
+			almExamples = deployment.ObjectMeta.Annotations["alm-examples"]
+			if almExamples == "" {
+				klog.Warningf("Notfound alm-examples in the Deployment %s/%s", deployment.Namespace, deployment.Name)
+				if len(merr.Errors) != 0 {
+					return merr
+				}
+				continue
+			}
 		}
 
 		var crTemplates []interface{}

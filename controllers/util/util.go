@@ -36,7 +36,9 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/jsonpath"
+	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	constant "github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/constant"
@@ -633,5 +635,34 @@ func HasOtherManagers(labels map[string]string, currentBindInfoNs, currentBindIn
 		}
 	}
 
+	return false
+}
+
+// IsOLMInstalled checks if the cluster has OLM installed by checking for the operators.coreos.com/v1alpha1 API
+func IsOLMInstalled(config *rest.Config) bool {
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(config)
+	if err != nil {
+		klog.Errorf("Failed to create discovery client: %v", err)
+		return false
+	}
+
+	apiGroupList, err := discoveryClient.ServerGroups()
+	if err != nil {
+		klog.Errorf("Failed to get server groups: %v", err)
+		return false
+	}
+
+	for _, apiGroup := range apiGroupList.Groups {
+		if apiGroup.Name == "operators.coreos.com" {
+			for _, version := range apiGroup.Versions {
+				if version.Version == "v1alpha1" {
+					klog.Info("OLM API (operators.coreos.com/v1alpha1) detected in cluster")
+					return true
+				}
+			}
+		}
+	}
+
+	klog.Info("OLM API (operators.coreos.com/v1alpha1) not found in cluster")
 	return false
 }

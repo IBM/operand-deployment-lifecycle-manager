@@ -436,6 +436,12 @@ func (m *ODLMOperator) ListOperandRequestsByConfig(ctx context.Context, key type
 func (m *ODLMOperator) GetSubscription(ctx context.Context, name, operatorNs, servicesNs, packageName string) (*olmv1alpha1.Subscription, error) {
 	klog.V(3).Infof("Fetch Subscription %s in operatorNamespace %s and servicesNamespace %s", name, operatorNs, servicesNs)
 
+	// Check if OLM is installed in the cluster
+	if !util.IsOLMInstalled(m.Config) {
+		klog.Info("No subscription, OLM is not installed in the cluster")
+		return nil, nil
+	}
+
 	tenantScope := make(map[string]struct{})
 	for _, ns := range []string{operatorNs, servicesNs} {
 		tenantScope[ns] = struct{}{}

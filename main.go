@@ -58,11 +58,11 @@ var (
 func init() {
 	utilruntime.Must(olmv1.AddToScheme(scheme))
 	utilruntime.Must(olmv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(operatorsv1.AddToScheme(scheme))
 	utilruntime.Must(nssv1.AddToScheme(scheme))
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(operatorv1alpha1.AddToScheme(scheme))
-	utilruntime.Must(operatorsv1.AddToScheme(scheme))
 	utilruntime.Must(ocproute.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
@@ -100,9 +100,10 @@ func main() {
 
 	isolatedModeEnable := true
 	operatorCheckerDisable := util.GetoperatorCheckerMode()
-	options = k8sutil.NewODLMCache(isolatedModeEnable, options)
+	config := ctrl.GetConfigOrDie()
+	options = k8sutil.NewODLMCache(isolatedModeEnable, options, config)
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
+	mgr, err := ctrl.NewManager(config, options)
 	if err != nil {
 		klog.Errorf("unable to start manager: %v", err)
 		os.Exit(1)

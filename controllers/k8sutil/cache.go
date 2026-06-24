@@ -23,6 +23,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
@@ -32,7 +33,7 @@ import (
 	"github.com/IBM/operand-deployment-lifecycle-manager/v4/controllers/util"
 )
 
-func NewODLMCache(isolatedModeEnable bool, opts ctrl.Options) ctrl.Options {
+func NewODLMCache(isolatedModeEnable bool, opts ctrl.Options, config *rest.Config) ctrl.Options {
 
 	cacheWatchedLabelSelector := labels.SelectorFromSet(
 		labels.Set{constant.ODLMWatchedLabel: "true"},
@@ -64,13 +65,17 @@ func NewODLMCache(isolatedModeEnable bool, opts ctrl.Options) ctrl.Options {
 	// set byObject to watch the resources
 	// the cache will watch the resources with the label selector
 	cacheByObject := map[client.Object]cache.ByObject{
-		&corev1.Secret{}:                     {Label: cacheWatchedLabelSelector},
-		&corev1.ConfigMap{}:                  {Label: cacheWatchedLabelSelector},
-		&appsv1.Deployment{}:                 {Label: cacheFreshLabelSelector},
-		&appsv1.DaemonSet{}:                  {Label: cacheFreshLabelSelector},
-		&appsv1.StatefulSet{}:                {Label: cacheFreshLabelSelector},
-		&olmv1alpha1.ClusterServiceVersion{}: {}, // Cache is needed because the action for deleting CSVs
-		&olmv1alpha1.Subscription{}:          {}, // Cache all subscriptions for any labeled and unlabeled subscriptions
+		&corev1.Secret{}:      {Label: cacheWatchedLabelSelector},
+		&corev1.ConfigMap{}:   {Label: cacheWatchedLabelSelector},
+		&appsv1.Deployment{}:  {Label: cacheFreshLabelSelector},
+		&appsv1.DaemonSet{}:   {Label: cacheFreshLabelSelector},
+		&appsv1.StatefulSet{}: {Label: cacheFreshLabelSelector},
+	}
+
+	// Only cache OLM resources if OLM API exists in the cluster
+	if util.IsOLMInstalled(config) {
+		cacheByObject[&olmv1alpha1.ClusterServiceVersion{}] = cache.ByObject{} // Cache is needed because the action for deleting CSVs
+		cacheByObject[&olmv1alpha1.Subscription{}] = cache.ByObject{}          // Cache all subscriptions for any labeled and unlabeled subscriptions
 	}
 
 	// set cache options
