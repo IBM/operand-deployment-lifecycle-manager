@@ -248,6 +248,7 @@ rules:
   - operator.ibm.com
   resources:
   - authentications
+  - ibmusagemeterings
   verbs:
   - create
   - delete
