@@ -656,13 +656,13 @@ func IsOLMInstalled(config *rest.Config) bool {
 		if apiGroup.Name == "operators.coreos.com" {
 			for _, version := range apiGroup.Versions {
 				if version.Version == "v1alpha1" {
-					klog.Info("OLM API (operators.coreos.com/v1alpha1) detected in cluster")
+					klog.V(2).Info("OLM API (operators.coreos.com/v1alpha1) detected in cluster")
 					return true
 				}
 			}
 		}
 	}
 
-	klog.Info("OLM API (operators.coreos.com/v1alpha1) not found in cluster")
+	klog.V(2).Info("OLM API (operators.coreos.com/v1alpha1) not found in cluster")
 	return false
 }
