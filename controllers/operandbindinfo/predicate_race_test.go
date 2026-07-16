@@ -119,5 +119,3 @@ func TestToOpbiRequestUsesEventLabelsWhenObjectDeleted(t *testing.T) {
 		t.Fatalf("unexpected reconcile request: %#v", requests[0])
 	}
 }
-
-// Made with Bob
