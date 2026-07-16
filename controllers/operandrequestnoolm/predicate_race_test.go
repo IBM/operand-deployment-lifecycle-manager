@@ -134,5 +134,3 @@ func TestReferencePredicatesLogic(t *testing.T) {
 		})
 	}
 }
-
-// Made with Bob
