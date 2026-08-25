@@ -14,6 +14,11 @@ cpfs:
   imageRegistryNamespaceOperand: cpopen/cpfs
   labels:
 
+# Automatically restart opted-in DaemonSets after OperandBindInfo data changes.
+# Disable this when DaemonSet access is not allowed by the cluster RBAC policy.
+operandBindInfo:
+  manageDaemonSets: true
+
 # other configuration you think you might need for your operator
 # following are examples, not required:
 # operatorNamespace: ""

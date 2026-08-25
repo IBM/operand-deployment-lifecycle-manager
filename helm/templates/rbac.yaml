@@ -159,7 +159,6 @@ rules:
   - apps
   resources:
   - deployments
-  - daemonsets
   - statefulsets
   verbs:
   - create
@@ -169,6 +168,20 @@ rules:
   - patch
   - update
   - watch
+{{- if $.Values.operandBindInfo.manageDaemonSets }}
+- apiGroups:
+  - apps
+  resources:
+  - daemonsets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+{{- end }}
 - apiGroups:
   - apps
   resources:
