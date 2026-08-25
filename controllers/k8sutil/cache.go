@@ -68,7 +68,6 @@ func NewODLMCache(isolatedModeEnable bool, opts ctrl.Options, config *rest.Confi
 		&corev1.Secret{}:      {Label: cacheWatchedLabelSelector},
 		&corev1.ConfigMap{}:   {Label: cacheWatchedLabelSelector},
 		&appsv1.Deployment{}:  {Label: cacheFreshLabelSelector},
-		&appsv1.DaemonSet{}:   {Label: cacheFreshLabelSelector},
 		&appsv1.StatefulSet{}: {Label: cacheFreshLabelSelector},
 	}
 
