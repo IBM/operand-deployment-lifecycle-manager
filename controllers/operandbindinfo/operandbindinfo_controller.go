@@ -59,7 +59,6 @@ import (
 type Reconciler struct {
 	*deploy.ODLMOperator
 	Config                     *rest.Config
-	ManageDaemonSets           *bool
 	daemonSetPermissionChecker func(context.Context, string) (bool, string)
 }
 
@@ -1021,10 +1020,6 @@ func (r *Reconciler) refreshPods(ns, name, resourceType string) error {
 	return nil
 }
 
-func (r *Reconciler) daemonSetManagementEnabled() bool {
-	return r.ManageDaemonSets == nil || *r.ManageDaemonSets
-}
-
 func (r *Reconciler) canManageDaemonSets(ctx context.Context, namespace string) (bool, string) {
 	if r.daemonSetPermissionChecker != nil {
 		return r.daemonSetPermissionChecker(ctx, namespace)
@@ -1043,6 +1038,9 @@ func (r *Reconciler) canManageDaemonSets(ctx context.Context, namespace string) 
 		}
 		if err := r.Client.Create(ctx, sar); err != nil {
 			return false, fmt.Sprintf("unable to check %s permission: %v", verb, err)
+		}
+		if sar.Status.EvaluationError != "" {
+			return false, fmt.Sprintf("unable to evaluate %s permission: %s", verb, sar.Status.EvaluationError)
 		}
 		if !sar.Status.Allowed {
 			reason := sar.Status.Reason
@@ -1143,11 +1141,6 @@ func (r *Reconciler) refreshPodsFromSts(ns, name, resourceType string) error {
 }
 
 func (r *Reconciler) refreshPodsFromDaemonSet(ns, name, resourceType string) error {
-	if !r.daemonSetManagementEnabled() {
-		klog.V(2).Infof("Skipping DaemonSet refresh in namespace %s because DaemonSet management is disabled", ns)
-		return nil
-	}
-
 	allowed, reason := r.canManageDaemonSets(context.TODO(), ns)
 	if !allowed {
 		klog.Warningf("Skipping DaemonSet refresh in namespace %s because ODLM does not have the required permissions: %s", ns, reason)
