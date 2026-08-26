@@ -100,7 +100,6 @@ func main() {
 
 	isolatedModeEnable := true
 	operatorCheckerDisable := util.GetoperatorCheckerMode()
-	manageDaemonSets := util.GetManageDaemonSets()
 	config := ctrl.GetConfigOrDie()
 	options = k8sutil.NewODLMCache(isolatedModeEnable, options, config)
 
@@ -134,8 +133,7 @@ func main() {
 		os.Exit(1)
 	}
 	if err = (&operandbindinfo.Reconciler{
-		ODLMOperator:     deploy.NewODLMOperator(mgr, "OperandBindInfo"),
-		ManageDaemonSets: &manageDaemonSets,
+		ODLMOperator: deploy.NewODLMOperator(mgr, "OperandBindInfo"),
 	}).SetupWithManager(mgr); err != nil {
 		klog.Errorf("unable to create controller OperandBindInfo: %v", err)
 		os.Exit(1)
