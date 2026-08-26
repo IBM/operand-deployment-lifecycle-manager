@@ -153,23 +153,6 @@ func GetNoOLM() string {
 	return enabled
 }
 
-// GetManageDaemonSets returns whether ODLM should manage DaemonSets.
-// DaemonSet management remains enabled by default for backward compatibility.
-func GetManageDaemonSets() bool {
-	enabled, found := os.LookupEnv("MANAGE_DAEMONSETS")
-	if !found {
-		return true
-	}
-
-	manageDaemonSets, err := strconv.ParseBool(enabled)
-	if err != nil {
-		klog.Warningf("Invalid MANAGE_DAEMONSETS value %q; defaulting to true", enabled)
-		return true
-	}
-
-	return manageDaemonSets
-}
-
 // GetInstallScope returns the scope of the installation
 func GetInstallScope() string {
 	ns, found := os.LookupEnv("INSTALL_SCOPE")

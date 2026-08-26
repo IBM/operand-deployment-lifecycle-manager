@@ -27,10 +27,6 @@ import (
 var _ = Describe("Get environmental variables", func() {
 
 	Context("Check environmental variables", func() {
-		AfterEach(func() {
-			Expect(os.Unsetenv("MANAGE_DAEMONSETS")).To(Succeed())
-		})
-
 		It("Should get OPERATOR_NAMESPACE", func() {
 			testNs := "system"
 			err := os.Setenv("OPERATOR_NAMESPACE", testNs)
@@ -64,21 +60,6 @@ var _ = Describe("Get environmental variables", func() {
 
 			ns := GetInstallScope()
 			Expect(ns).Should(Equal(scope))
-		})
-
-		It("Should manage DaemonSets by default", func() {
-			Expect(os.Unsetenv("MANAGE_DAEMONSETS")).To(Succeed())
-			Expect(GetManageDaemonSets()).To(BeTrue())
-		})
-
-		It("Should allow DaemonSet management to be disabled", func() {
-			Expect(os.Setenv("MANAGE_DAEMONSETS", "false")).To(Succeed())
-			Expect(GetManageDaemonSets()).To(BeFalse())
-		})
-
-		It("Should keep the backward-compatible default for an invalid DaemonSet setting", func() {
-			Expect(os.Setenv("MANAGE_DAEMONSETS", "invalid")).To(Succeed())
-			Expect(GetManageDaemonSets()).To(BeTrue())
 		})
 
 		It("Should string slice be equal", func() {
