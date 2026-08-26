@@ -168,7 +168,7 @@ rules:
   - patch
   - update
   - watch
-{{- if $.Values.operandBindInfo.manageDaemonSets }}
+{{- if $.Values.operandBindInfo.grantDaemonSetRBAC }}
 - apiGroups:
   - apps
   resources:
