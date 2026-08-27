@@ -1020,11 +1020,10 @@ func (r *Reconciler) refreshPods(ns, name, resourceType string) error {
 	return nil
 }
 
-func (r *Reconciler) canManageDaemonSets(ctx context.Context, namespace string) (bool, string) {
-	if r.daemonSetPermissionChecker != nil {
-		return r.daemonSetPermissionChecker(ctx, namespace)
-	}
-
+func (r *Reconciler) canManageDaemonSets(
+	ctx context.Context,
+	namespace string,
+) (bool, string, error) {
 	for _, verb := range []string{"list", "update"} {
 		sar := &authorizationv1.SelfSubjectAccessReview{
 			Spec: authorizationv1.SelfSubjectAccessReviewSpec{
@@ -1036,22 +1035,40 @@ func (r *Reconciler) canManageDaemonSets(ctx context.Context, namespace string) 
 				},
 			},
 		}
+
 		if err := r.Client.Create(ctx, sar); err != nil {
-			return false, fmt.Sprintf("unable to check %s permission: %v", verb, err)
+			if apierrors.IsForbidden(err) || apierrors.IsUnauthorized(err) {
+				return false, fmt.Sprintf(
+					"unable to perform SelfSubjectAccessReview for %s permission: %v",
+					verb, err,
+				), nil
+			}
+			return false, "", fmt.Errorf(
+				"failed to check DaemonSet %s permission: %w",
+				verb, err,
+			)
 		}
+
 		if sar.Status.EvaluationError != "" {
-			return false, fmt.Sprintf("unable to evaluate %s permission: %s", verb, sar.Status.EvaluationError)
+			return false, "", fmt.Errorf(
+				"failed to evaluate DaemonSet %s permission: %s",
+				verb, sar.Status.EvaluationError,
+			)
 		}
+
 		if !sar.Status.Allowed {
 			reason := sar.Status.Reason
 			if reason == "" {
 				reason = "access was not allowed"
 			}
-			return false, fmt.Sprintf("%s permission was denied: %s", verb, reason)
+			return false, fmt.Sprintf(
+				"%s permission was denied: %s",
+				verb, reason,
+			), nil
 		}
 	}
 
-	return true, ""
+	return true, "", nil
 }
 
 func (r *Reconciler) refreshPodsFromDeploy(ns, name, resourceType string) error {
@@ -1141,9 +1158,16 @@ func (r *Reconciler) refreshPodsFromSts(ns, name, resourceType string) error {
 }
 
 func (r *Reconciler) refreshPodsFromDaemonSet(ns, name, resourceType string) error {
-	allowed, reason := r.canManageDaemonSets(context.TODO(), ns)
+	allowed, reason, err := r.canManageDaemonSets(context.TODO(), ns)
+	if err != nil {
+		return err
+	}
 	if !allowed {
-		klog.Warningf("Skipping DaemonSet refresh in namespace %s because ODLM does not have the required permissions: %s", ns, reason)
+		klog.Warningf(
+			"Skipping DaemonSet refresh in namespace %s because ODLM does not have the required permissions: %s",
+			ns,
+			reason,
+		)
 		return nil
 	}
 
