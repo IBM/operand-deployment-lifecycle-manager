@@ -59,7 +59,7 @@ import (
 type Reconciler struct {
 	*deploy.ODLMOperator
 	Config                     *rest.Config
-	daemonSetPermissionChecker func(context.Context, string) (bool, string)
+	daemonSetPermissionChecker func(context.Context, string) (bool, string, error)
 }
 
 var (
@@ -1024,6 +1024,10 @@ func (r *Reconciler) canManageDaemonSets(
 	ctx context.Context,
 	namespace string,
 ) (bool, string, error) {
+	if r.daemonSetPermissionChecker != nil {
+		return r.daemonSetPermissionChecker(ctx, namespace)
+	}
+
 	for _, verb := range []string{"list", "update"} {
 		sar := &authorizationv1.SelfSubjectAccessReview{
 			Spec: authorizationv1.SelfSubjectAccessReviewSpec{
