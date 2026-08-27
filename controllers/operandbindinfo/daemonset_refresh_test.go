@@ -68,6 +68,8 @@ type recordingSSARClient struct {
 	client.Client
 	deniedVerb          string
 	evaluationErrorVerb string
+	createErrorVerb     string
+	createError         error
 	verbs               []string
 }
 
@@ -79,6 +81,9 @@ func (c *recordingSSARClient) Create(ctx context.Context, object client.Object, 
 
 	verb := review.Spec.ResourceAttributes.Verb
 	c.verbs = append(c.verbs, verb)
+	if verb == c.createErrorVerb && c.createError != nil {
+		return c.createError
+	}
 	review.Status.Allowed = verb != c.deniedVerb
 	if verb == c.evaluationErrorVerb {
 		review.Status.EvaluationError = "authorization backend unavailable"
@@ -88,8 +93,8 @@ func (c *recordingSSARClient) Create(ctx context.Context, object client.Object, 
 
 func TestRefreshPodsSkipsDaemonSetsWithoutPermission(t *testing.T) {
 	objects := refreshTestWorkloads()
-	reconciler, k8sClient := newRefreshTestReconciler(t, objects, func(context.Context, string) (bool, string) {
-		return false, "update permission was denied"
+	reconciler, k8sClient := newRefreshTestReconciler(t, objects, func(context.Context, string) (bool, string, error) {
+		return false, "update permission was denied", nil
 	})
 
 	if err := reconciler.refreshPods(refreshTestNamespace, refreshTestResourceName, refreshTestResourceType); err != nil {
@@ -103,8 +108,8 @@ func TestRefreshPodsSkipsDaemonSetsWithoutPermission(t *testing.T) {
 
 func TestRefreshPodsFromDaemonSetWithPermission(t *testing.T) {
 	objects := []client.Object{refreshTestDaemonSet()}
-	reconciler, k8sClient := newRefreshTestReconciler(t, objects, func(context.Context, string) (bool, string) {
-		return true, ""
+	reconciler, k8sClient := newRefreshTestReconciler(t, objects, func(context.Context, string) (bool, string, error) {
+		return true, "", nil
 	})
 
 	if err := reconciler.refreshPodsFromDaemonSet(refreshTestNamespace, refreshTestResourceName, refreshTestResourceType); err != nil {
@@ -115,8 +120,8 @@ func TestRefreshPodsFromDaemonSetWithPermission(t *testing.T) {
 
 func TestRefreshPodsFromDaemonSetContinuesWhenListBecomesForbidden(t *testing.T) {
 	objects := []client.Object{refreshTestDaemonSet()}
-	reconciler, k8sClient := newRefreshTestReconciler(t, objects, func(context.Context, string) (bool, string) {
-		return true, ""
+	reconciler, k8sClient := newRefreshTestReconciler(t, objects, func(context.Context, string) (bool, string, error) {
+		return true, "", nil
 	})
 	reconciler.Reader = daemonSetListForbiddenReader{Reader: k8sClient}
 
@@ -128,8 +133,8 @@ func TestRefreshPodsFromDaemonSetContinuesWhenListBecomesForbidden(t *testing.T)
 
 func TestRefreshPodsFromDaemonSetContinuesWhenUpdateBecomesForbidden(t *testing.T) {
 	objects := []client.Object{refreshTestDaemonSet()}
-	reconciler, k8sClient := newRefreshTestReconciler(t, objects, func(context.Context, string) (bool, string) {
-		return true, ""
+	reconciler, k8sClient := newRefreshTestReconciler(t, objects, func(context.Context, string) (bool, string, error) {
+		return true, "", nil
 	})
 	reconciler.Client = daemonSetUpdateForbiddenClient{Client: k8sClient}
 
@@ -145,7 +150,10 @@ func TestCanManageDaemonSetsChecksRequiredPermissions(t *testing.T) {
 	recordingClient := &recordingSSARClient{Client: k8sClient}
 	reconciler.Client = recordingClient
 
-	allowed, reason := reconciler.canManageDaemonSets(context.Background(), refreshTestNamespace)
+	allowed, reason, err := reconciler.canManageDaemonSets(context.Background(), refreshTestNamespace)
+	if err != nil {
+		t.Fatalf("expected DaemonSet permission check to succeed: %v", err)
+	}
 	if !allowed || reason != "" {
 		t.Fatalf("expected DaemonSet access to be allowed, got allowed=%t reason=%q", allowed, reason)
 	}
@@ -155,20 +163,66 @@ func TestCanManageDaemonSetsChecksRequiredPermissions(t *testing.T) {
 
 	recordingClient.verbs = nil
 	recordingClient.deniedVerb = "update"
-	allowed, reason = reconciler.canManageDaemonSets(context.Background(), refreshTestNamespace)
+	allowed, reason, err = reconciler.canManageDaemonSets(context.Background(), refreshTestNamespace)
+	if err != nil {
+		t.Fatalf("expected denied permission not to return an operational error: %v", err)
+	}
 	if allowed || reason == "" {
 		t.Fatalf("expected update permission to be denied, got allowed=%t reason=%q", allowed, reason)
 	}
 
 	recordingClient.deniedVerb = ""
+	for _, tc := range []struct {
+		name      string
+		createErr error
+	}{
+		{
+			name: "forbidden",
+			createErr: apierrors.NewForbidden(
+				schema.GroupResource{Group: authorizationv1.GroupName, Resource: "selfsubjectaccessreviews"},
+				"",
+				errors.New("forbidden"),
+			),
+		},
+		{
+			name:      "unauthorized",
+			createErr: apierrors.NewUnauthorized("unauthorized"),
+		},
+	} {
+		t.Run("SSAR_"+tc.name+"_is_non_blocking", func(t *testing.T) {
+			recordingClient.verbs = nil
+			recordingClient.createErrorVerb = "list"
+			recordingClient.createError = tc.createErr
+
+			allowed, reason, err = reconciler.canManageDaemonSets(context.Background(), refreshTestNamespace)
+			if err != nil {
+				t.Fatalf("expected %s SSAR error to be non-blocking: %v", tc.name, err)
+			}
+			if allowed || reason == "" {
+				t.Fatalf("expected %s SSAR error to disable DaemonSet access, got allowed=%t reason=%q", tc.name, allowed, reason)
+			}
+		})
+	}
+
+	recordingClient.verbs = nil
+	recordingClient.createErrorVerb = "list"
+	recordingClient.createError = errors.New("temporary API failure")
+	allowed, reason, err = reconciler.canManageDaemonSets(context.Background(), refreshTestNamespace)
+	if err == nil {
+		t.Fatalf("expected temporary SSAR API failure to return an error, got allowed=%t reason=%q", allowed, reason)
+	}
+
+	recordingClient.verbs = nil
+	recordingClient.createErrorVerb = ""
+	recordingClient.createError = nil
 	recordingClient.evaluationErrorVerb = "list"
-	allowed, reason = reconciler.canManageDaemonSets(context.Background(), refreshTestNamespace)
-	if allowed || reason == "" {
-		t.Fatalf("expected evaluation error to disable DaemonSet access, got allowed=%t reason=%q", allowed, reason)
+	allowed, reason, err = reconciler.canManageDaemonSets(context.Background(), refreshTestNamespace)
+	if err == nil {
+		t.Fatalf("expected evaluation error to return an error, got allowed=%t reason=%q", allowed, reason)
 	}
 }
 
-func newRefreshTestReconciler(t *testing.T, objects []client.Object, permissionChecker func(context.Context, string) (bool, string)) (*Reconciler, client.Client) {
+func newRefreshTestReconciler(t *testing.T, objects []client.Object, permissionChecker func(context.Context, string) (bool, string, error)) (*Reconciler, client.Client) {
 	t.Helper()
 
 	scheme := runtime.NewScheme()
