@@ -24,7 +24,10 @@ require (
 	sigs.k8s.io/controller-runtime v0.16.1
 )
 
-require k8s.io/apiextensions-apiserver v0.28.2 // indirect
+require (
+	golang.org/x/crypto v0.56.0 // indirect
+	k8s.io/apiextensions-apiserver v0.28.2 // indirect
+)
 
 require (
 	github.com/Shopify/logrus-bugsnag v0.0.0-20240507214313-004243a594f4 // indirect
@@ -92,8 +95,8 @@ require (
 	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/tools v0.49.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260414002931-afd174a4e478 // indirect
-	google.golang.org/grpc v1.82.1 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260526163538-3dc84a4a5aaa // indirect
+	google.golang.org/grpc v1.83.1 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
