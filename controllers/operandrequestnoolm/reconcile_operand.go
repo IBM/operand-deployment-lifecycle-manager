@@ -811,23 +811,10 @@ func (r *Reconciler) updateCustomResource(ctx context.Context, existingCR unstru
 			return false, err
 		}
 
-		existingCRRaw, err := json.Marshal(existingCR.Object["spec"])
-		if err != nil {
-			klog.Error(err)
-			return false, err
-		}
-
-		// Merge spec from ALM example and existing CR
-		updatedExistingCR := util.MergeCR(configFromALMRaw, existingCRRaw)
-
-		updatedExistingCRRaw, err := json.Marshal(updatedExistingCR)
-		if err != nil {
-			klog.Error(err)
-			return false, err
-		}
-
-		// Merge spec from update existing CR and OperandConfig spec
-		updatedCRSpec := util.MergeCR(updatedExistingCRRaw, crConfig)
+		// Merge ALM example spec with OperandConfig spec.
+		// Using the ALM template as the base (not the existing CR) ensures that
+		// fields removed from OperandConfig are not carried forward from the live CR.
+		updatedCRSpec := util.MergeCR(configFromALMRaw, crConfig)
 
 		if equality.Semantic.DeepEqual(existingCR.Object["spec"], updatedCRSpec) && !forceUpdate {
 			return true, nil
