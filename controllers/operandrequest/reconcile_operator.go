@@ -137,7 +137,12 @@ func (r *Reconciler) reconcileOperator(ctx context.Context, requestInstance *ope
 func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance *operatorv1alpha1.OperandRequest, registryInstance *operatorv1alpha1.OperandRegistry, operand operatorv1alpha1.Operand, registryKey types.NamespacedName, mu sync.Locker) error {
 	// Check the requested Operand if exist in specific OperandRegistry
 	var opt *operatorv1alpha1.Operator
+	var explicitCatalog bool
 	if registryInstance != nil {
+		// Capture the requested source before discovery fills in an automatic source.
+		if requested := registryInstance.GetOperator(operand.Name); requested != nil {
+			explicitCatalog = requested.SourceName != "" && requested.SourceNamespace != ""
+		}
 		var err error
 		opt, err = r.GetOperandFromRegistry(ctx, registryInstance, operand.Name)
 		if err != nil {
@@ -279,8 +284,13 @@ func (r *Reconciler) reconcileSubscription(ctx context.Context, requestInstance 
 			}
 			// update the spec iff channel in sub matches channel
 			if sub.Spec.Channel == opt.Channel {
-				sub.Spec.CatalogSource = opt.SourceName
-				sub.Spec.CatalogSourceNamespace = opt.SourceNamespace
+				// Keep the existing catalog during same-channel reconciliation unless
+				// the registry explicitly selects a source. Temporary catalog outages
+				// must not redirect subscriptions to an automatically discovered source.
+				if explicitCatalog || sub.Spec.Channel != originalSub.Spec.Channel {
+					sub.Spec.CatalogSource = opt.SourceName
+					sub.Spec.CatalogSourceNamespace = opt.SourceNamespace
+				}
 				sub.Spec.Package = opt.PackageName
 
 				if opt.InstallPlanApproval != "" && sub.Spec.InstallPlanApproval != opt.InstallPlanApproval {
