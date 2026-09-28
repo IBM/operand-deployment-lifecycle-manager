@@ -31,6 +31,7 @@ import (
 	authorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog"
@@ -89,6 +90,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	}
 
 	klog.V(2).Infof("DEBUG: Starting reconciliation for OperandRequest: %s/%s", req.Namespace, req.Name)
+	operationStartTime := metav1.Now()
 	originalInstance := requestInstance.DeepCopy()
 
 	// Always attempt to patch the status after each reconciliation.
@@ -96,6 +98,22 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		// Don't update status for deleted objects
 		if !requestInstance.DeletionTimestamp.IsZero() {
 			return
+		}
+
+		// Record operation timing when the reconcile loop reaches a terminal result
+		// (Running phase or failure), not on every requeue.
+		operationEndTime := metav1.Now()
+		finalPhase := requestInstance.Status.Phase
+		isTerminal := finalPhase == operatorv1alpha1.ClusterPhaseRunning ||
+			finalPhase == operatorv1alpha1.ClusterPhaseFailed
+		if isTerminal || reconcileErr != nil {
+			entry := operatorv1alpha1.OperationTimingEntry{
+				StartTime:     operationStartTime,
+				EndTime:       operationEndTime,
+				TotalDuration: operationEndTime.Sub(operationStartTime.Time).Round(time.Second).String(),
+				Phase:         finalPhase,
+			}
+			requestInstance.PrependOperationTiming(entry)
 		}
 
 		// Only update if status has changed from the original

@@ -184,6 +184,34 @@ type ServiceStatus struct { //Top level service status
 	Resources []OperandStatus `json:"resources,omitempty"`
 }
 
+// DependencyTime records the wait period for one immediate dependency.
+type DependencyTime struct {
+	// Component is the name of the dependency.
+	Component string `json:"component"`
+	// StartTime is when the operator began waiting for this dependency.
+	StartTime metav1.Time `json:"startTime"`
+	// ReadyTime is when the dependency reached a ready state.
+	ReadyTime metav1.Time `json:"readyTime"`
+	// DependencyDuration is the human-readable elapsed time (readyTime - startTime).
+	DependencyDuration string `json:"dependencyDuration"`
+}
+
+// OperationTimingEntry records timing for a single install/upgrade/patch operation.
+type OperationTimingEntry struct {
+	// StartTime is when the operation began.
+	StartTime metav1.Time `json:"startTime"`
+	// EndTime is when the operation ended.
+	EndTime metav1.Time `json:"endTime"`
+	// TotalDuration is the human-readable elapsed time (endTime - startTime).
+	TotalDuration string `json:"totalDuration"`
+	// Phase is the final phase of the operation (e.g. Running, Failed).
+	Phase ClusterPhase `json:"phase"`
+	// DependencyTime records wait times for each immediate dependency.
+	// Omit if the service has no dependencies.
+	// +optional
+	DependencyTime []DependencyTime `json:"dependencyTime,omitempty"`
+}
+
 // OperandRequestStatus defines the observed state of OperandRequest.
 type OperandRequestStatus struct {
 	// Conditions represents the current state of the Request Service.
@@ -199,6 +227,9 @@ type OperandRequestStatus struct {
 	Phase ClusterPhase `json:"phase,omitempty"`
 	//Services reflect the status of operands beyond whether they have been created
 	Services []ServiceStatus `json:"services,omitempty"`
+	// OperationTiming stores the latest five operation timing entries, most recent first.
+	// +optional
+	OperationTiming []OperationTimingEntry `json:"operationTiming,omitempty"`
 }
 
 // MemberPhase shows the phase of the operator and operator instance.
@@ -553,6 +584,15 @@ func newMemberStatus(name string, operatorPhase OperatorPhase, operandPhase Serv
 			OperandPhase:  operandPhase,
 		},
 	}
+}
+
+// PrependOperationTiming prepends a new OperationTimingEntry and keeps the latest 5 entries.
+func (r *OperandRequest) PrependOperationTiming(entry OperationTimingEntry) {
+	updated := append([]OperationTimingEntry{entry}, r.Status.OperationTiming...)
+	if len(updated) > 5 {
+		updated = updated[:5]
+	}
+	r.Status.OperationTiming = updated
 }
 
 // SetClusterPhase sets the current Phase status
