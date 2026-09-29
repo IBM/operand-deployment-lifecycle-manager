@@ -71,8 +71,8 @@ func NewODLMCache(isolatedModeEnable bool, opts ctrl.Options, config *rest.Confi
 		&appsv1.StatefulSet{}: {Label: cacheFreshLabelSelector},
 	}
 
-	// Only cache OLM resources if OLM API exists in the cluster
-	if util.IsOLMInstalled(config) {
+	// Helm installations must not cache OLM resources, even on clusters with OLM.
+	if util.GetNoOLM() != "true" && util.IsOLMInstalled(config) {
 		cacheByObject[&olmv1alpha1.ClusterServiceVersion{}] = cache.ByObject{} // Cache is needed because the action for deleting CSVs
 		cacheByObject[&olmv1alpha1.Subscription{}] = cache.ByObject{}          // Cache all subscriptions for any labeled and unlabeled subscriptions
 	}

@@ -436,9 +436,9 @@ func (m *ODLMOperator) ListOperandRequestsByConfig(ctx context.Context, key type
 func (m *ODLMOperator) GetSubscription(ctx context.Context, name, operatorNs, servicesNs, packageName string) (*olmv1alpha1.Subscription, error) {
 	klog.V(3).Infof("Fetch Subscription %s in operatorNamespace %s and servicesNamespace %s", name, operatorNs, servicesNs)
 
-	// Check if OLM is installed in the cluster
-	if !util.IsOLMInstalled(m.Config) {
-		klog.Info("No subscription, OLM is not installed in the cluster")
+	// Respect the install mode even when the cluster provides OLM APIs.
+	if util.GetNoOLM() == "true" || !util.IsOLMInstalled(m.Config) {
+		klog.Info("No subscription, OLM is disabled or not installed in the cluster")
 		return nil, nil
 	}
 
