@@ -65,19 +65,6 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - persistentvolumeclaims/status
-  - services/status
-  - pods/status
-  verbs:
-  - get
-  - list
-  - watch
-  - update
-  - patch
-  - delete
-- apiGroups:
-  - ""
-  resources:
   - namespaces
   verbs:
   - get
