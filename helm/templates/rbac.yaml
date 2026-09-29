@@ -43,7 +43,6 @@ rules:
   - services
   - serviceaccounts
   - pods #for EDB
-  - events
   - persistentvolumeclaims
   verbs:
   - create
@@ -52,6 +51,16 @@ rules:
   - list
   - patch
   - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - get
+  - list
+  - patch
   - watch
 - apiGroups:
   - ""
@@ -72,8 +81,6 @@ rules:
   - namespaces
   verbs:
   - get
-  - list
-  - watch  
 - apiGroups:
   - postgresql.k8s.enterprisedb.io
   - pg.ibm.com
@@ -194,18 +201,6 @@ rules:
   - batch
   resources:
   - jobs
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - certmanager.k8s.io
-  resources:
-  - certificates
   verbs:
   - create
   - delete
