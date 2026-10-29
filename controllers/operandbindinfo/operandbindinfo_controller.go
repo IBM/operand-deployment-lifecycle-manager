@@ -1284,8 +1284,25 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	if err != nil {
 		return err
 	}
+	routeCRDFound := false
 	for _, apiList := range apiLists {
 		if apiList.GroupVersion == routeGroupVersion {
+			routeCRDFound = true
+			break
+		}
+	}
+	if routeCRDFound {
+		// Confirm the service account actually has permission to list routes before
+		// registering the Watch.  On plain-Kubernetes or restricted Helm deployments
+		// the Route CRD may be present but the RBAC rules may not be applied, which
+		// causes the informer's initial List call to fail with a "forbidden" error at
+		// startup.
+		allowed, err := r.CanI(context.TODO(), "route.openshift.io", "routes", "list", "")
+		if err != nil {
+			klog.Warningf("Failed to check Route list permission, Route Watch will be disabled: %v", err)
+		} else if !allowed {
+			klog.Infof("Service account does not have permission to list routes, Route Watch will be disabled")
+		} else {
 			isRouteAPI = true
 		}
 	}

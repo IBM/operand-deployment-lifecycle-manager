@@ -162,7 +162,7 @@ rules:
   - patch
   - update
   - watch
-{{- if $.Values.operandBindInfo.grantDaemonSetRBAC }}
+{{- if $.Values.cpfs.operandBindInfo.grantDaemonSetRBAC }}
 - apiGroups:
   - apps
   resources:
@@ -266,6 +266,8 @@ rules:
   - patch
   - update
   - watch
+{{- end }}
+{{- if $.Values.cpfs.operandBindInfo.grantRouteRBAC }}
 - apiGroups:
   - route.openshift.io
   resources:

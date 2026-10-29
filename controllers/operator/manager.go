@@ -255,6 +255,36 @@ func (m *ODLMOperator) CheckResAuth(ctx context.Context, namespace, group, resou
 	return sar.Status.Allowed
 }
 
+// CanI performs a SelfSubjectAccessReview (SSAR) to check whether the operator
+// service account is allowed to perform the given verb on the given resource.
+// Unlike CheckResAuth, it returns the underlying error to the caller so it can
+// be logged or handled appropriately, and supports an optional resource name.
+//
+// Notes:
+//   - This allows us to keep the default ClusterRole minimal and still do optional cleanup.
+//   - If the SSAR itself cannot be created (RBAC missing / API not served), we default to
+//     "not allowed" and return the error so callers can log it.
+func (m *ODLMOperator) CanI(ctx context.Context, group, resource, verb, name string) (bool, error) {
+	sar := &authorizationv1.SelfSubjectAccessReview{
+		Spec: authorizationv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authorizationv1.ResourceAttributes{
+				Group:    group,
+				Resource: resource,
+				Verb:     verb,
+				Name:     name,
+			},
+		},
+	}
+
+	if err := m.Create(ctx, sar); err != nil {
+		return false, err
+	}
+
+	klog.V(2).Infof("SSAR verb=%s resource=%s.%s name=%s => allowed=%v reason=%q", verb, resource, group, name, sar.Status.Allowed, sar.Status.Reason)
+
+	return sar.Status.Allowed, nil
+}
+
 func channelCheck(channelName string, channelList []operatorsv1.PackageChannel) bool {
 	for _, channel := range channelList {
 		if channelName == channel.Name {
