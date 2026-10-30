@@ -234,7 +234,28 @@ func (m *ODLMOperator) GetCatalogSourceAndChannelFromPackage(ctx context.Context
 	}
 }
 
+// CheckResAuth is a backwards-compatible wrapper around CanI that suppresses
+// the error, logging any failure at the error level.
 func (m *ODLMOperator) CheckResAuth(ctx context.Context, namespace, group, resource, verb string) bool {
+	allowed, err := m.CanI(ctx, namespace, group, resource, verb, "")
+	if err != nil {
+		klog.Errorf("Failed to check operator permission for Kind %s in namespace %s: %v", resource, namespace, err)
+		return false
+	}
+	return allowed
+}
+
+// CanI performs a SelfSubjectAccessReview (SSAR) to check whether the operator
+// service account is allowed to perform the given verb on the given resource.
+// It supports optional namespace and resource name specifications.
+// Unlike CheckResAuth, it returns the underlying error to the caller so it can
+// be logged or handled appropriately.
+//
+// Notes:
+//   - This allows us to keep the default ClusterRole minimal and still do optional cleanup.
+//   - If the SSAR itself cannot be created (RBAC missing / API not served), we default to
+//     "not allowed" and return the error so callers can log it.
+func (m *ODLMOperator) CanI(ctx context.Context, namespace, group, resource, verb, name string) (bool, error) {
 	sar := &authorizationv1.SelfSubjectAccessReview{
 		Spec: authorizationv1.SelfSubjectAccessReviewSpec{
 			ResourceAttributes: &authorizationv1.ResourceAttributes{
@@ -242,17 +263,18 @@ func (m *ODLMOperator) CheckResAuth(ctx context.Context, namespace, group, resou
 				Group:     group,
 				Resource:  resource,
 				Verb:      verb,
+				Name:      name,
 			},
 		},
 	}
+
 	if err := m.Create(ctx, sar); err != nil {
-		klog.Errorf("Failed to check operator permission for Kind %s in namespace %s: %v", resource, namespace, err)
-		return false
+		return false, err
 	}
 
-	klog.V(2).Infof("Operator %s permission in namespace %s for Kind: %s, Allowed: %t, Denied: %t, Reason: %s", verb, namespace, resource, sar.Status.Allowed, sar.Status.Denied, sar.Status.Reason)
+	klog.V(2).Infof("SSAR verb=%s resource=%s.%s namespace=%s name=%s => allowed=%v reason=%q", verb, resource, group, namespace, name, sar.Status.Allowed, sar.Status.Reason)
 
-	return sar.Status.Allowed
+	return sar.Status.Allowed, nil
 }
 
 func channelCheck(channelName string, channelList []operatorsv1.PackageChannel) bool {

@@ -9,15 +9,25 @@ global:
   imagePullPrefix: icr.io
 
 # Note there are no leading or trailing /'s
+# cpfs.operandBindInfo.grantDaemonSetRBAC: controls whether this Helm chart grants
+# DaemonSet RBAC. When false, the controller can still manage DaemonSets if
+# permission is granted elsewhere.
+#
+# cpfs.operandBindInfo.grantRouteRBAC: controls whether this Helm chart grants Route
+# RBAC. Set to false on plain-Kubernetes or Helm deployments where OpenShift
+# Routes are not used (e.g. when Keycloak and OperandBindInfo Route binding are
+# both disabled). The controller performs a runtime SSAR check and silently
+# skips Route operations when the permission is absent.
+
+
 cpfs:
   imageRegistryNamespaceOperator: cpopen
   imageRegistryNamespaceOperand: cpopen/cpfs
   labels:
+  operandBindInfo:
+    grantDaemonSetRBAC: true
+    grantRouteRBAC: true
 
-# Controls whether this Helm chart grants DaemonSet RBAC. When false, the
-# controller can still manage DaemonSets if permission is granted elsewhere.
-operandBindInfo:
-  grantDaemonSetRBAC: true
 
 # other configuration you think you might need for your operator
 # following are examples, not required:
