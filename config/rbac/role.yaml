@@ -194,3 +194,10 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - operator.ibm.com
+  resources:
+  - commonservices
+  verbs:
+  - get
+  - patch

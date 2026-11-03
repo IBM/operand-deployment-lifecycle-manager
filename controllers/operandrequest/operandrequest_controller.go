@@ -75,6 +75,7 @@ type clusterObjects struct {
 //+kubebuilder:rbac:groups=packages.operators.coreos.com,namespace="placeholder",resources=packagemanifests,verbs=get;list;patch;update;watch
 //+kubebuilder:rbac:groups=operators.coreos.com,namespace="placeholder",resources=clusterserviceversions;subscriptions,verbs=create;delete;get;list;patch;update;watch
 //+kubebuilder:rbac:groups=pg.ibm.com,namespace="placeholder",resources=imagecatalogs,verbs=create;delete;get;update
+//+kubebuilder:rbac:groups=operator.ibm.com,namespace="placeholder",resources=commonservices,verbs=get;patch
 
 // Reconcile reads that state of the cluster for a OperandRequest object and makes changes based on the state read
 // and what is in the OperandRequest.Spec
