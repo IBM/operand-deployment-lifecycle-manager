@@ -5,7 +5,7 @@
     "sourceNamespace": "ubi9",
     "sourceImage": "ubi-minimal",
     "destImage": "ubi9-minimal",
-    "tag": "9.8-1793253163",
+    "tag": "9.8-1793578971",
     "updatePackages": []
   },
   {
@@ -14,7 +14,7 @@
     "sourceNamespace": "ubi9",
     "sourceImage": "ubi",
     "destImage": "ubi9",
-    "tag": "9.8-1793179168",
+    "tag": "9.8-1793580630",
     "updatePackages": []
   },
   {
@@ -29,16 +29,16 @@
   {
     "imageType": "node",
     "sourceImage": "ubi9-minimal",
-    "sourceTag": "9.8-1793253163",
+    "sourceTag": "9.8-1793578971",
     "destImage": "node-v22-ubi9-minimal",
     "nodeVersion": "22.23.4"
   },
   {
     "imageType": "node",
     "sourceImage": "ubi9-minimal",
-    "sourceTag": "9.8-1793253163",
+    "sourceTag": "9.8-1793578971",
     "destImage": "node-v24-ubi9-minimal",
-    "nodeVersion": "24.22.0"
+    "nodeVersion": "24.22.2"
   },
   {
     "imageType": "external",
@@ -46,7 +46,7 @@
     "sourceNamespace": "ubi10",
     "sourceImage": "ubi-minimal",
     "destImage": "ubi10-minimal",
-    "tag": "10.2-1792742351",
+    "tag": "10.2-1793642335",
     "updatePackages": []
   },
   {
@@ -55,7 +55,7 @@
     "sourceNamespace": "ubi10",
     "sourceImage": "ubi",
     "destImage": "ubi10",
-    "tag": "10.2-1792744468",
+    "tag": "10.2-1793697573",
     "updatePackages": []
   },
   {
@@ -70,15 +70,15 @@
   {
     "imageType": "node",
     "sourceImage": "ubi10-minimal",
-    "sourceTag": "10.2-1792742351",
+    "sourceTag": "10.2-1793642335",
     "destImage": "node-v22-ubi10-minimal",
     "nodeVersion": "22.23.4"
   },
   {
     "imageType": "node",
     "sourceImage": "ubi10-minimal",
-    "sourceTag": "10.2-1792742351",
+    "sourceTag": "10.2-1793642335",
     "destImage": "node-v24-ubi10-minimal",
-    "nodeVersion": "24.22.0"
+    "nodeVersion": "24.22.2"
   }
 ]
